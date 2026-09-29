@@ -4,7 +4,7 @@
 > **Data**: 29 settembre 2026  
 > **Target Architettura**: Windows 11 x64 (`x86_64-pc-windows-msvc`)  
 > **Branch**: `windows-build`  
-> **Stato Fase 3**: **Completata con successo e pronta per il commit**
+> **Stato Fase 3**: **Chiusa e committata** (`d136bb0`)
 
 ---
 
@@ -89,5 +89,5 @@ Evidenze complete archiviate in:
 ---
 
 ## 5. Prossimi Passi (Fase 4)
-* Eseguire il commit atomico di Fase 3.
-* Avviare la **Fase 4**: Scrittura e validazione dello script di packaging riproducibile (`scripts/package-v6mini-windows.ps1`).
+* Commit atomico di Fase 3 eseguito (`d136bb0`).
+* Avviata la **Fase 4**: Scrittura e validazione dello script di packaging riproducibile (`scripts/package-v6mini-windows.ps1`).

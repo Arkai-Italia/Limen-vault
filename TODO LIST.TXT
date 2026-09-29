@@ -12,11 +12,16 @@ Stato: Fase 1 chiusa e committata (commit 08cdf035f5f6a219ffceed9004b9b780bb1b1a
    - Disaccoppiamento percorsi macOS: rimossa l'assegnazione di GGML_BACKEND_PATH a libggml-metal.so su Windows (gated su #[cfg(target_os = "macos")]), lasciando che il runtime carichi le librerie native Win32 (ggml-vulkan.dll e DLL CPU) direttamente dalla cartella dell'eseguibile (resources/native/).
    - Separazione e coesistenza porte: bge-m3 e Ministral allocano porte loopback indipendenti tramite find_free_port(), con test di coesistenza simultanea privo di collisioni (127.0.0.1). Flag CREATE_NO_WINDOW (0x08000000) garantito su tutti gli avvii Windows.
    - Validazione test Rust: 57 test unitari su 57 superati con codice 0 su llama e llama_llm. Evidenze archiviate in IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/fase2-llama-server-cpu-gpu.txt.
-8. Configurazione Tauri Windows e Disaccoppiamento Risorse (Fase 3):
+8. Configurazione Tauri Windows e Disaccoppiamento Risorse (Fase 3 chiusa e committata: d136bb0):
    - Disaccoppiamento configurazione: creata configurazione comune condivisa in tauri.conf.json (sole risorse template, mcp, HELP e documentazione), override macOS in tauri.macos.conf.json (target app/dmg, overlay titlebar, risorse macOS native) e override Windows in tauri.windows.conf.json (target nsis, installMode: currentUser per-utente senza UAC, risorse resources/native-windows/ mappate a native/).
    - Disaccoppiamento risorse native: creata cartella isolata resources/native-windows/ popolata con 20 binari e DLL Win32 x64 (llama-server.exe, llama.dll, ggml.dll, ggml-base.dll, mtmd.dll, ggml-vulkan.dll, 14 DLL CPU x64) ed escluso totalmente ogni artefatto macOS (Mach-O, .dylib, .so).
    - Aggiornato .gitignore per ignorare i binari pesanti e preservare .gitkeep e README. Aggiornato cand_dev in llama.rs per rilevare native-windows in dev.
    - Validazione esecutiva: cargo check terminato con codice 0 (confermato merge automatico di tauri.windows.conf.json), typecheck frontend terminato con codice 0, test unitari rilevamento binario superati con codice 0. Evidenze archiviate in IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/fase3-configurazione-tauri-disaccoppiamento-risorse.md.
+9. Script di Packaging Riproducibile e Installer NSIS (Fase 4 chiusa e committata: 00721e2):
+   - Realizzato script scripts/package-v6mini-windows.ps1 con gestione errori rigorosa ($LASTEXITCODE -eq 0, verifica assenza residui macOS, validazione dist/index.html reale da 477 byte e allineamento titolo frontend a LIMEN Vault v6Mini).
+   - Generato con successo l'installer NSIS di release x86_64-pc-windows-msvc: USER INSTALL WINDOWS/LIMEN-Vault-v6Mini-0.6.0-windows-x64-setup.exe (dimensione: 19.007.431 byte, checksum SHA-256: 2e851af9f55d9f2e30a56cf956ddf17c24da417657afaa93d0bb144494b42092). Generato file SHA256SUMS.txt. Evidenze archiviate in IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/fase4-packaging-nsis.md.
+10. Collaudo Matrice dei 24 Criteri su Ambiente Isolato (Fase 5 in corso):
+   - Predisposizione e verifica account/ambiente pulito isolato per installazione ed esecuzione prove.
 
 ARCHIVIO CHAT CODEX — 29 settembre 2026
 Stato: completato e pubblicato su origin/windows-build; commit archivio 30d97ca, push confermato dal remoto. CHAT_CODEX contiene 7 chat e 565 messaggi verificati, indice, manifest e script di aggiornamento.
