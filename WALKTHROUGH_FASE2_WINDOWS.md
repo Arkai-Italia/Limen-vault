@@ -3,7 +3,7 @@
 > **Progetto**: LIMEN Vault v6Mini (`dev.arkai.limenvault`, v0.6.0)  
 > **Data**: 29 settembre 2026  
 > **Branch**: `windows-build`  
-> **Stato Fase 2**: **Completata e committata (commit `e8acc71`)**
+> **Stato Fase 2**: **Completata e committata (commit `0213f6a`)**
 
 ---
 

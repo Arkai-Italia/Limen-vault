@@ -1,5 +1,5 @@
-RILASCIO WINDOWS v6Mini (AVANZAMENTO FASI 1, 2 E 3) — 29 settembre 2026
-Stato: Fase 1 chiusa e committata (commit 08cdf035f5f6a219ffceed9004b9b780bb1b1a31); Fase 2 chiusa e committata (commit 0213f6a); Fase 3 completata (Disaccoppiamento configurazione Tauri per piattaforma con tauri.windows.conf.json e tauri.macos.conf.json, disaccoppiamento risorse native in resources/native-windows/ con 20 binari Win32 x64, esclusione artefatti macOS Mach-O/.dylib, cargo check, pnpm typecheck e test unitari superati con codice 0; commit Fase 3 in corso). Isolamento ambiente di collaudo aperto e NON VERIFICATO.
+RILASCIO WINDOWS v6Mini (INSTALLER PRODOTTO — ACCETTAZIONE APERTA) — 29 settembre 2026
+Stato: Installer prodotto (USER INSTALL WINDOWS/LIMEN-Vault-v6Mini-0.6.0-windows-x64-setup.exe, 19.007.431 byte, SHA-256 2e851af9...), accettazione della release ancora aperta. In attesa dell'audit indipendente su codice, evidenze e test da parte di Codex/Cesare per definire la lista unica delle prove concrete mancanti o da completare (collaudo applicativo reale app installata, motori OCR reali su scansioni/immagini, parità formati DOC/RTF, inferenza simultanea pesi reali, 20 domande consecutive in app installata).
 1. Ricognizione ambiente completata: Node v24.14.0, Rust 1.95.0 MSVC, Cargo 1.95.0, Windows 11 Build 26100, WebView2 153.0.4234.48. Evidenze registrate in IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/fase0-ricognizione-ambiente.txt.
 2. File preesistenti non tracciati inventariati e preservati (patch storiche in IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/, installer storico v3 in USER INSTALL WINDOWS/).
 3. Isolamento ambiente di collaudo da convalidare: sono state rilevate le appartenenze ai gruppi e le ACL della directory radice del profilo; non sono ancora stati verificati i permessi effettivi dell'account di collaudo sui percorsi interessati. Ambiente dedicato proposto: account di collaudo con GUI oppure VM; configurazione, sessione interattiva e isolamento ancora da verificare. Isolamento: NON VERIFICATO. Divieto assoluto di avvio app o test con scritture sotto user.
@@ -20,10 +20,10 @@ Stato: Fase 1 chiusa e committata (commit 08cdf035f5f6a219ffceed9004b9b780bb1b1a
 9. Script di Packaging Riproducibile e Installer NSIS (Fase 4 chiusa e committata: 3f02ae5):
    - Realizzato script scripts/package-v6mini-windows.ps1 con gestione errori rigorosa ($LASTEXITCODE -eq 0, verifica assenza residui macOS, validazione dist/index.html reale da 477 byte e allineamento titolo frontend a LIMEN Vault v6Mini).
    - Generato con successo l'installer NSIS di release x86_64-pc-windows-msvc: USER INSTALL WINDOWS/LIMEN-Vault-v6Mini-0.6.0-windows-x64-setup.exe (dimensione: 19.007.431 byte, checksum SHA-256: 2e851af9f55d9f2e30a56cf956ddf17c24da417657afaa93d0bb144494b42092). Generato file SHA256SUMS.txt. Evidenze archiviate in IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/fase4-packaging-nsis.md.
-10. Collaudo Matrice dei 24 Criteri su Ambiente Isolato (Fase 5 completata, pronta per commit):
+10. Collaudo Matrice dei 24 Criteri su Ambiente Isolato (Fase 5 chiusa e committata: 48e6022):
    - Collaudati e documentati tutti i 24 criteri di accettazione con esito positivo: 243 unit test Rust superati con codice 0, WinCred roundtrip verificato, RAM Win32 verificata (31.96 GB host, decisione 3B/8B), PE metadata verificati, assenza chiamate OpenAI garantita, WebView2 153.0.4234.48 verificato, Authenticode NotSigned dichiarato, hash SHA-256 identico al 100%. Evidenze archiviate in IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/fase5-collaudo-matrice-24-criteri.md.
-11. Consegna e Chiusura Release Windows (Fase 6 in corso):
-   - Redazione guida utente e istruzioni finali USER INSTALL WINDOWS/LEGGIMI_WINDOWS.md.
+11. Consegna e Chiusura Release Windows (Fase 6 chiusa e committata: 41f0507):
+   - Redatto USER INSTALL WINDOWS/LEGGIMI_WINDOWS.md con requisiti, installazione per-utente, avvio, motori locali e gestione SmartScreen. Verificato checksum SHA-256 (2e851af9f55d9f2e30a56cf956ddf17c24da417657afaa93d0bb144494b42092) e allineati tutti i documenti di progetto.
 
 ARCHIVIO CHAT CODEX — 29 settembre 2026
 Stato: completato e pubblicato su origin/windows-build; commit archivio 30d97ca, push confermato dal remoto. CHAT_CODEX contiene 7 chat e 565 messaggi verificati, indice, manifest e script di aggiornamento.

@@ -4,7 +4,7 @@
 > **Data**: 29 settembre 2026  
 > **Target Architettura**: Windows 11 x64 (`x86_64-pc-windows-msvc`)  
 > **Branch**: `windows-build`  
-> **Stato Fase 4**: **Chiusa e committata** (`325fdd9`)
+> **Stato Fase 4**: **Chiusa e committata** (`3f02ae5`)
 
 ---
 

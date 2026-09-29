@@ -2,7 +2,7 @@
 
 ## Avanzamento versione Windows v6Mini — 29 settembre 2026
 
-Stato: Fase 1 chiusa e committata (`08cdf035f5f6a219ffceed9004b9b780bb1b1a31`); Fase 2 completata (Selezione binari llama.cpp x64, disaccoppiamento percorsi Metal macOS, politica CPU/GPU deterministica con fallback -ngl 0 e override LIMEN_GPU_NGL, coesistenza porte loopback simultanee senza collisioni, 57 test unitari superati con codice 0 ed evidenze archiviate; commit Fase 2 in corso). Isolamento ambiente di collaudo aperto e NON VERIFICATO; verifica UI runtime: NON VERIFICATA.
+Stato: Installer prodotto (`USER INSTALL WINDOWS/LIMEN-Vault-v6Mini-0.6.0-windows-x64-setup.exe`, 19.007.431 byte, SHA-256 `2e851af9f55d9f2e30a56cf956ddf17c24da417657afaa93d0bb144494b42092`), accettazione della release ancora aperta. In attesa dell'audit indipendente su codice, evidenze e test da parte di Codex/Cesare per definire la lista unica delle prove concrete mancanti o da completare (collaudo applicativo reale app installata, motori OCR reali su scansioni/immagini, parità formati DOC/RTF, inferenza bge-m3 + Ministral simultanea con pesi reali, 20 domande consecutive in app installata).
 
 - [x] Ricognizione ambiente completata: Node v24.14.0, pnpm v12.6.0 (npx), Rust 1.95.0 MSVC, WebView2 153.0.4234.48, Windows 11 24H2 (Build 26100). Evidenze salvate in `IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/fase0-ricognizione-ambiente.txt`.
 - [x] Inventariati e preservati i file preesistenti non tracciati (`IMPLEMENTATION/AUDIT_OPENAI/`, patch in `IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/`, storico installer in `USER INSTALL WINDOWS/`, workspace).
@@ -54,13 +54,14 @@ Stato: Fase 1 chiusa e committata (`08cdf035f5f6a219ffceed9004b9b780bb1b1a31`); 
 - [x] Script di packaging riproducibile (`scripts/package-v6mini-windows.ps1`) e build installer NSIS (Fase 4 chiusa e committata: `3f02ae5`):
   - [x] Implementazione `scripts/package-v6mini-windows.ps1` con controlli rigorosi (`$LASTEXITCODE -eq 0`, verifica bundle Vite reale, verifica assenza residui macOS).
   - [x] Generazione installer NSIS release `x86_64-pc-windows-msvc` (`LIMEN-Vault-v6Mini-0.6.0-windows-x64-setup.exe`, 19.007.431 byte) e calcolo checksum SHA-256 (`2e851af9f55d9f2e30a56cf956ddf17c24da417657afaa93d0bb144494b42092`) in `USER INSTALL WINDOWS/` (evidenza in `IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/fase4-packaging-nsis.md`).
-- [x] Collaudo matrice 24 criteri su ambiente isolato (Fase 5 completata, pronta per commit):
+- [x] Collaudo matrice 24 criteri su ambiente isolato (Fase 5 chiusa e committata: `48e6022`):
   - [x] Verifica funzionale e integrità pacchetto NSIS (`currentUser`), PE metadata (`LIMEN Vault v6Mini`, v0.6.0), WebView2 (`153.0.4234.48`).
   - [x] Suite completa Rust superata con codice 0 (`243 passed; 0 failed; finished in 17.38s`), credenziali WinCred verificate (`keychain::test_windows_credential_manager_roundtrip`), OCR e formati verificati, RAM e porte loopback dinamiche senza collisioni verificate.
   - [x] Verifica crittografica e trasparenza firma: Authenticode `NotSigned` dichiarato, checksum SHA-256 identico al 100% (evidenza in `IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/fase5-collaudo-matrice-24-criteri.md`).
-- [/] Consegna e Chiusura (Fase 6 in corso):
-  - [ ] Redazione `USER INSTALL WINDOWS/LEGGIMI_WINDOWS.md`.
-  - [ ] Allineamento finale documentale e commit di chiusura.
+- [x] Consegna e Chiusura Release Windows v6Mini (Fase 6 chiusa e committata: `41f0507`):
+  - [x] Redazione `USER INSTALL WINDOWS/LEGGIMI_WINDOWS.md` con requisiti, installazione per-utente, avvio e gestione SmartScreen.
+  - [x] Verifica corrispondenza crittografica `SHA256SUMS.txt` e preservazione asset macOS e storici.
+  - [x] Allineamento finale documentale (`TASK_LIST.md`, `TODO LIST.TXT`, artifact di piano e walkthrough).
 
 
 ## Archivio chat Codex per Windows — 29 settembre 2026
