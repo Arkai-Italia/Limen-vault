@@ -113,8 +113,38 @@ Log-Proof 2 "Creazione Vault & Persistenza" "NON_ESEGUITO_APPLICATIVO" "Creazion
 # PROVA 03: Importazione Formati & Byte-Identità
 # -----------------------------------------------------------------------------
 # L'importazione deve avvenire attraverso il catalogo e le funzioni di LIMEN.
-# Il solo Copy-Item da PowerShell non esercita l'ingestion applicativa.
-Log-Proof 3 "Importazione Formati & Byte-Identita" "NON_ESEGUITO_APPLICATIVO" "Importazione attraverso l'interfaccia o IPC di LIMEN non eseguita; verificata solo la presenza delle 7 fixture sorgente."
+# Controllo effettivo e puntuale della presenza fisica, dimensione ed integrita delle 7 fixture:
+$fixturesDir = "$RootDir\apps\desktop\tests\fixtures\ocr-spike"
+$expectedFixtures = @(
+    "fixture_1_immagine_autonoma.png",
+    "fixture_2_pdf_vettoriale_puro.pdf",
+    "fixture_3_pdf_scansionato_puro.pdf",
+    "fixture_4_pdf_misto.pdf",
+    "fixture_5_office_guasto_ocr.docx",
+    "fixture_6_rtf_document.rtf",
+    "fixture_7_doc_legacy.doc"
+)
+$checkedFixtures = @()
+$missingFixtures = @()
+foreach ($fx in $expectedFixtures) {
+    $fxPath = Join-Path $fixturesDir $fx
+    if (Test-Path $fxPath) {
+        $item = Get-Item $fxPath
+        if ($item.Length -gt 0) {
+            $checkedFixtures += "$fx ($($item.Length) bytes)"
+        } else {
+            $missingFixtures += "$fx (0 bytes vuoto)"
+        }
+    } else {
+        $missingFixtures += "$fx (assente)"
+    }
+}
+
+if ($missingFixtures.Count -eq 0 -and $checkedFixtures.Count -eq 7) {
+    Log-Proof 3 "Importazione Formati & Byte-Identita" "NON_ESEGUITO_APPLICATIVO" "Verificate fisicamente 7/7 fixture con byte non nulli ($($checkedFixtures -join ', ')). Importazione applicativa attraverso catalogo o IPC di LIMEN non eseguita."
+} else {
+    Log-Proof 3 "Importazione Formati & Byte-Identita" "FAIL" "Controllo fixture fallito. Mancanti o vuote: $($missingFixtures -join ', ')."
+}
 
 # -----------------------------------------------------------------------------
 # PROVA 04: OCR Reale & Gestione Degrado (Prova di Componente Standalone)
@@ -220,8 +250,16 @@ Log-Proof 15 "Adattabilita DPI & Layout UI" "NON_ESEGUITO_APPLICATIVO" "Prove vi
 Log-Proof 16 "Ciclo di Vita Pacchetto" "NON_ESEGUITO_APPLICATIVO" "Esecuzione reale dell'installer/uninstaller con verifica della conservazione del vault non eseguita."
 
 # -----------------------------------------------------------------------------
-# Calcolo Dinamico del Riepilogo
+# Calcolo Dinamico del Riepilogo e Determinazione Codice d'Uscita
 # -----------------------------------------------------------------------------
+# NOTA SEMANTICA FONDAMENTALE:
+# - "Censimento Eseguito": lo script di audit ha verificato con successo i binari e
+#   classificato oggettivamente lo stato di ciascuna delle 16 prove.
+# - "Collaudo Superato": richiede che tutte le 16 prove applicative siano state
+#   eseguite ed abbiano ottenuto PASS applicativo reale attraverso l'app installata.
+# NON CONSENTIRE che un codice di uscita 0 venga interpretato come "Collaudo Superato"
+# quando rimangono prove non eseguite o bloccate.
+
 $summaryLine = @"
 
 ================================================================================
@@ -231,7 +269,9 @@ RIEPILOGO STATO EFFETTIVO COLLAUDO:
 - Prove Bloccate (BLOCCATO): $($counts["BLOCCATO"])
 - Prove Fallite (FAIL): $($counts["FAIL"])
 
-CONCLUSIONE: Collaudo dell'app installata NON DIMOSTRATO. Isolamento del profilo NON REALIZZATO.
+DISTINZIONE SEMANTICA:
+- Censimento Diagnostico: ESEGUITO con successo.
+- Collaudo Applicativo Release: NON SUPERATO (Collaudo dell'app installata NON DIMOSTRATO; Isolamento del profilo NON REALIZZATO).
 ================================================================================
 "@
 $results.Add($summaryLine)
@@ -239,3 +279,14 @@ Write-Host $summaryLine -ForegroundColor Yellow
 
 Set-Content -Path $EvidenceOut -Value $results -Encoding utf8
 Write-Host "Rapporto salvato in: $EvidenceOut" -ForegroundColor Cyan
+
+if ($counts["FAIL"] -gt 0) {
+    Write-Host "`n[ESITO SCRIPT] Rilevati $($counts['FAIL']) controlli falliti. Codice uscita: 1" -ForegroundColor Red
+    exit 1
+} elseif (($counts["NON_ESEGUITO_APPLICATIVO"] -gt 0) -or ($counts["BLOCCATO"] -gt 0)) {
+    Write-Host "`n[ESITO SCRIPT] Collaudo non completato: presenti $($counts['NON_ESEGUITO_APPLICATIVO']) prove applicative non eseguite e $($counts['BLOCCATO']) prove bloccate. Codice uscita: 2 (Release non accettabile)." -ForegroundColor Yellow
+    exit 2
+} else {
+    Write-Host "`n[ESITO SCRIPT] Tutte le prove sono state eseguite con successo. Codice uscita: 0" -ForegroundColor Green
+    exit 0
+}

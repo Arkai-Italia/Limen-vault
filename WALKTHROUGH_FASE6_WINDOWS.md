@@ -31,12 +31,15 @@ La Fase 6 documenta l'installer generato e la chiusura della pipeline di packagi
 
 ---
 
-## 3. Scheda della Consegna Finale
+## 3. Scheda della Consegna Attuale (Bundle Completo con Motori OCR e Runtime)
 
 * **Directory di Consegna**: [`USER INSTALL WINDOWS/`](file:///E:/Projects/vault_memai_obsi/USER%20INSTALL%20WINDOWS/)
 * **Setup Installer**: `LIMEN-Vault-v6Mini-0.6.0-windows-x64-setup.exe`
-  - **Dimensione**: **19.007.431 byte**
-  - **Checksum SHA-256**: `2e851af9f55d9f2e30a56cf956ddf17c24da417657afaa93d0bb144494b42092`
+  - **Dimensione**: **63.063.440 byte** (58.4 MB)
+  - **Checksum SHA-256**: `222472363b76f1dc9db67bd4d282ba25c2581312c40d38048742ebbc47085249`
 * **File Checksum**: `SHA256SUMS.txt`
 * **Istruzioni Utente**: `LEGGIMI_WINDOWS.md`
 * **Stato Firma**: non firmato (`NotSigned`, SmartScreen previsto e documentato).
+* **Stato Collaudo e Accettazione**:  
+  **Componenti OCR e alcune operazioni native provati separatamente. Collaudo dell’app installata non dimostrato. Isolamento del profilo non realizzato. Parità e accettazione aperte.**
+* **Ricognizione Tecnica Ambiente**: Documentata in [`IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/ricognizione_ambiente_collaudo.md`](file:///E:/Projects/vault_memai_obsi/IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/ricognizione_ambiente_collaudo.md).

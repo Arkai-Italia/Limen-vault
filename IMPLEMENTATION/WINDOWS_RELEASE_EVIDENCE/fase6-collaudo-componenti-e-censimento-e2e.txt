@@ -1,6 +1,6 @@
 ﻿================================================================================
 VERIFICA COMPONENTI E CENSIMENTO COLLAUDO APPLICATIVO - LIMEN VAULT v6Mini
-Data Esecuzione: 2026-09-29 16:23:00
+Data Esecuzione: 2026-09-29 16:51:28
 Sistema Operativo: Microsoft Windows NT 10.0.26100.0 (Windows 11 x64)
 Account Windows Effettivo: user (NOTA: Nessun profilo OS separato configurato)
 Cartella Staging: E:\Projects\vault_memai_obsi\ISOLATED_TEST_ENV
@@ -10,7 +10,7 @@ Installer Hash SHA-256 Calcolato: 222472363b76f1dc9db67bd4d282ba25c2581312c40d38
 ================================================================================
 [PROVA 01] Installazione Pulita & WebView2            : NON_ESEGUITO_APPLICATIVO  | Binari presenti nello staging (E:\Projects\vault_memai_obsi\ISOLATED_TEST_ENV\installed_app\limen-vault.exe), WebView2 registrato v153.0.4234.48. Installazione interattiva Menu Start non eseguita.
 [PROVA 02] Creazione Vault & Persistenza              : NON_ESEGUITO_APPLICATIVO  | Creazione, chiusura e riapertura del vault attraverso la UI dell'app non eseguita.
-[PROVA 03] Importazione Formati & Byte-Identita       : NON_ESEGUITO_APPLICATIVO  | Importazione attraverso l'interfaccia o IPC di LIMEN non eseguita; verificata solo la presenza delle 7 fixture sorgente.
+[PROVA 03] Importazione Formati & Byte-Identita       : NON_ESEGUITO_APPLICATIVO  | Verificate fisicamente 7/7 fixture con byte non nulli (fixture_1_immagine_autonoma.png (3646 bytes), fixture_2_pdf_vettoriale_puro.pdf (579 bytes), fixture_3_pdf_scansionato_puro.pdf (3053 bytes), fixture_4_pdf_misto.pdf (3462 bytes), fixture_5_office_guasto_ocr.docx (1558 bytes), fixture_6_rtf_document.rtf (379 bytes), fixture_7_doc_legacy.doc (20480 bytes)). Importazione applicativa attraverso catalogo o IPC di LIMEN non eseguita.
 [PROVA 04] OCR Reale Componente Tesseract             : PASS_COMPONENTE           | Esecuzione standalone tesseract.exe riuscita. Testo estratto grezzo: 'LIMEN Vault Sistema di Memoria Locale con Riconescimento Ottico ed Aocentt caffe, perche, citta virtu'. Nota: integrazione e rendering su UI non testati.
 [PROVA 05] Ricerca Semantica bge-m3                   : NON_ESEGUITO_APPLICATIVO  | Indicizzazione e ricerca semantica attraverso LIMEN non eseguita; server embedding testabile solo come componente.
 [PROVA 06] Coesistenza Simultanea Porte               : NON_ESEGUITO_APPLICATIVO  | Avvio simultaneo reale bge-m3 + Ministral con pesi caricati in app non eseguito.
@@ -32,5 +32,7 @@ RIEPILOGO STATO EFFETTIVO COLLAUDO:
 - Prove Bloccate (BLOCCATO): 1
 - Prove Fallite (FAIL): 0
 
-CONCLUSIONE: Collaudo dell'app installata NON DIMOSTRATO. Isolamento del profilo NON REALIZZATO.
+DISTINZIONE SEMANTICA:
+- Censimento Diagnostico: ESEGUITO con successo.
+- Collaudo Applicativo Release: NON SUPERATO (Collaudo dell'app installata NON DIMOSTRATO; Isolamento del profilo NON REALIZZATO).
 ================================================================================

@@ -50,7 +50,40 @@ A seguito dell'audit indipendente di Codex e Cesare sul codice e sullo script di
 
 ---
 
-## 3. Conclusioni
+## 3. Completamento Script di Censimento ed Exit Code (Audit Punto 1)
+
+In [`scripts/collaudo_e2e_isolated.ps1`](file:///E:/Projects/vault_memai_obsi/scripts/collaudo_e2e_isolated.ps1):
+- **Verifica effettiva delle 7 fixture**: implementato ciclo di controllo su disco con dimensione byte e verifica fisica non nulla di tutti i 7 file (`fixture_1_immagine_autonoma.png` a `fixture_7_doc_legacy.doc`), eliminando la semplice stampa passiva.
+- **Distinzione semantica formale**: documentato separatamente e stampato a console e nel log il significato di "Censimento Diagnostico Eseguito" (lo script ha catalogato le prove) rispetto a "Collaudo Superato" (l'app reale ha superato le 16 prove).
+- **Exit Code rigoroso**: se ci sono controlli `FAIL` lo script termina con codice `1`; se permangono prove `NON_ESEGUITO_APPLICATIVO` o `BLOCCATO`, lo script termina con codice `2`. È impedito categoricamente che un codice `0` venga restituito o interpretato come accettazione della release.
+
+---
+
+## 4. Esito della Ricognizione Concreta dell'Ambiente (Audit Punto 2)
+
+I risultati completi sono documentati in [`IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/ricognizione_ambiente_collaudo.md`](file:///E:/Projects/vault_memai_obsi/IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/ricognizione_ambiente_collaudo.md):
+1. **VM Windows**:
+   - Hyper-V attivo (`vmms`), ma `Get-VM` fallisce per permessi (`user` non nel gruppo `Hyper-V Administrators`, processo non elevato);
+   - Windows Sandbox assente (`WindowsSandbox.exe` False, attivazione richiede elevazione);
+   - Terze parti (VirtualBox, VMware, QEMU) non installate; WSL2 presente ma con solo kernel Linux ELF64.
+2. **Account Dedicato e Sessione Grafica**:
+   - `CodexSandboxOffline` esiste ed è abilitato (ultimo logon 28/09/2026 08:48:41), ma l'unica sessione grafica attiva sulla console è `user` (ID 1);
+   - L'avvio con `Start-Process -Credential` fallisce per password non nota; il reset locale via `net user` fallisce con `Access is denied` (System error 5) per assenza di elevazione UAC.
+3. **Controllo App Tauri**:
+   - Installer NSIS per-utente installabile con `/S` senza elevazione;
+   - Automazione GUI possibile tramite .NET `UIAutomationClient` e Chrome DevTools Protocol (`WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS="--remote-debugging-port=9222"` con script CDP / `puppeteer.ps1`);
+   - Richiede una sessione desktop grafica interattiva.
+4. **Vincolo Regole di Progetto e Sblocco Esecuzione**:
+   - Avviare `limen-vault.exe` sotto `user` scrive in `C:\Users\user\.limen-vault\ai_settings.json` via `dirs::home_dir()`, violando `AGENTS.md`.
+   - **Intervento minimo per sbloccare l'esecuzione**:
+     - *Opzione A (Isolamento completo)*: Cesare reimposta la password di `CodexSandboxOffline` da prompt amministratore (`net user CodexSandboxOffline <pwd>`) o effettua l'accesso grafico come `CodexSandboxOffline`;
+     - *Opzione B (Esecuzione immediata in sessione attiva)*: Cesare autorizza esplicitamente una deroga temporanea limitata al collaudo minimo per eseguire l'app sotto `user` con pulizia al termine.
+
+---
+
+## 5. Conclusioni
 
 L'infrastruttura software (motore OCR Rust, binari PDFium, Tesseract, installer NSIS completo) è presente e verificata a livello di codice e di compilazione release.  
-Tuttavia, come evidenziato dall'audit, **il collaudo dell'applicazione reale installata non è stato dimostrato** e **l'isolamento del profilo non è stato realizzato**. La release e l'accettazione della parità funzionale Windows/Mac rimangono pertanto **formalmente aperte**.
+Lo script di censimento è ora rigorosamente vincolato ad exit code non zero.  
+La ricognizione tecnica ha identificato puntualmente i vincoli di sistema e le opzioni per l'avvio della prova minima applicativa.  
+La release e l'accettazione della parità funzionale Windows/Mac rimangono pertanto **formalmente aperte** in attesa della scelta operativa per sbloccare l'ambiente.
