@@ -1339,6 +1339,23 @@ impl Drop for StartingGuard {
     }
 }
 
+/// Costruisce gli argomenti a riga di comando per llama-server in modalita' embedding (bge-m3).
+pub fn build_embedding_server_args(model_path: &Path, port: u16) -> Vec<String> {
+    vec![
+        "-m".to_string(),
+        model_path.to_string_lossy().to_string(),
+        "--embedding".to_string(),
+        "--host".to_string(),
+        "127.0.0.1".to_string(),
+        "--port".to_string(),
+        port.to_string(),
+        "-ub".to_string(),
+        "2048".to_string(),
+        "-b".to_string(),
+        "2048".to_string(),
+    ]
+}
+
 impl LlamaServerState {
     pub fn get_port(&self) -> u16 {
         let s = self.0.lock().unwrap_or_else(|e| e.into_inner());
@@ -1907,20 +1924,16 @@ impl LlamaServerState {
 
         // 5. Spawn llama-server with exact arguments
         let mut cmd = Command::new(&binary);
-        cmd.args([
-            "-m", &model_path.to_string_lossy(),
-            "--embedding",
-            "--host", "127.0.0.1",
-            "--port", &free_port.to_string(),
-            "-ub", "2048",
-            "-b", "2048",
-        ]);
+        cmd.args(build_embedding_server_args(&model_path, free_port));
 
         if let Some(parent) = binary.parent() {
             cmd.current_dir(parent);
-            let metal = parent.join("libggml-metal.so");
-            if metal.is_file() {
-                cmd.env("GGML_BACKEND_PATH", metal);
+            #[cfg(target_os = "macos")]
+            {
+                let metal = parent.join("libggml-metal.so");
+                if metal.is_file() {
+                    cmd.env("GGML_BACKEND_PATH", metal);
+                }
             }
         }
 
@@ -2494,6 +2507,37 @@ mod tests {
     fn test_find_free_port() {
         let port = find_free_port().unwrap();
         assert!(port > 1024);
+    }
+
+    #[test]
+    fn test_build_embedding_server_args() {
+        let p = Path::new("C:\\models\\bge-m3.gguf");
+        let args = build_embedding_server_args(p, 50124);
+        assert!(args.contains(&"-m".to_string()));
+        assert!(args.contains(&"C:\\models\\bge-m3.gguf".to_string()));
+        assert!(args.contains(&"--embedding".to_string()));
+        assert!(args.contains(&"--host".to_string()));
+        assert!(args.contains(&"127.0.0.1".to_string()));
+        assert!(args.contains(&"--port".to_string()));
+        assert!(args.contains(&"50124".to_string()));
+        assert!(args.contains(&"-ub".to_string()));
+        assert!(args.contains(&"2048".to_string()));
+        assert!(args.contains(&"-b".to_string()));
+        assert!(args.contains(&"2048".to_string()));
+    }
+
+    #[test]
+    fn test_ports_coexistence_bge_and_ministral() {
+        let p1 = find_free_port().expect("porta embedding");
+        let p2 = find_free_port().expect("porta llm");
+        assert!(p1 > 1024);
+        assert!(p2 > 1024);
+        let l1 = std::net::TcpListener::bind(format!("127.0.0.1:{}", p1)).expect("bind embedding");
+        let l2 = std::net::TcpListener::bind("127.0.0.1:0").expect("bind llm effimero");
+        let p2_bound = l2.local_addr().unwrap().port();
+        assert_ne!(p1, p2_bound, "Le porte dei due server devono coesistere senza conflitti");
+        drop(l1);
+        drop(l2);
     }
 
     #[test]

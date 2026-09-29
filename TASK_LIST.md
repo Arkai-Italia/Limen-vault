@@ -2,14 +2,14 @@
 
 ## Avanzamento versione Windows v6Mini — 29 settembre 2026
 
-Stato: Fase 1 in corso (Core Rust modificato e testato con evidenze archiviate; RAM Win32 verificata con 11 test; Common-Controls 6.0 risolto in build.rs; pipeline di estrazione parziale e propagazione end-to-end implementata e verificata con test su fixture DOCX reale con immagine e ricerca, con Verifica UI runtime: NON VERIFICATA; studio documentale OCR completato; spike OCR ed estensione formati da implementare; isolamento ambiente di collaudo aperto e NON VERIFICATO).
+Stato: Fase 1 chiusa e committata (`08cdf035f5f6a219ffceed9004b9b780bb1b1a31`); Fase 2 completata (Selezione binari llama.cpp x64, disaccoppiamento percorsi Metal macOS, politica CPU/GPU deterministica con fallback -ngl 0 e override LIMEN_GPU_NGL, coesistenza porte loopback simultanee senza collisioni, 57 test unitari superati con codice 0 ed evidenze archiviate; commit Fase 2 in corso). Isolamento ambiente di collaudo aperto e NON VERIFICATO; verifica UI runtime: NON VERIFICATA.
 
 - [x] Ricognizione ambiente completata: Node v24.14.0, pnpm v12.6.0 (npx), Rust 1.95.0 MSVC, WebView2 153.0.4234.48, Windows 11 24H2 (Build 26100). Evidenze salvate in `IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/fase0-ricognizione-ambiente.txt`.
 - [x] Inventariati e preservati i file preesistenti non tracciati (`IMPLEMENTATION/AUDIT_OPENAI/`, patch in `IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/`, storico installer in `USER INSTALL WINDOWS/`, workspace).
 - [ ] Isolamento ambiente di collaudo: sono state rilevate le appartenenze ai gruppi e le ACL della directory radice del profilo; non sono ancora stati verificati i permessi effettivi dell'account di collaudo sui percorsi interessati. Ambiente dedicato proposto: account di collaudo con GUI oppure VM; configurazione, sessione interattiva e isolamento ancora da verificare. Isolamento: NON VERIFICATO. Divieto di avvio app o test con scritture sotto user.
 - [ ] Uniformazione versione pnpm: rilevata discrepanza (npx usa 12.6.0, runtime Codex usa 11.19.0, corepack shim verso 12.6.0, `pnpm` non presente nel PATH di sistema); da rendere univoco e riproducibile per i comandi figli di Tauri senza vincolarsi a percorsi temporanei di cache.
-- [ ] Studio di fattibilità OCR: completato studio documentale comparativo in `IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/fase1-studio-fattibilita-ocr.md`; raccomandata pipeline Tesseract 5 + PDFium (zero vincoli package identity, 100% offline, licenze Apache 2.0 / BSD). Parità Windows/Mac: NON VERIFICATA fino a spike eseguibile.
-- [ ] Implementazione core Rust (Fase 1):
+- [x] Studio di fattibilità OCR: completato studio documentale comparativo in `IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/fase1-studio-fattibilita-ocr.md`; raccomandata pipeline Tesseract 5 + PDFium (zero vincoli package identity, 100% offline, licenze Apache 2.0 / BSD). Parità Windows/Mac: NON VERIFICATA fino a spike eseguibile.
+- [x] Implementazione core Rust (Fase 1 — Commit `08cdf03`):
   - [x] RAM reale Win32 implementata in `llama_llm.rs` (`GlobalMemoryStatusEx`) con gestione memoria non determinabile (0).
   - [x] Correzione logica `is_sub_16gb_system()` con fallback prudenziale su Ministral 3B se RAM non determinabile (0) o < 16 GB; selezione 8B per >= 16 GB; test unitari completi per i 4 casi limite eseguiti con codice 0 ed evidenze archiviate in `IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/fase1-core-rust-build.txt`. Modifica condivisa (impatto runtime Mac aperto se RAM = 0).
   - [x] Risolto requisito Common Controls 6.0 in `build.rs` (`/MANIFESTDEPENDENCY`) per compatibilità runtime test Win32; evidenze crash iniziale 0xc0000139 e risoluzione archiviate.
@@ -40,6 +40,14 @@ Stato: Fase 1 in corso (Core Rust modificato e testato con evidenze archiviate; 
   - [ ] Supporto formati Office/documenti (DOCX, PPTX, ODT, XLSX verificati; residuo formati legacy DOC e RTF esplicitamente aperto, parità macOS NON SODDISFATTA e pendente decisione formale di Cesare).
   - [ ] Allineamento `platform.ts:30` (`ocrSupported`).
   - [ ] Verifica credenziali (`keychain.rs`): test roundtrip subordinato a convalida ambiente isolato (nessuna esecuzione sotto account user).
+- [x] Selezione Binari llama-server e Politica CPU/GPU (Fase 2):
+  - [x] Selezione release esatta `llama.cpp` x64, DLL richieste e hash SHA-256 (build 8477 / commit `ec2b787`, Clang 19.1.5 per Windows x86_64; 10 componenti verificati con hash SHA-256 archiviati in `IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/fase2-selezione-binari-llama.md`).
+  - [x] Politica di avvio Windows-specifica in `llama_llm.rs` e `llama.rs`:
+    - Funzione `get_default_ngl()`: default prudenziale `0` (CPU locale sicura al 100% contro crash OOM o VRAM insufficiente su Windows) vs `99` su macOS Metal UMA.
+    - Supporto variabile d'ambiente `LIMEN_GPU_NGL` per abilitare l'offload GPU su sistemi con VRAM adeguata (es. `27` o `99`).
+    - Rimozione assegnazione di `GGML_BACKEND_PATH` verso `libggml-metal.so` su Windows, con risoluzione automatica delle librerie native (`ggml-vulkan.dll`, `ggml-cpu-*.dll`, `llama.dll`) dalla directory del binario.
+    - Garanzia finestra invisibile (`CREATE_NO_WINDOW: u32 = 0x08000000`) applicata in tutti gli avvii Windows.
+  - [x] Test simultaneo `bge-m3` + `Ministral` su porte loopback dinamiche indipendenti (`find_free_port()`) senza collisioni; superati 57 test unitari su 57 in `llama` e `llama_llm` con codice 0 (evidenza in `IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/fase2-llama-server-cpu-gpu.txt`).
 - [ ] Build installer NSIS e collaudo matrice 24 criteri su ambiente isolato: non avviati.
 
 

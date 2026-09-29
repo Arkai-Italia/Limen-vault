@@ -1,0 +1,68 @@
+=== EVIDENZA ESECUZIONE TEST CARGO - FASE 2: LLAMA-SERVER E POLITICA CPU/GPU ===
+Data: 29 settembre 2026
+Target: Windows 11 x64 (x86_64-pc-windows-msvc)
+Comando: cargo test --lib llama
+
+Output grezzo:
+running 58 tests
+test ai::tests::test_twenty_consecutive_real_local_questions_with_bundled_llama_server ... ignored, Prova reale 20 domande consecutive Integrazione 1 con llama-server vero
+test llama::tests::test_build_embedding_server_args ... ok
+test llama::tests::test_detect_llama_server_binary ... ok
+test llama::tests::test_fase5f_failed_auto_start_prevents_retry_on_subsequent_question ... ok
+test llama::tests::test_execution_does_not_modify_userprofile_limen_vault ... ok
+test llama::tests::test_detect_llama_server_binary_macos_bundle ... ok
+test llama::tests::test_cache_with_unexpected_hash_triggers_recomputation ... ok
+test ai::tests::test_offline_llama_server_hybrid_fallback_no_error ... ok
+test llama::tests::test_fase5f_run_command_with_timeout_terminates_hanging_process ... ok
+test llama::tests::test_fase5h_log_rotation_and_per_startup_files ... ok
+test llama::tests::test_fase5h_start_prevents_duplicate_process_while_starting ... ok
+test llama::tests::test_fase5h_starting_guard_resets_flag_on_thread_panic ... ok
+test llama::tests::test_fase5f_discovery_external_command_hang_terminates_within_timeout_with_fallback ... ok
+test llama::tests::test_fase5g_missing_binary_sets_auto_start_failed_until_button_reset ... ok
+test llama::tests::test_fase5g_on_app_startup_starts_service_in_background_without_question ... ok
+test llama::tests::test_fase5g_startup_in_progress_does_not_kill_and_subsequent_succeeds ... ok
+test llama::tests::test_fase5h_adoption_of_existing_instance_service_without_second_process ... ok
+test llama::tests::test_fase5h_codex_fixture_acceptance ... ok
+test llama::tests::test_fase5h_local_model_timing_log_includes_app_and_service_metadata ... ok
+test llama::tests::test_fase5i_n2_status_exposes_starting_state ... ok
+test llama::tests::test_fase5i_bis_d1_owner_panic_resets_guard_and_waiter_unblocks ... ok
+test llama::tests::test_fase5i_n4_start_when_already_healthy_does_not_deadlock_and_returns_status ... ok
+test llama::tests::test_fase5i_bis_d1_stop_during_wait_unblocks_waiter_and_status_responds ... ok
+test llama::tests::test_fase5i_bis_d2_get_binary_path_releases_mutex_before_process_resolution ... ok
+test llama::tests::test_find_free_port ... ok
+test llama::tests::test_local_model_status_returns_struct ... ok
+test llama::tests::test_model_expected_constants ... ok
+test llama::tests::test_install_from_file_single_io_pass ... ok
+test llama::tests::test_fase5i_bis_d4_starting_state_reports_service_pid_when_available ... ok
+test llama::tests::test_model_modified_mtime_triggers_recomputation ... ok
+test llama::tests::test_model_replaced_same_size_detected ... ok
+test llama::tests::test_p3_two_instances_service_registration_ownership ... ok
+test llama::tests::test_pid_file_roundtrip_and_orphan_decision ... ok
+test llama::tests::test_ports_coexistence_bge_and_ministral ... ok
+test llama::tests::test_p1_server_with_invalid_embeddings_fails_bounded_and_status_available ... ok
+test llama::tests::test_second_status_call_uses_cache_zero_hash_recalculation ... ok
+test llama::tests::test_unexpected_size_reports_not_installed ... ok
+test llama_llm::tests::test_build_llama_server_args ... ok
+test llama_llm::tests::test_compute_file_sha256 ... ok
+test llama::tests::test_fase5i_n1_adopted_service_dies_next_query_fallbacks_and_restarts ... ok
+test llama_llm::tests::test_get_default_ngl_and_override ... ok
+test llama_llm::tests::test_llama_llm_report_serialization ... ok
+test llama_llm::tests::test_llama_llm_state_initial_status ... ok
+test llama_llm::tests::test_ministral_constants ... ok
+test llama_llm::tests::test_model_decision_above_16gb ... ok
+test llama_llm::tests::test_model_decision_exactly_16gb ... ok
+test llama_llm::tests::test_model_decision_ram_zero_undetermined ... ok
+test llama_llm::tests::test_model_decision_sub_16gb ... ok
+test llama_llm::tests::test_physical_ram_and_warning ... ok
+test llama_llm::tests::test_ports_coexistence_no_collision ... ok
+test llama_llm::tests::test_read_last_log_line ... ok
+test llama_llm::tests::test_ensure_running_with_already_starting_eventually_resolves ... ok
+test llama::tests::test_fase5i_n1_app_startup_auto_starts_single_process ... ok
+test llama::tests::test_fase5i_n1_button_pressed_during_background_start_waits_and_succeeds_single_process ... ok
+test llama::tests::test_fase5i_n3_adopted_service_from_other_folder_logs_real_exe_and_panel_open_status ... ok
+test llama::tests::test_fase5i_n5_20_existing_logs_remains_20_after_startup ... ok
+test llama::tests::test_p2_registered_service_adoption_and_fallback ... ok
+test llama::tests::test_process_parent_and_command_reads_live_process_only ... ok
+
+test result: ok. 57 passed; 0 failed; 1 ignored; 0 measured; 187 filtered out; finished in 15.36s
+Exit code: 0

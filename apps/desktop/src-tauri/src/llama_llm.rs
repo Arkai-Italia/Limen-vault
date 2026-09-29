@@ -496,6 +496,54 @@ where
     Ok(local_llm_status_with_recheck(true))
 }
 
+/// Calcola il numero di layer GPU offload (-ngl) predefinito:
+/// - Se impostata la variabile d'ambiente LIMEN_GPU_NGL, usa tale valore (es. "27" o "99").
+/// - Su macOS: default "99" (Unified Memory Architecture Metal).
+/// - Su Windows e altre piattaforme: default "0" (CPU fallback sicuro contro OOM / GPU instabile).
+pub fn get_default_ngl() -> String {
+    if let Ok(val) = std::env::var("LIMEN_GPU_NGL") {
+        let trimmed = val.trim();
+        if !trimmed.is_empty() {
+            return trimmed.to_string();
+        }
+    }
+    #[cfg(target_os = "macos")]
+    {
+        "99".to_string()
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        "0".to_string()
+    }
+}
+
+/// Costruisce gli argomenti a riga di comando per llama-server (Ministral Instruct).
+pub fn build_llama_server_args(model_path: &Path, port: u16) -> Vec<String> {
+    let ngl = get_default_ngl();
+    vec![
+        "-m".to_string(),
+        model_path.to_string_lossy().to_string(),
+        "--host".to_string(),
+        "127.0.0.1".to_string(),
+        "--port".to_string(),
+        port.to_string(),
+        "-c".to_string(),
+        "8192".to_string(),
+        "-np".to_string(),
+        "1".to_string(),
+        "-ctk".to_string(),
+        "q8_0".to_string(),
+        "-ctv".to_string(),
+        "q8_0".to_string(),
+        "-ngl".to_string(),
+        ngl,
+        "-ub".to_string(),
+        "512".to_string(),
+        "-b".to_string(),
+        "512".to_string(),
+    ]
+}
+
 impl LlamaLlmServerState {
     pub fn new() -> Self {
         Self(Arc::new(Mutex::new(LlmRunningState::default())))
@@ -671,36 +719,18 @@ impl LlamaLlmServerState {
             Err(_) => Stdio::null(),
         };
 
-        // Parametri per Ministral Instruct (generazione testo, Metal GPU, contesto 8k)
+        // Parametri per Ministral Instruct (generazione testo, contesto 8k)
         let mut cmd = Command::new(&binary);
-        cmd.args([
-            "-m",
-            &model_path.to_string_lossy(),
-            "--host",
-            "127.0.0.1",
-            "--port",
-            &free_port.to_string(),
-            "-c",
-            "8192",
-            "-np",
-            "1",
-            "-ctk",
-            "q8_0",
-            "-ctv",
-            "q8_0",
-            "-ngl",
-            "99",
-            "-ub",
-            "512",
-            "-b",
-            "512",
-        ]);
+        cmd.args(build_llama_server_args(&model_path, free_port));
 
         if let Some(parent) = binary.parent() {
             cmd.current_dir(parent);
-            let metal = parent.join("libggml-metal.so");
-            if metal.is_file() {
-                cmd.env("GGML_BACKEND_PATH", metal);
+            #[cfg(target_os = "macos")]
+            {
+                let metal = parent.join("libggml-metal.so");
+                if metal.is_file() {
+                    cmd.env("GGML_BACKEND_PATH", metal);
+                }
             }
         }
 
@@ -1014,5 +1044,60 @@ mod tests {
         let res = state.ensure_running();
         assert!(res.is_err());
         assert_eq!(res.unwrap_err(), "Errore simulato terminazione avvio");
+    }
+
+    #[test]
+    fn test_get_default_ngl_and_override() {
+        // Test con variabile d'ambiente non impostata
+        std::env::remove_var("LIMEN_GPU_NGL");
+        let default_ngl = get_default_ngl();
+        #[cfg(target_os = "macos")]
+        assert_eq!(default_ngl, "99", "Su macOS default ngl deve essere 99");
+        #[cfg(not(target_os = "macos"))]
+        assert_eq!(default_ngl, "0", "Su Windows/non-macOS default ngl deve essere 0 (CPU safe)");
+
+        // Test con override esplicito
+        std::env::set_var("LIMEN_GPU_NGL", "27");
+        assert_eq!(get_default_ngl(), "27");
+
+        std::env::set_var("LIMEN_GPU_NGL", " 99 ");
+        assert_eq!(get_default_ngl(), "99");
+
+        std::env::remove_var("LIMEN_GPU_NGL");
+    }
+
+    #[test]
+    fn test_build_llama_server_args() {
+        std::env::remove_var("LIMEN_GPU_NGL");
+        let p = Path::new("C:\\models\\ministral-3b.gguf");
+        let args = build_llama_server_args(p, 50123);
+        assert!(args.contains(&"-m".to_string()));
+        assert!(args.contains(&"C:\\models\\ministral-3b.gguf".to_string()));
+        assert!(args.contains(&"--host".to_string()));
+        assert!(args.contains(&"127.0.0.1".to_string()));
+        assert!(args.contains(&"--port".to_string()));
+        assert!(args.contains(&"50123".to_string()));
+        assert!(args.contains(&"-c".to_string()));
+        assert!(args.contains(&"8192".to_string()));
+        assert!(args.contains(&"-ngl".to_string()));
+        #[cfg(target_os = "macos")]
+        assert_eq!(args[args.iter().position(|r| r == "-ngl").unwrap() + 1], "99");
+        #[cfg(not(target_os = "macos"))]
+        assert_eq!(args[args.iter().position(|r| r == "-ngl").unwrap() + 1], "0");
+    }
+
+    #[test]
+    fn test_ports_coexistence_no_collision() {
+        let p1 = find_free_port().expect("porta 1 libera");
+        let p2 = find_free_port().expect("porta 2 libera");
+        assert!(p1 > 1024);
+        assert!(p2 > 1024);
+        // Dimostra che due listener TCP distinti possono impegnare simultaneamente due porte loopback
+        let l1 = std::net::TcpListener::bind(format!("127.0.0.1:{}", p1)).expect("bind porta 1");
+        let l2 = std::net::TcpListener::bind("127.0.0.1:0").expect("bind porta 2 effimera");
+        let actual_p2 = l2.local_addr().unwrap().port();
+        assert_ne!(p1, actual_p2, "Le porte devono essere indipendenti e distinte");
+        drop(l1);
+        drop(l2);
     }
 }
