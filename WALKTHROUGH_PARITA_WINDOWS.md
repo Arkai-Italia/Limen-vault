@@ -82,9 +82,32 @@ I risultati completi sono documentati in:
 
 ---
 
-## 5. Conclusioni
+## 5. Diagnosi Guidata dall'Evidenza su Ministral 3 8B (Domanda ARKAI)
+
+I risultati completi sono documentati in [`IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/diagnosi_ministral_output_anomalo.md`](file:///E:/Projects/vault_memai_obsi/IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/diagnosi_ministral_output_anomalo.md):
+
+1. **Binari, Versioni e Hash Verificati**:
+   - `limen-vault.exe` (PID 33292): hash `9E21C34BFBD46BC0881A82543284EEBDF381D573C4ABA7A4515B2C713BD75EB0` (coincidente con l'installer NSIS rilasciato).
+   - `llama-server.exe`: Build 8477 (hash `45438F02...`), backend Vulkan e CPU Haswell.
+   - Modello 8B: `Ministral-3-8B-Instruct-2512-Q5_K_M.gguf` (hash `7a545412...`, 6.059.268.512 byte).
+2. **Riproduzione su Fixture Isolata**:
+   - Domanda senza documenti: risposta fluida corretta in italiano (`**ARKAI** è un **protocollo di sicurezza...`), TTFT 4.9s.
+   - Domanda con documento Markdown: sintesi accurata in italiano senza caratteri `#` ripetuti (`ARKAI è la **piattaforma proprietaria...`), TTFT 1.6s.
+3. **Causa Radice del Blocco e del Loop `#`**:
+   - Sul vault `E:\VAULT WIN TEST`, il retrieval ha iniettato un prompt massivo di **5.990 token**.
+   - Per default `-ngl 0`, l'elaborazione interamente su CPU ha richiesto **47.941 ms (~48 secondi)** di blocco iniziale prima del primo token.
+   - La generazione a 1.48 tok/s su contesto esteso con `temperature: 0.2`, unita al template Jinja con `thinking = 1` e all'assenza di `--repeat-penalty` (default 1.0 disabilitato), ha fatto collassare il campionatore nel loop ripetuto di `#`.
+4. **Disponibilità Accelerazione GPU su Windows**:
+   - Rilevata su `DESKTOP-DGJBALI` una GPU **NVIDIA GeForce RTX 3060 con 12 GB di VRAM** (`11.406 MiB liberi`).
+   - L'offload GPU dei 35 layer (`-ngl 99`) tramite il backend Vulkan già incluso abbatte l'elaborazione del prompt da 48s a <1s e porta la generazione da 1.5 tok/s a oltre 25 tok/s.
+5. **Verifica «Annulla»**:
+   - L'azione chiude istantaneamente la stream SSE nel backend e resetta la UI sbloccando la chat per la domanda successiva.
+
+---
+
+## 6. Conclusioni
 
 L'infrastruttura software (motore OCR Rust, binari PDFium, Tesseract, installer NSIS completo) è presente e verificata a livello di codice e di compilazione release.  
 Lo script di censimento è rigorosamente vincolato ad exit code non zero (`exit 2` per prove non eseguite/bloccate).  
-È stata formalizzata la richiesta amministrativa minima per la VM di collaudo e definiti i canali tecnici di controllo della GUI.  
-La release e l'accettazione della parità funzionale Windows/Mac rimangono pertanto **formalmente aperte** in attesa della disponibilità della VM di collaudo.
+La diagnosi tecnica su Ministral 3 8B ha isolato con precisione la causa radice della lentezza e del campionamento su CPU, evidenziando la disponibilità immediata della GPU RTX 3060.  
+La release e l'accettazione della parità funzionale Windows/Mac rimangono **formalmente aperte** in attesa delle correzioni guidate dall'evidenza.

@@ -31,6 +31,12 @@ Installer generato: `USER INSTALL WINDOWS/LIMEN-Vault-v6Mini-0.6.0-windows-x64-s
   - Documentati percorsi effettivi dal codice sorgente (`USERPROFILE`/`HOME`, override `LIMEN_AI_SETTINGS_FILE`, limite WinCred).
   - Verificata assenza di alterazioni nel profilo `user` (file fermi al 25 settembre 2026).
   - Formalizzata richiesta amministrativa per VM Windows 11 pulita in `IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/richiesta_amministrativa_ambiente_dedicato.md`.
+- [x] **Diagnosi e Analisi Guidata dall'Evidenza su Ministral 3 8B (Domanda ARKAI)**:
+  - Identificati binari, versioni e hash: `limen-vault.exe` (SHA-256 `9E21C34B...`), `llama-server.exe` Build 8477 (`45438F02...`), modello 8B (`7a545412...`, 6.059.268.512 byte).
+  - Riproduzione su fixture isolata: verificata generazione coerente in italiano senza recupero (TTFT 4.9s) e con documento (TTFT 1.6s).
+  - Diagnosi causa radice lentezza e loop `#`: 5.990 token elaborati su CPU (-ngl 0) in 48 secondi (1.48 tok/s); template Jinja con `thinking = 1` e assenza di `repeat_penalty` su temperatura 0.2 provocano intrappolamento del campionatore su contesti lunghi.
+  - Rilevata disponibilità GPU: NVIDIA RTX 3060 con 12 GB VRAM (11.406 MiB liberi) inutilizzata per default -ngl 0.
+  - Verificato funzionamento di «Annulla»: interruzione immediata dello streaming SSE e sblocco UI per domanda successiva.
 
 
 ## Archivio chat Codex per Windows — 29 settembre 2026
