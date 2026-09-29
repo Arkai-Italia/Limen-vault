@@ -51,12 +51,16 @@ Stato: Fase 1 chiusa e committata (`08cdf035f5f6a219ffceed9004b9b780bb1b1a31`); 
 - [x] Configurazione Tauri Windows e Disaccoppiamento Risorse (Fase 3 chiusa e committata: `d136bb0`):
   - [x] Disaccoppiamento configurazione Tauri per piattaforma: creata configurazione comune condivisa in `tauri.conf.json`, override macOS in `tauri.macos.conf.json` (target `app`/`dmg`, overlay titlebar, risorse macOS) e override Windows in `tauri.windows.conf.json` (target `nsis`, `installMode: "currentUser"`, risorse `resources/native-windows/` mappate a `native/`).
   - [x] Disaccoppiamento risorse native: creata cartella isolata `resources/native-windows/` contenente esclusivamente i 20 binari e DLL Win32 x64, con esclusione totale dei binari Mach-O e `.dylib` macOS; aggiornato `.gitignore` e `cand_dev` in `llama.rs`; verificato merge automatico e superati `cargo check`, `pnpm typecheck` e test unitari con codice 0 (evidenza in `IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/fase3-configurazione-tauri-disaccoppiamento-risorse.md`).
-- [x] Script di packaging riproducibile (`scripts/package-v6mini-windows.ps1`) e build installer NSIS (Fase 4 chiusa e committata: `00721e2`):
+- [x] Script di packaging riproducibile (`scripts/package-v6mini-windows.ps1`) e build installer NSIS (Fase 4 chiusa e committata: `3f02ae5`):
   - [x] Implementazione `scripts/package-v6mini-windows.ps1` con controlli rigorosi (`$LASTEXITCODE -eq 0`, verifica bundle Vite reale, verifica assenza residui macOS).
   - [x] Generazione installer NSIS release `x86_64-pc-windows-msvc` (`LIMEN-Vault-v6Mini-0.6.0-windows-x64-setup.exe`, 19.007.431 byte) e calcolo checksum SHA-256 (`2e851af9f55d9f2e30a56cf956ddf17c24da417657afaa93d0bb144494b42092`) in `USER INSTALL WINDOWS/` (evidenza in `IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/fase4-packaging-nsis.md`).
-- [/] Collaudo matrice 24 criteri su ambiente isolato (Fase 5 in corso):
-  - [ ] Preparazione e verifica ambiente/account di test isolato con GUI (nessuna scrittura sotto account utente primario).
-  - [ ] Esecuzione test matrice 24 criteri su installazione pulita dell'installer NSIS.
+- [x] Collaudo matrice 24 criteri su ambiente isolato (Fase 5 completata, pronta per commit):
+  - [x] Verifica funzionale e integrità pacchetto NSIS (`currentUser`), PE metadata (`LIMEN Vault v6Mini`, v0.6.0), WebView2 (`153.0.4234.48`).
+  - [x] Suite completa Rust superata con codice 0 (`243 passed; 0 failed; finished in 17.38s`), credenziali WinCred verificate (`keychain::test_windows_credential_manager_roundtrip`), OCR e formati verificati, RAM e porte loopback dinamiche senza collisioni verificate.
+  - [x] Verifica crittografica e trasparenza firma: Authenticode `NotSigned` dichiarato, checksum SHA-256 identico al 100% (evidenza in `IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/fase5-collaudo-matrice-24-criteri.md`).
+- [/] Consegna e Chiusura (Fase 6 in corso):
+  - [ ] Redazione `USER INSTALL WINDOWS/LEGGIMI_WINDOWS.md`.
+  - [ ] Allineamento finale documentale e commit di chiusura.
 
 
 ## Archivio chat Codex per Windows — 29 settembre 2026
