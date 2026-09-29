@@ -5,6 +5,11 @@
       "nsis"
     ],
     "resources": {
+      "../../../vault-template/": "vault-template/",
+      "resources/mcp/": "mcp/",
+      "../../../HELP/": "documentation/HELP/",
+      "../../../docs/GUIDA_UTENTE_LIMEN.md": "documentation/GUIDA_UTENTE_LIMEN.md",
+      "../../../manuale UI utente.txt": "documentation/manuale UI utente.txt",
       "resources/native-windows/": "native/"
     },
     "windows": {

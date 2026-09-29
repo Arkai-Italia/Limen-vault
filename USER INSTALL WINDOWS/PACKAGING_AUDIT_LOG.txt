@@ -1,0 +1,13 @@
+﻿================================================================================
+LIMEN VAULT v6Mini - WINDOWS RELEASE PACKAGING AUDIT LOG
+Data packaging: 2026-09-29 13:40:20
+Git Commit HEAD: f9b7f28c3445def3411949601baff605f8164896
+Target Architecture: x86_64-pc-windows-msvc
+Node.js: v24.14.0
+pnpm: 12.6.0
+rustc: rustc 1.95.0 (59807616e 2026-04-14)
+cargo: cargo 1.95.0 (f2d3ce0bd 2026-03-21)
+File Installer: E:\Projects\vault_memai_obsi\USER INSTALL WINDOWS\LIMEN-Vault-v6Mini-0.6.0-windows-x64-setup.exe
+Dimensione: 63063440 bytes
+SHA-256: 222472363b76f1dc9db67bd4d282ba25c2581312c40d38048742ebbc47085249
+================================================================================

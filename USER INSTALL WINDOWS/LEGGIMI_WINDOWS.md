@@ -4,7 +4,8 @@
 > **Target Architettura**: Windows 11 x64 (`x86_64-pc-windows-msvc`)  
 > **Data di Rilascio**: 29 settembre 2026  
 > **File Installer**: `LIMEN-Vault-v6Mini-0.6.0-windows-x64-setup.exe`  
-> **Checksum SHA-256**: `2e851af9f55d9f2e30a56cf956ddf17c24da417657afaa93d0bb144494b42092`  
+> **Dimensione**: 63.063.440 byte  
+> **Checksum SHA-256**: `222472363b76f1dc9db67bd4d282ba25c2581312c40d38048742ebbc47085249`  
 > **File Checksum**: `SHA256SUMS.txt`
 
 ---
@@ -34,7 +35,7 @@
      Get-FileHash .\LIMEN-Vault-v6Mini-0.6.0-windows-x64-setup.exe -Algorithm SHA256
      ```
      L'hash deve corrispondere esattamente a:
-     `2e851af9f55d9f2e30a56cf956ddf17c24da417657afaa93d0bb144494b42092`.
+     `222472363b76f1dc9db67bd4d282ba25c2581312c40d38048742ebbc47085249`.
 2. **Procedura di Setup (NSIS per-utente)**:
    - Fare doppio clic sull'eseguibile di setup.
    - L'installazione opera in modalità `currentUser` (senza richiedere elevazione dei privilegi UAC di amministratore) e si posiziona in:
