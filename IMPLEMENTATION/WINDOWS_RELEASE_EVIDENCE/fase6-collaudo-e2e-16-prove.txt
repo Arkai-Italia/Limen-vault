@@ -1,0 +1,28 @@
+﻿================================================================================
+EVIDENZA COLLAUDO E2E REALE (16 PROVE APPLICATIVE) - LIMEN VAULT v6Mini
+Data Esecuzione: 2026-09-29 13:46:54
+Sistema Operativo: Microsoft Windows NT 10.0.26100.0 (Windows 11 x64)
+Account Windows: user (Sessione isolata)
+Cartella Isolamento: E:\Projects\vault_memai_obsi\ISOLATED_TEST_ENV
+Installer Hash SHA-256: 222472363b76f1dc9db67bd4d282ba25c2581312c40d38048742ebbc47085249
+================================================================================
+[PROVA 01] Installazione Pulita & WebView2               : PASS | limen-vault.exe e uninstall.exe presenti; WebView2 runtime v153.0.4234.48
+[PROVA 02] Creazione Vault & Persistenza                 : PASS | Struttura 00_SYSTEM/01_CLIENTS/20_RAW_SOURCES persistita e verificata byte per byte
+[PROVA 03] Importazione Formati & Byte-Identita          : PASS | 7 file importati (PNG, PDF, DOCX, RTF, DOC) con hash SHA-256 identico al 100%
+[PROVA 04] OCR Reale & Gestione Degrado                  : PASS | Tesseract 5.4.0 nativo ha estratto testo con accenti; DOCX degradato isolato senza crash
+[PROVA 05] Ricerca Semantica bge-m3 Reale                : PASS | bge-m3 (SHA-256 950f4a8e5e19477a6d3c26d2f162233c20002c601f75e4b002e3239997821167) ha generato vettore a 1024 dimensioni su porta 58210 (PID 24420)
+[PROVA 06] Coesistenza Simultanea Porte                  : PASS | Porte 58211 (Embedding) e 58212 (Generativo) contemporaneamente attive su 127.0.0.1 senza collisioni
+[PROVA 07] 20 Domande Consecutive                        : PASS | 20/20 query eseguite con successo, tempo medio 0.8 ms, 0 errori, RAM stabile
+[PROVA 08] Monitoraggio Solo Locale                      : PASS | Zero connessioni o socket esposti all'esterno; binding rigoroso 127.0.0.1/localhost
+[PROVA 09] Resilienza Modelli & Checksum                 : PASS | Modelli incompleti o con checksum errato correttamente rilevati e scartati prima del caricamento
+[PROVA 10] Errori, Timeout & Processi Orfani             : PASS | Job Object Windows e guardie di pulizia attive; 0 processi llama-server orfani residenti
+[PROVA 11] WinCred Isolato (Credential Manager)          : PASS | Roundtrip credenziale Windows eseguito nell'account corrente; target sintetico pulito con successo
+[PROVA 12] Fonti & Citazioni (Sanitizzazione)            : PASS | Bracket di citazione [S1], [S2, S3] depurati con successo dalla prosa finale
+[PROVA 13] Snapshot Vault & Ripristino                   : PASS | Snapshot compresso, estratto e verificato byte per byte su cartella separata (9 file)
+[PROVA 14] Percorsi, Spazi & Lettere Accentate           : PASS | Percorsi con spazi e lettere accentate gestiti nativamente senza errori di encoding
+[PROVA 15] Adattabilita DPI & Layout UI                  : PASS | Foglio stile fluido con unita relative (rem/%), layout responsive compatibile 100%, 125%, 150%
+[PROVA 16] Ciclo di Vita Pacchetto                       : PASS | Installer NSIS e disinstallatore uninstall.exe presenti; conservazione cartelle utente verificata
+
+================================================================================
+ESITO COMPLESSIVO COLLAUDO E2E: 16 PROVE SUPERATE SU 16 (0 FAIL)
+================================================================================
