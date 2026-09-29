@@ -48,6 +48,9 @@ Stato: Fase 1 chiusa e committata (`08cdf035f5f6a219ffceed9004b9b780bb1b1a31`); 
     - Rimozione assegnazione di `GGML_BACKEND_PATH` verso `libggml-metal.so` su Windows, con risoluzione automatica delle librerie native (`ggml-vulkan.dll`, `ggml-cpu-*.dll`, `llama.dll`) dalla directory del binario.
     - Garanzia finestra invisibile (`CREATE_NO_WINDOW: u32 = 0x08000000`) applicata in tutti gli avvii Windows.
   - [x] Test simultaneo `bge-m3` + `Ministral` su porte loopback dinamiche indipendenti (`find_free_port()`) senza collisioni; superati 57 test unitari su 57 in `llama` e `llama_llm` con codice 0 (evidenza in `IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/fase2-llama-server-cpu-gpu.txt`).
+- [x] Configurazione Tauri Windows e Disaccoppiamento Risorse (Fase 3):
+  - [x] Disaccoppiamento configurazione Tauri per piattaforma: creata configurazione comune condivisa in `tauri.conf.json`, override macOS in `tauri.macos.conf.json` (target `app`/`dmg`, overlay titlebar, risorse macOS) e override Windows in `tauri.windows.conf.json` (target `nsis`, `installMode: "currentUser"`, risorse `resources/native-windows/` mappate a `native/`).
+  - [x] Disaccoppiamento risorse native: creata cartella isolata `resources/native-windows/` contenente esclusivamente i 20 binari e DLL Win32 x64, con esclusione totale dei binari Mach-O e `.dylib` macOS; aggiornato `.gitignore` e `cand_dev` in `llama.rs`; verificato merge automatico e superati `cargo check`, `pnpm typecheck` e test unitari con codice 0 (evidenza in `IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/fase3-configurazione-tauri-disaccoppiamento-risorse.md`).
 - [ ] Build installer NSIS e collaudo matrice 24 criteri su ambiente isolato: non avviati.
 
 

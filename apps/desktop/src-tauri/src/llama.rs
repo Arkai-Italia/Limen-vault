@@ -773,8 +773,10 @@ pub fn detect_llama_server_binary_from_exe_opt(executable_opt: Option<&Path>) ->
     }
 
     let cand_dev = [
+        "apps/desktop/src-tauri/resources/native-windows/llama-server.exe",
         "apps/desktop/src-tauri/resources/native/llama-server.exe",
         "apps/desktop/src-tauri/resources/native/llama-server",
+        "resources/native-windows/llama-server.exe",
         "resources/native/llama-server.exe",
         "resources/native/llama-server",
     ];

@@ -1,0 +1,23 @@
+{
+  "$schema": "https://raw.githubusercontent.com/tauri-apps/tauri/dev/crates/tauri-config-schema/schema.json",
+  "app": {
+    "windows": [
+      {
+        "titleBarStyle": "Overlay"
+      }
+    ]
+  },
+  "bundle": {
+    "targets": [
+      "app",
+      "dmg"
+    ],
+    "resources": {
+      "resources/native/": "native/"
+    },
+    "macOS": {
+      "minimumSystemVersion": "26.0",
+      "entitlements": "Entitlements.plist"
+    }
+  }
+}

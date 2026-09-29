@@ -38,4 +38,7 @@ scripts/__pycache__/
 apps/desktop/src-tauri/resources/native/*
 !apps/desktop/src-tauri/resources/native/.gitkeep
 !apps/desktop/src-tauri/resources/native/README-native.md
+apps/desktop/src-tauri/resources/native-windows/*
+!apps/desktop/src-tauri/resources/native-windows/.gitkeep
+!apps/desktop/src-tauri/resources/native-windows/README-native-windows.md
 tests/scratch/
