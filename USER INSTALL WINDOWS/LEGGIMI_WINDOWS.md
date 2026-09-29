@@ -87,12 +87,16 @@
 ## 6. Limiti e Note Tecniche Accertate
 
 > [!IMPORTANT]
-> **Stato Corrente**: Build preliminare disponibile. PDF/OCR Windows e formati legacy da completare. Collaudo dell’app installata, isolamento e parità Mac/Windows ancora aperti.
+> **Stato Formale**: Componenti OCR e alcune operazioni native provati separatamente. Collaudo dell’app installata non dimostrato. Isolamento del profilo non realizzato. Parità e accettazione aperte.
 
 1. **Stato della Firma Digitale**:
    - L'installer corrente non è firmato digitalmente con certificato Authenticode Microsoft (`NotSigned`), come documentato nei criteri di rilascio. All'installazione compare l'avviso standard di SmartScreen.
-2. **Estrazione Documentale e OCR su Windows (Lavori in Corso)**:
-   - Nella build preliminare attuale, l'estrazione testuale è attiva per file di testo semplice (TXT, Markdown) e formati Office aperti (DOCX, PPTX, XLSX);
-   - Il supporto per PDF (vettoriali, scansionati e misti), scansioni e immagini tramite pipeline OCR locale (Tesseract 5 + PDFium) e formati legacy (`.doc`, `.rtf`) è attualmente in corso di implementazione nel percorso di produzione per conseguire la piena parità con macOS.
-3. **Download dei Modelli GGUF**:
-   - I modelli pesanti GGUF non sono inclusi nell'installer per preservare la dimensione contenuta del pacchetto base (~19 MB) e andranno scaricati localmente tramite l'apposita procedura.
+2. **Estrazione Documentale e OCR su Windows**:
+   - Il pacchetto include i binari nativi x64 di Chromium PDFium (build 8066), Tesseract 5.4.0 e i modelli linguistici `ita` ed `eng` nella cartella `tessdata`, insieme ai parser Rust per RTF e Word 97-2003 DOC.
+   - I motori sono stati verificati a livello di componente standalone da riga di comando (rilevando imperfezioni ortografiche sull'output grezzo Tesseract). L'integrazione e la resa grafica nell'interfaccia dell'applicazione installata rimangono non collaudate.
+3. **Collaudo Applicativo e Isolamento Profilo**:
+   - Il collaudo dell'applicazione installata attraverso la sua interfaccia interattiva e le relative 16 prove applicative non è stato dimostrato;
+   - L'isolamento a livello di profilo utente di sistema operativo o VM dedicata non è stato realizzato;
+   - La certificazione della piena parità funzionale rispetto a macOS e l'accettazione finale rimangono formalmente aperte.
+4. **Download dei Modelli Linguistici GGUF**:
+   - I modelli pesanti GGUF (es. Ministral o bge-m3) non sono inclusi nell'installer per preservare la dimensione del setup (63 MB con runtime nativi) e vengono scaricati o importati localmente.

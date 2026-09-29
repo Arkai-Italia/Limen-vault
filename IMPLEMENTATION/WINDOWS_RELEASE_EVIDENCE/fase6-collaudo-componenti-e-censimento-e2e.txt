@@ -1,0 +1,36 @@
+﻿================================================================================
+VERIFICA COMPONENTI E CENSIMENTO COLLAUDO APPLICATIVO - LIMEN VAULT v6Mini
+Data Esecuzione: 2026-09-29 16:23:00
+Sistema Operativo: Microsoft Windows NT 10.0.26100.0 (Windows 11 x64)
+Account Windows Effettivo: user (NOTA: Nessun profilo OS separato configurato)
+Cartella Staging: E:\Projects\vault_memai_obsi\ISOLATED_TEST_ENV
+Installer Verificato: E:\Projects\vault_memai_obsi\USER INSTALL WINDOWS\LIMEN-Vault-v6Mini-0.6.0-windows-x64-setup.exe
+Installer Dimensione: 63063440 byte
+Installer Hash SHA-256 Calcolato: 222472363b76f1dc9db67bd4d282ba25c2581312c40d38048742ebbc47085249
+================================================================================
+[PROVA 01] Installazione Pulita & WebView2            : NON_ESEGUITO_APPLICATIVO  | Binari presenti nello staging (E:\Projects\vault_memai_obsi\ISOLATED_TEST_ENV\installed_app\limen-vault.exe), WebView2 registrato v153.0.4234.48. Installazione interattiva Menu Start non eseguita.
+[PROVA 02] Creazione Vault & Persistenza              : NON_ESEGUITO_APPLICATIVO  | Creazione, chiusura e riapertura del vault attraverso la UI dell'app non eseguita.
+[PROVA 03] Importazione Formati & Byte-Identita       : NON_ESEGUITO_APPLICATIVO  | Importazione attraverso l'interfaccia o IPC di LIMEN non eseguita; verificata solo la presenza delle 7 fixture sorgente.
+[PROVA 04] OCR Reale Componente Tesseract             : PASS_COMPONENTE           | Esecuzione standalone tesseract.exe riuscita. Testo estratto grezzo: 'LIMEN Vault Sistema di Memoria Locale con Riconescimento Ottico ed Aocentt caffe, perche, citta virtu'. Nota: integrazione e rendering su UI non testati.
+[PROVA 05] Ricerca Semantica bge-m3                   : NON_ESEGUITO_APPLICATIVO  | Indicizzazione e ricerca semantica attraverso LIMEN non eseguita; server embedding testabile solo come componente.
+[PROVA 06] Coesistenza Simultanea Porte               : NON_ESEGUITO_APPLICATIVO  | Avvio simultaneo reale bge-m3 + Ministral con pesi caricati in app non eseguito.
+[PROVA 07] 20 Domande Consecutive Ministral           : NON_ESEGUITO_APPLICATIVO  | Nessuna inferenza inviata al modello Ministral attraverso l'applicazione installata.
+[PROVA 08] Monitoraggio Solo Locale                   : NON_ESEGUITO_APPLICATIVO  | Monitoraggio del traffico durante l'esecuzione attiva dell'app installata non eseguito.
+[PROVA 09] Resilienza Modelli & Checksum              : NON_ESEGUITO_APPLICATIVO  | Invocazione della validazione dell'app su modello corrotto non eseguita.
+[PROVA 10] Errori, Timeout & Processi Orfani          : NON_ESEGUITO_APPLICATIVO  | Nessun timeout provocato sull'applicazione né chiusura controllata di albero processi.
+[PROVA 11] WinCred in Profilo Isolato                 : BLOCCATO                  | Profilo utente Windows dedicato o VM non configurati; esecuzione sotto 'user' non isola le credenziali.
+[PROVA 12] Fonti & Citazioni                          : NON_ESEGUITO_APPLICATIVO  | Verifica interattiva dell'apertura del documento sorgente e del passaggio citato nel lettore non eseguita.
+[PROVA 13] Snapshot Vault & Ripristino                : NON_ESEGUITO_APPLICATIVO  | Esecuzione dello snapshot e del ripristino attraverso le funzioni interne di LIMEN non eseguita.
+[PROVA 14] Percorsi, Spazi & Accenti                  : NON_ESEGUITO_APPLICATIVO  | Esercizio dell'applicazione su percorsi con caratteri speciali non eseguito.
+[PROVA 15] Adattabilita DPI & Layout UI               : NON_ESEGUITO_APPLICATIVO  | Prove visive dell'interfaccia a 100%, 125% e 150% non eseguite (richiede sessione grafica interattiva).
+[PROVA 16] Ciclo di Vita Pacchetto                    : NON_ESEGUITO_APPLICATIVO  | Esecuzione reale dell'installer/uninstaller con verifica della conservazione del vault non eseguita.
+
+================================================================================
+RIEPILOGO STATO EFFETTIVO COLLAUDO:
+- Prove Componente Eseguite (PASS_COMPONENTE): 1
+- Prove Applicative E2E Non Eseguite (NON_ESEGUITO_APPLICATIVO): 14
+- Prove Bloccate (BLOCCATO): 1
+- Prove Fallite (FAIL): 0
+
+CONCLUSIONE: Collaudo dell'app installata NON DIMOSTRATO. Isolamento del profilo NON REALIZZATO.
+================================================================================
