@@ -1,5 +1,48 @@
 # TASK LIST — LIMEN Vault: archivio chat Codex, installatori e rilascio v6Mini
 
+## Avanzamento versione Windows v6Mini — 29 settembre 2026
+
+Stato: Fase 1 in corso (Core Rust modificato e testato con evidenze archiviate; RAM Win32 verificata con 11 test; Common-Controls 6.0 risolto in build.rs; pipeline di estrazione parziale e propagazione end-to-end implementata e verificata con test su fixture DOCX reale con immagine e ricerca, con Verifica UI runtime: NON VERIFICATA; studio documentale OCR completato; spike OCR ed estensione formati da implementare; isolamento ambiente di collaudo aperto e NON VERIFICATO).
+
+- [x] Ricognizione ambiente completata: Node v24.14.0, pnpm v12.6.0 (npx), Rust 1.95.0 MSVC, WebView2 153.0.4234.48, Windows 11 24H2 (Build 26100). Evidenze salvate in `IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/fase0-ricognizione-ambiente.txt`.
+- [x] Inventariati e preservati i file preesistenti non tracciati (`IMPLEMENTATION/AUDIT_OPENAI/`, patch in `IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/`, storico installer in `USER INSTALL WINDOWS/`, workspace).
+- [ ] Isolamento ambiente di collaudo: sono state rilevate le appartenenze ai gruppi e le ACL della directory radice del profilo; non sono ancora stati verificati i permessi effettivi dell'account di collaudo sui percorsi interessati. Ambiente dedicato proposto: account di collaudo con GUI oppure VM; configurazione, sessione interattiva e isolamento ancora da verificare. Isolamento: NON VERIFICATO. Divieto di avvio app o test con scritture sotto user.
+- [ ] Uniformazione versione pnpm: rilevata discrepanza (npx usa 12.6.0, runtime Codex usa 11.19.0, corepack shim verso 12.6.0, `pnpm` non presente nel PATH di sistema); da rendere univoco e riproducibile per i comandi figli di Tauri senza vincolarsi a percorsi temporanei di cache.
+- [ ] Studio di fattibilità OCR: completato studio documentale comparativo in `IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/fase1-studio-fattibilita-ocr.md`; raccomandata pipeline Tesseract 5 + PDFium (zero vincoli package identity, 100% offline, licenze Apache 2.0 / BSD). Parità Windows/Mac: NON VERIFICATA fino a spike eseguibile.
+- [ ] Implementazione core Rust (Fase 1):
+  - [x] RAM reale Win32 implementata in `llama_llm.rs` (`GlobalMemoryStatusEx`) con gestione memoria non determinabile (0).
+  - [x] Correzione logica `is_sub_16gb_system()` con fallback prudenziale su Ministral 3B se RAM non determinabile (0) o < 16 GB; selezione 8B per >= 16 GB; test unitari completi per i 4 casi limite eseguiti con codice 0 ed evidenze archiviate in `IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/fase1-core-rust-build.txt`. Modifica condivisa (impatto runtime Mac aperto se RAM = 0).
+  - [x] Risolto requisito Common Controls 6.0 in `build.rs` (`/MANIFESTDEPENDENCY`) per compatibilità runtime test Win32; evidenze crash iniziale 0xc0000139 e risoluzione archiviate.
+  - [x] Implementazione contratto estrazione parziale (`extraction.rs` -> `catalog.rs` -> `automation.rs` -> `search.rs` -> `vault-ipc.ts` -> `App.tsx` / `DocumentReaderModal.tsx`):
+    - [x] Ristrutturazione `extraction.rs`: hook `with_test_ocr`, lettura sicura componenti immagine (senza interruzione prematura `?`), output parziale su testo vuoto con warning se OCR fallito, preservazione testo XML
+    - [x] Prove dei 4 casi OCR controllati in `extraction::tests` (OCR riuscito, OCR fallito con causa controllata, componente oltre limite, testo vuoto con OCR fallito) superate con codice 0
+    - [x] Gestione catalogo `catalog.rs`: stato `ExtractionStatus::Partial`, ramo testo vuoto aggiornato, `sync_catalog` distingue estrazione completa verificata (transizione a `Ready`) da job parziali, legacy senza `isPartial` (completezza sconosciuta, non cancella `Partial`) o obsoleti con hash non corrispondente (nessuna sovrascrittura di stato, percorsi o avvisi).
+    - [x] Prove unitarie `catalog::tests` (21 test su 21 passati con codice 0): verificata conservazione stato su job legacy privo di `isPartial` (`test_catalog_sync_legacy_job_without_is_partial_does_not_clear_partial_status`) e isolamento da job obsoleto con percorsi/avvisi disallineati (`test_catalog_sync_mismatched_job_does_not_overwrite_warnings_or_extracted_text`).
+    - [x] Prove di transizione bidirezionale catalogo `test_catalog_sync_transitions_complete_to_partial_and_partial_to_complete` superate con codice 0.
+    - [x] Gestione job automazione `automation.rs`: persistenza `is_partial` ed `extraction_warnings` nella struct `Job` in `AUTO_KNOWLEDGE.json`.
+    - [x] Prova ciclo automazione attiva con mock locale e persistenza su disco `test_automation_active_run_with_persists_partial_job_and_syncs_catalog` superata con codice 0.
+    - [x] Indicizzazione `search.rs`: supporto estrazione parziale in `search_vault`.
+    - [x] Fixture DOCX reale conforme OpenXML `apps/desktop/tests/fixtures/auto-knowledge/documento_con_immagine.docx` (testo "LIMEN-DOCX-742", relazione `rId1` in `word/_rels/document.xml.rels` verso `word/media/image1.png` dichiarata in `[Content_Types].xml`).
+    - [x] Test end-to-end su percorso reale di produzione superato con codice 0 (`test_production_docx_with_image_partial_extraction_end_to_end`).
+    - [x] Typecheck frontend desktop superato con codice 0 (`npx pnpm --filter @limen-vault/desktop typecheck`).
+    - [x] Attestazione stato UI: Contratto backend e frontend implementati; propagazione nell'automazione verificata con mock locale e persistenza job; gestione componenti illeggibili e transizioni di catalogo (completo <-> parziale) verificate con fixture DOCX reale collegata e ricerca; gestione 4 casi OCR controllata. Verifica UI runtime: NON VERIFICATA.
+  - [x] Specifica esatta binari OCR e modelli linguistici archiviata in `IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/fase1-specifica-binari-ocr.md`:
+    - [x] PDFium: `bblanchon/pdfium-binaries`, tag `chromium/8066` (`156.0.8066.0`), commit `f2e9a1c45bb17b85b540abf1af30146ef65416ac`, SHA-256 `739a57d597d864297909cc40a2411eba728490c76a0fa25e3ea299c7f6b07020`, x64 MSVC, licenza BSD 3-Clause / Apache 2.0.
+    - [x] Tesseract + Leptonica: UB-Mannheim, tag `v5.4.0.20240606`, SHA-256 `ca20da481e56645ce0df9daeac272e013650d2856844ae8bd4bdff3020ff9fca`, x64, licenze Apache 2.0 e BSD 2-Clause.
+    - [x] Modelli linguistici: scelta esplicita `tessdata_fast` (tag `4.1.0`, commit `923915d4ced2a7235221788285785a29c4a42d4a`): `ita.traineddata` (2.58 MB) ed `eng.traineddata` (3.92 MB), licenza Apache 2.0.
+    - [x] Vincolo esecuzione: nessun utilizzo implicito del `%PATH%`; percorsi isolati dedicati.
+  - [x] Spike OCR eseguibile: 5 fixture dedicate in `apps/desktop/tests/fixtures/ocr-spike/` e test in `extraction::tests` superati con codice 0 (evidenza in `IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/fase1-spike-ocr-fixture-evidence.txt`):
+    - [x] Fixture 1 (`fixture_1_immagine_autonoma.png`, SHA-256 `4ee2ed26a...`): PNG con testo italiano e accenti estratto fedelmente.
+    - [x] Fixture 2 (`fixture_2_pdf_vettoriale_puro.pdf`, SHA-256 `230e7d78b...`): PDF vettoriale digitale puro estratto con successo.
+    - [x] Fixture 3 (`fixture_3_pdf_scansionato_puro.pdf`, SHA-256 `b53262e98...`): PDF scansionato puro (solo raster) estratto tramite pipeline OCR.
+    - [x] Fixture 4 (`fixture_4_pdf_misto.pdf`, SHA-256 `b7602e087...`): PDF misto con testo digitale ed immagine con testo distinto entrambi estratti senza duplicazioni.
+    - [x] Fixture 5 (`fixture_5_office_guasto_ocr.docx`, SHA-256 `b5963e9f9...`): DOCX con guasto OCR controllato, testo XML principale preservato, `is_partial = true` e avviso registrato.
+  - [ ] Supporto formati Office/documenti (DOCX, PPTX, ODT, XLSX verificati; residuo formati legacy DOC e RTF esplicitamente aperto, parità macOS NON SODDISFATTA e pendente decisione formale di Cesare).
+  - [ ] Allineamento `platform.ts:30` (`ocrSupported`).
+  - [ ] Verifica credenziali (`keychain.rs`): test roundtrip subordinato a convalida ambiente isolato (nessuna esecuzione sotto account user).
+- [ ] Build installer NSIS e collaudo matrice 24 criteri su ambiente isolato: non avviati.
+
+
 ## Archivio chat Codex per Windows — 29 settembre 2026
 
 Stato: completato, verificato e pubblicato su `origin/windows-build`; commit archivio `30d97ca`, push riuscito il 29 settembre 2026.

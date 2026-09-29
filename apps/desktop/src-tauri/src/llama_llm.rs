@@ -35,41 +35,63 @@ pub const MINISTRAL_DOWNLOAD_URL: &str = MINISTRAL_8B_DOWNLOAD_URL;
 pub const SIXTEEN_GB_BYTES: u64 = 16 * 1024 * 1024 * 1024;
 pub const MINISTRAL_STARTUP_TIMEOUT_SECS: u64 = 90;
 
-pub fn is_sub_16gb_system() -> bool {
-    let ram = get_physical_ram_bytes();
-    ram > 0 && ram < SIXTEEN_GB_BYTES
+/// Decisione deterministica del modello in base ai byte di RAM fisica:
+/// - Se `ram_bytes == 0` (non determinabile) oppure `< 16 GB` -> `true` (Ministral 3B, scelta prudenziale)
+/// - Se `ram_bytes >= 16 GB` -> `false` (Ministral 8B)
+pub fn model_decision_for_ram(ram_bytes: u64) -> bool {
+    ram_bytes == 0 || ram_bytes < SIXTEEN_GB_BYTES
 }
 
-pub fn get_active_model_file_name() -> &'static str {
-    if is_sub_16gb_system() {
+pub fn is_sub_16gb_system() -> bool {
+    model_decision_for_ram(get_physical_ram_bytes())
+}
+
+pub fn model_file_name_for_sub_16gb(sub_16gb: bool) -> &'static str {
+    if sub_16gb {
         MINISTRAL_3B_MODEL_FILE_NAME
     } else {
         MINISTRAL_8B_MODEL_FILE_NAME
     }
 }
 
-pub fn get_active_model_size_bytes() -> u64 {
-    if is_sub_16gb_system() {
+pub fn model_size_for_sub_16gb(sub_16gb: bool) -> u64 {
+    if sub_16gb {
         MINISTRAL_3B_MODEL_SIZE_BYTES
     } else {
         MINISTRAL_8B_MODEL_SIZE_BYTES
     }
 }
 
-pub fn get_active_model_sha256() -> &'static str {
-    if is_sub_16gb_system() {
+pub fn model_sha256_for_sub_16gb(sub_16gb: bool) -> &'static str {
+    if sub_16gb {
         MINISTRAL_3B_MODEL_SHA256
     } else {
         MINISTRAL_8B_MODEL_SHA256
     }
 }
 
-pub fn get_active_download_url() -> &'static str {
-    if is_sub_16gb_system() {
+pub fn download_url_for_sub_16gb(sub_16gb: bool) -> &'static str {
+    if sub_16gb {
         MINISTRAL_3B_DOWNLOAD_URL
     } else {
         MINISTRAL_8B_DOWNLOAD_URL
     }
+}
+
+pub fn get_active_model_file_name() -> &'static str {
+    model_file_name_for_sub_16gb(is_sub_16gb_system())
+}
+
+pub fn get_active_model_size_bytes() -> u64 {
+    model_size_for_sub_16gb(is_sub_16gb_system())
+}
+
+pub fn get_active_model_sha256() -> &'static str {
+    model_sha256_for_sub_16gb(is_sub_16gb_system())
+}
+
+pub fn get_active_download_url() -> &'static str {
+    download_url_for_sub_16gb(is_sub_16gb_system())
 }
 
 /// Legge la memoria RAM fisica del sistema in byte (macOS sysctl hw.memsize).
@@ -95,17 +117,63 @@ pub fn get_physical_ram_bytes() -> u64 {
     }
 }
 
-#[cfg(not(target_os = "macos"))]
+/// Legge la memoria RAM fisica del sistema in byte su Windows (Win32 GlobalMemoryStatusEx).
+/// In caso di errore dell'API restituisce 0 (memoria non determinabile).
+#[cfg(target_os = "windows")]
 pub fn get_physical_ram_bytes() -> u64 {
-    SIXTEEN_GB_BYTES
+    #[repr(C)]
+    struct MEMORYSTATUSEX {
+        dw_length: u32,
+        dw_memory_load: u32,
+        ull_total_phys: u64,
+        ull_avail_phys: u64,
+        ull_total_page_file: u64,
+        ull_avail_page_file: u64,
+        ull_total_virtual: u64,
+        ull_avail_virtual: u64,
+        ull_avail_extended_virtual: u64,
+    }
+    extern "system" {
+        fn GlobalMemoryStatusEx(lpBuffer: *mut MEMORYSTATUSEX) -> i32;
+    }
+    let mut status = MEMORYSTATUSEX {
+        dw_length: std::mem::size_of::<MEMORYSTATUSEX>() as u32,
+        dw_memory_load: 0,
+        ull_total_phys: 0,
+        ull_avail_phys: 0,
+        ull_total_page_file: 0,
+        ull_avail_page_file: 0,
+        ull_total_virtual: 0,
+        ull_avail_virtual: 0,
+        ull_avail_extended_virtual: 0,
+    };
+    unsafe {
+        if GlobalMemoryStatusEx(&mut status) != 0 {
+            status.ull_total_phys
+        } else {
+            0
+        }
+    }
 }
 
-/// Restituisce l'avviso RAM se la memoria fisica è inferiore a 16 GB.
+#[cfg(not(any(target_os = "macos", target_os = "windows")))]
+pub fn get_physical_ram_bytes() -> u64 {
+    0
+}
+
+/// Restituisce l'avviso RAM se la memoria fisica è inferiore a 16 GB o non determinabile.
 pub fn ram_warning_for_bytes(bytes: u64) -> Option<String> {
-    if bytes > 0 && bytes < SIXTEEN_GB_BYTES {
+    if bytes == 0 {
         Some(
-            "Questo Mac ha meno di 16 GB di RAM: viene utilizzato Ministral 3 3B Instruct Q5_K_M (2.47 GB) ottimizzato per memoria unificata."
+            "Memoria fisica di sistema non determinabile: selezione prudenziale di Ministral 3 3B Instruct Q5_K_M (2.47 GB) per garantire la stabilità operativa."
                 .to_string(),
+        )
+    } else if bytes < SIXTEEN_GB_BYTES {
+        Some(
+            format!(
+                "Questo computer dispone di meno di 16 GB di RAM ({:.1} GB rilevati): viene utilizzato Ministral 3 3B Instruct Q5_K_M (2.47 GB) ottimizzato per risorse contenute.",
+                bytes as f64 / (1024.0 * 1024.0 * 1024.0)
+            )
         )
     } else {
         None
@@ -825,15 +893,89 @@ mod tests {
     #[test]
     fn test_physical_ram_and_warning() {
         let ram = get_physical_ram_bytes();
+        eprintln!(
+            "[EVIDENZA TEST] RAM fisica reale letta da GlobalMemoryStatusEx: {} bytes ({:.2} GB)",
+            ram,
+            ram as f64 / (1024.0 * 1024.0 * 1024.0)
+        );
         assert!(ram > 0, "RAM fisica deve essere maggiore di 0");
+        assert_eq!(
+            is_sub_16gb_system(),
+            model_decision_for_ram(ram),
+            "is_sub_16gb_system deve coincidere con la decisione per la RAM letta"
+        );
         if ram < SIXTEEN_GB_BYTES {
             let warn = ram_warning_for_bytes(ram);
             assert!(warn.is_some());
-            assert!(warn.unwrap().contains("16 GB"));
+            assert!(warn.as_ref().unwrap().contains("Ministral 3 3B"));
         } else {
             let warn = ram_warning_for_bytes(ram);
             assert!(warn.is_none());
         }
+    }
+
+    #[test]
+    fn test_model_decision_ram_zero_undetermined() {
+        // Caso 1: RAM non determinabile (0 byte) -> selezione prudenziale 3B
+        let is_sub = model_decision_for_ram(0);
+        assert!(is_sub, "RAM = 0 deve selezionare Ministral 3B (scelta prudenziale)");
+        assert_eq!(model_file_name_for_sub_16gb(is_sub), MINISTRAL_3B_MODEL_FILE_NAME);
+        assert_eq!(model_size_for_sub_16gb(is_sub), MINISTRAL_3B_MODEL_SIZE_BYTES);
+        assert_eq!(model_sha256_for_sub_16gb(is_sub), MINISTRAL_3B_MODEL_SHA256);
+        assert_eq!(download_url_for_sub_16gb(is_sub), MINISTRAL_3B_DOWNLOAD_URL);
+
+        let warn = ram_warning_for_bytes(0);
+        assert!(warn.is_some());
+        let msg = warn.unwrap();
+        assert!(msg.contains("non determinabile"));
+        assert!(msg.contains("Ministral 3 3B"));
+    }
+
+    #[test]
+    fn test_model_decision_sub_16gb() {
+        // Caso 2: RAM < 16 GB (es. 8 GB) -> selezione 3B
+        let eight_gb = 8 * 1024 * 1024 * 1024;
+        let is_sub = model_decision_for_ram(eight_gb);
+        assert!(is_sub, "RAM 8 GB deve selezionare Ministral 3B");
+        assert_eq!(model_file_name_for_sub_16gb(is_sub), MINISTRAL_3B_MODEL_FILE_NAME);
+        assert_eq!(model_size_for_sub_16gb(is_sub), MINISTRAL_3B_MODEL_SIZE_BYTES);
+        assert_eq!(model_sha256_for_sub_16gb(is_sub), MINISTRAL_3B_MODEL_SHA256);
+        assert_eq!(download_url_for_sub_16gb(is_sub), MINISTRAL_3B_DOWNLOAD_URL);
+
+        let warn = ram_warning_for_bytes(eight_gb);
+        assert!(warn.is_some());
+        let msg = warn.unwrap();
+        assert!(msg.contains("8.0 GB"));
+        assert!(msg.contains("Ministral 3 3B"));
+    }
+
+    #[test]
+    fn test_model_decision_exactly_16gb() {
+        // Caso 3: RAM esattamente alla soglia (16 GB) -> selezione 8B
+        let is_sub = model_decision_for_ram(SIXTEEN_GB_BYTES);
+        assert!(!is_sub, "RAM esattamente a 16 GB deve selezionare Ministral 8B");
+        assert_eq!(model_file_name_for_sub_16gb(is_sub), MINISTRAL_8B_MODEL_FILE_NAME);
+        assert_eq!(model_size_for_sub_16gb(is_sub), MINISTRAL_8B_MODEL_SIZE_BYTES);
+        assert_eq!(model_sha256_for_sub_16gb(is_sub), MINISTRAL_8B_MODEL_SHA256);
+        assert_eq!(download_url_for_sub_16gb(is_sub), MINISTRAL_8B_DOWNLOAD_URL);
+
+        let warn = ram_warning_for_bytes(SIXTEEN_GB_BYTES);
+        assert!(warn.is_none(), "A 16 GB non deve esserci alcun avviso di RAM insufficiente");
+    }
+
+    #[test]
+    fn test_model_decision_above_16gb() {
+        // Caso 4: RAM > 16 GB (es. 32 GB) -> selezione 8B
+        let thirty_two_gb = 32 * 1024 * 1024 * 1024;
+        let is_sub = model_decision_for_ram(thirty_two_gb);
+        assert!(!is_sub, "RAM 32 GB deve selezionare Ministral 8B");
+        assert_eq!(model_file_name_for_sub_16gb(is_sub), MINISTRAL_8B_MODEL_FILE_NAME);
+        assert_eq!(model_size_for_sub_16gb(is_sub), MINISTRAL_8B_MODEL_SIZE_BYTES);
+        assert_eq!(model_sha256_for_sub_16gb(is_sub), MINISTRAL_8B_MODEL_SHA256);
+        assert_eq!(download_url_for_sub_16gb(is_sub), MINISTRAL_8B_DOWNLOAD_URL);
+
+        let warn = ram_warning_for_bytes(thirty_two_gb);
+        assert!(warn.is_none(), "A 32 GB non deve esserci alcun avviso di RAM insufficiente");
     }
 
     #[test]

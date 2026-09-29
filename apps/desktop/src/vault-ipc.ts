@@ -109,6 +109,7 @@ export type ExtractionStatus =
   | 'pending'
   | 'processing'
   | 'ready'
+  | 'partial'
   | 'unsupported'
   | 'protected'
   | 'failed';

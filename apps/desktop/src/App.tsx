@@ -2172,6 +2172,8 @@ export default function App() {
                           const statusLabel =
                             doc.extractionStatus === 'ready'
                               ? 'Pronto per la ricerca'
+                              : doc.extractionStatus === 'partial'
+                              ? 'Parziale (avviso OCR)'
                               : doc.extractionStatus === 'processing'
                               ? 'In estrazione'
                               : doc.extractionStatus === 'unsupported'
@@ -2182,8 +2184,10 @@ export default function App() {
                           const statusColor =
                             doc.extractionStatus === 'ready'
                               ? '#059669'
-                              : doc.extractionStatus === 'processing'
+                              : doc.extractionStatus === 'partial'
                               ? '#d97706'
+                              : doc.extractionStatus === 'processing'
+                              ? '#2563eb'
                               : doc.extractionStatus === 'failed'
                               ? '#dc2626'
                               : '#64748b';
@@ -2207,6 +2211,11 @@ export default function App() {
                                   <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: statusColor }} />
                                   {statusLabel}
                                 </span>
+                                {doc.extractionStatus === 'partial' && doc.extractionError && (
+                                  <div style={{ fontSize: 10, color: '#d97706', marginTop: 2, maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={doc.extractionError}>
+                                    ⚠ {doc.extractionError}
+                                  </div>
+                                )}
                                 {doc.passages && doc.passages.length > 0 && (
                                   <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>
                                     {doc.passages.length} passaggi estratti

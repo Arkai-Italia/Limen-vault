@@ -264,6 +264,12 @@ export const DocumentReaderModal: React.FC<DocumentReaderModalProps> = ({
             Estratto e indicizzato
           </span>
         );
+      case 'partial':
+        return (
+          <span className="px-2 py-0.5 text-xs rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+            Parziale (avviso OCR)
+          </span>
+        );
       case 'processing':
         return (
           <span className="px-2 py-0.5 text-xs rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
@@ -445,6 +451,16 @@ export const DocumentReaderModal: React.FC<DocumentReaderModalProps> = ({
 
         {/* Content Area */}
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          {doc && doc.extractionStatus === 'partial' && doc.extractionError && (
+            <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-xs text-amber-300 flex items-start gap-2.5">
+              <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+              <div>
+                <div className="font-semibold text-amber-200">Avviso estrazione parziale:</div>
+                <div className="mt-0.5 text-zinc-300 whitespace-pre-wrap">{doc.extractionError}</div>
+                <div className="mt-1 text-zinc-400 text-[11px]">Il testo estratto e i passaggi sottostanti sono stati preservati e rimangono ricercabili.</div>
+              </div>
+            </div>
+          )}
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20 text-zinc-400 space-y-3">
               <Loader2 className="w-8 h-8 animate-spin text-[#c8ff00]" />

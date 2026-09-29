@@ -675,7 +675,7 @@ pub fn index_vault_search(path: &Path) -> Result<IndexStatusReport, String> {
     // Index catalog raw sources (20_RAW_SOURCES) if VAULT_CATALOG.json exists
     if let Ok(catalog) = crate::catalog::load_catalog_arc(path) {
         for doc in catalog.documents.values() {
-            if doc.original_path.starts_with("20_RAW_SOURCES/") && doc.extraction_status == crate::catalog::ExtractionStatus::Ready && !doc.passages.is_empty() {
+            if doc.original_path.starts_with("20_RAW_SOURCES/") && (doc.extraction_status == crate::catalog::ExtractionStatus::Ready || doc.extraction_status == crate::catalog::ExtractionStatus::Partial) && !doc.passages.is_empty() {
                 let p = doc.original_path.clone();
                 let cached = old
                     .as_ref()

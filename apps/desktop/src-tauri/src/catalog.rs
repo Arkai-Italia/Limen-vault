@@ -76,6 +76,7 @@ pub enum ExtractionStatus {
     Pending,
     Processing,
     Ready,
+    Partial,
     Unsupported,
     Protected,
     Failed,
@@ -834,7 +835,48 @@ pub fn sync_catalog_from_vault(vault_path: &Path) -> Result<CatalogState, String
                             for doc in catalog.documents.values_mut() {
                                 if doc.original_path == *raw_key {
                                     if status == "ready" {
-                                        doc.extraction_status = ExtractionStatus::Ready;
+                                        let dep_hash = job.get("dependencies")
+                                            .and_then(Value::as_object)
+                                            .and_then(|deps| deps.get(raw_key))
+                                            .and_then(Value::as_str);
+
+                                        let job_matches_current_version = dep_hash.is_some_and(|h| h == doc.content_hash);
+
+                                        if !job_matches_current_version {
+                                            // Job obsoleto o riferito a una versione diversa:
+                                            // non trasferire risultati, percorsi o avvisi sul documento corrente
+                                            continue;
+                                        }
+
+                                        // Il job si riferisce verificabilmente alla versione corrente del documento
+                                        let explicit_is_partial = job.get("isPartial").and_then(Value::as_bool);
+                                        let job_warnings = job.get("extractionWarnings")
+                                            .and_then(Value::as_array)
+                                            .map(|arr| {
+                                                arr.iter().filter_map(Value::as_str).map(String::from).collect::<Vec<_>>()
+                                            })
+                                            .unwrap_or_default();
+
+                                        match explicit_is_partial {
+                                            Some(true) => {
+                                                doc.extraction_status = ExtractionStatus::Partial;
+                                                if !job_warnings.is_empty() {
+                                                    doc.extraction_error = Some(job_warnings.join("\n"));
+                                                }
+                                            }
+                                            Some(false) => {
+                                                // Nuova estrazione completa verificata: passa a Ready e rimuove avvisi superati
+                                                doc.extraction_status = ExtractionStatus::Ready;
+                                                doc.extraction_error = None;
+                                            }
+                                            None => {
+                                                // Metadati assenti: completezza dell'estrazione sconosciuta.
+                                                // Non cancellare lo stato parziale né l'avviso se già presenti.
+                                                if doc.extraction_status != ExtractionStatus::Partial {
+                                                    doc.extraction_status = ExtractionStatus::Ready;
+                                                }
+                                            }
+                                        }
                                         doc.extracted_text_path = output.map(String::from);
                                         doc.extracted_text_hash = output_hash.map(String::from);
                                         if let Some(c) = cat {
@@ -967,16 +1009,16 @@ fn extract_spreadsheet_content(bytes: &[u8]) -> Result<String, String> {
     Ok(output)
 }
 
-pub fn extract_document_content(bytes: &[u8], filename: &str) -> Result<String, String> {
+pub fn extract_document_content(bytes: &[u8], filename: &str) -> Result<crate::extraction::ExtractionOutput, String> {
     let ext = Path::new(filename)
         .extension()
         .and_then(|s| s.to_str())
         .unwrap_or("")
         .to_lowercase();
     if ["xls", "xlsx", "xlsb", "ods"].contains(&ext.as_str()) {
-        extract_spreadsheet_content(bytes)
+        extract_spreadsheet_content(bytes).map(crate::extraction::ExtractionOutput::simple)
     } else if ["txt", "md", "markdown", "csv", "tsv", "json", "xml", "yaml", "yml", "log", "eml", "html", "htm"].contains(&ext.as_str()) {
-        extract_plain_text(bytes, &ext)
+        extract_plain_text(bytes, &ext).map(crate::extraction::ExtractionOutput::simple)
     } else {
         extraction::extract(bytes, filename)
     }
@@ -1005,17 +1047,29 @@ pub fn process_pending_extractions(vault_path: &Path) -> Result<usize, String> {
         };
 
         match extract_document_content(&original_bytes, &doc.file_name) {
-            Ok(text) => {
-                let trimmed = text.trim().to_string();
+            Ok(output) => {
+                let trimmed = output.text.trim().to_string();
                 if trimmed.is_empty() {
-                    doc.extraction_status = ExtractionStatus::Ready;
-                    doc.passages.clear();
+                    if output.is_partial {
+                        doc.extraction_status = ExtractionStatus::Partial;
+                        doc.extraction_error = Some(output.warnings.join("\n"));
+                        doc.passages.clear();
+                    } else {
+                        doc.extraction_status = ExtractionStatus::Ready;
+                        doc.passages.clear();
+                        doc.extraction_error = None;
+                    }
                 } else {
                     let hash = compute_sha256(trimmed.as_bytes());
                     doc.extracted_text_hash = Some(hash);
                     doc.passages = chunk_text_to_passages(&doc.document_id, &trimmed);
-                    doc.extraction_status = ExtractionStatus::Ready;
-                    doc.extraction_error = None;
+                    if output.is_partial {
+                        doc.extraction_status = ExtractionStatus::Partial;
+                        doc.extraction_error = Some(output.warnings.join("\n"));
+                    } else {
+                        doc.extraction_status = ExtractionStatus::Ready;
+                        doc.extraction_error = None;
+                    }
                 }
                 doc.updated_at = now_iso();
                 processed += 1;
@@ -1074,6 +1128,7 @@ pub fn list_documents(vault_path: &Path, options: CatalogListOptions) -> Result<
             if let Some(st) = status_filter {
                 let st_str = match doc.extraction_status {
                     ExtractionStatus::Ready => "ready",
+                    ExtractionStatus::Partial => "partial",
                     ExtractionStatus::Processing => "processing",
                     ExtractionStatus::Pending => "pending",
                     ExtractionStatus::Unsupported => "unsupported",
@@ -1535,7 +1590,7 @@ pub fn catalog_summary(vault_path: &Path) -> Result<CatalogSummary, String> {
 
     for doc in catalog.documents.values() {
         match doc.extraction_status {
-            ExtractionStatus::Ready => ready += 1,
+            ExtractionStatus::Ready | ExtractionStatus::Partial => ready += 1,
             ExtractionStatus::Processing | ExtractionStatus::Pending => processing += 1,
             ExtractionStatus::Unsupported | ExtractionStatus::Protected | ExtractionStatus::Failed => {
                 attention += 1
@@ -1784,6 +1839,330 @@ mod tests {
         assert_ne!(doc2.content_hash, initial_hash);
         assert_eq!(doc2.extraction_status, ExtractionStatus::Pending);
         assert!(doc2.passages.is_empty());
+    }
+
+    #[test]
+    fn test_production_docx_with_image_partial_extraction_end_to_end() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path();
+        fs::create_dir_all(path.join("00_SYSTEM")).unwrap();
+        fs::create_dir_all(path.join("20_RAW_SOURCES")).unwrap();
+
+        // 1. Scriviamo nel vault la fixture reale contenente testo principale E immagine incorporata
+        let file_path = path.join("20_RAW_SOURCES/documento_con_immagine.docx");
+        fs::write(
+            &file_path,
+            include_bytes!("../../tests/fixtures/auto-knowledge/documento_con_immagine.docx"),
+        )
+        .unwrap();
+
+        // 2. Sincronizzazione iniziale: il documento viene censito in stato Pending
+        let cat = sync_catalog_from_vault(path).unwrap();
+        let doc = cat
+            .documents
+            .values()
+            .find(|d| d.original_path == "20_RAW_SOURCES/documento_con_immagine.docx")
+            .unwrap();
+        let doc_id = doc.document_id.clone();
+        assert_eq!(doc.extraction_status, ExtractionStatus::Pending);
+
+        // 3. Esecuzione del percorso di produzione REALE: process_pending_extractions()
+        // Usiamo with_test_ocr per garantire un fallimento controllato indipendente dall'OS
+        let processed = crate::extraction::with_test_ocr(
+            Box::new(|_, _| Err("Fallimento OCR controllato: contrasto scanner basso".into())),
+            || process_pending_extractions(path).unwrap(),
+        );
+        assert_eq!(processed, 1, "Un documento deve essere stato elaborato");
+
+        let cat_extracted = load_catalog(path).unwrap();
+        let doc_extracted = cat_extracted.documents.get(&doc_id).unwrap();
+
+        // Verifica 1: testo principale conservato nei passaggi
+        assert!(!doc_extracted.passages.is_empty(), "I passaggi del testo principale devono essere stati estratti");
+        let all_text = doc_extracted.passages.iter().map(|p| p.text.as_str()).collect::<Vec<_>>().join(" ");
+        assert!(all_text.contains("LIMEN-DOCX-742"), "Il testo principale LIMEN-DOCX-742 deve essere presente nei passaggi");
+
+        // Verifica 2: stato parziale e avviso prodotti dall'estrattore e trasferiti al catalogo
+        assert_eq!(
+            doc_extracted.extraction_status,
+            ExtractionStatus::Partial,
+            "Lo stato deve essere Partial automaticamente dal percorso di produzione"
+        );
+        assert!(doc_extracted.extraction_error.is_some(), "extraction_error deve contenere l'avviso");
+        let warn_msg = doc_extracted.extraction_error.as_ref().unwrap();
+        assert!(
+            warn_msg.contains("contrasto scanner basso"),
+            "L'avviso deve specificare la causa OCR controllata: {warn_msg}"
+        );
+
+        // Verifica 3: persistenza dopo ricaricamento da disco
+        let cat_reloaded = load_catalog(path).unwrap();
+        let doc_reloaded = cat_reloaded.documents.get(&doc_id).unwrap();
+        assert_eq!(doc_reloaded.extraction_status, ExtractionStatus::Partial);
+        assert_eq!(doc_reloaded.extraction_error.as_deref(), Some(warn_msg.as_str()));
+
+        // Verifica 4: persistenza DOPO nuova sincronizzazione del catalogo
+        // La sincronizzazione NON deve trasformare un documento parziale in completo/ready
+        let cat_resynced = sync_catalog_from_vault(path).unwrap();
+        let doc_resynced = cat_resynced.documents.get(&doc_id).unwrap();
+        assert_eq!(
+            doc_resynced.extraction_status,
+            ExtractionStatus::Partial,
+            "Una nuova sincronizzazione non deve trasformare il documento parziale in Ready"
+        );
+        assert_eq!(doc_resynced.extraction_error.as_deref(), Some(warn_msg.as_str()));
+
+        // Verifica 5: testo effettivamente reperibile mediante la ricerca
+        crate::search::index_vault_search(path).unwrap();
+        let query = crate::search::SearchQuery {
+            term: Some("LIMEN-DOCX-742".into()),
+            ..Default::default()
+        };
+        let search_results = crate::search::search_vault(path, query).unwrap();
+        assert!(
+            !search_results.is_empty(),
+            "La ricerca per 'LIMEN-DOCX-742' deve trovare il documento parzialmente estratto"
+        );
+        assert_eq!(search_results[0].relative_path, "20_RAW_SOURCES/documento_con_immagine.docx");
+
+        // Verifica 6: catalog_summary conteggia il documento parziale tra i ready
+        let summary = catalog_summary(path).unwrap();
+        assert_eq!(summary.ready_documents, 1);
+        assert_eq!(summary.attention_documents, 0);
+    }
+
+    #[test]
+    fn test_catalog_sync_transitions_complete_to_partial_and_partial_to_complete() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path();
+        fs::create_dir_all(path.join("00_SYSTEM")).unwrap();
+        fs::create_dir_all(path.join("20_RAW_SOURCES")).unwrap();
+
+        let doc_path = path.join("20_RAW_SOURCES/contratto.docx");
+        fs::write(&doc_path, b"Testo base del contratto").unwrap();
+
+        // 1. Inizializza catalogo con documento inizialmente in Ready
+        let mut cat = sync_catalog_from_vault(path).unwrap();
+        let doc = cat.documents.values_mut().find(|d| d.original_path == "20_RAW_SOURCES/contratto.docx").unwrap();
+        let doc_id = doc.document_id.clone();
+        let hash_v1 = doc.content_hash.clone();
+        doc.extraction_status = ExtractionStatus::Ready;
+        doc.extraction_error = None;
+        save_catalog(path, &mut cat).unwrap();
+
+        // 2. Transizione Completo -> Parziale
+        // Scriviamo un AUTO_KNOWLEDGE.json con un job per la versione corrente (hash_v1) con is_partial=true
+        let ak_partial = serde_json::json!({
+            "version": 1,
+            "jobs": {
+                "20_RAW_SOURCES/contratto.docx": {
+                    "fingerprint": "fp1",
+                    "attempts": 1,
+                    "status": "ready",
+                    "isPartial": true,
+                    "extractionWarnings": ["Avviso OCR controllato: tabella con testo sfuocato"],
+                    "dependencies": {
+                        "20_RAW_SOURCES/contratto.docx": hash_v1
+                    },
+                    "category": "research",
+                    "client": "",
+                    "project": ""
+                }
+            }
+        });
+        fs::write(path.join("00_SYSTEM/AUTO_KNOWLEDGE.json"), serde_json::to_vec(&ak_partial).unwrap()).unwrap();
+
+        // Sincronizza
+        sync_catalog(path).unwrap();
+        let cat_after_p = load_catalog(path).unwrap();
+        let doc_after_p = cat_after_p.documents.get(&doc_id).unwrap();
+        assert_eq!(doc_after_p.extraction_status, ExtractionStatus::Partial, "Transizione completo -> parziale deve impostare stato Partial");
+        assert_eq!(doc_after_p.extraction_error.as_deref(), Some("Avviso OCR controllato: tabella con testo sfuocato"));
+
+        // 3. Transizione Parziale -> Completo
+        // Nuova estrazione completa riuscita per la stessa versione del file (hash_v1):
+        let ak_complete = serde_json::json!({
+            "version": 1,
+            "jobs": {
+                "20_RAW_SOURCES/contratto.docx": {
+                    "fingerprint": "fp2",
+                    "attempts": 1,
+                    "status": "ready",
+                    "isPartial": false,
+                    "extractionWarnings": [],
+                    "dependencies": {
+                        "20_RAW_SOURCES/contratto.docx": hash_v1
+                    },
+                    "category": "research",
+                    "client": "",
+                    "project": ""
+                }
+            }
+        });
+        fs::write(path.join("00_SYSTEM/AUTO_KNOWLEDGE.json"), serde_json::to_vec(&ak_complete).unwrap()).unwrap();
+
+        // Sincronizza
+        sync_catalog(path).unwrap();
+        let cat_after_c = load_catalog(path).unwrap();
+        let doc_after_c = cat_after_c.documents.get(&doc_id).unwrap();
+        assert_eq!(doc_after_c.extraction_status, ExtractionStatus::Ready, "Nuova estrazione completa deve riportare lo stato a Ready");
+        assert!(doc_after_c.extraction_error.is_none(), "Gli avvisi superati devono essere ripuliti (None)");
+
+        // 4. Conservazione dello stato parziale se il job è obsoleto (hash non corrispondente)
+        // Impostiamo il doc di nuovo su Partial con un avviso locale
+        let mut cat_to_part = load_catalog(path).unwrap();
+        let d = cat_to_part.documents.get_mut(&doc_id).unwrap();
+        d.extraction_status = ExtractionStatus::Partial;
+        d.extraction_error = Some("Avviso persistente".into());
+        save_catalog(path, &mut cat_to_part).unwrap();
+
+        // Scriviamo un job con hash non corrispondente (versione precedente o obsoleta) che dichiara false
+        let ak_mismatched = serde_json::json!({
+            "version": 1,
+            "jobs": {
+                "20_RAW_SOURCES/contratto.docx": {
+                    "fingerprint": "fp_old",
+                    "attempts": 1,
+                    "status": "ready",
+                    "isPartial": false,
+                    "extractionWarnings": [],
+                    "dependencies": {
+                        "20_RAW_SOURCES/contratto.docx": "old_hash_non_corrispondente"
+                    },
+                    "category": "research",
+                    "client": "",
+                    "project": ""
+                }
+            }
+        });
+        fs::write(path.join("00_SYSTEM/AUTO_KNOWLEDGE.json"), serde_json::to_vec(&ak_mismatched).unwrap()).unwrap();
+
+        sync_catalog(path).unwrap();
+        let cat_recheck = load_catalog(path).unwrap();
+        let doc_recheck = cat_recheck.documents.get(&doc_id).unwrap();
+        assert_eq!(doc_recheck.extraction_status, ExtractionStatus::Partial, "Un job non allineato alla versione non deve cancellare lo stato Partial");
+        assert_eq!(doc_recheck.extraction_error.as_deref(), Some("Avviso persistente"));
+    }
+
+    #[test]
+    fn test_catalog_sync_legacy_job_without_is_partial_does_not_clear_partial_status() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path();
+        fs::create_dir_all(path.join("00_SYSTEM")).unwrap();
+        fs::create_dir_all(path.join("20_RAW_SOURCES")).unwrap();
+
+        let doc_path = path.join("20_RAW_SOURCES/doc_legacy.docx");
+        fs::write(&doc_path, b"Contenuto doc legacy").unwrap();
+
+        let mut cat = sync_catalog_from_vault(path).unwrap();
+        let doc = cat.documents.values_mut().find(|d| d.original_path == "20_RAW_SOURCES/doc_legacy.docx").unwrap();
+        let doc_id = doc.document_id.clone();
+        let hash_v1 = doc.content_hash.clone();
+        doc.extraction_status = ExtractionStatus::Partial;
+        doc.extraction_error = Some("Avviso OCR precedente".into());
+        save_catalog(path, &mut cat).unwrap();
+
+        // Job legacy con hash coincidente (hash_v1), MA senza campo isPartial e senza extractionWarnings
+        let ak_legacy = serde_json::json!({
+            "version": 1,
+            "jobs": {
+                "20_RAW_SOURCES/doc_legacy.docx": {
+                    "fingerprint": "fp_legacy",
+                    "attempts": 1,
+                    "status": "ready",
+                    // isPartial assente
+                    "dependencies": {
+                        "20_RAW_SOURCES/doc_legacy.docx": hash_v1
+                    },
+                    "category": "research",
+                    "client": "",
+                    "project": ""
+                }
+            }
+        });
+        fs::write(path.join("00_SYSTEM/AUTO_KNOWLEDGE.json"), serde_json::to_vec(&ak_legacy).unwrap()).unwrap();
+
+        sync_catalog(path).unwrap();
+        let cat_reloaded = load_catalog(path).unwrap();
+        let doc_reloaded = cat_reloaded.documents.get(&doc_id).unwrap();
+
+        // Metadati assenti: la completezza è sconosciuta, NON deve cancellare Partial né l'avviso
+        assert_eq!(
+            doc_reloaded.extraction_status,
+            ExtractionStatus::Partial,
+            "Un job legacy senza isPartial non deve cancellare lo stato Partial del documento"
+        );
+        assert_eq!(
+            doc_reloaded.extraction_error.as_deref(),
+            Some("Avviso OCR precedente"),
+            "L'avviso precedente non deve essere cancellato da un job con metadati assenti"
+        );
+    }
+
+    #[test]
+    fn test_catalog_sync_mismatched_job_does_not_overwrite_warnings_or_extracted_text() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path();
+        fs::create_dir_all(path.join("00_SYSTEM")).unwrap();
+        fs::create_dir_all(path.join("20_RAW_SOURCES")).unwrap();
+
+        let doc_path = path.join("20_RAW_SOURCES/doc_mismatch.docx");
+        fs::write(&doc_path, b"Contenuto versione corrente").unwrap();
+
+        let mut cat = sync_catalog_from_vault(path).unwrap();
+        let doc = cat.documents.values_mut().find(|d| d.original_path == "20_RAW_SOURCES/doc_mismatch.docx").unwrap();
+        let doc_id = doc.document_id.clone();
+        doc.extraction_status = ExtractionStatus::Partial;
+        doc.extraction_error = Some("Avviso versione corrente".into());
+        doc.extracted_text_path = Some("01_KNOWLEDGE/doc_mismatch_corrente.md".into());
+        doc.extracted_text_hash = Some("hash_output_corrente".into());
+        save_catalog(path, &mut cat).unwrap();
+
+        // Job obsoleto per una versione precedente diversa (hash dipendenza differente)
+        // con avvisi diversi e percorsi di output diversi
+        let ak_mismatched = serde_json::json!({
+            "version": 1,
+            "jobs": {
+                "20_RAW_SOURCES/doc_mismatch.docx": {
+                    "fingerprint": "fp_obsoleta",
+                    "attempts": 1,
+                    "status": "ready",
+                    "isPartial": true,
+                    "extractionWarnings": ["Avviso vecchio job obsoleto"],
+                    "output": "01_KNOWLEDGE/doc_mismatch_VECCHIO.md",
+                    "outputHash": "hash_output_VECCHIO",
+                    "dependencies": {
+                        "20_RAW_SOURCES/doc_mismatch.docx": "hash_versione_obsoleta_non_coincidente"
+                    },
+                    "category": "research",
+                    "client": "",
+                    "project": ""
+                }
+            }
+        });
+        fs::write(path.join("00_SYSTEM/AUTO_KNOWLEDGE.json"), serde_json::to_vec(&ak_mismatched).unwrap()).unwrap();
+
+        sync_catalog(path).unwrap();
+        let cat_reloaded = load_catalog(path).unwrap();
+        let doc_reloaded = cat_reloaded.documents.get(&doc_id).unwrap();
+
+        // Nessun dato della versione obsoleta deve aver sovrascritto il documento corrente:
+        assert_eq!(doc_reloaded.extraction_status, ExtractionStatus::Partial);
+        assert_eq!(
+            doc_reloaded.extraction_error.as_deref(),
+            Some("Avviso versione corrente"),
+            "Gli avvisi del vecchio job non devono sostituire quelli correnti"
+        );
+        assert_eq!(
+            doc_reloaded.extracted_text_path.as_deref(),
+            Some("01_KNOWLEDGE/doc_mismatch_corrente.md"),
+            "Il percorso del testo estratto non deve essere sovrascritto dal vecchio job"
+        );
+        assert_eq!(
+            doc_reloaded.extracted_text_hash.as_deref(),
+            Some("hash_output_corrente"),
+            "L'hash del testo estratto non deve essere sovrascritto dal vecchio job"
+        );
     }
 
     #[test]

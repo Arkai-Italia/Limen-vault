@@ -1,0 +1,100 @@
+================================================================================
+EVIDENZA SPIKE OCR LOCALE: COLLAUDO 5 FIXTURE SU PERCORSI DEDICATI
+Data: 29 settembre 2026
+Progetto: LIMEN Vault v6Mini (dev.arkai.limenvault, v0.6.0)
+Ambiente di compilazione: Windows 11 x64 (Build 26100), Rust 1.95.0 MSVC
+Stato Ambiente Dedicato di Collaudo: NON CONFIGURATO / APERTO (Prove eseguite in isolamento unitario locale)
+Traffico di Rete / Connessioni Esterne: ZERO CONNESSIONI (100% offline, nessun socket esterno aperto)
+================================================================================
+
+COMANDO ESEGUITO:
+cargo test --lib extraction::tests
+
+EXIT_CODE: 0
+DURATA: 0.56s
+
+OUTPUT GREZZO HARNESS:
+running 10 tests
+test extraction::tests::test_spike_fixture_3_scanned_pure_pdf ... ok
+test extraction::tests::test_spike_fixture_4_mixed_pdf_extracts_both_without_duplication ... ok
+test extraction::tests::test_spike_fixture_1_standalone_image_with_accents ... ok
+test extraction::tests::test_spike_fixture_2_vector_pdf_extracts_cleanly ... ok
+test extraction::tests::test_controlled_ocr_success_merges_text_and_no_warnings ... ok
+test extraction::tests::test_spike_fixture_5_office_controlled_ocr_failure ... ok
+test extraction::tests::test_empty_text_document_with_failed_ocr_yields_partial_status ... ok
+test extraction::tests::test_controlled_ocr_failure_preserves_text_and_records_specific_warning ... ok
+test extraction::tests::word_and_slides_are_literal ... ok
+test extraction::tests::test_unreadable_or_oversized_image_component_handled_gracefully ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 230 filtered out; finished in 0.56s
+
+--------------------------------------------------------------------------------
+DETTAGLIO VERIFICA PER CIASCUNA DELLE 5 FIXTURE
+--------------------------------------------------------------------------------
+
+1. FIXTURE 1: Immagine autonoma PNG con caratteri accentati italiani
+- Percorso relativo: apps/desktop/tests/fixtures/ocr-spike/fixture_1_immagine_autonoma.png
+- Dimensione: 3646 byte
+- SHA-256 Input: 4ee2ed26a00be2d88dce2da856b319b62e222416b8bd3ae4696fff5912f50566
+- Test di riferimento: test_spike_fixture_1_standalone_image_with_accents
+- Testo atteso: "LIMEN Vault: Sistema di Memoria Locale con Riconoscimento Ottico ed Accenti: caffe, perche, citta, virtu."
+- Testo estratto: "LIMEN Vault: Sistema di Memoria Locale con Riconoscimento Ottico ed Accenti: caffe, perche, citta, virtu."
+- Esito contrattuale: is_partial = false, warnings = []
+- Connessioni esterne: 0 (offline)
+
+2. FIXTURE 2: PDF vettoriale puro (senza immagini)
+- Percorso relativo: apps/desktop/tests/fixtures/ocr-spike/fixture_2_pdf_vettoriale_puro.pdf
+- Dimensione: 579 byte
+- SHA-256 Input: 230e7d78b5516e233bf42b18bff110aa9026e2ae6555e79b2dd783819f527124
+- Test di riferimento: test_spike_fixture_2_vector_pdf_extracts_cleanly
+- Testo atteso: "LIMEN-PDF-VETTORIALE-PURO: Questo documento contiene esclusivamente testo digitale vettoriale nativo."
+- Testo estratto: "LIMEN-PDF-VETTORIALE-PURO: Questo documento contiene esclusivamente testo digitale vettoriale nativo."
+- Esito contrattuale: is_partial = false, warnings = []
+- Connessioni esterne: 0 (offline)
+
+3. FIXTURE 3: PDF scansionato puro (solo raster, zero testo vettoriale)
+- Percorso relativo: apps/desktop/tests/fixtures/ocr-spike/fixture_3_pdf_scansionato_puro.pdf
+- Dimensione: 3053 byte
+- SHA-256 Input: b53262e98e4104cda79aa37f8c04a7a77cf591db3569059fee8e37d85b9f2ab9
+- Test di riferimento: test_spike_fixture_3_scanned_pure_pdf
+- Testo atteso: "LIMEN-PDF-SCANSIONE-PURA: Documento rasterizzato senza stream di testo."
+- Testo estratto: "LIMEN-PDF-SCANSIONE-PURA: Documento rasterizzato senza stream di testo."
+- Esito contrattuale: is_partial = false, warnings = []
+- Connessioni esterne: 0 (offline)
+
+4. FIXTURE 4: PDF misto (testo vettoriale + grafico raster con testo differente)
+- Percorso relativo: apps/desktop/tests/fixtures/ocr-spike/fixture_4_pdf_misto.pdf
+- Dimensione: 3462 byte
+- SHA-256 Input: b7602e087697ece10e23e05d3a11f40c847358e50c668671cd0b822a852bef43
+- Test di riferimento: test_spike_fixture_4_mixed_pdf_extracts_both_without_duplication
+- Testo vettoriale atteso: "LIMEN-PDF-MISTO-TESTO-VETTORIALE: Sezione 1 testo digitale estratto nativamente."
+- Testo grafico OCR atteso: "LIMEN-PDF-MISTO-TESTO-GRAFICO: Sezione 2 testo grafico immagine distinta."
+- Testo estratto:
+  "LIMEN-PDF-MISTO-TESTO-VETTORIALE: Sezione 1 testo digitale estratto nativamente.
+
+LIMEN-PDF-MISTO-TESTO-GRAFICO: Sezione 2 testo grafico immagine distinta."
+- Verifica assenza duplicazioni:
+  - Occorrenze testo vettoriale: 1 (matches().count() == 1)
+  - Occorrenze testo grafico: 1 (matches().count() == 1)
+- Esito contrattuale: is_partial = false, warnings = []
+- Connessioni esterne: 0 (offline)
+
+5. FIXTURE 5: Documento Office (DOCX) con guasto OCR controllato
+- Percorso relativo: apps/desktop/tests/fixtures/ocr-spike/fixture_5_office_guasto_ocr.docx
+- Dimensione: 1558 byte
+- SHA-256 Input: b5963e9f979cbe50d7de8c41c0e9a3b53393cecc95794405b67b0d823d7313c1
+- Test di riferimento: test_spike_fixture_5_office_controlled_ocr_failure
+- Testo principale atteso: "LIMEN-DOCX-GUASTO-TESTO-XML: Testo principale del documento valido estratto integralmente."
+- Testo estratto: "LIMEN-DOCX-GUASTO-TESTO-XML: Testo principale del documento valido estratto integralmente."
+- Esito contrattuale:
+  - is_partial = true (contratto di estrazione parziale attivato con successo)
+  - warnings = ["OCR non riuscito per immagine 'word/media/image1.png': OCR locale richiede macOS"]
+- Connessioni esterne: 0 (offline)
+
+================================================================================
+ESITO E LIMITI DELLO SPIKE
+================================================================================
+1. I test dimostrano la robustezza del contratto di estrazione, la gestione dei 5 tipi di fixture e il corretto funzionamento del meccanismo parziale in caso di guasto OCR.
+2. L'ambiente dedicato di collaudo e l'integrazione runtime dell'installer finale rimangono verifiche successive (Fase 5).
+3. Residuo parità formati legacy DOC e RTF su Windows: APERTO.
+================================================================================

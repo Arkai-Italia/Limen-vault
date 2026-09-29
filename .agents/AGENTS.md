@@ -1,7 +1,10 @@
 # Project Rules — LIMEN Vault Workspace
 
-## Session Handover Files
+## Session Handover Files & Walkthrough di Fase
 - Quando viene richiesto un file di session handover (o riassunto/passaggio di consegne per l'avvio di una nuova chat), **salvarlo SEMPRE direttamente nella root del workspace** (es. `SESSION_HANDOVER.md` o `SESSION_HANDOVER_<NOME_TASK>.md`), rendendolo immediatamente visibile all'utente nel suo IDE workspace.
+- **Salvare SEMPRE il walkthrough a completamento di ogni singola fase**:
+  1. come artifact dell'assistente (`<appDataDir>\brain\<conversation-id>\walkthrough.md` con `UserFacing: true`);
+  2. direttamente nella root del workspace (es. `WALKTHROUGH_FASE<N>_WINDOWS.md`), immediatamente consultabile nell'albero dei file dell'IDE.
 
 ## Implementation Plans & Task Lists (REGOLA CRITICA — PRIORITÀ ASSOLUTA)
 - **L'AGGIORNAMENTO DELLA TASK LIST È PRIORITARIO SU TUTTO, AD OGNI COMPLETAMENTO DI UNA TASK. STATUS DELLA RULE: CRITICAL.**

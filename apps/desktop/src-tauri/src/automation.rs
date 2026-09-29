@@ -61,6 +61,10 @@ pub struct Job {
     pub category: String,
     pub client: String,
     pub project: String,
+    #[serde(default)]
+    pub is_partial: bool,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub extraction_warnings: Vec<String>,
 }
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -882,13 +886,16 @@ pub fn run_with(
         s.jobs.insert(p.clone(), j.clone());
         atomic(&sys, STATE, &s)?;
         let result: Result<(), String> = (|| {
-            let text = if spreadsheet(p) {
-                extract_spreadsheet(&bytes)?
+            let output = if spreadsheet(p) {
+                crate::extraction::ExtractionOutput::simple(extract_spreadsheet(&bytes)?)
             } else if text_format(p) {
-                extract(&bytes, p)?
+                crate::extraction::ExtractionOutput::simple(extract(&bytes, p)?)
             } else {
                 crate::extraction::extract(&bytes, p)?
             };
+            j.is_partial = output.is_partial;
+            j.extraction_warnings = output.warnings;
+            let text = output.text;
             let fragments = chunks(&text);
             let sample = fragments
                 .iter()
@@ -1501,6 +1508,82 @@ mod tests {
 
         let passage = crate::catalog::read_passage(t.path(), doc_id, &doc.passages[0].passage_id).unwrap();
         assert_eq!(passage.text, "Dati aziendali offline da ricercare immediatamente.");
+    }
+
+    #[test]
+    fn test_offline_ingestion_docx_with_image_produces_partial_status() {
+        let t = fixture();
+        configure(t.path(), Config { enabled: false, model: "none".into() }).unwrap();
+
+        let input_dir = tempfile::tempdir().unwrap();
+        let f = input_dir.path().join("documento_con_immagine.docx");
+        fs::write(&f, include_bytes!("../../tests/fixtures/auto-knowledge/documento_con_immagine.docx")).unwrap();
+
+        let receipts = crate::extraction::with_test_ocr(
+            Box::new(|_, _| Err("Fallimento OCR controllato per ingestione offline".into())),
+            || import_paths(t.path(), &[&f]),
+        );
+        assert_eq!(receipts.len(), 1);
+        assert_eq!(receipts[0].status, "imported");
+
+        let doc_id = receipts[0].document_id.as_ref().unwrap();
+        let doc = crate::catalog::get_document(t.path(), doc_id).unwrap();
+        assert_eq!(doc.extraction_status, crate::catalog::ExtractionStatus::Partial);
+        assert!(!doc.passages.is_empty());
+        assert!(doc.passages[0].text.contains("LIMEN-DOCX-742"));
+        assert!(doc.extraction_error.is_some());
+        let warn_msg = doc.extraction_error.as_ref().unwrap();
+        assert!(warn_msg.contains("Fallimento OCR controllato per ingestione offline"));
+    }
+
+    #[test]
+    fn test_automation_active_run_with_persists_partial_job_and_syncs_catalog() {
+        let t = fixture();
+        configure(t.path(), Config { enabled: true, model: "test-model".into() }).unwrap();
+
+        // 1. Importa il documento con immagine nella cartella 20_RAW_SOURCES
+        let docx_bytes = include_bytes!("../../tests/fixtures/auto-knowledge/documento_con_immagine.docx");
+        let p = import(t.path(), "documento_con_immagine.docx", docx_bytes).unwrap();
+        assert!(p.starts_with("20_RAW_SOURCES/"));
+
+        // 2. Esegue run_with() con automazione abilitata, provider simulato e OCR con fallimento controllato
+        let report = crate::extraction::with_test_ocr(
+            Box::new(|_, _| Err("Fallimento OCR controllato: testo immagine illeggibile".into())),
+            || drain(&t),
+        );
+
+        // 3. Controlla is_partial e gli avvisi nel Job restituito dallo stato dell'automazione
+        let job = report.state.jobs.get(&p).expect("Il job per il file importato deve essere presente");
+        assert_eq!(job.status, "ready", "Il ciclo di automazione deve completarsi con status ready");
+        assert!(job.is_partial, "Il job deve registrare is_partial = true per il fallimento OCR");
+        assert!(!job.extraction_warnings.is_empty(), "Il job deve conservare gli avvisi di estrazione");
+        assert!(
+            job.extraction_warnings.iter().any(|w| w.contains("testo immagine illeggibile")),
+            "Gli avvisi nel job devono contenere la causa specifica: {:?}",
+            job.extraction_warnings
+        );
+
+        // 4. Rilegge AUTO_KNOWLEDGE.json direttamente da disco e verifica gli stessi dati
+        let ak_bytes = fs::read(t.path().join("00_SYSTEM/AUTO_KNOWLEDGE.json")).unwrap();
+        let persisted_state: State = serde_json::from_slice(&ak_bytes).unwrap();
+        let persisted_job = persisted_state.jobs.get(&p).expect("Il job deve essere presente in AUTO_KNOWLEDGE.json su disco");
+        assert!(persisted_job.is_partial, "is_partial deve essere persistito in AUTO_KNOWLEDGE.json");
+        assert_eq!(persisted_job.extraction_warnings, job.extraction_warnings, "Gli avvisi devono coincidere sul file salvato su disco");
+
+        // 5. Sincronizza il catalogo partendo dal job effettivamente prodotto
+        crate::catalog::sync_catalog(t.path()).unwrap();
+        let cat = crate::catalog::load_catalog(t.path()).unwrap();
+        let doc = cat.documents.values().find(|d| d.original_path == p).expect("Il documento deve essere presente nel catalogo");
+        let doc_id = doc.document_id.clone();
+        assert_eq!(doc.extraction_status, crate::catalog::ExtractionStatus::Partial, "sync_catalog deve assegnare Partial partendo dal job");
+        assert!(doc.extraction_error.is_some(), "extraction_error deve essere popolato dagli avvisi del job");
+        assert!(doc.extraction_error.as_ref().unwrap().contains("testo immagine illeggibile"));
+
+        // 6. Verifica stato parziale e avviso dopo un ulteriore ricaricamento da disco
+        let cat_reloaded = crate::catalog::load_catalog(t.path()).unwrap();
+        let doc_reloaded = cat_reloaded.documents.get(&doc_id).unwrap();
+        assert_eq!(doc_reloaded.extraction_status, crate::catalog::ExtractionStatus::Partial, "Partial deve persistere dopo ricaricamento");
+        assert!(doc_reloaded.extraction_error.as_ref().unwrap().contains("testo immagine illeggibile"));
     }
 
     #[test]

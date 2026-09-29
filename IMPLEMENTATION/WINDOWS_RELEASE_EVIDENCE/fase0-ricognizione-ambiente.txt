@@ -1,0 +1,165 @@
+﻿================================================================================
+TITOLO: GIT STATUS E REVISIONE
+DATA/ORA: 2026-09-29 09:30:18 +08:00
+DIRECTORY: E:\Projects\vault_memai_obsi
+COMANDO: git branch --show-current; git rev-parse HEAD; git status --short
+--------------------------------------------------------------------------------
+EXIT_CODE: 0
+OUTPUT:
+windows-build
+4c66143ed40efe98b1a702d6c7d3a5aad8e4280d
+?? IMPLEMENTATION/AUDIT_OPENAI/
+?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/diff-20b27f2-HEAD.patch
+?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-1.patch
+?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-2-b.patch
+?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-2.patch
+?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-2L-b.patch
+?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-2L.patch
+?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-3b1.patch
+?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-3b2.patch
+?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-3b2b.patch
+?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-3b2c.patch
+?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-4.patch
+?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-4c.patch
+?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-5.patch
+?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-5b.patch
+?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-5e.patch
+?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-5f.patch
+?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-5g.patch
+?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-5h.patch
+?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase2-preliminary-stash.patch
+?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase5i-ter-cartella-modello-sessione-fine.txt
+?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase5i-ter-cartella-modello-sessione-inizio.txt
+?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/faseH1-piano.md
+?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/screenshots-ux/
+?? IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/
+?? "USER INSTALL WINDOWS/"
+?? "vault limen app.code-workspace"
+
+================================================================================
+TITOLO: TOOLCHAIN CORE
+DATA/ORA: 2026-09-29 09:30:18 +08:00
+DIRECTORY: E:\Projects\vault_memai_obsi
+COMANDO: node --version; npx pnpm --version; rustc --version; cargo --version; rustup show
+--------------------------------------------------------------------------------
+EXIT_CODE: 0
+OUTPUT:
+v24.14.0
+12.6.0
+rustc 1.95.0 (59807616e 2026-04-14)
+cargo 1.95.0 (f2d3ce0bd 2026-03-21)
+Default host: x86_64-pc-windows-msvc
+rustup home:  C:\Users\user\.rustup
+
+installed toolchains
+--------------------
+stable-x86_64-pc-windows-msvc (active, default)
+
+active toolchain
+----------------
+name: stable-x86_64-pc-windows-msvc
+active because: it's the default toolchain
+installed targets:
+  x86_64-pc-windows-msvc
+
+================================================================================
+TITOLO: SISTEMA OPERATIVO E WEBVIEW2
+DATA/ORA: 2026-09-29 09:30:22 +08:00
+DIRECTORY: E:\Projects\vault_memai_obsi
+COMANDO: [System.Environment]::OSVersion.VersionString; (Get-ItemProperty -Path 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}').pv
+--------------------------------------------------------------------------------
+EXIT_CODE: 0
+OUTPUT:
+Microsoft Windows NT 10.0.26100.0
+153.0.4234.48
+
+================================================================================
+TITOLO: PNPM LOCKFILE CHECK
+DATA/ORA: 2026-09-29 09:30:22 +08:00
+DIRECTORY: E:\Projects\vault_memai_obsi
+COMANDO: npx pnpm install --frozen-lockfile
+--------------------------------------------------------------------------------
+EXIT_CODE: 0
+OUTPUT:
+Scope: all 12 workspace projects
+✓ Lockfile passes supply-chain policies (verified 6d ago)
+Lockfile is up to date, resolution step is skipped
+Done in 32ms using pnpm v12.6.0
+
+================================================================================
+TITOLO: PNPM DISCOVERY E VERSIONI
+DATA/ORA: 2026-09-29 09:30:25 +08:00
+DIRECTORY: E:\Projects\vault_memai_obsi
+COMANDO: & 'C:\Users\user\AppData\Local\npm-cache\_npx\e6e0ed1aca658cae\node_modules\.bin\pnpm.cmd' --version; & 'C:\Users\user\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin\fallback\pnpm.cmd' --version
+--------------------------------------------------------------------------------
+EXIT_CODE: 0
+OUTPUT:
+12.6.0
+11.19.0
+
+================================================================================
+TITOLO: ACCOUNT UTENTE E ISOLAMENTO
+DATA/ORA: 2026-09-29 09:30:26 +08:00
+DIRECTORY: E:\Projects\vault_memai_obsi
+COMANDO: whoami; whoami /user; net user CodexSandboxOffline; icacls 'C:\Users\user'
+--------------------------------------------------------------------------------
+EXIT_CODE: 0
+OUTPUT:
+desktop-dgjbali\user
+
+USER INFORMATION
+----------------
+
+User Name            SID                                          
+==================== =============================================
+desktop-dgjbali\user S-1-5-21-2905251662-2763103659-293583928-1001
+User name                    CodexSandboxOffline
+Full Name                    CodexSandboxOffline
+Comment                      
+User's comment               
+Country/region code          000 (System Default)
+Account active               Yes
+Account expires              Never
+
+Password last set            10/06/2026 07:33:25
+Password expires             Never
+Password changeable          10/06/2026 07:33:25
+Password required            Yes
+User may change password     Yes
+
+Workstations allowed         All
+Logon script                 
+User profile                 
+Home directory               
+Last logon                   28/09/2026 08:48:41
+
+Logon hours allowed          All
+
+Local Group Memberships      *CodexSandboxUsers    *Users                
+Global Group memberships     *None                 
+The command completed successfully.
+
+C:\Users\user NT AUTHORITY\SYSTEM:(OI)(CI)(F)
+              BUILTIN\Administrators:(OI)(CI)(F)
+              DESKTOP-DGJBALI\user:(OI)(CI)(F)
+              S-1-15-3-65536-599108337-2355189375-1353122160-3480128286-3345335107-485756383-4087318168-230526575:(S,X)
+
+Successfully processed 1 files; Failed processing 0 files
+
+================================================================================
+TITOLO: USER INSTALL WINDOWS STORICO
+DATA/ORA: 2026-09-29 09:30:26 +08:00
+DIRECTORY: E:\Projects\vault_memai_obsi
+COMANDO: Get-ChildItem -Path 'E:\Projects\vault_memai_obsi\USER INSTALL WINDOWS'
+--------------------------------------------------------------------------------
+EXIT_CODE: 0
+OUTPUT:
+
+
+    Directory: E:\Projects\vault_memai_obsi\USER INSTALL WINDOWS
+
+
+Mode                 LastWriteTime         Length Name                                                                 
+----                 -------------         ------ ----                                                                 
+-a----         9/23/2026   4:33 AM       29852284 LIMEN-Vault-v3-0.3.0-x64-setup-PROVA.exe
+
