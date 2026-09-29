@@ -59,31 +59,32 @@ In [`scripts/collaudo_e2e_isolated.ps1`](file:///E:/Projects/vault_memai_obsi/sc
 
 ---
 
-## 4. Esito della Ricognizione Concreta dell'Ambiente (Audit Punto 2)
+## 4. Esito della Ricognizione e Proposta Ambiente Dedicato
 
-I risultati completi sono documentati in [`IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/ricognizione_ambiente_collaudo.md`](file:///E:/Projects/vault_memai_obsi/IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/ricognizione_ambiente_collaudo.md):
-1. **VM Windows**:
-   - Hyper-V attivo (`vmms`), ma `Get-VM` fallisce per permessi (`user` non nel gruppo `Hyper-V Administrators`, processo non elevato);
-   - Windows Sandbox assente (`WindowsSandbox.exe` False, attivazione richiede elevazione);
-   - Terze parti (VirtualBox, VMware, QEMU) non installate; WSL2 presente ma con solo kernel Linux ELF64.
-2. **Account Dedicato e Sessione Grafica**:
-   - `CodexSandboxOffline` esiste ed è abilitato (ultimo logon 28/09/2026 08:48:41), ma l'unica sessione grafica attiva sulla console è `user` (ID 1);
-   - L'avvio con `Start-Process -Credential` fallisce per password non nota; il reset locale via `net user` fallisce con `Access is denied` (System error 5) per assenza di elevazione UAC.
-3. **Controllo App Tauri**:
-   - Installer NSIS per-utente installabile con `/S` senza elevazione;
-   - Automazione GUI possibile tramite .NET `UIAutomationClient` e Chrome DevTools Protocol (`WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS="--remote-debugging-port=9222"` con script CDP / `puppeteer.ps1`);
-   - Richiede una sessione desktop grafica interattiva.
-4. **Vincolo Regole di Progetto e Sblocco Esecuzione**:
-   - Avviare `limen-vault.exe` sotto `user` scrive in `C:\Users\user\.limen-vault\ai_settings.json` via `dirs::home_dir()`, violando `AGENTS.md`.
-   - **Intervento minimo per sbloccare l'esecuzione**:
-     - *Opzione A (Isolamento completo)*: Cesare reimposta la password di `CodexSandboxOffline` da prompt amministratore (`net user CodexSandboxOffline <pwd>`) o effettua l'accesso grafico come `CodexSandboxOffline`;
-     - *Opzione B (Esecuzione immediata in sessione attiva)*: Cesare autorizza esplicitamente una deroga temporanea limitata al collaudo minimo per eseguire l'app sotto `user` con pulizia al termine.
+I risultati completi sono documentati in:
+- [`IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/ricognizione_ambiente_collaudo.md`](file:///E:/Projects/vault_memai_obsi/IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/ricognizione_ambiente_collaudo.md)
+- [`IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/richiesta_amministrativa_ambiente_dedicato.md`](file:///E:/Projects/vault_memai_obsi/IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/richiesta_amministrativa_ambiente_dedicato.md)
+
+1. **Cessazione Tentativi su Account Esistenti**:
+   - Definitivamente interrotti tentativi di accesso o modifiche ad account esistenti (`CodexSandboxOffline`, ecc.). Nessuna ricerca di credenziali.
+2. **Richiesta Amministrativa Minima per Cesare**:
+   - **Soluzione primaria (VM Windows 11 di collaudo)**: verificare in Hyper-V (servizio `vmms` già attivo) la presenza di una VM Windows 11 x64 pulita o crearne una dedicata, con sessione grafica accessibile e nessun collegamento o condivisione verso le cartelle personali dell'host; trasferirvi solo installer, 7 fixture e modelli GGUF.
+   - **Alternativa secondaria (Account Standard locale `LimenTester`)**: creazione di un utente standard dedicato da prompt admin. Non sostituisce la macchina pulita ma permette un primo isolamento.
+3. **Verifica Controllo GUI e Limiti Tecnici**:
+   - Dalla sessione shell dell'host non è possibile interagire direttamente con la GUI interna a una VM remota/isolata.
+   - Il controllo automatizzato può avvenire via **Chrome DevTools Protocol (CDP)** abilitando `--remote-debugging-port=9222` su WebView2 (interazione DOM, click bottoni, lettura testo e screenshot), pre-configurando il vault di test per evitare il blocco sui dialoghi modali Win32 (`IFileDialog`).
+4. **Percorsi Effettivi nel Codice Rust**:
+   - `ai_settings.json`: controlla l'override `LIMEN_AI_SETTINGS_FILE`; altrimenti legge `USERPROFILE` o `HOME` e compone `.limen-vault\ai_settings.json`.
+   - `local_model_timing.log` e `history`: leggono `USERPROFILE` o `HOME` e compongono `.limen-vault\...`.
+   - *Nota*: le sole variabili d'ambiente non isolano il Gestore Credenziali (WinCred), che è vincolato al token di sicurezza dell'utente OS.
+5. **Verifica Sola Lettura Profilo `user`**:
+   - Verificato che in `C:\Users\user\.limen-vault` tutti i file risalgono al **25 settembre 2026**. Nessun dato è stato creato o modificato nella sessione odierna. Nessun processo `limen-vault.exe` o `llama-server.exe` attivo.
 
 ---
 
 ## 5. Conclusioni
 
 L'infrastruttura software (motore OCR Rust, binari PDFium, Tesseract, installer NSIS completo) è presente e verificata a livello di codice e di compilazione release.  
-Lo script di censimento è ora rigorosamente vincolato ad exit code non zero.  
-La ricognizione tecnica ha identificato puntualmente i vincoli di sistema e le opzioni per l'avvio della prova minima applicativa.  
-La release e l'accettazione della parità funzionale Windows/Mac rimangono pertanto **formalmente aperte** in attesa della scelta operativa per sbloccare l'ambiente.
+Lo script di censimento è rigorosamente vincolato ad exit code non zero (`exit 2` per prove non eseguite/bloccate).  
+È stata formalizzata la richiesta amministrativa minima per la VM di collaudo e definiti i canali tecnici di controllo della GUI.  
+La release e l'accettazione della parità funzionale Windows/Mac rimangono pertanto **formalmente aperte** in attesa della disponibilità della VM di collaudo.

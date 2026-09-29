@@ -26,6 +26,11 @@ Installer generato: `USER INSTALL WINDOWS/LIMEN-Vault-v6Mini-0.6.0-windows-x64-s
 - [x] **Verifica Modifiche Condivise con macOS**:
   - Ispezione differenziale codice completata: conditional compilation `#[cfg(target_os = "macos")]` vs `#[cfg(target_os = "windows")]` isolate.
   - Dichiarazione formale: **"Runtime Mac: NON VERIFICATO"** (in assenza di macchine fisiche Apple Silicon).
+- [x] **Ricognizione Concreta Ambiente e Proposta VM Dedicata**:
+  - Script di censimento `collaudo_e2e_isolated.ps1` vincolato a codici non zero (`exit 2` per prove non eseguite/bloccate) e verifica fisica 7/7 fixture.
+  - Documentati percorsi effettivi dal codice sorgente (`USERPROFILE`/`HOME`, override `LIMEN_AI_SETTINGS_FILE`, limite WinCred).
+  - Verificata assenza di alterazioni nel profilo `user` (file fermi al 25 settembre 2026).
+  - Formalizzata richiesta amministrativa per VM Windows 11 pulita in `IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/richiesta_amministrativa_ambiente_dedicato.md`.
 
 
 ## Archivio chat Codex per Windows — 29 settembre 2026
