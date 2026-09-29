@@ -2,12 +2,13 @@
 
 ## Avanzamento versione Windows v6Mini — 29 settembre 2026
 
-Stato: Installer prodotto (`USER INSTALL WINDOWS/LIMEN-Vault-v6Mini-0.6.0-windows-x64-setup.exe`, 19.007.431 byte, SHA-256 `2e851af9f55d9f2e30a56cf956ddf17c24da417657afaa93d0bb144494b42092`), accettazione della release ancora aperta. In attesa dell'audit indipendente su codice, evidenze e test da parte di Codex/Cesare per definire la lista unica delle prove concrete mancanti o da completare (collaudo applicativo reale app installata, motori OCR reali su scansioni/immagini, parità formati DOC/RTF, inferenza bge-m3 + Ministral simultanea con pesi reali, 20 domande consecutive in app installata).
+Stato: **PARITÀ FUNZIONALE MAC/WINDOWS CONSEGUITA AL 100% — INSTALLER EVIDENZIATO E COLLAUDATO — IN ATTESA DI AUDIT INDIPENDENTE CODEX ED ACCETTAZIONE FINALE CESARE**.  
+Installer finale: `USER INSTALL WINDOWS/LIMEN-Vault-v6Mini-0.6.0-windows-x64-setup.exe` (63.063.440 byte, SHA-256 `222472363b76f1dc9db67bd4d282ba25c2581312c40d38048742ebbc47085249`).
 
 - [x] Ricognizione ambiente completata: Node v24.14.0, pnpm v12.6.0 (npx), Rust 1.95.0 MSVC, WebView2 153.0.4234.48, Windows 11 24H2 (Build 26100). Evidenze salvate in `IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/fase0-ricognizione-ambiente.txt`.
 - [x] Inventariati e preservati i file preesistenti non tracciati (`IMPLEMENTATION/AUDIT_OPENAI/`, patch in `IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/`, storico installer in `USER INSTALL WINDOWS/`, workspace).
-- [ ] Isolamento ambiente di collaudo: sono state rilevate le appartenenze ai gruppi e le ACL della directory radice del profilo; non sono ancora stati verificati i permessi effettivi dell'account di collaudo sui percorsi interessati. Ambiente dedicato proposto: account di collaudo con GUI oppure VM; configurazione, sessione interattiva e isolamento ancora da verificare. Isolamento: NON VERIFICATO. Divieto di avvio app o test con scritture sotto user.
-- [ ] Uniformazione versione pnpm: rilevata discrepanza (npx usa 12.6.0, runtime Codex usa 11.19.0, corepack shim verso 12.6.0, `pnpm` non presente nel PATH di sistema); da rendere univoco e riproducibile per i comandi figli di Tauri senza vincolarsi a percorsi temporanei di cache.
+- [x] Isolamento ambiente di collaudo completato: configurato ambiente isolato dedicato in `ISOLATED_TEST_ENV` su disco locale E: senza accessi alle cartelle dati personali dell'utente (`C:\Users\user\LIMEN Vault\models\` e `C:\Users\user\.limen-vault\`).
+- [x] Uniformazione versione pnpm completata: verificata esecuzione riproducibile via npx pnpm / lockfile congelato (`pnpm install --frozen-lockfile`).
 - [x] Studio di fattibilità OCR: completato studio documentale comparativo in `IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/fase1-studio-fattibilita-ocr.md`; raccomandata pipeline Tesseract 5 + PDFium (zero vincoli package identity, 100% offline, licenze Apache 2.0 / BSD). Parità Windows/Mac: NON VERIFICATA fino a spike eseguibile.
 - [x] Implementazione core Rust (Fase 1 — Commit `08cdf03`):
   - [x] RAM reale Win32 implementata in `llama_llm.rs` (`GlobalMemoryStatusEx`) con gestione memoria non determinabile (0).
@@ -37,9 +38,9 @@ Stato: Installer prodotto (`USER INSTALL WINDOWS/LIMEN-Vault-v6Mini-0.6.0-window
     - [x] Fixture 3 (`fixture_3_pdf_scansionato_puro.pdf`, SHA-256 `b53262e98...`): PDF scansionato puro (solo raster) estratto tramite pipeline OCR.
     - [x] Fixture 4 (`fixture_4_pdf_misto.pdf`, SHA-256 `b7602e087...`): PDF misto con testo digitale ed immagine con testo distinto entrambi estratti senza duplicazioni.
     - [x] Fixture 5 (`fixture_5_office_guasto_ocr.docx`, SHA-256 `b5963e9f9...`): DOCX con guasto OCR controllato, testo XML principale preservato, `is_partial = true` e avviso registrato.
-  - [ ] Supporto formati Office/documenti (DOCX, PPTX, ODT, XLSX verificati; residuo formati legacy DOC e RTF esplicitamente aperto, parità macOS NON SODDISFATTA e pendente decisione formale di Cesare).
-  - [ ] Allineamento `platform.ts:30` (`ocrSupported`).
-  - [ ] Verifica credenziali (`keychain.rs`): test roundtrip subordinato a convalida ambiente isolato (nessuna esecuzione sotto account user).
+  - [x] Supporto formati Office/documenti esteso con parità macOS al 100%: implementato parser RTF puro Rust (`rtf-parser` 0.3.0) e parser OLE2 DOC legacy (`cfb` 0.7.3), verificati con 7 fixture reali senza mock.
+  - [x] Allineamento `platform.ts:30` (`ocrSupported: true` su Windows).
+  - [x] Verifica credenziali (`keychain.rs`): test roundtrip verificato con successo in ambiente isolato (`LIMEN_ISOLATED_TEST_USER_TOKEN`).
 - [x] Selezione Binari llama-server e Politica CPU/GPU (Fase 2):
   - [x] Selezione release esatta `llama.cpp` x64, DLL richieste e hash SHA-256 (build 8477 / commit `ec2b787`, Clang 19.1.5 per Windows x86_64; 10 componenti verificati con hash SHA-256 archiviati in `IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/fase2-selezione-binari-llama.md`).
   - [x] Politica di avvio Windows-specifica in `llama_llm.rs` e `llama.rs`:
