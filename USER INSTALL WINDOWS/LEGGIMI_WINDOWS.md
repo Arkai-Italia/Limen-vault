@@ -85,11 +85,13 @@
 
 ## 6. Limiti e Note Tecniche Accertate
 
+> [!IMPORTANT]
+> **Stato Corrente**: Build preliminare disponibile. PDF/OCR Windows e formati legacy da completare. Collaudo dell’app installata, isolamento e parità Mac/Windows ancora aperti.
+
 1. **Stato della Firma Digitale**:
-   - L'installer corrente non è firmato digitalmente con certificato Authenticode Microsoft (`NotSigned`), come documentato nei criteri di rilascio.
-2. **Pipeline OCR e Formati Documentali**:
-   - La lettura e l'estrazione parziale con conservazione del testo sono certificate per file TXT, Markdown, DOCX, PPTX, XLSX e PDF (vettoriali, scansionati e misti);
-   - Le immagini e scansioni sono elaborate tramite OCR locale offline (specifica Tesseract 5 + PDFium);
-   - Il supporto per formati Office legacy (`.doc`, `.rtf`) rimane aperto e pendente decisione formale di Cesare.
+   - L'installer corrente non è firmato digitalmente con certificato Authenticode Microsoft (`NotSigned`), come documentato nei criteri di rilascio. All'installazione compare l'avviso standard di SmartScreen.
+2. **Estrazione Documentale e OCR su Windows (Lavori in Corso)**:
+   - Nella build preliminare attuale, l'estrazione testuale è attiva per file di testo semplice (TXT, Markdown) e formati Office aperti (DOCX, PPTX, XLSX);
+   - Il supporto per PDF (vettoriali, scansionati e misti), scansioni e immagini tramite pipeline OCR locale (Tesseract 5 + PDFium) e formati legacy (`.doc`, `.rtf`) è attualmente in corso di implementazione nel percorso di produzione per conseguire la piena parità con macOS.
 3. **Download dei Modelli GGUF**:
-   - I modelli pesanti GGUF non sono inclusi nell'installer per preservare la leggerezza del pacchetto (~19 MB) e devono essere scaricati tramite l'apposita funzione dell'applicazione.
+   - I modelli pesanti GGUF non sono inclusi nell'installer per preservare la dimensione contenuta del pacchetto base (~19 MB) e andranno scaricati localmente tramite l'apposita procedura.
