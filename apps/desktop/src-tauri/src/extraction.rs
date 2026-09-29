@@ -316,9 +316,18 @@ fn vision_impl(bytes: &[u8], ext: &str) -> Result<String, String> {
         .map(str::to_owned)
         .ok_or("Testo estratto assente".into())
 }
-#[cfg(not(target_os = "macos"))]
+#[cfg(target_os = "windows")]
+fn vision_impl(bytes: &[u8], ext: &str) -> Result<String, String> {
+    if ext == "pdf" {
+        let out = crate::win_ocr::extract_pdf_windows(bytes)?;
+        Ok(out.text)
+    } else {
+        crate::win_ocr::run_tesseract_ocr(bytes, ext)
+    }
+}
+#[cfg(not(any(target_os = "macos", target_os = "windows")))]
 fn vision_impl(_: &[u8], _: &str) -> Result<String, String> {
-    Err("OCR locale richiede macOS".into())
+    Err("OCR locale supportato solo su macOS e Windows".into())
 }
 pub fn extract(bytes: &[u8], name: &str) -> Result<ExtractionOutput, String> {
     let ext = Path::new(name)
@@ -328,7 +337,26 @@ pub fn extract(bytes: &[u8], name: &str) -> Result<ExtractionOutput, String> {
         .to_lowercase();
     match ext.as_str() {
         "docx" | "pptx" | "odt" => office(bytes, &ext),
-        "pdf" | "png" | "jpg" | "jpeg" | "webp" | "gif" | "tif" | "tiff" | "heic" => {
+        #[cfg(target_os = "windows")]
+        "pdf" => {
+            #[cfg(test)]
+            {
+                let custom = TEST_OCR_MOCK.with(|m| {
+                    if let Some(ref f) = *m.borrow() {
+                        Some(f(bytes, "pdf"))
+                    } else {
+                        None
+                    }
+                });
+                if let Some(res) = custom {
+                    return res.map(ExtractionOutput::simple);
+                }
+            }
+            crate::win_ocr::extract_pdf_windows(bytes)
+        }
+        #[cfg(not(target_os = "windows"))]
+        "pdf" => vision(bytes, &ext).map(ExtractionOutput::simple),
+        "png" | "jpg" | "jpeg" | "webp" | "gif" | "tif" | "tiff" | "heic" => {
             vision(bytes, &ext).map(ExtractionOutput::simple)
         }
         #[cfg(target_os = "macos")]
@@ -367,8 +395,12 @@ pub fn extract(bytes: &[u8], name: &str) -> Result<ExtractionOutput, String> {
                 .map_err(err)
                 .map(ExtractionOutput::simple)
         }
-        #[cfg(not(target_os = "macos"))]
-        "doc" | "rtf" => Err("Conversione DOC/RTF richiede macOS".into()),
+        #[cfg(target_os = "windows")]
+        "rtf" => crate::win_ocr::extract_rtf(bytes),
+        #[cfg(target_os = "windows")]
+        "doc" => crate::win_ocr::extract_doc(bytes),
+        #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+        "doc" | "rtf" => Err("Conversione DOC/RTF non supportata su questa piattaforma".into()),
         _ => Err("Formato non documentale o non supportato: originale conservato".into()),
     }
 }

@@ -4522,8 +4522,11 @@ mod tests {
       assert_eq!(enum_values[0], "S1");
   }
 
+  static TIMING_TEST_MUTEX: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
   #[test]
   fn test_log_ask_timing_detailed_includes_source_audit_and_no_text_leakage() {
+      let _test_guard = TIMING_TEST_MUTEX.lock().unwrap();
       let temp_dir = tempfile::tempdir().unwrap();
       let log_file = temp_dir.path().join("ask_timing_test.log");
       std::env::set_var("LIMEN_ASK_TIMING_LOG", &log_file);
@@ -4619,6 +4622,7 @@ mod tests {
 
   #[test]
   fn test_log_preview_timing_detailed_records_port_pid_and_semantic_info() {
+      let _test_guard = TIMING_TEST_MUTEX.lock().unwrap();
       let temp_dir = tempfile::tempdir().unwrap();
       let log_file = temp_dir.path().join("ask_timing_prev.log");
       std::env::set_var("LIMEN_ASK_TIMING_LOG", &log_file);
@@ -4654,7 +4658,7 @@ mod tests {
       assert!(content.contains("Porta locale: 8080 | PID: 44123 | Stato servizio: pronto"));
       assert!(content.contains("Ricerca semantica: UTILIZZATA"));
 
-      let json_line = content.lines().find(|l| l.starts_with("JSON: ")).unwrap();
+      let json_line = content.lines().filter(|l| l.starts_with("JSON: ")).last().unwrap();
       let parsed_json: Value = serde_json::from_str(&json_line[6..]).unwrap();
       assert_eq!(parsed_json["port"], 8080);
       assert_eq!(parsed_json["pid"], 44123);

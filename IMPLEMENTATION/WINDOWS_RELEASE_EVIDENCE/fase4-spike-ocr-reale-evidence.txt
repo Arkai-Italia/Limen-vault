@@ -1,0 +1,118 @@
+================================================================================
+EVIDENZA COLLAUDO SPIKE OCR & ESTRAZIONE DOCUMENTALE REALE SU WINDOWS 11 x64
+LIMEN Vault v6Mini (dev.arkai.limenvault v0.6.0)
+Data esecuzione: 2026-09-29
+Ambiente: Windows 11 Pro 64-bit | Target: x86_64-pc-windows-msvc
+Esecuzione: Reale, senza mock (with_test_ocr disattivato), offline senza chiamate cloud
+================================================================================
+
+1. BINARI NATIVI & MODELLI LINGUISTICI ADOTTATI
+--------------------------------------------------------------------------------
+- Chromium PDFium x64 DLL:
+  File: apps/desktop/src-tauri/resources/native-windows/pdfium.dll
+  Dimensione: 7.380.992 byte
+  SHA-256: d42c452a4cf8ca19a87e9c659d4e05035be742c21696ac13431cf73ac1bbf14b
+
+- Tesseract OCR 5.4.0 x64:
+  File: apps/desktop/src-tauri/resources/native-windows/tesseract.exe
+  Dimensione: 1.585.024 byte
+  SHA-256: babb405f4366b480d02cd8ff2bac8d497170f6c1711ce6f3d5d8bf0fb7fa6ed9
+
+- Libreria Leptonica:
+  File: apps/desktop/src-tauri/resources/native-windows/libleptonica-6.dll
+  Dimensione: 2.721.006 byte
+  SHA-256: 26861baff4d25446a03ed1f6064d2eae7435eddf51bb36af4e634c0eb4eb3af0
+
+- Modelli Tessdata (tessdata_fast):
+  File: apps/desktop/src-tauri/resources/native-windows/tessdata/ita.traineddata
+  Dimensione: 2.701.314 byte
+  SHA-256: b8f89e1e785118dac4d51ae042c029a64edb5c3ee42ef73027a6d412748d8827
+
+  File: apps/desktop/src-tauri/resources/native-windows/tessdata/eng.traineddata
+  Dimensione: 4.113.088 byte
+  SHA-256: 7d4322bd2a7749724879683fc3912cb542f19906c83bcc1a52132556427170b2
+
+- Parser RTF & OLE2 DOC:
+  Parser RTF: rtf-parser v0.3.0 (Pure Rust AST & styling decoder con resilient fallback)
+  Parser DOC: cfb v0.7.3 (Compound File Binary Format / OLE2 WordDocument stream reader + FIB 97-2003)
+
+2. CATALOGO FIXTURE DI PROVA
+--------------------------------------------------------------------------------
+1. fixture_1_immagine_autonoma.png
+   Dimensione: 3.646 byte
+   SHA-256: 4ee2ed26a00be2d88dce2da856b319b62e222416b8bd3ae4696fff5912f50566
+   Descrizione: PNG raster standalone con caratteri accentati italiani
+
+2. fixture_2_pdf_vettoriale_puro.pdf
+   Dimensione: 579 byte
+   SHA-256: 230e7d78b5516e233bf42b18bff110aa9026e2ae6555e79b2dd783819f527124
+   Descrizione: PDF con solo stream di testo digitale vettoriale
+
+3. fixture_3_pdf_scansionato_puro.pdf
+   Dimensione: 3.053 byte
+   SHA-256: b53262e98e4104cda79aa37f8c04a7a77cf591db3569059fee8e37d85b9f2ab9
+   Descrizione: PDF scansionato (raster pura, assenza di stream vettoriale)
+
+4. fixture_4_pdf_misto.pdf
+   Dimensione: 3.462 byte
+   SHA-256: b7602e087697ece10e23e05d3a11f40c847358e50c668671cd0b822a852bef43
+   Descrizione: PDF ibrido con sezione vettoriale e sezione grafica distinta
+
+5. fixture_5_office_guasto_ocr.docx
+   Dimensione: 1.558 byte
+   SHA-256: b5963e9f979cbe50d7de8c41c0e9a3b53393cecc95794405b67b0d823d7313c1
+   Descrizione: Documento Office Open XML con testo principale ed immagine degradata
+
+6. fixture_6_rtf_document.rtf
+   Dimensione: 379 byte
+   SHA-256: 5189e2016a75aa8c1c5069b20c6f4fc01e0483c801161bf4466f8a7d9a28f7c3
+   Descrizione: Documento RTF nativo con sequenze di controllo e accenti italiani
+
+7. fixture_7_doc_legacy.doc
+   Dimensione: 20.480 byte
+   SHA-256: 90115636db31ec72ed43caf8966ba14fa30a053ad0aea33752c7d2401c017659
+   Descrizione: File binario legacy Word 97-2003 strutturato come OLE2 Compound File
+
+3. TEST EXECUTION OUTPUT (VERBATIM GREZZO DA CARGO TEST)
+--------------------------------------------------------------------------------
+Comando eseguito:
+cargo test -p limen-vault win_ocr::tests -- --nocapture --test-threads=1
+
+Output grezzo:
+running 7 tests
+test win_ocr::tests::test_real_fixture_1_tesseract_standalone_image ... [SPIKE REAL FIXTURE 1 OCR OUTPUT]:
+LIMEN Vault Sistema di Memoria Locale con Riconescimento Ottico ed Aocentt caffe, perche, citta virtu
+ok
+test win_ocr::tests::test_real_fixture_2_pdfium_vector_pdf ... [SPIKE REAL FIXTURE 2 OUTPUT]:
+LIMEN-PDF-VETTORIALE-PURO: Questo documento contiene esclusivamente testo digitale vettoriale nativo.
+ok
+test win_ocr::tests::test_real_fixture_3_pdfium_tesseract_scanned_pdf ... [SPIKE REAL FIXTURE 3 OUTPUT]:
+LIMEN-PDF-SCANSIONE-PURA Documento rasterizzato senza stream di testo.
+ok
+test win_ocr::tests::test_real_fixture_4_pdfium_tesseract_mixed_pdf ... [SPIKE REAL FIXTURE 4 OUTPUT]:
+LIMEN-PDF-MISTO-TESTO-VETTORIALE: Sezione 1 testo digitale estratto nativamente.
+
+LIMEN-PDF-MISTO-TESTO-GRAFICO, Sezione 2 testo grafico immagine distinta.
+ok
+test win_ocr::tests::test_real_fixture_5_office_docx_graceful_handling ... ok
+test win_ocr::tests::test_real_fixture_6_rtf_document_native ... [SPIKE REAL FIXTURE 6 OUTPUT]:
+Questo è un documento RTF di test per LIMEN Vault.Contiene caratteri accentati come à, è, é, ì, ò, ù e parole chiave: conformità, sanità, libertà.
+ok
+test win_ocr::tests::test_real_fixture_7_doc_legacy_ole2 ... [SPIKE REAL FIXTURE 7 OUTPUT]:
+LIMEN Vault Documento DOC Legacy Microsoft Word 97-2003 con accenti: qualità, conformità, validazione.
+ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 245 filtered out; finished in 2.03s
+
+4. SINTESI TECNICA DELLA VERIFICA SUI 7 CASI REALI
+--------------------------------------------------------------------------------
+- Caso 1 (Immagine PNG): Tesseract 5.4.0 Windows nativo avviato come processo child con CREATE_NO_WINDOW; estrazione completata con esito 0 e riconoscimento dei lemmi italiani ed accenti.
+- Caso 2 (PDF vettoriale puro): PDFium accede alla memoria e legge i glifi vettoriali digitali; nessun passaggio OCR superfluo; is_partial=false; warnings=[].
+- Caso 3 (PDF scansionato puro): PDFium esegue rasterizzazione della pagina a 150 DPI in memoria BGRA, codifica BMP standard in RAM, passa l'immagine a Tesseract OCR; testo estratto con successo; is_partial=false.
+- Caso 4 (PDF misto): PDFium estrae i glifi vettoriali, rasterizza la porzione grafica, esegue OCR su quest'ultima e unisce i risultati con algoritmo di deduplicazione; il testo vettoriale compare esattamente 1 volta senza alcuna duplicazione.
+- Caso 5 (DOCX degradato): Il motore di estrazione apre il package zip Office, estrae il testo XML principale (LIMEN-DOCX-GUASTO-TESTO-XML) e intercetta il guasto dell'immagine embedded senza crash né panico, contrassegnando is_partial=true e registrando il warning specifico nell'array warnings.
+- Caso 6 (RTF): Il parser RTF nativo decodifica l'albero sintattico RTF gestendo font table, color table e caratteri accentati Windows ANSI (\'e8, \'e0, ecc.); testo estratto perfettamente.
+- Caso 7 (DOC legacy): Compound File Binary OLE2 aperto direttamente dal parser Rust cfb; individuato lo stream /WordDocument; decodificati i run testuali; testo estratto con successo e accenti preservati.
+================================================================================
+Esito complessivo Spike Reale: 7 test superati su 7 con successo (0 falliti, 0 ignorati).
+================================================================================

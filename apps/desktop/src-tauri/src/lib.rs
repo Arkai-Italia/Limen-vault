@@ -22,3 +22,4 @@ pub mod llama;
 pub mod llama_llm;
 
 pub mod history;
+pub mod win_ocr;

@@ -42,3 +42,4 @@ apps/desktop/src-tauri/resources/native-windows/*
 !apps/desktop/src-tauri/resources/native-windows/.gitkeep
 !apps/desktop/src-tauri/resources/native-windows/README-native-windows.md
 tests/scratch/
+ISOLATED_TEST_ENV/
