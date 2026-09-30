@@ -105,21 +105,20 @@ I risultati completi sono documentati in [`IMPLEMENTATION/WINDOWS_RELEASE_EVIDEN
 
 ---
 
-## 6. Fase 2: Riproduzione e Localizzazione del Difetto `#` (Misure Effettive)
+## 6. Fase 2: Verifiche Dirette del Server con Simulazione della Trasformazione del Testo
 
-Eseguite 3 prove sintetiche isolate con gli argomenti di avvio e parametri di generazione identici all'app installata (`-ngl 0`, `-c 8192`, `temperature: 0.2`, `max_tokens: 1500`, nessun repeat penalty). I log grezzi completi sono archiviati in `IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/phase2_reproduce/`.
+Eseguite 3 prove sintetiche isolate con test diretti dell'endpoint `/v1/chat/completions` e parametri di generazione identici all'app installata su CPU (`-ngl 0`, `-c 8192`, `temperature: 0.2`, `max_tokens: 1500`, nessun repeat penalty). La sanitizzazione backend (`ai.rs`) e la visualizzazione frontend (`pre-wrap`) sono state simulate in PowerShell. I log grezzi completi sono archiviati in `IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/phase2_reproduce/` (inclusi sia stdout `llama_server_phase2_execution.log` sia stderr `llama_server_phase2_stderr.log`).
 
-| Prova | Input / Fixture | TTFT (ms) | Tempo Totale (ms) | Chunk SSE | Output Caratteri | Conteggio `#` Server / Backend / Frontend | Esito Ripetizione |
+| Prova | Input / Fixture | TTFT Primo Evento SSE (ms) | Tempo Totale Server (ms) | Chunk SSE | Output Caratteri | Conteggio `#` Server / Simulato | Esito Ripetizione |
 |---|---|---|---|---|---|---|---|
-| **1. Senza Documenti** | Domanda semplice ("Cos'è ARKAI?") | 19.098 | 79.279 | 209 | 798 | 0 / 0 / 0 | Nessuna ripetizione |
-| **2. Breve Fonte** | 1 documento (130 parole) | 17.090 | 61.053 | 146 | 567 | 0 / 0 / 0 | Nessuna ripetizione |
-| **3. Contesto Lungo (~6.5k tok)** | 10 fonti sintetiche (28.707 byte prompt) | 19.671 | 532.167 (~8m52s) | 668 | 2.513 | 3 / 3 / 3 | **3 `#` isolati** (h3 Markdown) |
+| **1. Senza Documenti** | Domanda semplice ("Cos'è ARKAI?") | 19.098 | 79.252 | 209 | 798 | 0 / 0 | Nessuna ripetizione |
+| **2. Breve Fonte** | 1 documento (130 parole) | 17.090 | 61.037 | 146 | 567 | 0 / 0 | Nessuna ripetizione |
+| **3. Contesto Lungo (6.404 tok)** | 10 fonti sintetiche (28.707 byte prompt) | 19.671 | 532.056 (~8m52s) | 668 | 2.513 | 3 / 3 | **3 `#` isolati** (`### Caratteristiche principali:`) |
 
-### Localizzazione Accertata:
-1. **Origine dei `#`**: nel test con contesto lungo, il modello ha emesso esattamente `### Caratteristiche principali:` come intestazione Markdown di livello 3 (3 caratteri `#`).
-2. **Attraversamento Backend**: `sanitize_answer_prose` in `ai.rs` rimuove asterischi di grassetto (`**`), citazioni numeriche (`[S1]`) ed entità di sistema, ma **non modifica i caratteri `#`**.
-3. **Rendering Frontend**: `AiPanel.tsx` visualizza la risposta in un contenitore `<div style={{ whiteSpace: 'pre-wrap' }}>` senza parsing Markdown HTML, mostrando i caratteri `#` raw.
-4. **Dichiarazione Esplicita**: **il difetto del loop continuo di decine di caratteri `#` NON si è riprodotto** sulla fixture sintetica pulita. Non viene attribuita una causa definitiva non provata e i caratteri `#` non vengono mascherati con filtri grafici.
+### Localizzazione e Distinzione Accertata:
+1. **Origine dei `#`**: nel test con contesto lungo, il modello ha emesso `### Caratteristiche principali:` come normale intestazione Markdown di livello 3 (3 caratteri `#`).
+2. **Nessun Loop Anomalo**: il difetto del loop continuo di decine di caratteri `#` osservato da Cesare **NON si è riprodotto** su fixture sintetica pulita. Il pattern `#{3,}` rileva anche intestazioni Markdown lecite e non costituisce da solo un indicatore di anomalia.
+3. **Classificazione e Riapertura**: queste prove attestano il comportamento del motore server con trasformazione testo simulata. **La verifica del percorso applicativo reale attraverso WebView2 / LIMEN rimane aperta nel piano per la prova live.**
 
 ---
 
@@ -137,27 +136,36 @@ Eseguite 3 prove sintetiche isolate con gli argomenti di avvio e parametri di ge
 
 ---
 
-## 8. Fase 4: Misurazione Sperimentale dell'Accelerazione GPU Vulkan
+## 8. Fase 4: Misurazione Sperimentale e Concorrenza GPU Vulkan Windows
 
-Eseguito collaudo reale su hardware Windows (`DESKTOP-DGJBALI`, GPU NVIDIA GeForce RTX 3060 12GB VRAM, driver 595.79, Vulkan 1.4.328). File di evidenza in `IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/phase4_gpu/`.
+Eseguito collaudo reale su hardware Windows (`DESKTOP-DGJBALI`, GPU NVIDIA GeForce RTX 3060 12GB VRAM, driver 595.79, Vulkan 1.4.328). File di evidenza in `IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/phase4_gpu_run_20260930_090959/` e riepilogo XML corretto `IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/phase4_gpu/gpu_benchmark_report.xml`.
 
-### Coesistenza VRAM Misurata (bge-m3 + Ministral 3 8B attivi contemporaneamente):
-- VRAM Iniziale a riposo: **1.387 MiB**
-- `bge-m3` attivo su GPU Vulkan (`-ngl 99`): **+328 MiB** (tempo embedding: **41 ms**)
-- `Ministral 3 8B` attivo su GPU Vulkan (`-ngl 99`): **+6.268 MiB** (modello 5.418 MiB + KV cache 578 MiB + compute 272 MiB)
-- **VRAM Totale con entrambi i modelli attivi**: **7.992 MiB**
-- **Headroom VRAM Libera Residua**: **4.119 MiB** (margine abbondante di sicurezza contro OOM)
-- **Layer Offloadati**: **35/35 layer** trasferiti su Vulkan (`load_tensors: offloaded 35/35 layers to GPU`).
+### Coesistenza VRAM e Concorrenza Misurata:
+- **VRAM Iniziale (a riposo)**: `1.253 MiB`
+- **VRAM dopo avvio bge-m3 (`-ngl 99`)**: `1.572 MiB` (`+319 MiB`)
+- **VRAM Totale con entrambi i modelli attivi**: `7.821 MiB`
+- **Incremento Netto per i due modelli**: **`6.568 MiB`** (i 7.821 MiB rappresentano l'allocazione GPU totale di sistema, non attribuibile per intero ai modelli)
+- **Headroom VRAM Libera Residua**: **`4.290 MiB`** (margine abbondante contro OOM su 12.288 MiB totali)
+- **Layer Offloadati**: **`35/35 layer`** trasferiti su GPU Vulkan (`load_tensors: offloaded 35/35 layers to GPU`).
+- **Concorrenza Sotto Carico**: durante la generazione attiva di Ministral (chunk 10), una richiesta di embedding su `bge-m3` è stata completata con successo in **93 ms**, con vettore di **1.024 float**, norma L2 pari a 1,0 e totale assenza di NaN/Inf; VRAM campionata durante il carico concorrente a 7.700 MiB.
 
-### Confronto Prestazionale Misurato (Stesso prompt di 6.538 token):
-| Metrica | Esecuzione CPU (-ngl 0) | Esecuzione GPU Vulkan (-ngl 99) | Guadagno Misurato |
+### Confronto Rigoroso Motore sulla Stessa Fixture Lunga:
+| Metrica Server | Esecuzione CPU Haswell (`-ngl 0`), Fixture Lunga | Esecuzione GPU Vulkan (`-ngl 99`), Fixture Lunga | Guadagno Motore |
 |---|---|---|---|
-| **Caricamento Modello** | CPU mapped | 9.102 ms | Immediato |
-| **Elaborazione Prompt (6.538 tok)** | 47.941 ms (124 tok/s) | **4.473 ms (1.461 tok/s)** | **10.7x più rapido** |
-| **Tempo al Primo Token (TTFT)** | 19.671 ms | **4.563 ms** | **4.3x più rapido** |
-| **Velocità Generazione** | 1.48 tok/s | **38.00 tok/s** | **25.6x più rapido** |
-| **Tempo Totale Risposta** | 532.167 ms (~8m52s) | **22.024 ms (~22s)** | **24.2x più rapido** |
-| **Sintesi Contenuto** | Corretta con h3 Markdown | Corretta senza anomalie (0 `#`) | Perfetta aderenza alle fonti |
+| **Layer Offloadati** | `0/35` | **35/35** | Offload completo |
+| **Token Prompt Elaborati** | `6.404 token` | `6.538 token` | — |
+| **Tempo Elaborazione Prompt** | `19.561,42 ms` (327,38 tok/s) | **4.705,89 ms** (1.389,32 tok/s) | **4,16x più rapido** |
+| **Token Generati** | `667 token` | `632 token` | — |
+| **Velocità di Generazione** | `1,30 tok/s` | **37,90 tok/s** | **29,15x più rapido** |
+| **Tempo Totale Server** | `532.056,23 ms` (~8m52s) | **21.382,20 ms` (~21,4s) | **24,88x più rapido** |
+| **TTFT Primo Evento SSE** | `19.671 ms` | **4.858 ms** | **4,05x più rapido** |
+| **TTFT Primo delta.content** | Non acquisito separatamente | **4.880 ms** | — |
+
+> [!IMPORTANT]
+> **Dichiarazione su Cache, Prompt e App Installata**:
+> - La variazione del conteggio dei token di prompt (6.404 vs 6.538) documenta il riutilizzo della cache di contesto tra le richieste e lievi differenze di tokenizzazione dei separatori.
+> - Questi numeri non vanno confusi con i 47.941 ms e 1,48 tok/s della vecchia richiesta di Cesare, che impiegava un prompt differente di 5.990 token.
+> - L'accelerazione server di circa 24,9x documenta l'efficacia del motore GPU Vulkan, ma **non costituisce ancora una misura della velocità dell’app installata**.
 
 ---
 
@@ -210,17 +218,18 @@ Eseguito collaudo reale su hardware Windows (`DESKTOP-DGJBALI`, GPU NVIDIA GeFor
 
 ---
 
-## 13. Stato di Avanzamento e Prossimi Passi
+## 13. Quadro di Convalida e Stato di Avanzamento
 
-- [x] Rettifica formale relazione diagnostica Ministral
-- [x] Prove sintetiche a 3 livelli e localizzazione origine dei `#`
-- [x] Ispezione template Jinja e parametri server
-- [x] Benchmark hardware GPU Vulkan (24.2x più rapido, headroom VRAM 4.1 GB)
-- [x] Implementazione GPU default + Fallback sicuro CPU in Rust
-- [x] Implementazione Auto-Indicizzazione e isolamento race condition
-- [x] Bonifica etichette Mac e messaggi di errore UI
-- [x] Watcher cancellazione asincrono immediato in `ai.rs`
-- [x] Compilazione verificata: TypeScript 0 errori (`pnpm build`), Rust 0 errori (`cargo check`, `cargo test llama_llm`)
-- [ ] Riscaldamento cache di compilazione release tramite `tauri dev --release` e dichiarazione PID
-- [ ] Generazione installer NSIS e calcolo SHA-256
-- [ ] Sessione di prova applicativa e consegna ad audit Codex / Cesare
+- [x] **Rettifica Formale Relazione Diagnostica Ministral**: tempi CPU corretti, `#` non riprodotto su test sintetici, ipotesi distinte da fatti provati.
+- [x] **Verifiche Dirette Server con Trasformazione Simulata (Fase 2)**: 3 livelli eseguiti, stream progressivo, TTFT primo evento SSE e primo delta.content separati, `### Caratteristiche` identificato come Markdown lecito (non loop anomalo).
+- [x] **Ispezione Template Jinja e Parametri (Fase 3)**: modello instruct puro senza token speciali di reasoning.
+- [x] **Benchmark e Concorrenza GPU Vulkan (Fase 4)**: 35/35 layer offloadati, embedding simultaneo a Ministral completato in 93 ms (vettore conforme 1.024 float, norma 1,0), VRAM 7.821 MiB (6.568 MiB netto modelli, 4.290 MiB headroom libera), accelerazione server di 24,9x documentata su stessa fixture lunga.
+- [x] **Implementazione Codice (Commit `d99bf93`)**:
+  - `llama_llm.rs` & `llama.rs`: GPU Vulkan default e fallback controllato a CPU (`-ngl 0`).
+  - `App.tsx`: Auto-indicizzazione trasparente e non bloccante con isolamento race condition via ticket atomico.
+  - `AiPanel.tsx`, `SemanticEngineSettings.tsx`, `VaultStatusBanner.tsx`: Bonifica etichette piattaforma e messaggi di errore locali.
+  - `ai.rs`: Watcher asincrono `tokio::select!` per interruzione tempestiva.
+- [x] **Controlli di Compilazione e Test Unitari**: TypeScript 0 errori (`pnpm build`), Rust 0 errori (`cargo check`, 14/14 test passati in `llama_llm`).
+- [x] **Riscaldamento Cache Release Eseguito**: compilato con `npx pnpm --filter @limen-vault/desktop tauri dev --release` in 3m 13s, processo arrestato ordinatamente nella stessa sessione (PID `28292`).
+- [ ] **Collaudo Applicativo Reale nell'App LIMEN (Aperto)**: selezione vault → indicizzazione automatica → domanda → risposta → annullamento → nuova domanda. Misura applicativa dell'annullamento (obiettivo `<50ms`).
+- [ ] **Sessione di Prova 20 Domande e Packaging Installer NSIS (Aperto)**.

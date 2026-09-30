@@ -101,20 +101,57 @@ Poiché i test brevi non hanno manifestato l'anomalia, la causa non è dimostrat
 
 ---
 
-## 6. Prestazioni da Misurare (Stime Non Verificate Sperimentalmente)
+---
 
-Le seguenti metriche relative all'uso della GPU e al confronto con Mac rappresentano **ipotesi prestazionali da misurare sperimentalmente**, non dati acquisiti:
+## 6. Misure Sperimentali Acquisite su GPU Vulkan vs CPU (Fixture Lunga Isolata)
 
-| Parametro | CPU (Misurato) | GPU Vulkan RTX 3060 (Da Misurare) | Mac Metal (Da Misurare) |
+Le misure acquisite su `DESKTOP-DGJBALI` (NVIDIA GeForce RTX 3060 12GB, driver 595.79, Vulkan 1.4.328) mediante test diretti del motore sul medesimo testo sintetico lungo documentano le seguenti prestazioni reali del server:
+
+| Metrica Server | CPU Haswell (`-ngl 0`), Fixture Lunga | GPU Vulkan (`-ngl 99`), Fixture Lunga | Guadagno Motore |
 |---|---|---|---|
-| **Offload Layer Effettivo** | `0/35` | Da verificare con test reale | Da verificare su hardware Mac |
-| **VRAM / Memoria Impegnata** | 5.770 MiB RAM host | Da quantificare con bge-m3 attivo | Da quantificare con bge-m3 attivo |
-| **Tempo Elaborazione Prompt (~6k token)** | `47.941 ms` | Da cronometrare sperimentalmente | Da cronometrare sperimentalmente |
-| **Velocità di Generazione** | `1.48 tok/s` | Da misurare sperimentalmente | Da misurare sperimentalmente |
+| **Layer Offloadati** | `0/35` | **35/35** (`offloaded 35/35 layers to GPU`) | Completo |
+| **Token Prompt Elaborati** | `6.404 token` | `6.538 token` | — |
+| **Tempo Elaborazione Prompt** | `19.561,42 ms` (327,38 tok/s) | **4.705,89 ms** (1.389,32 tok/s) | **4,16x più rapido** |
+| **Token Generati** | `667 token` | `632 token` | — |
+| **Velocità di Generazione** | `1,30 tok/s` (768,36 ms/tok) | **37,90 tok/s** (26,38 ms/tok) | **29,15x più rapido** |
+| **Tempo Totale Server** | `532.056,23 ms` (~8m52s) | **21.382,20 ms` (~21,4s) | **24,88x più rapido** |
+| **TTFT Primo Evento SSE** | `19.671 ms` | **4.858 ms** | **4,05x più rapido** |
+| **TTFT Primo delta.content** | Non acquisito separatamente | **4.880 ms** | — |
+
+> [!NOTE]
+> **Dichiarazione su Contesto, Cache e App Installata**:
+> 1. La discrepanza tra 6.404 token (CPU) e 6.538 token (GPU) riflette una diversa gestione iniziale dei token di intestazione/template e il riutilizzo della cache di contesto tra le richieste sequenziali.
+> 2. Questa prova non è confrontabile direttamente con i 47.941 ms e 1,48 tok/s della vecchia richiesta reale di Cesare, che conteneva un prompt documentale differente (5.990 token) proveniente dal vault `E:\VAULT WIN TEST`.
+> 3. Il consistente miglioramento misurato (~24,9x su server) documenta l'efficacia del motore di calcolo GPU Vulkan, ma **non costituisce ancora una misura della velocità dell'applicazione LIMEN installata**.
+
+### Coesistenza VRAM e Concorrenza Sotto Carico
+- **VRAM Iniziale (a riposo)**: `1.253 MiB`
+- **VRAM dopo caricamento bge-m3 (`-ngl 99`)**: `1.572 MiB` (`+319 MiB`)
+- **VRAM con entrambi i modelli attivi**: `7.821 MiB`
+- **Incremento Netto per i due modelli**: **`6.568 MiB`** (i 7.821 MiB rappresentano la memoria complessiva allocata dal sistema GPU, non attribuibile per intero ai modelli)
+- **Headroom VRAM Libera Residua**: **`4.290 MiB`** (margine di sicurezza abbondante contro OOM)
+- **Concorrenza Sotto Carico**: durante la generazione attiva di Ministral (chunk 10), è stata inviata una richiesta di embedding a `bge-m3`. La richiesta concorrente è stata completata in **93 ms**, restituendo un vettore valido di **1.024 float** con norma L2 pari a 1,0 e totale assenza di valori non validi (NaN/Inf), con VRAM rilevata a 7.700 MiB.
 
 ---
 
-## 7. Stato di «Annulla»
+## 7. Stato delle Implementazioni e Verifiche
 
-- **Verifica Eseguita**: l'interruzione è stata **verificata mediante lettura statica del codice sorgente** (`ai_cancel` imposta `cancel.store(true)`, il loop di `ai.rs` interrompe lo stream alla riga 3090 e invia `cancelled: true` a `AiPanel.tsx`).
-- **Limite Dichiarato**: l'interruzione reale durante lo streaming e la capacità di sottomettere una nuova domanda senza blocchi residui **NON sono ancora state dimostrate mediante prova applicativa reale**.
+1. **Test Fase 2 (Riproduzione `#`)**:
+   - Classificati come **test diretti del server con simulazione della trasformazione del testo**.
+   - I file di evidenza riportano la nomenclatura `simulated_backend_sanitized_text.txt` e `simulated_frontend_text.txt` (conservando gli originali per continuità).
+   - L'emissione di `### Caratteristiche principali:` costituisce un'intestazione Markdown normale e non riproduce il loop anomalo continuo di decine di `#` visto da Cesare.
+   - **La verifica del percorso applicativo reale rimane aperta nel piano.**
+
+2. **Implementazione nel Codice (Commit `d99bf93`)**:
+   - Configurazione GPU per default con fallback controllato a CPU (`-ngl 0`) in `llama_llm.rs` e `llama.rs`.
+   - Indicizzazione automatica non bloccante con tracciamento ticket atomico in `App.tsx`.
+   - Bonifica etichette piattaforma e messaggi di errore locali in `AiPanel.tsx`, `SemanticEngineSettings.tsx`, `VaultStatusBanner.tsx`.
+   - Watcher asincrono `tokio::select!` per interruzione tempestiva in `ai.rs`.
+
+3. **Distinzione Formale dei Livelli di Convalida**:
+   - *Implementazione presente nel repository*: commit `d99bf93`.
+   - *Controlli di compilazione e test unitari*: superati con codice 0 (`pnpm build`, `cargo check`, 14/14 test `llama_llm`).
+   - *Obiettivo `<50 ms` per l'annullamento*: costituisce un obiettivo di progetto regolato dal polling del watcher; il tempo effettivo di interruzione del server deve essere verificato applicativamente.
+   - *Collaudo applicativo dell'app LIMEN*: **aperto**, da eseguire con prova reale end-to-end.
+   - *Audit indipendente*: **aperto**, affidato a Codex e Cesare.
+

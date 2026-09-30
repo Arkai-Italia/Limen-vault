@@ -39,45 +39,43 @@ Installer generato: `USER INSTALL WINDOWS/LIMEN-Vault-v6Mini-0.6.0-windows-x64-s
   - Prestazioni GPU (NVIDIA RTX 3060 12GB rilevata) e confronto Mac classificate come **prestazioni da misurare**, non misure acquisite.
   - Funzione «Annulla»: **verificata mediante lettura del codice statico**, non ancora mediante prova applicativa live.
   - Rimossa l'affermazione che `repeat_penalty: 1.1` elimini categoricamente qualsiasi ripetizione.
-- [x] **Riproduzione e Localizzazione Difetto `#` (Prove a 3 livelli su CPU con fixture isolata)**:
-  - Prova 1 (senza documenti): TTFT 19.098 ms, totale 79.279 ms, 209 chunk SSE, 0 caratteri `#`.
-  - Prova 2 (breve fonte): TTFT 17.090 ms, totale 61.053 ms, 146 chunk SSE, 0 caratteri `#`.
-  - Prova 3 (contesto lungo 6.538 token): TTFT 19.671 ms, totale 532.167 ms (~8m52s), 668 chunk SSE, **3 caratteri `#`** (`### Caratteristiche principali:`).
-  - Localizzazione: i caratteri `#` provengono dal server come intestazione Markdown di livello 3, attraversano intatti il backend e arrivano alla UI in un contenitore pre-wrap. Il loop infinito non si è riprodotto su fixture sintetica pulita. Evidenze in `IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/phase2_reproduce/`.
-- [x] **Verifica Template e Parametri prima delle modifiche**:
+- [x] **Verifiche Dirette del Server con Simulazione Trasformazione Testo (Fase 2)**:
+  - Test diretti dell'endpoint `/v1/chat/completions` con simulazione PowerShell della sanitizzazione backend (`ai.rs`) e visualizzazione pre-wrap.
+  - Prova 1 (senza documenti): TTFT SSE 19.098 ms, totale 79.279 ms, 209 chunk SSE, 0 caratteri `#`.
+  - Prova 2 (breve fonte): TTFT SSE 17.090 ms, totale 61.053 ms, 146 chunk SSE, 0 caratteri `#`.
+  - Prova 3 (contesto lungo 6.404 token): TTFT SSE 19.671 ms, totale 532.056 ms (~8m52s), 668 chunk SSE, emissione di `### Caratteristiche principali:`.
+  - Distinzione qualitativa: `### Caratteristiche principali:` è un'intestazione Markdown H3 valida, non il loop anomalo di decine di `#` osservato da Cesare. Il controllo `#{3,}` rileva anche intestazioni lecite e non è usato da solo come indicatore del difetto.
+  - Archiviati sia stdout (`llama_server_phase2_execution.log`) sia stderr (`llama_server_phase2_stderr.log`).
+  - Salvataggio progressivo dello stream implementato e tracciamento separato di TTFT primo evento SSE e primo token con contenuto.
+  - **La verifica del percorso applicativo reale (attraverso WebView2 / LIMEN) rimane riaperta nel piano per la prova live.**
+- [x] **Verifica Template e Parametri prima delle modifiche (Fase 3)**:
   - `llama-server.exe`: supporta flag `-rea, --reasoning [on|off|auto]`.
   - Jinja template del GGUF: formato instruct puro senza token `<think>`, né tag DeepSeek.
   - Principio di isolamento: testare una singola modifica alla volta.
-- [x] **Implementazione e Misurazione Accelerazione GPU Vulkan Windows**:
-  - Rilevata GPU: NVIDIA GeForce RTX 3060 con 12 GB VRAM.
-  - Coesistenza bge-m3 + Ministral 3 8B: **7.992 MiB impegnati / 12.288 MiB totali** (**4.119 MiB VRAM libera residua**).
-  - Layer trasferiti: **35/35 layer** offloadati su GPU Vulkan.
-  - Prompt eval lungo (6.538 token): **4.473 ms (1.461 tok/s)** su GPU vs **47.941 ms (124 tok/s)** su CPU (10.7x più rapido).
-  - Generazione: **38.0 tok/s** su GPU vs **1.48 tok/s** su CPU (25.6x più rapido).
-  - Tempo totale: **22.024 ms** su GPU vs **532.167 ms** su CPU (**24.2x più rapido**).
-  - Evidenze e report in `IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/phase4_gpu/`.
-- [x] **Ripiego Controllato su CPU e Cicli di Sicurezza in `llama_llm.rs` e `llama.rs`**:
-  - `get_default_ngl()` impostato di default su `"99"` su Windows e macOS, con override tramite `LIMEN_LLM_GPU_NGL`.
-  - Fallback controllato e sicuro su CPU (`-ngl 0`) in `spawn_server_process` in caso di fallimento GPU/OOM, con log dedicato su `llama-llm.log`.
-  - `build_embedding_server_args` in `llama.rs` aggiornato con `-ngl 99` di default su Windows/macOS e override `LIMEN_EMBED_GPU_NGL`.
-  - Tutti i 14 unit test in `llama_llm::tests` superati con esito positivo.
-- [x] **Indicizzazione Automatica del Vault (`App.tsx`, `vault-ipc.ts`)**:
-  - `ensureSearchIndex(targetPath)` implementato con verifica di stato `getSearchIndexStatus`: avvio automatico trasparente se indice `missing` o `outdated`.
-  - L'indicizzazione avviene in background senza bloccare la digitazione della domanda da parte dell'utente.
-  - Prevenzione delle race condition al cambio rapido di vault tramite tracciamento di ticket atomico (`indexingTicketRef`).
-  - Trigger automatico all'apertura o creazione del vault, caricamento/importazione documenti (`handleUploadDocuments`, `handleDrop`) e compilazione (`handleCompileSingleSource`, `handleBatchCompile`).
-  - Mantenuto pulsante di reindicizzazione manuale e gestione riprova in caso di errore.
-- [x] **Correzione Etichette e Stati UI (`AiPanel.tsx`, `SemanticEngineSettings.tsx`, `VaultStatusBanner.tsx`)**:
-  - Rimosse tutte le diciture "Mac" o "su questo Mac" da etichette, placeholder e tooltip, sostituite con termini dinamici di piattaforma (`terms.onDeviceTerm`, `terms.isWin ? 'PC' : 'Mac'`).
-  - Corretta la gestione degli errori locali e di indicizzazione: rimossa l'indicazione fuorviante di verificare le chiavi API di OpenAI per problemi dell'indice o del server locale.
-  - Distinto il badge di stato "Vault Aperto" dallo stato dell'indice "Pronto (N doc)", "In corso...", "Mancante" o "Da aggiornare" in `VaultStatusBanner`.
-- [x] **Reattività Asincrona Immediata di «Annulla» in `ai.rs`**:
-  - Implementato watcher asincrono con `tokio::select!` che controlla `cancel.load(Ordering::SeqCst)` ogni 50ms sia durante l'attesa iniziale dei byte di risposta HTTP (`send().await`) che durante lo streaming dei chunk (`response.chunk().await`).
-  - Terminazione immediata (<50ms) della socket TCP e abort della richiesta verso `llama-server`.
-- [ ] **Collaudo Applicativo Reale e Rigenerazione Installer**:
-  - Verifica live dei flussi (apertura vault, auto-indicizzazione, annullamento).
-  - Riscaldamento cache di compilazione release tramite `tauri dev --release` e chiusura ordinata del processo con dichiarazione PID.
+- [x] **Misurazione Sperimentale e Concorrenza GPU Vulkan Windows (Fase 4)**:
+  - Hardware: NVIDIA GeForce RTX 3060 con 12 GB VRAM (driver 595.79, Vulkan 1.4.328).
+  - Parser dei layer corretto: registrati **35/35 layer** offloadati su GPU (`load_tensors: offloaded 35/35 layers to GPU`).
+  - VRAM dettagliata: `1.253 MiB` a riposo, `1.572 MiB` dopo bge-m3 (+319 MiB), `7.821 MiB` con entrambi attivi (incremento netto modelli: **`6.568 MiB`**, non attribuendo la VRAM a riposo ai modelli; headroom libera: **`4.290 MiB`**).
+  - Concorrenza provata: richiesta embedding `bge-m3` eseguita *durante* la generazione streaming di Ministral (chunk 10); calcolata in **93 ms**, vettore conforme di **1.024 float** con norma L2 pari a 1,0 e nessun NaN/Inf; VRAM durante il carico: 7.700 MiB.
+  - Confronto rigoroso motore sulla stessa fixture lunga (dichiarando il riutilizzo contesto/cache tra 6.404 e 6.538 token):
+    - Prompt eval: **4.705,89 ms (1.389 tok/s)** su GPU vs **19.561,42 ms (327 tok/s)** su CPU (**4,16x più rapido**).
+    - Generazione: **37,90 tok/s** su GPU vs **1,30 tok/s** su CPU (**29,15x più rapido**).
+    - Tempo totale server: **21.382,20 ms (~21,4s)** su GPU vs **532.056,23 ms (~8m52s)** su CPU (**24,88x più rapido**).
+    - TTFT: primo evento SSE a 4.858 ms, primo delta.content a 4.880 ms.
+  - Dichiarazione formale: il miglioramento documenta la potenza del motore GPU Vulkan, ma **non costituisce ancora una misura della velocità dell’app installata**.
+- [x] **Implementazione Codice (Commit `d99bf93`)**:
+  - *GPU e Fallback CPU (`llama_llm.rs`, `llama.rs`)*: `-ngl 99` di default, ripiego controllato a `-ngl 0` su CPU in caso di mancata GPU/OOM, log su `llama-llm.log`. 14 unit test Rust superati.
+  - *Indicizzazione Automatica (`App.tsx`)*: verifica stato all'apertura/cambio vault o upload/compilazione, non bloccante per l'input dell'utente, isolamento race condition con ticket atomico.
+  - *Bonifica UI (`AiPanel.tsx`, `SemanticEngineSettings.tsx`, `VaultStatusBanner.tsx`)*: rimozione diciture Mac, separazione errori locali da chiavi OpenAI, chiarimento badge "Vault Aperto" vs stato indice.
+  - *Watcher Cancellazione (`ai.rs`)*: controllo asincrono con `tokio::select!` e polling a 50ms per interruzione immediata della socket verso `llama-server`. Obiettivo di progetto `<50ms` da misurare sperimentalmente nell'app.
+- [ ] **Collaudo Applicativo Reale nell'App LIMEN (Aperto)**:
+  - Prova live nell'app: selezione vault → indicizzazione automatica → domanda → risposta → annullamento → nuova domanda.
+  - Sessione di 20 domande con Ministral su pesi reali.
+  - Misurazione effettiva dei tempi di annullamento e della reattività dell'interfaccia.
+- [ ] **Packaging Installer e Consegna Audit (Aperto)**:
+  - Cache di release già riscaldata con `tauri dev --release` (processo compilato e chiuso ordinatamente, PID 28292).
   - Generazione installer NSIS e calcolo SHA-256.
+  - Audit indipendente di Codex e accettazione finale di Cesare.
 
 
 ## Archivio chat Codex per Windows — 29 settembre 2026

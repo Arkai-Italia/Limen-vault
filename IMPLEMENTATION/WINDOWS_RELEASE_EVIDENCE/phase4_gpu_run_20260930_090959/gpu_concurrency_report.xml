@@ -1,0 +1,42 @@
+﻿<Objs Version="1.1.0.1" xmlns="http://schemas.microsoft.com/powershell/2004/04">
+  <Obj RefId="0">
+    <TN RefId="0">
+      <T>System.Management.Automation.PSCustomObject</T>
+      <T>System.Object</T>
+    </TN>
+    <MS>
+      <S N="TestTimestamp">20260930_090959</S>
+      <S N="Hardware">NVIDIA GeForce RTX 3060 12GB (Vulkan 1.4.328, Driver 595.79)</S>
+      <I32 N="OffloadedLayers">35</I32>
+      <I32 N="TotalLayers">35</I32>
+      <I32 N="VramBaselineAtRest_MiB">1253</I32>
+      <I32 N="VramAfterBgeLoad_MiB">1572</I32>
+      <I32 N="VramBothActiveLoad_MiB">7821</I32>
+      <I32 N="VramBothActiveLoadNet_MiB">6568</I32>
+      <I32 N="VramDuringConcurrency_MiB">7700</I32>
+      <I32 N="VramFreeResidua_MiB">4290</I32>
+      <B N="ConcurrentEmbeddingSuccess">true</B>
+      <I64 N="ConcurrentEmbeddingLatencyMs">93</I64>
+      <I32 N="ConcurrentEmbeddingVectorDimension">1024</I32>
+      <Db N="ConcurrentEmbeddingVectorNorm">1</Db>
+      <I64 N="TtftFirstSseEventMs">4858</I64>
+      <I64 N="TtftFirstContentTokenMs">4880</I64>
+      <I64 N="TotalWallClockTimeMs">21503</I64>
+      <S N="ServerFinishReason">stop</S>
+      <I32 N="ParseErrorsCount">0</I32>
+      <I32 N="CpuFixtureLunga_PromptTokens">6404</I32>
+      <Db N="CpuFixtureLunga_PromptEvalMs">19561.42</Db>
+      <I32 N="CpuFixtureLunga_GenTokens">667</I32>
+      <Db N="CpuFixtureLunga_GenSpeedTokSec">1.3</Db>
+      <Db N="CpuFixtureLunga_TotalServerMs">532056.23</Db>
+      <I32 N="GpuFixtureLunga_PromptTokens">6538</I32>
+      <Db N="GpuFixtureLunga_PromptEvalMs">4705.89</Db>
+      <I32 N="GpuFixtureLunga_GenTokens">632</I32>
+      <Db N="GpuFixtureLunga_GenSpeedTokSec">37.9</Db>
+      <Db N="GpuFixtureLunga_TotalServerMs">21382.2</Db>
+      <Db N="PromptEvalSpeedupVsCpu">4.16</Db>
+      <Db N="GenerationSpeedupVsCpu">29.12</Db>
+      <Db N="TotalServerTimeSpeedupVsCpu">24.88</Db>
+    </MS>
+  </Obj>
+</Objs>
