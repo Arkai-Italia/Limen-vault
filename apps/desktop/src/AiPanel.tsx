@@ -286,6 +286,15 @@ export function AiPanel({
     setLoadingStep(null);
   }
 
+  const handleCancelActiveRequest = async () => {
+    if (previewData?.ticket) {
+      await aiIpc.cancel(previewData.ticket).catch(() => {});
+    }
+    setIsStreaming(false);
+    setLoadingStep(null);
+    setError(null);
+  };
+
   async function handleSaveDraft(turnIdx: number) {
     const turn = effectiveTurns[turnIdx];
     if (!turn || !turn.answer) return;
@@ -642,7 +651,7 @@ export function AiPanel({
                     fontWeight: 600,
                     color: '#0f172a',
                   }}
-                  title="Generazione testuale su Apple Silicon Metal GPU a rete zero"
+                  title={terms.isWin ? "Generazione testuale su GPU Vulkan a rete zero" : "Generazione testuale su Apple Silicon Metal GPU a rete zero"}
                 >
                   Ministral 3 8B Instruct (Offline)
                 </span>
@@ -1007,24 +1016,23 @@ export function AiPanel({
                     {activePrompt}
                   </span>
                 </div>
-                {previewData?.ticket && (
+                {isBusy && (
                   <button
                     type="button"
-                    onClick={() => {
-                      if (previewData?.ticket) void aiIpc.cancel(previewData.ticket);
-                    }}
+                    onClick={handleCancelActiveRequest}
                     style={{
-                      padding: '4px 8px',
+                      padding: '4px 10px',
                       borderRadius: 4,
                       border: 'none',
-                      backgroundColor: '#0f172a',
+                      backgroundColor: '#dc2626',
                       color: '#ffffff',
                       fontSize: 11,
                       fontWeight: 600,
                       cursor: 'pointer',
                     }}
+                    title="Annulla la domanda in corso"
                   >
-                    Annulla
+                    Annulla domanda
                   </button>
                 )}
               </div>
@@ -1073,9 +1081,31 @@ export function AiPanel({
               fontSize: 13,
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600, marginBottom: 4 }}>
-              <AlertCircle size={16} />
-              <span>{error}</span>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, fontWeight: 600, marginBottom: 4 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <AlertCircle size={16} />
+                <span>{error}</span>
+              </div>
+              {(error.includes('già una domanda in corso') || isBusy) && (
+                <button
+                  type="button"
+                  onClick={handleCancelActiveRequest}
+                  style={{
+                    padding: '4px 10px',
+                    background: '#991b1b',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 4,
+                    fontSize: 11,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    flexShrink: 0,
+                  }}
+                  title="Annulla la domanda in corso"
+                >
+                  Annulla domanda
+                </button>
+              )}
             </div>
             {techError && (
               <details style={{ marginTop: 8, fontSize: 12, color: '#7f1d1d' }}>
@@ -1322,21 +1352,41 @@ export function AiPanel({
                   backgroundColor: 'var(--limen-lime-30)',
                 }}
               />
-              <button
-                style={{
-                  ...primaryButtonStyle,
-                  position: 'absolute',
-                  right: 10,
-                  bottom: 14,
-                  padding: '8px 16px',
-                  opacity: ((!isLocalMode && !model) || !prompt.trim() || isBusy || isIndexingSearch) ? 0.6 : 1,
-                }}
-                disabled={isBusy || !prompt.trim() || (!isLocalMode && !model) || isIndexingSearch}
-                onClick={() => !isBusy && !isIndexingSearch && prompt.trim() && (isLocalMode || model) && void executeAsk(prompt.trim())}
-                title={isIndexingSearch ? "Preparazione dell'indice del Vault in corso..." : (!isLocalMode && !model) ? "Seleziona un modello per abilitare l'invio" : isBusy ? "Generazione in corso..." : undefined}
-              >
-                {isIndexingSearch ? 'Indicizzazione…' : 'Chiedi'}
-              </button>
+              {isBusy ? (
+                <button
+                  type="button"
+                  style={{
+                    ...primaryButtonStyle,
+                    position: 'absolute',
+                    right: 10,
+                    bottom: 14,
+                    padding: '8px 16px',
+                    backgroundColor: '#dc2626',
+                    color: '#ffffff',
+                    cursor: 'pointer',
+                  }}
+                  onClick={handleCancelActiveRequest}
+                  title="Annulla la generazione in corso"
+                >
+                  Annulla domanda
+                </button>
+              ) : (
+                <button
+                  style={{
+                    ...primaryButtonStyle,
+                    position: 'absolute',
+                    right: 10,
+                    bottom: 14,
+                    padding: '8px 16px',
+                    opacity: ((!isLocalMode && !model) || !prompt.trim() || isIndexingSearch) ? 0.6 : 1,
+                  }}
+                  disabled={!prompt.trim() || (!isLocalMode && !model) || isIndexingSearch}
+                  onClick={() => !isIndexingSearch && prompt.trim() && (isLocalMode || model) && void executeAsk(prompt.trim())}
+                  title={isIndexingSearch ? "Preparazione dell'indice del Vault in corso..." : (!isLocalMode && !model) ? "Seleziona un modello per abilitare l'invio" : undefined}
+                >
+                  {isIndexingSearch ? 'Indicizzazione…' : 'Chiedi'}
+                </button>
+              )}
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12, color: '#64748b' }}>
@@ -1412,7 +1462,7 @@ export function AiPanel({
             </div>
 
             <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5, color: '#334155' }}>
-              Per utilizzare la modalità <strong>100% Solo Locale</strong> è necessario scaricare il modello generativo sul Mac. La ricerca semantica e la composizione delle risposte avverranno interamente offline, a rete zero e senza chiavi API.
+              Per utilizzare la modalità <strong>100% Solo Locale</strong> è necessario scaricare il modello generativo {terms.onDeviceTerm}. La ricerca semantica e la composizione delle risposte avverranno interamente offline, a rete zero e senza chiavi API.
             </p>
 
             <div
@@ -1437,7 +1487,7 @@ export function AiPanel({
                 <span>~6,06 GB</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontWeight: 600 }}>Memoria Metal (RAM):</span>
+                <span style={{ fontWeight: 600 }}>{terms.isWin ? 'Memoria GPU / RAM:' : 'Memoria Metal (RAM):'}</span>
                 <span>~6,2 GB (allocati solo a motore attivo)</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -1463,7 +1513,7 @@ export function AiPanel({
               >
                 <AlertTriangle size={18} color="#b45309" style={{ flexShrink: 0, marginTop: 1 }} />
                 <div>
-                  <strong>Avviso memoria Mac:</strong> {localLlmReport?.ramWarning || localLlmServer?.ramWarning || 'Questo Mac dispone di meno di 16 GB di RAM fisica. Il modello Ministral 3 8B occupa circa 6 GB e l\'esecuzione locale potrebbe rallentare il sistema.'}
+                  <strong>Avviso memoria:</strong> {localLlmReport?.ramWarning || localLlmServer?.ramWarning || `${terms.isWin ? 'Questo computer' : 'Questo Mac'} dispone di meno di 16 GB di RAM fisica. Il modello Ministral 3 8B occupa circa 6 GB e l'esecuzione locale potrebbe rallentare il sistema.`}
                 </div>
               </div>
             )}
