@@ -1,1 +1,1 @@
-﻿222472363b76f1dc9db67bd4d282ba25c2581312c40d38048742ebbc47085249  LIMEN-Vault-v6Mini-0.6.0-windows-x64-setup.exe
+﻿8c9b1aa4b494e7d768f9384391c943d056d6cb58cac2c5ca5697efefc717e31b  LIMEN-Vault-v6Mini-0.6.0-windows-x64-setup.exe

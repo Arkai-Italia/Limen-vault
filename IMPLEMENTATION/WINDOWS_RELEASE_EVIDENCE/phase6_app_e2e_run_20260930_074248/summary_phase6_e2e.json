@@ -1,0 +1,67 @@
+{
+  "Timestamp": "20260930074248.",
+  "AllScenariosPassed": true,
+  "Results": {
+    "Scenario1_AutoIndexing": {
+      "Vault": "C:\\Users\\user\\.gemini\\antigravity-ide\\brain\\54971fd6-624d-414a-9d6b-1cd5e7fb6c0e\\scratch\\isolated_e2e\\Vault_A",
+      "ObservedIndexingState": true,
+      "IndexFileCreated": true,
+      "IndexSizeBytes": 3535,
+      "IndexFilePath": "C:\\Users\\user\\.gemini\\antigravity-ide\\brain\\54971fd6-624d-414a-9d6b-1cd5e7fb6c0e\\scratch\\isolated_e2e\\Vault_A\\00_SYSTEM\\SEARCH_INDEX.json",
+      "IndexingDurationSec": "1.3",
+      "Success": true
+    },
+    "Scenario2_ReopenNoRebuild": {
+      "IndexFile": "C:\\Users\\user\\.gemini\\antigravity-ide\\brain\\54971fd6-624d-414a-9d6b-1cd5e7fb6c0e\\scratch\\isolated_e2e\\Vault_A\\00_SYSTEM\\SEARCH_INDEX.json",
+      "IndexMtimeBefore": 1790754171339.288,
+      "IndexMtimeAfter": 1790754171339.288,
+      "NoUnnecessaryRebuild": true,
+      "Success": true
+    },
+    "Scenario3_DocumentUpdate": {
+      "NewDoc": "C:\\Users\\user\\.gemini\\antigravity-ide\\brain\\54971fd6-624d-414a-9d6b-1cd5e7fb6c0e\\scratch\\isolated_e2e\\Vault_A\\01_CLIENTS\\nuovo_documento_fase6.md",
+      "IndexMtimeBefore": 1790754171339.288,
+      "IndexMtimeUpdated": 1790754173894.541,
+      "IndexUpdated": true,
+      "Success": true
+    },
+    "Scenario4_VaultIsolation": {
+      "VaultA_Index": "C:\\Users\\user\\.gemini\\antigravity-ide\\brain\\54971fd6-624d-414a-9d6b-1cd5e7fb6c0e\\scratch\\isolated_e2e\\Vault_A\\00_SYSTEM\\SEARCH_INDEX.json",
+      "VaultB_Index": "C:\\Users\\user\\.gemini\\antigravity-ide\\brain\\54971fd6-624d-414a-9d6b-1cd5e7fb6c0e\\scratch\\isolated_e2e\\Vault_B\\00_SYSTEM\\SEARCH_INDEX.json",
+      "VaultB_Indexed": true,
+      "IsolationStrictlyPreserved": true,
+      "Success": true
+    },
+    "Scenario5_QuestionFixture": {
+      "Prompt": "Cosa è ARKAI secondo i documenti del vault?",
+      "AnswerLength": 838,
+      "AnswerSnippet": "Secondo i documenti presenti nel vault, ARKAI è una piattaforma di intelligenza aumentata locale con le seguenti caratteristiche fondamentali:\n\n- Progettata per operare interamente in modalità edge, cioè direttamente sui dispositivi personali dell’utente.\n- Si basa su tre principi cardine:\n- Sovranità dei dati: garantisce il controllo esclusivo dell’utente sui propri dati.\n- Crittografia verificabile delle memorie: assicura la sicurezza e l’integrità delle informazioni memorizzate.\n- Elaborazion",
+      "HashCount": 0,
+      "AnomalousLoopDetected": false,
+      "MentionsTargetTopic": true,
+      "GenerationTimeSec": "12.1",
+      "Success": true
+    },
+    "Scenario6_Cancellation": {
+      "CancelButtonAppeared": true,
+      "CancelButtonClicked": true,
+      "UIResetClean": true,
+      "Success": true
+    },
+    "Scenario7_FallbackAndResilience": {
+      "Diagnostics": {
+        "hasFatalCrash": false,
+        "buttonCount": 23,
+        "uiResponsive": true
+      },
+      "UI_Responsive": true,
+      "NoFatalCrash": true,
+      "Success": true
+    },
+    "Scenario8_MultiQuestions": {
+      "TotalAttempted": 5,
+      "TotalCompleted": 5,
+      "Success": true
+    }
+  }
+}

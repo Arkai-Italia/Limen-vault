@@ -1,0 +1,10 @@
+{
+  "Prompt": "Cosa è ARKAI secondo i documenti del vault?",
+  "AnswerLength": 838,
+  "AnswerSnippet": "Secondo i documenti presenti nel vault, ARKAI è una piattaforma di intelligenza aumentata locale con le seguenti caratteristiche fondamentali:\n\n- Progettata per operare interamente in modalità edge, cioè direttamente sui dispositivi personali dell’utente.\n- Si basa su tre principi cardine:\n- Sovranità dei dati: garantisce il controllo esclusivo dell’utente sui propri dati.\n- Crittografia verificabile delle memorie: assicura la sicurezza e l’integrità delle informazioni memorizzate.\n- Elaborazion",
+  "HashCount": 0,
+  "AnomalousLoopDetected": false,
+  "MentionsTargetTopic": true,
+  "GenerationTimeSec": "12.1",
+  "Success": true
+}

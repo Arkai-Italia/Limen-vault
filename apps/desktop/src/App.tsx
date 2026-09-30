@@ -439,11 +439,26 @@ export default function App() {
             : 'Aggiornamento indice di ricerca in corso...'
         );
         try {
-          const report = await ipc.indexVaultSearch(targetPath);
+          let report: IndexStatusReport | null = null;
+          for (let attempt = 0; attempt < 8; attempt++) {
+            try {
+              report = await ipc.indexVaultSearch(targetPath);
+              break;
+            } catch (retryErr) {
+              const errStr = String(retryErr);
+              if (errStr.includes('already running') && attempt < 7) {
+                await new Promise((r) => setTimeout(r, 400));
+                continue;
+              }
+              throw retryErr;
+            }
+          }
           if (indexingTicketRef.current !== currentTicket) return;
-          setSearchIndexStatus(report);
-          setSearchRevision((r) => r + 1);
-          setIndexingSearchError(null);
+          if (report) {
+            setSearchIndexStatus(report);
+            setSearchRevision((r) => r + 1);
+            setIndexingSearchError(null);
+          }
         } catch (indexErr) {
           if (indexingTicketRef.current !== currentTicket) return;
           const msg = typeof indexErr === 'string' ? indexErr : (indexErr as Error)?.message || String(indexErr);
@@ -726,6 +741,7 @@ export default function App() {
         await refreshSnapshotsAndIntegrity(res.status.path,ticket);
         await refreshCompiler(res.status.path,ticket);
         await refreshCatalog(res.status.path,ticket);
+        void ensureSearchIndex(res.status.path);
       }
     } catch (err) {
       if(ticket!==generation.current)return;

@@ -1,0 +1,24 @@
+﻿ARKAI è una piattaforma avanzata di gestione della conoscenza aziendale progettata per operare in modalità esclusivamente locale, garantendo elevati standard di sicurezza, affidabilità e conformità normativa. Si basa su un paradigma di intelligenza aumentata locale che rispetta i requisiti del GDPR e della normativa ISO 27001.
+
+### Caratteristiche principali:
+- Crittografia client-side: Tutte le operazioni di elaborazione e archiviazione avvengono senza trasmettere dati all’esterno, mantenendo la riservatezza in modalità Solo Locale.
+- Affidabilità e isolamento:
+  - Architettura modulare con separazione delle responsabilità e isolamento esecutivo tra componenti.
+  - Comunicazione tra moduli tramite canali IPC crittografati e convalidati a livello di tipo.
+  - Monitoraggio costante dello stato di salute tramite probe di heartbeat e ripristino automatico in caso di anomalie temporanee.
+  - Supervisione in tempo reale dell’allocazione della memoria per prevenire instabilità del sistema host.
+
+- Determinismo e integrità dei dati:
+  - Operazioni di indicizzazione e interrogazione garantite come deterministiche e riproducibili su filesystem conformi a NTFS e APFS.
+  - Transazioni sui database (relazionali e vettoriali) con proprietà ACID, supportate da write-ahead logging (WAL) e checkpointing periodico.
+
+- Componenti chiave integrate:
+  - Motore semantico BGE-M3: Genera vettori embedding di 1024 dimensioni per ricerche ibride (densa e sparsa).
+  - Modello generativo locale Ministral 3 (8B): Supporta contesto fino a 128k token con quantizzazione Q5_K_M.
+  - Integrazione OCR: Estrazione di testo da documenti tramite PDFium (PDF vettoriali) e Tesseract 5.4.0 (immagini).
+  - Meccanismi di isolamento avanzati: Processi subordinati gestiti tramite Windows Job Objects per pulizia garantita.
+  - Gestione credenziali sicura: Chiavi API e token di cifratura archiviati nel Credential Manager di Windows.
+  - Snapshot e ripristino: Archivi crittografati con manifest SHA-256 e indici SQLite FTS5 per backup affidabili.
+  - Monitoraggio prestazioni: Tracciamento di metriche come TTFT (Time To First Token) e tempi di generazione.
+
+In sintesi, ARKAI è una soluzione autonoma, sicura e performante per l’elaborazione e la gestione intelligente di conoscenza aziendale, ideale per ambienti che richiedono massima privacy e controllo locale.
