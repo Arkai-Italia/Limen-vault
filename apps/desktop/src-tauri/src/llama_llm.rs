@@ -499,7 +499,9 @@ where
 /// Calcola il numero di layer GPU offload (-ngl) predefinito:
 /// - Se impostata la variabile d'ambiente LIMEN_GPU_NGL, usa tale valore (es. "27" o "99").
 /// - Su macOS: default "99" (Unified Memory Architecture Metal).
-/// - Su Windows e altre piattaforme: default "0" (CPU fallback sicuro contro OOM / GPU instabile).
+/// - Su Windows: default "99" (accelerazione Vulkan GPU con offload layer completo).
+///   Se l'avvio GPU fallisce, il lifecycle esegue il ripiego controllato su CPU ("0").
+/// - Su altre piattaforme: default "0" (CPU fallback).
 pub fn get_default_ngl() -> String {
     if let Ok(val) = std::env::var("LIMEN_GPU_NGL") {
         let trimmed = val.trim();
@@ -507,19 +509,18 @@ pub fn get_default_ngl() -> String {
             return trimmed.to_string();
         }
     }
-    #[cfg(target_os = "macos")]
+    #[cfg(any(target_os = "macos", target_os = "windows"))]
     {
         "99".to_string()
     }
-    #[cfg(not(target_os = "macos"))]
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
     {
         "0".to_string()
     }
 }
 
-/// Costruisce gli argomenti a riga di comando per llama-server (Ministral Instruct).
-pub fn build_llama_server_args(model_path: &Path, port: u16) -> Vec<String> {
-    let ngl = get_default_ngl();
+/// Costruisce gli argomenti a riga di comando per llama-server con parametro ngl specificato.
+pub fn build_llama_server_args_with_ngl(model_path: &Path, port: u16, ngl: &str) -> Vec<String> {
     vec![
         "-m".to_string(),
         model_path.to_string_lossy().to_string(),
@@ -536,12 +537,17 @@ pub fn build_llama_server_args(model_path: &Path, port: u16) -> Vec<String> {
         "-ctv".to_string(),
         "q8_0".to_string(),
         "-ngl".to_string(),
-        ngl,
+        ngl.to_string(),
         "-ub".to_string(),
         "512".to_string(),
         "-b".to_string(),
         "512".to_string(),
     ]
+}
+
+/// Costruisce gli argomenti a riga di comando per llama-server (Ministral Instruct) usando il default di piattaforma.
+pub fn build_llama_server_args(model_path: &Path, port: u16) -> Vec<String> {
+    build_llama_server_args_with_ngl(model_path, port, &get_default_ngl())
 }
 
 impl LlamaLlmServerState {
@@ -698,30 +704,63 @@ impl LlamaLlmServerState {
             }
         };
 
-        let free_port = match find_free_port() {
-            Ok(p) => p,
-            Err(e) => {
-                let mut s = self.0.lock().unwrap_or_else(|e| e.into_inner());
-                s.starting = false;
-                s.last_error = Some(e.clone());
-                return Err(e);
-            }
-        };
-
-        // File di log dedicato per stderr di llama-server (troncato ad ogni avvio)
-        // Evita il blocco deadlock del pipe stderr (Punto 2)
         let log_path = match model_path.parent() {
             Some(dir) => dir.join("llama-llm.log"),
             None => PathBuf::from("llama-llm.log"),
         };
-        let stderr_file = match fs::File::create(&log_path) {
+
+        let default_ngl = get_default_ngl();
+        let first_attempt = self.spawn_server_process(&binary, &model_path, &log_path, &default_ngl);
+
+        let final_result = match first_attempt {
+            Ok(rep) => Ok(rep),
+            Err(e) => {
+                // Se l'avvio iniziale con GPU è fallito (ngl != "0"), eseguiamo il ripiego controllato su CPU ("0")
+                if default_ngl != "0" {
+                    let _ = self.stop();
+                    if let Ok(mut f) = std::fs::OpenOptions::new()
+                        .create(true)
+                        .append(true)
+                        .open(&log_path)
+                    {
+                        use std::io::Write;
+                        let _ = writeln!(
+                            f,
+                            "[FALLBACK] Avvio GPU (-ngl {}) non riuscito: {}. Esecuzione del ripiego controllato su CPU (-ngl 0)...",
+                            default_ngl, e
+                        );
+                    }
+                    self.spawn_server_process(&binary, &model_path, &log_path, "0")
+                } else {
+                    Err(e)
+                }
+            }
+        };
+
+        {
+            let mut s = self.0.lock().unwrap_or_else(|e| e.into_inner());
+            s.starting = false;
+        }
+
+        final_result
+    }
+
+    fn spawn_server_process(
+        &self,
+        binary: &Path,
+        model_path: &Path,
+        log_path: &Path,
+        ngl: &str,
+    ) -> Result<LocalLlmServerReport, String> {
+        let free_port = find_free_port().map_err(|e| format!("Nessuna porta libera per LLM: {}", e))?;
+
+        let stderr_file = match fs::File::create(log_path) {
             Ok(f) => Stdio::from(f),
             Err(_) => Stdio::null(),
         };
 
-        // Parametri per Ministral Instruct (generazione testo, contesto 8k)
-        let mut cmd = Command::new(&binary);
-        cmd.args(build_llama_server_args(&model_path, free_port));
+        let mut cmd = Command::new(binary);
+        cmd.args(build_llama_server_args_with_ngl(model_path, free_port, ngl));
 
         if let Some(parent) = binary.parent() {
             cmd.current_dir(parent);
@@ -754,8 +793,7 @@ impl LlamaLlmServerState {
             Ok(c) => c,
             Err(e) => {
                 let mut s = self.0.lock().unwrap_or_else(|e| e.into_inner());
-                s.starting = false;
-                let err = format!("Impossibile avviare il processo LLM locale: {}", e);
+                let err = format!("Impossibile avviare il processo LLM locale (-ngl {}): {}", ngl, e);
                 s.last_error = Some(err.clone());
                 return Err(err);
             }
@@ -768,12 +806,11 @@ impl LlamaLlmServerState {
             s.child = Some(child);
             s.owned_pid = Some(pid);
             s.port = free_port;
-            s.model_path = model_path;
-            s.binary_path = Some(binary);
-            s.log_path = Some(log_path.clone());
+            s.model_path = model_path.to_path_buf();
+            s.binary_path = Some(binary.to_path_buf());
+            s.log_path = Some(log_path.to_path_buf());
         }
 
-        // Attesa /health fino a 90 secondi (caricamento modello 6GB in memoria Metal, specialmente con swap su Mac 8GB)
         let t_deadline = Instant::now() + Duration::from_secs(MINISTRAL_STARTUP_TIMEOUT_SECS);
         let mut is_healthy = false;
 
@@ -784,19 +821,17 @@ impl LlamaLlmServerState {
                 break;
             }
 
-            // Controllo se è crashato
             let mut s = self.0.lock().unwrap_or_else(|e| e.into_inner());
             if let Some(ref mut c) = s.child {
                 if let Ok(Some(st)) = c.try_wait() {
-                    s.starting = false;
                     s.child = None;
                     s.owned_pid = None;
                     s.port = 0;
-                    let last_line = read_last_log_line(&log_path).unwrap_or_default();
+                    let last_line = read_last_log_line(log_path).unwrap_or_default();
                     let err = if !last_line.is_empty() {
-                        format!("Il processo LLM è uscito prematuramente: {}", last_line)
+                        format!("Il processo LLM (-ngl {}) è uscito prematuramente: {}", ngl, last_line)
                     } else {
-                        format!("Il processo LLM è uscito prematuramente con codice: {}", st)
+                        format!("Il processo LLM (-ngl {}) è uscito prematuramente con codice: {}", ngl, st)
                     };
                     s.last_error = Some(err.clone());
                     return Err(err);
@@ -804,22 +839,17 @@ impl LlamaLlmServerState {
             }
         }
 
-        {
-            let mut s = self.0.lock().unwrap_or_else(|e| e.into_inner());
-            s.starting = false;
-        }
-
         if !is_healthy {
-            let last_line = read_last_log_line(&log_path).unwrap_or_default();
+            let last_line = read_last_log_line(log_path).unwrap_or_default();
             self.stop()?;
             let mut s = self.0.lock().unwrap_or_else(|e| e.into_inner());
             let err = if !last_line.is_empty() {
                 format!(
-                    "Timeout attesa salute (/health) del servizio LLM locale: {}",
-                    last_line
+                    "Timeout attesa salute (/health) del servizio LLM locale (-ngl {}): {}",
+                    ngl, last_line
                 )
             } else {
-                "Timeout attesa salute (/health) del servizio LLM locale.".to_string()
+                format!("Timeout attesa salute (/health) del servizio LLM locale (-ngl {}).", ngl)
             };
             s.last_error = Some(err.clone());
             return Err(err);
@@ -1051,10 +1081,10 @@ mod tests {
         // Test con variabile d'ambiente non impostata
         std::env::remove_var("LIMEN_GPU_NGL");
         let default_ngl = get_default_ngl();
-        #[cfg(target_os = "macos")]
-        assert_eq!(default_ngl, "99", "Su macOS default ngl deve essere 99");
-        #[cfg(not(target_os = "macos"))]
-        assert_eq!(default_ngl, "0", "Su Windows/non-macOS default ngl deve essere 0 (CPU safe)");
+        #[cfg(any(target_os = "macos", target_os = "windows"))]
+        assert_eq!(default_ngl, "99", "Su macOS e Windows default ngl deve essere 99");
+        #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+        assert_eq!(default_ngl, "0", "Su altre piattaforme default ngl deve essere 0");
 
         // Test con override esplicito
         std::env::set_var("LIMEN_GPU_NGL", "27");
@@ -1080,9 +1110,9 @@ mod tests {
         assert!(args.contains(&"-c".to_string()));
         assert!(args.contains(&"8192".to_string()));
         assert!(args.contains(&"-ngl".to_string()));
-        #[cfg(target_os = "macos")]
+        #[cfg(any(target_os = "macos", target_os = "windows"))]
         assert_eq!(args[args.iter().position(|r| r == "-ngl").unwrap() + 1], "99");
-        #[cfg(not(target_os = "macos"))]
+        #[cfg(not(any(target_os = "macos", target_os = "windows")))]
         assert_eq!(args[args.iter().position(|r| r == "-ngl").unwrap() + 1], "0");
     }
 

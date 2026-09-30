@@ -1343,7 +1343,7 @@ impl Drop for StartingGuard {
 
 /// Costruisce gli argomenti a riga di comando per llama-server in modalita' embedding (bge-m3).
 pub fn build_embedding_server_args(model_path: &Path, port: u16) -> Vec<String> {
-    vec![
+    let mut args = vec![
         "-m".to_string(),
         model_path.to_string_lossy().to_string(),
         "--embedding".to_string(),
@@ -1355,7 +1355,24 @@ pub fn build_embedding_server_args(model_path: &Path, port: u16) -> Vec<String> 
         "2048".to_string(),
         "-b".to_string(),
         "2048".to_string(),
-    ]
+    ];
+    let ngl = if let Ok(val) = std::env::var("LIMEN_EMBED_GPU_NGL") {
+        val.trim().to_string()
+    } else {
+        #[cfg(any(target_os = "macos", target_os = "windows"))]
+        {
+            "99".to_string()
+        }
+        #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+        {
+            "0".to_string()
+        }
+    };
+    if !ngl.is_empty() && ngl != "0" {
+        args.push("-ngl".to_string());
+        args.push(ngl);
+    }
+    args
 }
 
 impl LlamaServerState {

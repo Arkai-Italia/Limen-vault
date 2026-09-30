@@ -8,6 +8,7 @@ export interface VaultStatusBannerProps {
   pageCount?: number;
   onOpenObsidian?: () => void;
   obsidianAvailable?: boolean;
+  indexStatusText?: string | null;
 }
 
 export const VaultStatusBanner: React.FC<VaultStatusBannerProps> = ({
@@ -17,6 +18,7 @@ export const VaultStatusBanner: React.FC<VaultStatusBannerProps> = ({
   pageCount = 0,
   onOpenObsidian,
   obsidianAvailable = true,
+  indexStatusText,
 }) => {
   return (
     <div
@@ -31,13 +33,13 @@ export const VaultStatusBanner: React.FC<VaultStatusBannerProps> = ({
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-        <StatusBadge status={status} />
+        <StatusBadge status={status} label={status === 'READY' ? 'Vault Aperto' : undefined} />
         <div>
           <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--limen-text-primary)' }}>
             {vaultName || 'Nessun Vault aperto'}
           </div>
           <div style={{ fontSize: 12, color: 'var(--limen-text-muted)', marginTop: 2 }}>
-            {vaultPath ? vaultPath : 'Seleziona o crea una cartella Vault locale'} • {pageCount} File Markdown
+            {vaultPath ? vaultPath : 'Seleziona o crea una cartella Vault locale'} • {pageCount} File Markdown{indexStatusText ? ` • Indice: ${indexStatusText}` : ''}
           </div>
         </div>
       </div>
@@ -46,7 +48,7 @@ export const VaultStatusBanner: React.FC<VaultStatusBannerProps> = ({
         <button
           onClick={onOpenObsidian}
           disabled={!obsidianAvailable || status === 'NO_VAULT'}
-          title={!obsidianAvailable ? 'Obsidian non rilevato su questo Mac' : 'Apri il Vault in Obsidian'}
+          title={!obsidianAvailable ? 'Obsidian non rilevato nel sistema' : 'Apri il Vault in Obsidian'}
           style={{
             backgroundColor: 'transparent',
             color: obsidianAvailable ? 'var(--limen-text-primary)' : 'var(--limen-text-muted)',

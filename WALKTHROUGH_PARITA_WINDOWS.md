@@ -161,11 +161,66 @@ Eseguito collaudo reale su hardware Windows (`DESKTOP-DGJBALI`, GPU NVIDIA GeFor
 
 ---
 
-## 9. Conclusioni e Prossimi Passi
+## 9. Fase 5: Implementazione GPU Vulkan e Fallback Controllato su CPU
 
-1. **GPU Vulkan**: le misure dimostrano un'accelerazione di **24.2x** e la perfetta coesistenza dei due modelli in 8 GB su 12 GB di VRAM.
-2. **Prossimi Passi Immediati**:
-   - Implementazione nel codice di `llama_llm.rs` e `llama.rs` con ripiego automatico e controllato su CPU in caso di mancata GPU / OOM.
-   - Implementazione dell'indicizzazione automatica all'apertura del vault in `App.tsx`.
-   - Bonifica delle etichette Mac e degli stati di errore / badge in `AiPanel.tsx`.
-   - Ottimizzazione reattività asincrona di «Annulla» in `ai.rs` e collaudo applicativo reale.
+1. **Configurazione GPU di Default**:
+   - In [`apps/desktop/src-tauri/src/llama_llm.rs`](file:///E:/Projects/vault_memai_obsi/apps/desktop/src-tauri/src/llama_llm.rs), `get_default_ngl()` restituisce `"99"` su Windows e macOS per sfruttare l'accelerazione hardware disponibile, permettendo l'override dinamico con la variabile d'ambiente `LIMEN_LLM_GPU_NGL`.
+   - In [`apps/desktop/src-tauri/src/llama.rs`](file:///E:/Projects/vault_memai_obsi/apps/desktop/src-tauri/src/llama.rs), `build_embedding_server_args` imposta `-ngl 99` per il server embedding `bge-m3` su Windows e macOS, con possibilità di override tramite `LIMEN_EMBED_GPU_NGL`.
+
+2. **Meccanismo di Fallback Sicuro su CPU**:
+   - In `spawn_server_process`, se il server avviato con GPU fallisce il caricamento (es. crash Vulkan o OOM) oppure non supera l'health check, il processo viene terminato in modo pulito e viene eseguito **un singolo tentativo di ripiego controllato su CPU** passando esplicitamente `-ngl 0`.
+   - Il ripiego viene annotato in `llama-llm.log`. Se anche il ripiego CPU fallisce, la procedura si arresta senza loop infiniti e senza lasciare processi orfani.
+   - Tutti i 14 unit test in `llama_llm::tests` sono stati eseguiti e superati con esito positivo (`cargo test llama_llm`).
+
+---
+
+## 10. Fase 6: Indicizzazione Automatica all'Apertura del Vault
+
+1. **Logica di Ispezione e Avvio Automatico**:
+   - In [`apps/desktop/src/App.tsx`](file:///E:/Projects/vault_memai_obsi/apps/desktop/src/App.tsx), implementata la funzione `ensureSearchIndex(targetPath)`.
+   - All'apertura o al cambio di vault (e all'avvio dell'applicazione), viene interrogato `ipc.getSearchIndexStatus(targetPath)`.
+   - Se l'indice è `ready`, lo stato viene registrato e nessun calcolo superfluo viene avviato.
+   - Se l'indice risulta `missing` o `outdated`, viene attivata automaticamente l'indicizzazione in background (`ipc.indexVaultSearch(targetPath)`), incrementando la revisione di ricerca al completamento.
+
+2. **Non-Bloccante e Isolamento Race Condition**:
+   - L'indicizzazione automatica non utilizza `setIsProcessing(true)`, consentendo all'utente di digitare domande nel box Q&A senza alcun freeze dell'interfaccia.
+   - Introdotto un ticket atomico (`indexingTicketRef`): in caso di cambio rapido di cartella o apertura di un nuovo vault durante l'indicizzazione, le risposte del vault precedente vengono ignorate evitando sovrascritture di stato.
+   - L'indicizzazione automatica viene invocata anche al completamento di caricamenti/importazioni di documenti (`handleUploadDocuments`, `handleDrop`) e di compilazioni delle fonti (`handleCompileSingleSource`, `handleBatchCompile`).
+   - Mantenuto il pulsante di aggiornamento manuale dell'indice con gestione del riprova in caso di errore.
+
+---
+
+## 11. Fase 7: Bonifica Etichette UI e Gestione Errori
+
+1. **Rimozione Diciture Piattaforma-Specifiche Hardcoded**:
+   - In [`apps/desktop/src/AiPanel.tsx`](file:///E:/Projects/vault_memai_obsi/apps/desktop/src/AiPanel.tsx) e [`apps/desktop/src/SemanticEngineSettings.tsx`](file:///E:/Projects/vault_memai_obsi/apps/desktop/src/SemanticEngineSettings.tsx), sostituite tutte le occorrenze fisse di "Mac" e "su questo Mac" con i termini forniti da `getPlatformTerms()` (`terms.onDeviceTerm`, `terms.isWin ? 'PC' : 'Mac'`).
+   - In [`packages/ui/src/components/VaultStatusBanner.tsx`](file:///E:/Projects/vault_memai_obsi/packages/ui/src/components/VaultStatusBanner.tsx), rimosso "su questo Mac" dal tooltip di Obsidian.
+
+2. **Correzione Diagnostica degli Errori Locali**:
+   - Quando si verifica un errore durante la ricerca locale o l'indicizzazione, la UI non indirizza più erroneamente l'utente a verificare le chiavi API o le quote di OpenAI, ma riporta il messaggio effettivo del motore locale.
+   - Il banner di stato del Vault (`VaultStatusBanner`) visualizza ora con precisione il badge "Vault Aperto" distinto dallo stato specifico dell'indice (`Pronto (N doc)`, `In corso...`, `Mancante`, `Da aggiornare`).
+
+---
+
+## 12. Fase 8: Reattività Asincrona di «Annulla» (<50ms)
+
+1. **Watcher Asincrono Immediato**:
+   - In [`apps/desktop/src-tauri/src/ai.rs`](file:///E:/Projects/vault_memai_obsi/apps/desktop/src-tauri/src/ai.rs), integrato un ciclo di controllo asincrono con `tokio::select!` che valuta `cancel.load(Ordering::SeqCst)` a intervalli di 50ms sia durante l'attesa iniziale dei byte di risposta HTTP da `llama-server` (`req_builder.send().await`), sia durante la lettura di ogni singolo chunk SSE (`response.chunk().await`).
+   - In caso di annullamento da parte dell'utente, la connessione socket TCP verso il server locale viene abortita immediatamente (<50ms), liberando la coda di inferenza del server.
+
+---
+
+## 13. Stato di Avanzamento e Prossimi Passi
+
+- [x] Rettifica formale relazione diagnostica Ministral
+- [x] Prove sintetiche a 3 livelli e localizzazione origine dei `#`
+- [x] Ispezione template Jinja e parametri server
+- [x] Benchmark hardware GPU Vulkan (24.2x più rapido, headroom VRAM 4.1 GB)
+- [x] Implementazione GPU default + Fallback sicuro CPU in Rust
+- [x] Implementazione Auto-Indicizzazione e isolamento race condition
+- [x] Bonifica etichette Mac e messaggi di errore UI
+- [x] Watcher cancellazione asincrono immediato in `ai.rs`
+- [x] Compilazione verificata: TypeScript 0 errori (`pnpm build`), Rust 0 errori (`cargo check`, `cargo test llama_llm`)
+- [ ] Riscaldamento cache di compilazione release tramite `tauri dev --release` e dichiarazione PID
+- [ ] Generazione installer NSIS e calcolo SHA-256
+- [ ] Sessione di prova applicativa e consegna ad audit Codex / Cesare

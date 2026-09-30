@@ -965,7 +965,7 @@ export function SemanticEngineSettings({ vaultPath }: { vaultPath: string }) {
         </div>
 
         <p style={{ margin: 0, fontSize: 13, color: '#475569', lineHeight: 1.5 }}>
-          Consente la generazione di risposte interamente sul Mac a rete zero tramite Mistral AI <strong>Ministral 3 8B Instruct</strong> (quantizzazione ad alta fedeltà <code>Q5_K_M</code>). Nessun byte lascia il computer e nessuna chiave API è richiesta.
+          Consente la generazione di risposte interamente {terms.onDeviceTerm} a rete zero tramite Mistral AI <strong>Ministral 3 8B Instruct</strong> (quantizzazione ad alta fedeltà <code>Q5_K_M</code>). Nessun byte lascia il computer e nessuna chiave API è richiesta.
         </p>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10, fontSize: 12 }}>

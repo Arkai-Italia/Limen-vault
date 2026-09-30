@@ -56,16 +56,28 @@ Installer generato: `USER INSTALL WINDOWS/LIMEN-Vault-v6Mini-0.6.0-windows-x64-s
   - Generazione: **38.0 tok/s** su GPU vs **1.48 tok/s** su CPU (25.6x più rapido).
   - Tempo totale: **22.024 ms** su GPU vs **532.167 ms** su CPU (**24.2x più rapido**).
   - Evidenze e report in `IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/phase4_gpu/`.
-- [ ] **Ripiego Controllato su CPU e Cicli di Sicurezza in `llama_llm.rs` e `llama.rs`**:
-  - Configurazione GPU per default con fallback automatico su CPU (`-ngl 0`) in caso di fallimento o OOM, senza loop o processi orfani.
-- [ ] **Indicizzazione Automatica del Vault (`App.tsx`, `vault-ipc.ts`, `search.rs`)**:
-  - Verifica indice all'apertura/cambio vault, avvio automatico se mancante/obsoleto, avanzamento reale, mantenimento input domanda, pulsante riprova e isolamento cambio vault.
-- [ ] **Correzione Etichette e Stati UI (`AiPanel.tsx`, `VaultStatusBanner.tsx`)**:
-  - Rimozione diciture Mac, separazione errori di indice da errori chiave API/rete, chiarimento badge Pronto vs Indice Pronto.
-- [ ] **Collaudo Applicativo «Annulla»**:
-  - Watcher cancellazione asincrono immediato in `ai.rs` (<50ms) durante prompt wait e generazione, prova live di annullamento e nuova domanda.
-- [ ] **Collaudo E2E Reale e Rigenerazione Installer**:
-  - Sessione completa di test, build NSIS e verifica hash.
+- [x] **Ripiego Controllato su CPU e Cicli di Sicurezza in `llama_llm.rs` e `llama.rs`**:
+  - `get_default_ngl()` impostato di default su `"99"` su Windows e macOS, con override tramite `LIMEN_LLM_GPU_NGL`.
+  - Fallback controllato e sicuro su CPU (`-ngl 0`) in `spawn_server_process` in caso di fallimento GPU/OOM, con log dedicato su `llama-llm.log`.
+  - `build_embedding_server_args` in `llama.rs` aggiornato con `-ngl 99` di default su Windows/macOS e override `LIMEN_EMBED_GPU_NGL`.
+  - Tutti i 14 unit test in `llama_llm::tests` superati con esito positivo.
+- [x] **Indicizzazione Automatica del Vault (`App.tsx`, `vault-ipc.ts`)**:
+  - `ensureSearchIndex(targetPath)` implementato con verifica di stato `getSearchIndexStatus`: avvio automatico trasparente se indice `missing` o `outdated`.
+  - L'indicizzazione avviene in background senza bloccare la digitazione della domanda da parte dell'utente.
+  - Prevenzione delle race condition al cambio rapido di vault tramite tracciamento di ticket atomico (`indexingTicketRef`).
+  - Trigger automatico all'apertura o creazione del vault, caricamento/importazione documenti (`handleUploadDocuments`, `handleDrop`) e compilazione (`handleCompileSingleSource`, `handleBatchCompile`).
+  - Mantenuto pulsante di reindicizzazione manuale e gestione riprova in caso di errore.
+- [x] **Correzione Etichette e Stati UI (`AiPanel.tsx`, `SemanticEngineSettings.tsx`, `VaultStatusBanner.tsx`)**:
+  - Rimosse tutte le diciture "Mac" o "su questo Mac" da etichette, placeholder e tooltip, sostituite con termini dinamici di piattaforma (`terms.onDeviceTerm`, `terms.isWin ? 'PC' : 'Mac'`).
+  - Corretta la gestione degli errori locali e di indicizzazione: rimossa l'indicazione fuorviante di verificare le chiavi API di OpenAI per problemi dell'indice o del server locale.
+  - Distinto il badge di stato "Vault Aperto" dallo stato dell'indice "Pronto (N doc)", "In corso...", "Mancante" o "Da aggiornare" in `VaultStatusBanner`.
+- [x] **Reattività Asincrona Immediata di «Annulla» in `ai.rs`**:
+  - Implementato watcher asincrono con `tokio::select!` che controlla `cancel.load(Ordering::SeqCst)` ogni 50ms sia durante l'attesa iniziale dei byte di risposta HTTP (`send().await`) che durante lo streaming dei chunk (`response.chunk().await`).
+  - Terminazione immediata (<50ms) della socket TCP e abort della richiesta verso `llama-server`.
+- [ ] **Collaudo Applicativo Reale e Rigenerazione Installer**:
+  - Verifica live dei flussi (apertura vault, auto-indicizzazione, annullamento).
+  - Riscaldamento cache di compilazione release tramite `tauri dev --release` e chiusura ordinata del processo con dichiarazione PID.
+  - Generazione installer NSIS e calcolo SHA-256.
 
 
 ## Archivio chat Codex per Windows — 29 settembre 2026

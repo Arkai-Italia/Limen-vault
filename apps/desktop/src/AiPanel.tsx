@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { aiIpc, type AiAnswer, type AiPreview, type AiSource, type AiStreamChunkPayload, type AiStreamEndPayload, type LocalModelReport, type LocalServerReport } from './ai-ipc';
-import type { CitationOpenRequest } from './vault-ipc';
+import type { CitationOpenRequest, IndexStatusReport } from './vault-ipc';
 import { labelIt, MessageIt } from './locale';
 import { SemanticEngineSettings } from './SemanticEngineSettings';
 import { TunnelPanel } from './TunnelPanel';
@@ -64,6 +64,11 @@ export interface AiPanelProps {
   onSelectTurnIndex?: (index: number) => void;
   onOpenSourcesSidebar?: () => void;
   newConversationTrigger?: number;
+  searchIndexStatus?: IndexStatusReport | null;
+  isIndexingSearch?: boolean;
+  indexingSearchProgress?: string | null;
+  indexingSearchError?: string | null;
+  onRetryIndex?: () => void;
 }
 
 export function AiPanel({
@@ -77,6 +82,11 @@ export function AiPanel({
   onSelectTurnIndex,
   onOpenSourcesSidebar,
   newConversationTrigger,
+  searchIndexStatus,
+  isIndexingSearch,
+  indexingSearchProgress,
+  indexingSearchError,
+  onRetryIndex,
 }: AiPanelProps) {
   const terms = getPlatformTerms();
   const [prompt, setPrompt] = useState('');
@@ -343,7 +353,7 @@ export function AiPanel({
     const is3B = localLlmReport?.modelName?.includes('3B') || (localLlmReport?.physicalRamBytes ? localLlmReport.physicalRamBytes < 16 * 1024 * 1024 * 1024 : true);
     const localModelName = is3B ? 'Ministral 3 3B Instruct Q5_K_M' : 'Ministral 3 8B Instruct Q5_K_M';
     const answerModel = isLocalMode ? localModelName : currentModel;
-    const answerProvider = isLocalMode ? 'Ministral (Locale Mac)' : 'OpenAI';
+    const answerProvider = isLocalMode ? `Ministral (Locale ${terms.isWin ? 'PC' : 'Mac'})` : 'OpenAI';
 
     // Contesto al modello: per ogni domanda di seguito si inviano, oltre alle fonti,
     // le ultime 3 coppie domanda-risposta della stessa conversazione come testo nella richiesta.
@@ -379,7 +389,7 @@ export function AiPanel({
         return;
       }
 
-      setLoadingStep(isLocalMode ? 'Generazione sul Mac con Ministral 3 8B…' : 'Avvio generazione in streaming con OpenAI…');
+      setLoadingStep(isLocalMode ? `Generazione ${terms.onDeviceTerm} con ${is3B ? 'Ministral 3 3B' : 'Ministral 3 8B'}…` : 'Avvio generazione in streaming con OpenAI…');
       setIsStreaming(true);
 
       // Step 2: Registra i listener Tauri per gli eventi di streaming
@@ -516,8 +526,23 @@ export function AiPanel({
       } else if (errStr.includes('Errore interno durante la generazione della risposta')) {
         setError('Errore interno durante la generazione della risposta, riprova.');
         setTechError(null);
+      } else if (isLocalMode) {
+        if (errStr.includes('indice') || errStr.includes('index') || errStr.includes('SEARCH_INDEX')) {
+          setError("Impossibile completare la risposta: l'indice di ricerca del Vault deve essere preparato o aggiornato.");
+        } else if (errStr.includes('Modello Ministral non trovato')) {
+          setError('Modello Ministral non trovato: eseguire il download del modello locale.');
+        } else if (errStr.includes('LLM locale') || errStr.includes('llama-server')) {
+          setError(`Errore nel servizio generativo locale: ${errStr}`);
+        } else {
+          setError(`Impossibile completare la risposta locale: ${errStr}`);
+        }
+        setTechError(errStr);
       } else {
-        setError('Impossibile completare la risposta. Verifica la connessione o la chiave API.');
+        if (errStr.includes('indice') || errStr.includes('index') || errStr.includes('SEARCH_INDEX')) {
+          setError("Impossibile completare la risposta: l'indice di ricerca del Vault deve essere preparato o aggiornato.");
+        } else {
+          setError('Impossibile completare la risposta. Verifica la connessione o la chiave API.');
+        }
         setTechError(errStr);
       }
     } finally {
@@ -597,10 +622,10 @@ export function AiPanel({
                   border: isLocalMode ? '1px solid #52c41a' : '1px solid #cbd5e1',
                   boxShadow: isLocalMode ? '0 0 10px rgba(119, 241, 23, 0.45)' : 'none',
                 }}
-                title={isLocalMode ? 'Modalità 100% Locale attiva (Ministral 8B + bge-m3). Clicca per passare a Ibrido (OpenAI).' : 'Passa alla modalità 100% Solo Locale (Ministral 8B su Mac a rete zero).'}
+                title={isLocalMode ? 'Modalità 100% Locale attiva (Ministral 8B + bge-m3). Clicca per passare a Ibrido (OpenAI).' : `Passa alla modalità 100% Solo Locale (Ministral 8B ${terms.onDeviceTerm} a rete zero).`}
               >
                 <Sparkles size={13} color={isLocalMode ? '#0f172a' : '#64748b'} />
-                <span>{isLocalMode ? 'SOLO LOCALE (Mac)' : 'SOLO LOCALE'}</span>
+                <span>{isLocalMode ? `SOLO LOCALE (${terms.isWin ? 'PC' : 'Mac'})` : 'SOLO LOCALE'}</span>
               </button>
 
               {isLocalMode ? (
@@ -877,7 +902,7 @@ export function AiPanel({
                       >
                         <FileText size={12} color={isSelected ? '#ffffff' : '#64748b'} />
                         <span>
-                          {turn.answer.provider === 'Ministral (Locale Mac)' || turn.answer.model?.toLowerCase().includes('ministral') ? (
+                          {turn.answer.provider?.includes('Ministral') || turn.answer.model?.toLowerCase().includes('ministral') ? (
                             totalConsulted > 0 ? (
                               <>{totalConsulted} font{totalConsulted === 1 ? 'e consultata' : 'i consultate'}</>
                             ) : (
@@ -917,7 +942,7 @@ export function AiPanel({
                       )}
                     </div>
 
-                    {turn.answer.status !== 'error' && (turn.answer.provider === 'Ministral (Locale Mac)' || turn.answer.model?.toLowerCase().includes('ministral')) ? (
+                    {turn.answer.status !== 'error' && (turn.answer.provider?.includes('Ministral') || turn.answer.model?.toLowerCase().includes('ministral')) ? (
                       <span
                         style={{
                           fontSize: 11,
@@ -933,7 +958,7 @@ export function AiPanel({
                         }}
                       >
                         <Sparkles size={11} color="#0f172a" />
-                        Generato sul Mac · {turn.answer.model?.includes('3B') || turn.answer.model?.includes('3b') ? 'Ministral 3 3B Instruct Q5_K_M (Offline)' : 'Ministral 3 8B Instruct Q5_K_M (Offline)'}
+                        Generato {terms.onDeviceTerm} · {turn.answer.model?.includes('3B') || turn.answer.model?.includes('3b') ? 'Ministral 3 3B Instruct Q5_K_M (Offline)' : 'Ministral 3 8B Instruct Q5_K_M (Offline)'}
                       </span>
                     ) : turn.answer.status !== 'error' ? (
                       <span style={{ fontSize: 11, color: '#94a3b8', fontStyle: 'italic' }}>
@@ -1163,8 +1188,8 @@ export function AiPanel({
                 />
                 <span style={{ fontSize: 11, fontWeight: 600, color: isLocalMode ? '#1e293b' : '#64748b' }}>
                   {isLocalMode
-                    ? '100% Solo Locale: Ministral 3 8B Instruct · Rete zero & Riservatezza assoluta sul Mac'
-                    : `Modalità Ibrida: Ricerca semantica bge-m3 sul Mac + OpenAI (${model})`}
+                    ? `100% Solo Locale: Ministral 3 8B Instruct · Rete zero & Riservatezza assoluta ${terms.onDeviceTerm}`
+                    : `Modalità Ibrida: Ricerca semantica bge-m3 ${terms.onDeviceTerm} + OpenAI (${model})`}
                 </span>
               </div>
               <button
@@ -1201,8 +1226,70 @@ export function AiPanel({
               >
                 <AlertTriangle size={14} color="#b45309" style={{ flexShrink: 0 }} />
                 <span>
-                  <strong>Avviso memoria:</strong> {localLlmReport?.ramWarning || localLlmServer?.ramWarning || 'Mac con meno di 16 GB di RAM. Il modello locale occupa circa 6 GB e può rallentare il Mac.'}
+                  <strong>Avviso memoria:</strong> {localLlmReport?.ramWarning || localLlmServer?.ramWarning || `${terms.isWin ? 'PC' : 'Mac'} con meno di 16 GB di RAM. Il modello locale occupa circa 6 GB.`}
                 </span>
+              </div>
+            )}
+
+            {isIndexingSearch && (
+              <div
+                style={{
+                  backgroundColor: '#f0fdf4',
+                  border: '1px solid #bbf7d0',
+                  borderRadius: 8,
+                  padding: '8px 12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  fontSize: 12,
+                  color: '#166534',
+                }}
+              >
+                <Clock size={14} color="#166534" />
+                <span>
+                  <strong>Preparazione indice in corso:</strong> {indexingSearchProgress || 'indicizzazione dei passaggi documentali in corso…'} Puoi scrivere la domanda adesso; l'invio si attiverà automaticamente al termine.
+                </span>
+              </div>
+            )}
+
+            {indexingSearchError && (
+              <div
+                style={{
+                  backgroundColor: '#fef2f2',
+                  border: '1px solid #fecaca',
+                  borderRadius: 8,
+                  padding: '8px 12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 8,
+                  fontSize: 12,
+                  color: '#991b1b',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <AlertCircle size={14} color="#991b1b" style={{ flexShrink: 0 }} />
+                  <span>{indexingSearchError}</span>
+                </div>
+                {onRetryIndex && (
+                  <button
+                    type="button"
+                    onClick={onRetryIndex}
+                    style={{
+                      padding: '4px 10px',
+                      background: '#991b1b',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: 4,
+                      fontSize: 11,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      flexShrink: 0,
+                    }}
+                  >
+                    Riprova
+                  </button>
+                )}
               </div>
             )}
 
@@ -1222,14 +1309,14 @@ export function AiPanel({
                 onKeyDown={e => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
-                    if (!isBusy && prompt.trim() && (isLocalMode || model)) void executeAsk(prompt.trim());
+                    if (!isBusy && !isIndexingSearch && prompt.trim() && (isLocalMode || model)) void executeAsk(prompt.trim());
                   }
                 }}
                 style={{
                   ...fieldStyle,
                   minHeight: 75,
                   resize: 'vertical',
-                  paddingRight: 100,
+                  paddingRight: 110,
                   fontSize: 14,
                   lineHeight: 1.5,
                   backgroundColor: 'var(--limen-lime-30)',
@@ -1242,13 +1329,13 @@ export function AiPanel({
                   right: 10,
                   bottom: 14,
                   padding: '8px 16px',
-                  opacity: ((!isLocalMode && !model) || !prompt.trim() || isBusy) ? 0.6 : 1,
+                  opacity: ((!isLocalMode && !model) || !prompt.trim() || isBusy || isIndexingSearch) ? 0.6 : 1,
                 }}
-                disabled={isBusy || !prompt.trim() || (!isLocalMode && !model)}
-                onClick={() => !isBusy && prompt.trim() && (isLocalMode || model) && void executeAsk(prompt.trim())}
-                title={(!isLocalMode && !model) ? "Seleziona un modello per abilitare l'invio" : isBusy ? "Generazione in corso..." : undefined}
+                disabled={isBusy || !prompt.trim() || (!isLocalMode && !model) || isIndexingSearch}
+                onClick={() => !isBusy && !isIndexingSearch && prompt.trim() && (isLocalMode || model) && void executeAsk(prompt.trim())}
+                title={isIndexingSearch ? "Preparazione dell'indice del Vault in corso..." : (!isLocalMode && !model) ? "Seleziona un modello per abilitare l'invio" : isBusy ? "Generazione in corso..." : undefined}
               >
-                Chiedi
+                {isIndexingSearch ? 'Indicizzazione…' : 'Chiedi'}
               </button>
             </div>
 

@@ -2971,7 +2971,87 @@ pub async fn ask_stream_with_target(
     if local_llm_port.is_none() {
         req_builder = req_builder.bearer_auth(key);
     }
-    let response_res = req_builder.send().await;
+
+    // Controllo immediato prima dell'invio HTTP
+    if cancel.load(Ordering::SeqCst) {
+        let warning_msg = "Richiesta annullata dall'utente.".to_string();
+        if let Some(ref w) = window {
+            let _ = w.emit("limen://ai-stream-end", AiStreamEndPayload {
+                ticket: ticket.clone(),
+                answer: String::new(),
+                citations: vec![],
+                cited_indices: vec![],
+                status: "incomplete".into(),
+                incomplete: true,
+                incomplete_reason: Some(warning_msg.clone()),
+                warning: Some(warning_msg.clone()),
+                error: None,
+                cancelled: true,
+                tokens_used: None,
+                tokens_prompt: None,
+                tokens_completion: None,
+                tokens_reasoning: None,
+                semantic_used: p.semantic_used,
+                semantic_fallback_reason: p.semantic_fallback_reason.clone(),
+                ..Default::default()
+            });
+        }
+        return Ok(json!({
+            "status": "incomplete",
+            "answer": "",
+            "citations": [],
+            "citedIndices": [],
+            "model": effective_model,
+            "incomplete": true,
+            "incompleteReason": warning_msg,
+            "warning": warning_msg,
+            "cancelled": true,
+        }));
+    }
+
+    let cancel_watcher = cancel.clone();
+    let response_res = tokio::select! {
+        _ = async {
+            while !cancel_watcher.load(Ordering::SeqCst) {
+                tokio::time::sleep(Duration::from_millis(50)).await;
+            }
+        } => {
+            let warning_msg = "Richiesta annullata dall'utente.".to_string();
+            if let Some(ref w) = window {
+                let _ = w.emit("limen://ai-stream-end", AiStreamEndPayload {
+                    ticket: ticket.clone(),
+                    answer: String::new(),
+                    citations: vec![],
+                    cited_indices: vec![],
+                    status: "incomplete".into(),
+                    incomplete: true,
+                    incomplete_reason: Some(warning_msg.clone()),
+                    warning: Some(warning_msg.clone()),
+                    error: None,
+                    cancelled: true,
+                    tokens_used: None,
+                    tokens_prompt: None,
+                    tokens_completion: None,
+                    tokens_reasoning: None,
+                    semantic_used: p.semantic_used,
+                    semantic_fallback_reason: p.semantic_fallback_reason.clone(),
+                    ..Default::default()
+                });
+            }
+            return Ok(json!({
+                "status": "incomplete",
+                "answer": "",
+                "citations": [],
+                "citedIndices": [],
+                "model": effective_model,
+                "incomplete": true,
+                "incompleteReason": warning_msg,
+                "warning": warning_msg,
+                "cancelled": true,
+            }));
+        }
+        res = req_builder.send() => res,
+    };
 
     let mut response = match response_res {
         Ok(r) => {
@@ -3092,13 +3172,26 @@ pub async fn ask_stream_with_target(
             break;
         }
 
-        let chunk = match response.chunk().await {
-            Ok(Some(c)) => c,
-            Ok(None) => break,
-            Err(e) => {
+        let cancel_chunk_watcher = cancel.clone();
+        let chunk = tokio::select! {
+            _ = async {
+                while !cancel_chunk_watcher.load(Ordering::SeqCst) {
+                    tokio::time::sleep(Duration::from_millis(50)).await;
+                }
+            } => {
                 was_interrupted = true;
-                network_error = Some(format!("Errore di rete durante lo streaming: {e}"));
                 break;
+            }
+            chunk_res = response.chunk() => {
+                match chunk_res {
+                    Ok(Some(c)) => c,
+                    Ok(None) => break,
+                    Err(e) => {
+                        was_interrupted = true;
+                        network_error = Some(format!("Errore di rete durante lo streaming: {e}"));
+                        break;
+                    }
+                }
             }
         };
 

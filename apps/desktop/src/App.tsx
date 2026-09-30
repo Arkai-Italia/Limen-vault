@@ -14,7 +14,7 @@ import { formatLocalDate } from './AiHistoryDrawer';
 import { cleanTitle } from './source-utils';
 import icLimenVault from './assets/ic-limenvault.png';
 import limenWordmark from './assets/limenvault-logo.png';
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { createLatestRequest } from './latest-request';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
@@ -138,6 +138,10 @@ export default function App() {
   const searchRequest=useRef(createLatestRequest<{status:IndexStatusReport,results:SearchResultItem[]}>()).current;
   const [searchResults, setSearchResults] = useState<SearchResultItem[]>([]);
   const [searchIndexStatus, setSearchIndexStatus] = useState<IndexStatusReport | null>(null);
+  const [isIndexingSearch, setIsIndexingSearch] = useState<boolean>(false);
+  const [indexingSearchProgress, setIndexingSearchProgress] = useState<string | null>(null);
+  const [indexingSearchError, setIndexingSearchError] = useState<string | null>(null);
+  const indexingTicketRef = useRef<number>(0);
 
   // Unified Catalog and 3-Area State
   const [catalogSummary, setCatalogSummary] = useState<CatalogSummary | null>(null);
@@ -417,6 +421,63 @@ export default function App() {
     return () => {cancelled=true;};
   }, []);
 
+  const ensureSearchIndex = useCallback(async (targetPath: string) => {
+    if (!targetPath || !isTauriEnv) return;
+    const currentTicket = ++indexingTicketRef.current;
+    setIndexingSearchError(null);
+
+    try {
+      const status = await ipc.getSearchIndexStatus(targetPath);
+      if (indexingTicketRef.current !== currentTicket) return;
+      setSearchIndexStatus(status);
+
+      if (status.state === 'missing' || status.state === 'outdated') {
+        setIsIndexingSearch(true);
+        setIndexingSearchProgress(
+          status.state === 'missing'
+            ? 'Creazione indice di ricerca in corso...'
+            : 'Aggiornamento indice di ricerca in corso...'
+        );
+        try {
+          const report = await ipc.indexVaultSearch(targetPath);
+          if (indexingTicketRef.current !== currentTicket) return;
+          setSearchIndexStatus(report);
+          setSearchRevision((r) => r + 1);
+          setIndexingSearchError(null);
+        } catch (indexErr) {
+          if (indexingTicketRef.current !== currentTicket) return;
+          const msg = typeof indexErr === 'string' ? indexErr : (indexErr as Error)?.message || String(indexErr);
+          setIndexingSearchError(`Indicizzazione non riuscita: ${msg}`);
+        } finally {
+          if (indexingTicketRef.current === currentTicket) {
+            setIsIndexingSearch(false);
+            setIndexingSearchProgress(null);
+          }
+        }
+      } else {
+        setIsIndexingSearch(false);
+        setIndexingSearchProgress(null);
+      }
+    } catch (err) {
+      if (indexingTicketRef.current !== currentTicket) return;
+      const msg = typeof err === 'string' ? err : (err as Error)?.message || String(err);
+      setIndexingSearchError(`Verifica indice non riuscita: ${msg}`);
+      setIsIndexingSearch(false);
+      setIndexingSearchProgress(null);
+    }
+  }, [isTauriEnv, ipc]);
+
+  useEffect(() => {
+    setSearchIndexStatus(null);
+    setIndexingSearchError(null);
+  }, [vaultPath]);
+
+  useEffect(() => {
+    if (vaultPath && isTauriEnv && vaultState === 'READY') {
+      void ensureSearchIndex(vaultPath);
+    }
+  }, [vaultPath, isTauriEnv, vaultState, ensureSearchIndex]);
+
   const refreshSnapshotsAndIntegrity = async (target: string, ticket: number) => {
     try {
       const {snapshots,integrity}=await ipc.inspect(target);
@@ -462,6 +523,7 @@ export default function App() {
       await refreshCatalog(vaultPath, ticket);
       await refreshCompiler(vaultPath, ticket);
       setSearchRevision((r) => r + 1);
+      void ensureSearchIndex(vaultPath);
     } catch (err) {
       setActionError(`Caricamento non riuscito: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
@@ -517,6 +579,7 @@ export default function App() {
         await refreshCatalog(vaultPath, ticket);
         await refreshCompiler(vaultPath, ticket);
         setSearchRevision((r) => r + 1);
+        void ensureSearchIndex(vaultPath);
       } catch (err) {
         setActionError(`Errore durante il caricamento: ${err instanceof Error ? err.message : String(err)}`);
       } finally {
@@ -713,6 +776,7 @@ export default function App() {
       }
       await refreshSnapshotsAndIntegrity(vaultPath,ticket);
       await refreshCompiler(vaultPath,ticket);
+      void ensureSearchIndex(vaultPath);
     } catch (err) {
       if (ticket !== generation.current) return;
       setActionError(`Compilazione della fonte non riuscita: ${typeof err === 'string' ? err : (err as Error).message}`);
@@ -735,6 +799,7 @@ export default function App() {
       setLastBatchReport(report);
       await refreshSnapshotsAndIntegrity(vaultPath,ticket);
       await refreshCompiler(vaultPath,ticket);
+      void ensureSearchIndex(vaultPath);
     } catch (err) {
       if (ticket !== generation.current) return;
       setActionError(`Compilazione delle fonti non riuscita: ${typeof err === 'string' ? err : (err as Error).message}`);
@@ -743,8 +808,10 @@ export default function App() {
     }
   };
 
+
+
   useEffect(()=>{
-    searchRequest.invalidate();setSearchResults([]);setSearchIndexStatus(null);
+    searchRequest.invalidate();setSearchResults([]);
     if(!vaultPath||!isTauriEnv||(currentTab!=='search' && currentTab!=='ask')){setSearchLoading(false);return;}
     setSearchLoading(true);setActionError(null);
     const timer=setTimeout(()=>{
@@ -764,17 +831,25 @@ export default function App() {
       setActionError('Apri l’applicazione nativa LIMEN per creare l’indice di ricerca.');
       return;
     }
-    const ticket = begin(); if (ticket === null) return;
+    const currentTicket = ++indexingTicketRef.current;
+    setIsIndexingSearch(true);
+    setIndexingSearchProgress('Aggiornamento indice in corso...');
+    setIndexingSearchError(null);
     try {
       const statusReport = await ipc.indexVaultSearch(vaultPath);
-      if (ticket !== generation.current) return;
+      if (indexingTicketRef.current !== currentTicket) return;
       setSearchIndexStatus(statusReport);
       setSearchRevision(value=>value+1);
     } catch (err) {
-      if (ticket !== generation.current) return;
-      setActionError(`Indicizzazione non riuscita: ${typeof err === 'string' ? err : (err as Error).message}`);
+      if (indexingTicketRef.current !== currentTicket) return;
+      const msg = typeof err === 'string' ? err : (err as Error)?.message || String(err);
+      setIndexingSearchError(`Indicizzazione non riuscita: ${msg}`);
+      setActionError(`Indicizzazione non riuscita: ${msg}`);
     } finally {
-      finish(ticket);
+      if (indexingTicketRef.current === currentTicket) {
+        setIsIndexingSearch(false);
+        setIndexingSearchProgress(null);
+      }
     }
   };
 
@@ -795,6 +870,18 @@ export default function App() {
   };
 
   const isAskTab = currentTab === 'ask' || currentTab === 'search';
+
+  const indexStatusText = isIndexingSearch
+    ? 'In corso...'
+    : indexingSearchError
+    ? 'Errore'
+    : searchIndexStatus?.state === 'ready'
+    ? `Pronto (${searchIndexStatus.total_indexed ?? 0} doc)`
+    : searchIndexStatus?.state === 'outdated'
+    ? 'Da aggiornare'
+    : searchIndexStatus?.state === 'missing'
+    ? 'Mancante'
+    : null;
 
   return (
     <div style={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden', backgroundColor: 'var(--limen-bg-app)' }}>
@@ -1561,6 +1648,7 @@ export default function App() {
               pageCount={pageCount}
               onOpenObsidian={handleOpenObsidian}
               obsidianAvailable={obsidianAvailable}
+              indexStatusText={indexStatusText}
             />
 
             {/* SCREEN RENDERER */}
@@ -2010,6 +2098,11 @@ export default function App() {
                     onOpenSourcesSidebar={() => setSourcesSidebarOpen(true)}
                     newConversationTrigger={newConversationTrigger}
                     onOpenDocument={(req) => openReader(req.documentId, req.passageId, undefined, req.revision, req.sha256)}
+                    searchIndexStatus={searchIndexStatus}
+                    isIndexingSearch={isIndexingSearch}
+                    indexingSearchProgress={indexingSearchProgress}
+                    indexingSearchError={indexingSearchError}
+                    onRetryIndex={() => { if (vaultPath) void ensureSearchIndex(vaultPath); }}
                   />
                 </div>
               </div>
