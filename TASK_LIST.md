@@ -31,12 +31,41 @@ Installer generato: `USER INSTALL WINDOWS/LIMEN-Vault-v6Mini-0.6.0-windows-x64-s
   - Documentati percorsi effettivi dal codice sorgente (`USERPROFILE`/`HOME`, override `LIMEN_AI_SETTINGS_FILE`, limite WinCred).
   - Verificata assenza di alterazioni nel profilo `user` (file fermi al 25 settembre 2026).
   - Formalizzata richiesta amministrativa per VM Windows 11 pulita in `IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/richiesta_amministrativa_ambiente_dedicato.md`.
-- [x] **Diagnosi e Analisi Guidata dall'Evidenza su Ministral 3 8B (Domanda ARKAI)**:
-  - Identificati binari, versioni e hash: `limen-vault.exe` (SHA-256 `9E21C34B...`), `llama-server.exe` Build 8477 (`45438F02...`), modello 8B (`7a545412...`, 6.059.268.512 byte).
-  - Riproduzione su fixture isolata: verificata generazione coerente in italiano senza recupero (TTFT 4.9s) e con documento (TTFT 1.6s).
-  - Diagnosi causa radice lentezza e loop `#`: 5.990 token elaborati su CPU (-ngl 0) in 48 secondi (1.48 tok/s); template Jinja con `thinking = 1` e assenza di `repeat_penalty` su temperatura 0.2 provocano intrappolamento del campionatore su contesti lunghi.
-  - Rilevata disponibilità GPU: NVIDIA RTX 3060 con 12 GB VRAM (11.406 MiB liberi) inutilizzata per default -ngl 0.
-  - Verificato funzionamento di «Annulla»: interruzione immediata dello streaming SSE e sblocco UI per domanda successiva.
+- [x] **Diagnosi su Ministral 3 8B (Domanda ARKAI — Tempi misurati e ipotesi di lavoro)**:
+  - Identificati binari, versioni e hash: `limen-vault.exe` (SHA-256 `9E21C34B...`), `llama-server.exe` Build 8477 (`45438F02...`), modello 8B (SHA-256 letto dalla cache `.verified.json` `7a545412...`, 6.059.268.512 byte).
+  - Tempi CPU misurati dal log della richiesta Cesare: prompt eval 47.941 ms (~48s), generazione 91 token in 61.506 ms (~61s) a 1.48 tok/s, totale 109.448 ms (~1m49s).
+  - Test isolati su fixture sintetica: **non hanno riprodotto il difetto dei `#`** (risposte fluide in italiano).
+  - Classificazione formale: prompt lungo (~6k token), temperatura 0.2, assenza di repeat penalty e `thinking = 1` sono **ipotesi da verificare sperimentalmente**, non causa radice dimostrata.
+  - Prestazioni GPU (NVIDIA RTX 3060 12GB rilevata) e confronto Mac classificate come **prestazioni da misurare**, non misure acquisite.
+  - Funzione «Annulla»: **verificata mediante lettura del codice statico**, non ancora mediante prova applicativa live.
+  - Rimossa l'affermazione che `repeat_penalty: 1.1` elimini categoricamente qualsiasi ripetizione.
+- [x] **Riproduzione e Localizzazione Difetto `#` (Prove a 3 livelli su CPU con fixture isolata)**:
+  - Prova 1 (senza documenti): TTFT 19.098 ms, totale 79.279 ms, 209 chunk SSE, 0 caratteri `#`.
+  - Prova 2 (breve fonte): TTFT 17.090 ms, totale 61.053 ms, 146 chunk SSE, 0 caratteri `#`.
+  - Prova 3 (contesto lungo 6.538 token): TTFT 19.671 ms, totale 532.167 ms (~8m52s), 668 chunk SSE, **3 caratteri `#`** (`### Caratteristiche principali:`).
+  - Localizzazione: i caratteri `#` provengono dal server come intestazione Markdown di livello 3, attraversano intatti il backend e arrivano alla UI in un contenitore pre-wrap. Il loop infinito non si è riprodotto su fixture sintetica pulita. Evidenze in `IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/phase2_reproduce/`.
+- [x] **Verifica Template e Parametri prima delle modifiche**:
+  - `llama-server.exe`: supporta flag `-rea, --reasoning [on|off|auto]`.
+  - Jinja template del GGUF: formato instruct puro senza token `<think>`, né tag DeepSeek.
+  - Principio di isolamento: testare una singola modifica alla volta.
+- [x] **Implementazione e Misurazione Accelerazione GPU Vulkan Windows**:
+  - Rilevata GPU: NVIDIA GeForce RTX 3060 con 12 GB VRAM.
+  - Coesistenza bge-m3 + Ministral 3 8B: **7.992 MiB impegnati / 12.288 MiB totali** (**4.119 MiB VRAM libera residua**).
+  - Layer trasferiti: **35/35 layer** offloadati su GPU Vulkan.
+  - Prompt eval lungo (6.538 token): **4.473 ms (1.461 tok/s)** su GPU vs **47.941 ms (124 tok/s)** su CPU (10.7x più rapido).
+  - Generazione: **38.0 tok/s** su GPU vs **1.48 tok/s** su CPU (25.6x più rapido).
+  - Tempo totale: **22.024 ms** su GPU vs **532.167 ms** su CPU (**24.2x più rapido**).
+  - Evidenze e report in `IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/phase4_gpu/`.
+- [ ] **Ripiego Controllato su CPU e Cicli di Sicurezza in `llama_llm.rs` e `llama.rs`**:
+  - Configurazione GPU per default con fallback automatico su CPU (`-ngl 0`) in caso di fallimento o OOM, senza loop o processi orfani.
+- [ ] **Indicizzazione Automatica del Vault (`App.tsx`, `vault-ipc.ts`, `search.rs`)**:
+  - Verifica indice all'apertura/cambio vault, avvio automatico se mancante/obsoleto, avanzamento reale, mantenimento input domanda, pulsante riprova e isolamento cambio vault.
+- [ ] **Correzione Etichette e Stati UI (`AiPanel.tsx`, `VaultStatusBanner.tsx`)**:
+  - Rimozione diciture Mac, separazione errori di indice da errori chiave API/rete, chiarimento badge Pronto vs Indice Pronto.
+- [ ] **Collaudo Applicativo «Annulla»**:
+  - Watcher cancellazione asincrono immediato in `ai.rs` (<50ms) durante prompt wait e generazione, prova live di annullamento e nuova domanda.
+- [ ] **Collaudo E2E Reale e Rigenerazione Installer**:
+  - Sessione completa di test, build NSIS e verifica hash.
 
 
 ## Archivio chat Codex per Windows — 29 settembre 2026

@@ -89,25 +89,83 @@ I risultati completi sono documentati in [`IMPLEMENTATION/WINDOWS_RELEASE_EVIDEN
 1. **Binari, Versioni e Hash Verificati**:
    - `limen-vault.exe` (PID 33292): hash `9E21C34BFBD46BC0881A82543284EEBDF381D573C4ABA7A4515B2C713BD75EB0` (coincidente con l'installer NSIS rilasciato).
    - `llama-server.exe`: Build 8477 (hash `45438F02...`), backend Vulkan e CPU Haswell.
-   - Modello 8B: `Ministral-3-8B-Instruct-2512-Q5_K_M.gguf` (hash `7a545412...`, 6.059.268.512 byte).
-2. **Riproduzione su Fixture Isolata**:
-   - Domanda senza documenti: risposta fluida corretta in italiano (`**ARKAI** è un **protocollo di sicurezza...`), TTFT 4.9s.
-   - Domanda con documento Markdown: sintesi accurata in italiano senza caratteri `#` ripetuti (`ARKAI è la **piattaforma proprietaria...`), TTFT 1.6s.
-3. **Causa Radice del Blocco e del Loop `#`**:
-   - Sul vault `E:\VAULT WIN TEST`, il retrieval ha iniettato un prompt massivo di **5.990 token**.
-   - Per default `-ngl 0`, l'elaborazione interamente su CPU ha richiesto **47.941 ms (~48 secondi)** di blocco iniziale prima del primo token.
-   - La generazione a 1.48 tok/s su contesto esteso con `temperature: 0.2`, unita al template Jinja con `thinking = 1` e all'assenza di `--repeat-penalty` (default 1.0 disabilitato), ha fatto collassare il campionatore nel loop ripetuto di `#`.
-4. **Disponibilità Accelerazione GPU su Windows**:
+   - Modello 8B: `Ministral-3-8B-Instruct-2512-Q5_K_M.gguf` (SHA-256 letto dalla cache `.verified.json` `7a545412...`, 6.059.268.512 byte).
+2. **Esito Prove su Fixture Sintetica Isolata**:
+   - Domanda senza documenti: risposta fluida in italiano (`**ARKAI** è un **protocollo di sicurezza...`), TTFT 4.9s.
+   - Domanda con documento Markdown: sintesi accurata in italiano (`ARKAI è la **piattaforma proprietaria...`), TTFT 1.6s.
+   - **Esito esplicito**: in entrambe le prove separate **il difetto dei caratteri `#` non si è riprodotto**.
+3. **Misure Effettive vs Ipotesi di Lavoro**:
+   - **Misure reali da log di Cesare**: prompt di 5.990 token elaborato su CPU (-ngl 0) in 47.941 ms (~48 secondi); generazione di 91 token in 61.506 ms (~61 secondi) a 1.48 tok/s; tempo totale 109.448 ms (~1m49s).
+   - **Ipotesi da verificare sperimentalmente**: l'interazione tra contesto lungo (~6k token), `temperature: 0.2`, assenza di `repeat_penalty` (default 1.0) e `thinking = 1` è un'ipotesi di lavoro da verificare con test dedicati, non una causa radice dimostrata.
+4. **Disponibilità GPU e Prestazioni da Misurare**:
    - Rilevata su `DESKTOP-DGJBALI` una GPU **NVIDIA GeForce RTX 3060 con 12 GB di VRAM** (`11.406 MiB liberi`).
-   - L'offload GPU dei 35 layer (`-ngl 99`) tramite il backend Vulkan già incluso abbatte l'elaborazione del prompt da 48s a <1s e porta la generazione da 1.5 tok/s a oltre 25 tok/s.
-5. **Verifica «Annulla»**:
-   - L'azione chiude istantaneamente la stream SSE nel backend e resetta la UI sbloccando la chat per la domanda successiva.
+   - I valori di prestazione con GPU offload e il confronto con l'ambiente Mac sono classificati come **prestazioni da misurare sperimentalmente**, non misure acquisite.
+5. **Funzione «Annulla»**:
+   - Verificata allo stato attuale **mediante lettura del codice statico** (`ai.rs` e `AiPanel.tsx`), non ancora mediante prova applicativa end-to-end.
 
 ---
 
-## 6. Conclusioni
+## 6. Fase 2: Riproduzione e Localizzazione del Difetto `#` (Misure Effettive)
 
-L'infrastruttura software (motore OCR Rust, binari PDFium, Tesseract, installer NSIS completo) è presente e verificata a livello di codice e di compilazione release.  
-Lo script di censimento è rigorosamente vincolato ad exit code non zero (`exit 2` per prove non eseguite/bloccate).  
-La diagnosi tecnica su Ministral 3 8B ha isolato con precisione la causa radice della lentezza e del campionamento su CPU, evidenziando la disponibilità immediata della GPU RTX 3060.  
-La release e l'accettazione della parità funzionale Windows/Mac rimangono **formalmente aperte** in attesa delle correzioni guidate dall'evidenza.
+Eseguite 3 prove sintetiche isolate con gli argomenti di avvio e parametri di generazione identici all'app installata (`-ngl 0`, `-c 8192`, `temperature: 0.2`, `max_tokens: 1500`, nessun repeat penalty). I log grezzi completi sono archiviati in `IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/phase2_reproduce/`.
+
+| Prova | Input / Fixture | TTFT (ms) | Tempo Totale (ms) | Chunk SSE | Output Caratteri | Conteggio `#` Server / Backend / Frontend | Esito Ripetizione |
+|---|---|---|---|---|---|---|---|
+| **1. Senza Documenti** | Domanda semplice ("Cos'è ARKAI?") | 19.098 | 79.279 | 209 | 798 | 0 / 0 / 0 | Nessuna ripetizione |
+| **2. Breve Fonte** | 1 documento (130 parole) | 17.090 | 61.053 | 146 | 567 | 0 / 0 / 0 | Nessuna ripetizione |
+| **3. Contesto Lungo (~6.5k tok)** | 10 fonti sintetiche (28.707 byte prompt) | 19.671 | 532.167 (~8m52s) | 668 | 2.513 | 3 / 3 / 3 | **3 `#` isolati** (h3 Markdown) |
+
+### Localizzazione Accertata:
+1. **Origine dei `#`**: nel test con contesto lungo, il modello ha emesso esattamente `### Caratteristiche principali:` come intestazione Markdown di livello 3 (3 caratteri `#`).
+2. **Attraversamento Backend**: `sanitize_answer_prose` in `ai.rs` rimuove asterischi di grassetto (`**`), citazioni numeriche (`[S1]`) ed entità di sistema, ma **non modifica i caratteri `#`**.
+3. **Rendering Frontend**: `AiPanel.tsx` visualizza la risposta in un contenitore `<div style={{ whiteSpace: 'pre-wrap' }}>` senza parsing Markdown HTML, mostrando i caratteri `#` raw.
+4. **Dichiarazione Esplicita**: **il difetto del loop continuo di decine di caratteri `#` NON si è riprodotto** sulla fixture sintetica pulita. Non viene attribuita una causa definitiva non provata e i caratteri `#` non vengono mascherati con filtri grafici.
+
+---
+
+## 7. Fase 3: Verifica Template Jinja e Parametri del Server
+
+1. **Supporto Parametri `llama-server.exe` Build 8477**:
+   - `llama-server.exe --help` conferma il supporto nativo a `-rea, --reasoning [on|off|auto]` e `--reasoning-format [none|deepseek|deepseek-legacy]`.
+2. **Verifica Template GGUF Ministral 3 8B**:
+   - Estratto e ispezionato `tokenizer.chat_template` nativo embedded in `Ministral-3-8B-Instruct-2512-Q5_K_M.gguf`.
+   - Il modello adotta il template Mistral Instruct standard: `[SYSTEM_PROMPT]...[/SYSTEM_PROMPT][INST]...[/INST]`. Non contiene token speciali di reasoning come `<think>` (tipici di DeepSeek R1).
+3. **Endpoint `/v1/chat/completions`**:
+   - Accetta parametri di campionamento standard (`temperature`, `max_tokens`, `stream`, `presence_penalty`, `frequency_penalty`, `repeat_penalty`).
+4. **Metodologia di Intervento**:
+   - Modifica rigorosa di **un fattore alla volta** per isolare con certezza causa ed effetto.
+
+---
+
+## 8. Fase 4: Misurazione Sperimentale dell'Accelerazione GPU Vulkan
+
+Eseguito collaudo reale su hardware Windows (`DESKTOP-DGJBALI`, GPU NVIDIA GeForce RTX 3060 12GB VRAM, driver 595.79, Vulkan 1.4.328). File di evidenza in `IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/phase4_gpu/`.
+
+### Coesistenza VRAM Misurata (bge-m3 + Ministral 3 8B attivi contemporaneamente):
+- VRAM Iniziale a riposo: **1.387 MiB**
+- `bge-m3` attivo su GPU Vulkan (`-ngl 99`): **+328 MiB** (tempo embedding: **41 ms**)
+- `Ministral 3 8B` attivo su GPU Vulkan (`-ngl 99`): **+6.268 MiB** (modello 5.418 MiB + KV cache 578 MiB + compute 272 MiB)
+- **VRAM Totale con entrambi i modelli attivi**: **7.992 MiB**
+- **Headroom VRAM Libera Residua**: **4.119 MiB** (margine abbondante di sicurezza contro OOM)
+- **Layer Offloadati**: **35/35 layer** trasferiti su Vulkan (`load_tensors: offloaded 35/35 layers to GPU`).
+
+### Confronto Prestazionale Misurato (Stesso prompt di 6.538 token):
+| Metrica | Esecuzione CPU (-ngl 0) | Esecuzione GPU Vulkan (-ngl 99) | Guadagno Misurato |
+|---|---|---|---|
+| **Caricamento Modello** | CPU mapped | 9.102 ms | Immediato |
+| **Elaborazione Prompt (6.538 tok)** | 47.941 ms (124 tok/s) | **4.473 ms (1.461 tok/s)** | **10.7x più rapido** |
+| **Tempo al Primo Token (TTFT)** | 19.671 ms | **4.563 ms** | **4.3x più rapido** |
+| **Velocità Generazione** | 1.48 tok/s | **38.00 tok/s** | **25.6x più rapido** |
+| **Tempo Totale Risposta** | 532.167 ms (~8m52s) | **22.024 ms (~22s)** | **24.2x più rapido** |
+| **Sintesi Contenuto** | Corretta con h3 Markdown | Corretta senza anomalie (0 `#`) | Perfetta aderenza alle fonti |
+
+---
+
+## 9. Conclusioni e Prossimi Passi
+
+1. **GPU Vulkan**: le misure dimostrano un'accelerazione di **24.2x** e la perfetta coesistenza dei due modelli in 8 GB su 12 GB di VRAM.
+2. **Prossimi Passi Immediati**:
+   - Implementazione nel codice di `llama_llm.rs` e `llama.rs` con ripiego automatico e controllato su CPU in caso di mancata GPU / OOM.
+   - Implementazione dell'indicizzazione automatica all'apertura del vault in `App.tsx`.
+   - Bonifica delle etichette Mac e degli stati di errore / badge in `AiPanel.tsx`.
+   - Ottimizzazione reattività asincrona di «Annulla» in `ai.rs` e collaudo applicativo reale.

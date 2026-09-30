@@ -1,0 +1,5 @@
+﻿ARKAI è una piattaforma proprietaria di intelligenza artificiale progettata per la gestione sicura e locale della memoria documentale aziendale. Si distingue per le seguenti caratteristiche principali:
+
+- Architettura ibrida: garantisce funzionalità equivalenti sia su macOS che su Windows.
+- Sicurezza avanzata: implementa crittografia end-to-end per proteggere i dati.
+- Motore semantico autonomo: utilizza tecnologie avanzate come BGE-M3 e Ministral 3 per elaborare e analizzare i contenuti documentali in modo intelligente.
