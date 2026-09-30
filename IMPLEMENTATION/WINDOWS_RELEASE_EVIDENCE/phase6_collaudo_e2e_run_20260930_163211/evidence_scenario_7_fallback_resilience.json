@@ -1,0 +1,15 @@
+{
+  "Level": "Prova applicativa con fallback GPU->CPU ed evidenza server",
+  "Description": "Controllo limitato dell’interfaccia e prova effettiva di inferenza su CPU in assenza di accelerazione GPU",
+  "PartA_LimitedInterfaceCheck": {
+    "ButtonsCount": 31,
+    "Responsive": true,
+    "NoFatalErrorBanner": true,
+    "Note": "Verifica limitata alla presenza di pulsanti e assenza di crash React nel DOM."
+  },
+  "PartB_ControlledCpuFallback": {
+    "Error": "spawnSync C:\\WINDOWS\\system32\\cmd.exe ETIMEDOUT",
+    "Success": false
+  },
+  "Outcome": "FAIL"
+}
