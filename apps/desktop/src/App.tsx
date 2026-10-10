@@ -15,6 +15,7 @@ import { cleanTitle } from './source-utils';
 import icLimenVault from './assets/ic-limenvault.png';
 import limenWordmark from './assets/limenvault-logo.png';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { SetupWizardModal } from './SetupWizardModal';
 import { createLatestRequest } from './latest-request';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
@@ -69,6 +70,7 @@ import {
   Check,
   Trash2,
   Lock,
+  Compass,
 } from 'lucide-react';
 
 type NavTab =
@@ -120,6 +122,7 @@ export default function App() {
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [isTauriEnv, setIsTauriEnv] = useState<boolean>(false);
+  const [setupWizardOpen, setSetupWizardOpen] = useState<boolean>(false);
   const [snapshotNoteInput, setSnapshotNoteInput] = useState<string>('');
 
   const [snapshotsList, setSnapshotsList] = useState<SnapshotItemResponse[]>([]);
@@ -417,6 +420,75 @@ export default function App() {
     return () => {cancelled=true;};
   }, []);
 
+  // Controllo avvio: Vault, LLM Locale, Chiave API / Solo Locale
+  useEffect(() => {
+    let active = true;
+
+    async function checkStartupRequirements() {
+      let currentLoaded = vaultLoaded;
+      let currentPath = vaultPath;
+
+      // 1. Se presente un percorso precedente nel localStorage, prova auto-open
+      const lastVault = typeof localStorage !== 'undefined' ? localStorage.getItem('limen_last_vault_path') : null;
+      if (!currentLoaded && lastVault && isTauriEnv) {
+        try {
+          const success = await handleOpenVaultPath(lastVault);
+          if (success) {
+            currentLoaded = true;
+            currentPath = lastVault;
+          }
+        } catch {
+          // ignora errore se il percorso salvato non è più accessibile
+        }
+      }
+
+      if (!active) return;
+
+      // 2. Controllo LLM Locale (almeno 1 modello installato con hash valido)
+      let hasLocalModel = false;
+      try {
+        const cat = await aiIpc.localLlmCatalog();
+        hasLocalModel = cat.models.some((m) => m.installed && m.sha256Ok);
+      } catch (e) {
+        console.warn('Controllo catalogo modelli fallito all\'avvio:', e);
+      }
+
+      if (!active) return;
+
+      // 3. Controllo Chiave API o Modalità Solo Locale
+      let hasKeyOrLocal = false;
+      try {
+        const isLocalOnly = typeof localStorage !== 'undefined' && localStorage.getItem('limen_local_only_mode') === 'true';
+        if (isLocalOnly) {
+          hasKeyOrLocal = true;
+        } else {
+          const hasKey = await aiIpc.status();
+          hasKeyOrLocal = Boolean(hasKey);
+        }
+      } catch (e) {
+        console.warn('Controllo stato chiave API fallito all\'avvio:', e);
+      }
+
+      if (!active) return;
+
+      const isVaultValid = currentLoaded && Boolean(currentPath);
+
+      // Se manca anche una sola delle 3 condizioni fondamentali -> apri Setup Wizard
+      if (!isVaultValid || !hasLocalModel || !hasKeyOrLocal) {
+        setSetupWizardOpen(true);
+      }
+    }
+
+    const timer = setTimeout(() => {
+      void checkStartupRequirements();
+    }, 400);
+
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [isTauriEnv]);
+
   const refreshSnapshotsAndIntegrity = async (target: string, ticket: number) => {
     try {
       const {snapshots,integrity}=await ipc.inspect(target);
@@ -570,77 +642,27 @@ export default function App() {
     }
   };
 
-  const handleCreateVault = async () => {
+  const handleOpenVaultPath = async (targetPath: string): Promise<boolean> => {
     setActionError(null);
     if (!isTauriEnv) {
       setActionError('Serve l’applicazione nativa LIMEN. Questa è un’anteprima nel browser.');
-      return;
+      return false;
     }
 
-    let target = customPathInput.trim();
-    if (!target) {
-      const selected = await handleBrowseFolder();
-      if (!selected) return; // User cancelled
-      target = selected;
-    }
+    const target = targetPath.trim();
+    if (!target) return false;
 
-    const ticket=begin(); if(ticket===null)return;
-    setIntegrityReport(null);setSnapshotsList([]);setIntegrityStatus('unverified');setRawSourcesList([]);setProposalsList([]);setLastBatchReport(null);
-    try {
-      const res = await ipc.create(target);
-      if(ticket!==generation.current)return;
-
-      setVaultPath(res.path);
-      setVaultName(res.name);
-      setVaultState(res.state);
-      setPageCount(res.page_count);
-      setSourceCount(res.source_count);
-      setProposalCount(res.proposal_count);
-      setValidationErrors([]);
-      setValidationWarnings([]);
-      setVaultLoaded(res.state === 'READY');
-
-      if (res.path) {
-        const normalized = normalizeVaultPath(res.path);
-        setCustomPathInput(normalized);
-        if (typeof localStorage !== 'undefined') {
-          try {
-            localStorage.setItem('limen_last_vault_path', normalized);
-          } catch {}
-        }
-        await refreshSnapshotsAndIntegrity(res.path,ticket);
-        await refreshCompiler(res.path,ticket);
-        await refreshCatalog(res.path,ticket);
-      }
-    } catch (err) {
-      if(ticket!==generation.current)return;
-      setActionError(typeof err === 'string' ? err : (err as Error).message);
-      setVaultLoaded(false);
-      setVaultState('INVALID');
-    } finally {
-      finish(ticket);
-    }
-  };
-
-  const handleOpenExistingVault = async () => {
-    setActionError(null);
-    if (!isTauriEnv) {
-      setActionError('Serve l’applicazione nativa LIMEN. Questa è un’anteprima nel browser.');
-      return;
-    }
-
-    let target = customPathInput.trim();
-    if (!target) {
-      const selected = await handleBrowseFolder();
-      if (!selected) return; // User cancelled
-      target = selected;
-    }
-
-    const ticket=begin(); if(ticket===null)return;
-    setIntegrityReport(null);setSnapshotsList([]);setIntegrityStatus('unverified');setRawSourcesList([]);setProposalsList([]);setLastBatchReport(null);
+    const ticket = begin();
+    if (ticket === null) return false;
+    setIntegrityReport(null);
+    setSnapshotsList([]);
+    setIntegrityStatus('unverified');
+    setRawSourcesList([]);
+    setProposalsList([]);
+    setLastBatchReport(null);
     try {
       const res = await ipc.open(target);
-      if(ticket!==generation.current)return;
+      if (ticket !== generation.current) return false;
 
       setVaultPath(res.status.path);
       setVaultName(res.status.name);
@@ -660,18 +682,99 @@ export default function App() {
             localStorage.setItem('limen_last_vault_path', normalized);
           } catch {}
         }
-        await refreshSnapshotsAndIntegrity(res.status.path,ticket);
-        await refreshCompiler(res.status.path,ticket);
-        await refreshCatalog(res.status.path,ticket);
+        await refreshSnapshotsAndIntegrity(res.status.path, ticket);
+        await refreshCompiler(res.status.path, ticket);
+        await refreshCatalog(res.status.path, ticket);
+        return true;
       }
+      return false;
     } catch (err) {
-      if(ticket!==generation.current)return;
+      if (ticket !== generation.current) return false;
       setActionError(typeof err === 'string' ? err : (err as Error).message);
       setVaultLoaded(false);
       setVaultState('NOT_ACCESSIBLE');
+      return false;
     } finally {
       finish(ticket);
     }
+  };
+
+  const handleCreateVaultPath = async (targetPath: string): Promise<boolean> => {
+    setActionError(null);
+    if (!isTauriEnv) {
+      setActionError('Serve l’applicazione nativa LIMEN. Questa è un’anteprima nel browser.');
+      return false;
+    }
+
+    const target = targetPath.trim();
+    if (!target) return false;
+
+    const ticket = begin();
+    if (ticket === null) return false;
+    setIntegrityReport(null);
+    setSnapshotsList([]);
+    setIntegrityStatus('unverified');
+    setRawSourcesList([]);
+    setProposalsList([]);
+    setLastBatchReport(null);
+    try {
+      const res = await ipc.create(target);
+      if (ticket !== generation.current) return false;
+
+      setVaultPath(res.path);
+      setVaultName(res.name);
+      setVaultState(res.state);
+      setPageCount(res.page_count);
+      setSourceCount(res.source_count);
+      setProposalCount(res.proposal_count);
+      setValidationErrors([]);
+      setValidationWarnings([]);
+      const ok = res.state === 'READY';
+      setVaultLoaded(ok);
+
+      if (res.path && ok) {
+        const normalized = normalizeVaultPath(res.path);
+        setCustomPathInput(normalized);
+        if (typeof localStorage !== 'undefined') {
+          try {
+            localStorage.setItem('limen_last_vault_path', normalized);
+          } catch {}
+        }
+        await refreshSnapshotsAndIntegrity(res.path, ticket);
+        await refreshCompiler(res.path, ticket);
+        await refreshCatalog(res.path, ticket);
+        return true;
+      }
+      return false;
+    } catch (err) {
+      if (ticket !== generation.current) return false;
+      setActionError(typeof err === 'string' ? err : (err as Error).message);
+      setVaultLoaded(false);
+      setVaultState('INVALID');
+      return false;
+    } finally {
+      finish(ticket);
+    }
+  };
+
+  const handleCreateVault = async () => {
+    let target = customPathInput.trim();
+    if (!target) {
+      const selected = await handleBrowseFolder();
+      if (!selected) return;
+      target = selected;
+    }
+    await handleCreateVaultPath(target);
+  };
+
+  const handleOpenExistingVault = async () => {
+    let target = customPathInput.trim();
+    if (!target) {
+      const selected = await handleBrowseFolder();
+      if (!selected) return;
+      target = selected;
+    }
+    await handleOpenVaultPath(target);
   };
 
   const handleCreateSnapshot = async () => {
@@ -1525,6 +1628,28 @@ export default function App() {
               >
                 {isProcessing ? <Loader2 size={16} className="spin" /> : <FolderOpen size={16} />}
                 <span>APRI VAULT ESISTENTE</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSetupWizardOpen(true)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  backgroundColor: 'rgba(15, 23, 42, 0.05)',
+                  color: '#0f172a',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: 8,
+                  padding: '12px 20px',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <Compass size={16} color="#77f117" />
+                <span>CONFIGURAZIONE GUIDATA</span>
               </button>
             </div>
 
@@ -2587,6 +2712,18 @@ export default function App() {
         singleSource={modalSingleSource}
         technicalDetails={selectedTechnicalDetails}
         onOpenDocument={(req) => openReader(req.documentId, req.passageId, undefined, req.revision, req.sha256)}
+      />
+
+      <SetupWizardModal
+        isOpen={setupWizardOpen}
+        onClose={() => setSetupWizardOpen(false)}
+        currentVaultPath={vaultPath}
+        isVaultLoaded={vaultLoaded}
+        vaultName={vaultName}
+        onOpenVault={handleOpenVaultPath}
+        onCreateVault={handleCreateVaultPath}
+        onBrowseFolder={handleBrowseFolder}
+        isTauriEnv={isTauriEnv}
       />
     </div>
   );
