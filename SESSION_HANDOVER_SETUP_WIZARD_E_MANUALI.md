@@ -30,11 +30,18 @@ Data: 10 Ottobre 2026 · Branch: `windows-build` · Workspace: `/Users/cesare/Do
 - Gestione della commutazione a caldo del modello attivo con comando Tauri `local_llm_set_active` e riavvio controllato di `llama-server`.
 
 ### C. Script Unico di Sanitizzazione Diretta (Zero Backup)
-- Creato `scripts/sanitize_vault.mjs`:
+- Creato e arricchito `scripts/sanitize_vault.mjs`:
   - **Unico script autonomo**: trova automaticamente tutti i Vault su disco oppure accetta un percorso specifico come argomento.
-  - **Zero file di backup**: nessun file o cartella `.bak` o copia transitoria creata.
-  - **Sostituzione istantanea**: rimpiazza tutte le occorrenze di "Michele Bondani" con `[RIFERIMENTO_RISERVATO]` su Markdown, TXT, JSON, YAML senza cancellare i file.
-  - Eseguito con successo su tutti i 5 Vault di test in `tests/scratch/` (96 file sanificati, 512 occorrenze corrette, 0 residui trovati dalla verifica).
+  - **Zero file di backup**: nessun file o cartella `.bak` o copia transitoria creata, modifica in-place diretta.
+  - **Sostituzione istantanea multi-regola**:
+    1. "Michele Bondani" (e varianti con underscore) → `[RIFERIMENTO_RISERVATO]`
+    2. "Packaging in Italy" (e varianti con srl, underscore o compatte) → `[AZIENDA_RISERVATA]`
+  - Eseguito con successo su tutti i 6 Vault del sistema (`real_vault_v1`, `vault_collaudo_badge`, `vault_collaudo_local_rag`, `vault_collaudo_local_rag_v2`, `vault_collaudo_ricalcolo_cache`, `vault_timing` e `vault-template`):
+    - **331 file modificati**
+    - **5.498 occorrenze corrette**
+    - **0 file di backup generati**
+    - **0 residui trovati da verifica globale case-insensitive**
+
 
 ### D. Manuali Utente Verificati e Aggiornati
 - [manuale UI utente.txt](file:///Users/cesare/Documents/MEMAI%20V_FALLBACK%20OBSIDIAN/manuale%20UI%20utente.txt):
