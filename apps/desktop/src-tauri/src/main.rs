@@ -396,7 +396,8 @@ fn main() {
             embeddings_get_provider,embeddings_set_provider,
             local_model_status,local_model_download,local_model_select_file,local_model_pick_and_install,local_model_verify_integrity,select_vault_folder,
             local_server_start,local_server_stop,local_server_status,embeddings_cancel_sync,
-            local_llm_status,local_llm_download,local_llm_verify_integrity,local_llm_server_start,local_llm_server_stop,local_llm_server_status
+            local_llm_status,local_llm_download,local_llm_verify_integrity,local_llm_server_start,local_llm_server_stop,local_llm_server_status,
+            local_llm_catalog,local_llm_set_active,local_llm_download_model,local_llm_verify_model_integrity
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
@@ -1123,6 +1124,54 @@ async fn local_llm_server_status(
     state: tauri::State<'_, limen_vault::llama_llm::LlamaLlmServerState>,
 ) -> Result<limen_vault::llama_llm::LocalLlmServerReport, String> {
     Ok(state.status())
+}
+
+#[tauri::command]
+async fn local_llm_catalog() -> Result<limen_vault::llama_llm::LocalCatalogReport, String> {
+    tauri::async_runtime::spawn_blocking(limen_vault::llama_llm::get_local_llm_catalog)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn local_llm_set_active(model_id: String) -> Result<String, String> {
+    limen_vault::llama_llm::set_selected_model_id(&model_id)
+}
+
+#[tauri::command]
+async fn local_llm_download_model(
+    app: tauri::AppHandle,
+    model_id: String,
+) -> Result<limen_vault::llama_llm::LocalLlmReport, String> {
+    let app_handle = app.clone();
+    let mid = model_id.clone();
+    limen_vault::llama_llm::download_model_with_progress(&model_id, move |downloaded, total, percent| {
+        use tauri::Emitter;
+        let _ = app_handle.emit(
+            "local_llm_download_progress",
+            serde_json::json!({
+                "modelId": mid,
+                "downloaded": downloaded,
+                "total": total,
+                "percent": percent,
+            }),
+        );
+    })
+    .await
+}
+
+#[tauri::command]
+async fn local_llm_verify_model_integrity(
+    model_id: String,
+) -> Result<limen_vault::llama_llm::LocalModelCatalogEntry, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let def = limen_vault::llama_llm::find_model_def(&model_id)
+            .ok_or_else(|| format!("Modello '{}' non trovato.", model_id))?;
+        let active = limen_vault::llama_llm::get_selected_model_id();
+        Ok(limen_vault::llama_llm::get_model_status(def, &active, true))
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]

@@ -1,4 +1,4 @@
-//! Llama LLM server lifecycle and local generative model management for 100% local text generation (Ministral 3 8B Instruct).
+//! Llama LLM server lifecycle and local generative model management for 100% local text generation (Multi-Model Catalog).
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{
@@ -35,41 +35,168 @@ pub const MINISTRAL_DOWNLOAD_URL: &str = MINISTRAL_8B_DOWNLOAD_URL;
 pub const SIXTEEN_GB_BYTES: u64 = 16 * 1024 * 1024 * 1024;
 pub const MINISTRAL_STARTUP_TIMEOUT_SECS: u64 = 90;
 
+/// Definizione statica di un modello nel catalogo locale
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ModelCatalogDefinition {
+    pub id: &'static str,
+    pub display_name: &'static str,
+    pub file_name: &'static str,
+    pub size_bytes: u64,
+    pub sha256: &'static str,
+    pub download_url: &'static str,
+    pub min_ram_gb: u32,
+    pub recommended_hardware: &'static str,
+    pub description: &'static str,
+    pub is_reasoning: bool,
+}
+
+pub const MODEL_CATALOG: &[ModelCatalogDefinition] = &[
+    ModelCatalogDefinition {
+        id: "ministral-3b",
+        display_name: "Ministral 3 3B Instruct",
+        file_name: MINISTRAL_3B_MODEL_FILE_NAME,
+        size_bytes: MINISTRAL_3B_MODEL_SIZE_BYTES,
+        sha256: MINISTRAL_3B_MODEL_SHA256,
+        download_url: MINISTRAL_3B_DOWNLOAD_URL,
+        min_ram_gb: 8,
+        recommended_hardware: "Mac 8 GB RAM / Consumi minimi",
+        description: "Ultra-compatto e veloce, ottimizzato per Mac con 8 GB di memoria unificata.",
+        is_reasoning: false,
+    },
+    ModelCatalogDefinition {
+        id: "ministral-8b",
+        display_name: "Ministral 3 8B Instruct",
+        file_name: MINISTRAL_8B_MODEL_FILE_NAME,
+        size_bytes: MINISTRAL_8B_MODEL_SIZE_BYTES,
+        sha256: MINISTRAL_8B_MODEL_SHA256,
+        download_url: MINISTRAL_8B_DOWNLOAD_URL,
+        min_ram_gb: 16,
+        recommended_hardware: "Mac 16 GB+ / GPU 8-12 GB",
+        description: "Massima naturalezza espressiva e comprensione del testo in italiano.",
+        is_reasoning: false,
+    },
+    ModelCatalogDefinition {
+        id: "qwen-2.5-7b",
+        display_name: "Qwen 2.5 7B Instruct",
+        file_name: "Qwen2.5-7B-Instruct-Q4_K_M.gguf",
+        size_bytes: 4_683_074_240,
+        sha256: "65b8fcd92af6b4fefa935c625d1ac27ea29dcb6ee14589c55a8f115ceaaa1423",
+        download_url: "https://huggingface.co/bartowski/Qwen2.5-7B-Instruct-GGUF/resolve/main/Qwen2.5-7B-Instruct-Q4_K_M.gguf",
+        min_ram_gb: 16,
+        recommended_hardware: "Mac 16 GB+ / GPU 8 GB VRAM",
+        description: "Eccezionale per estrazione dati da note, tabelle, sintassi Markdown e risposte strutturate.",
+        is_reasoning: false,
+    },
+    ModelCatalogDefinition {
+        id: "llama-3.1-8b",
+        display_name: "Llama 3.1 8B Instruct (Meta)",
+        file_name: "Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf",
+        size_bytes: 4_920_739_232,
+        sha256: "7b064f5842bf9532c91456deda288a1b672397a54fa729aa665952863033557c",
+        download_url: "https://huggingface.co/bartowski/Meta-Llama-3.1-8B-Instruct-GGUF/resolve/main/Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf",
+        min_ram_gb: 16,
+        recommended_hardware: "Mac 16 GB+ / GPU 8 GB VRAM",
+        description: "Lo standard globale open-weight: grande fedeltà alle istruzioni di sistema e RAG.",
+        is_reasoning: false,
+    },
+    ModelCatalogDefinition {
+        id: "deepseek-r1-7b",
+        display_name: "DeepSeek-R1-Distill-Qwen-7B",
+        file_name: "DeepSeek-R1-Distill-Qwen-7B-Q4_K_M.gguf",
+        size_bytes: 4_683_073_248,
+        sha256: "78272d8d32084548bd450394a560eb2d70de8232ab96a725769b1f9171235c1c",
+        download_url: "https://huggingface.co/unsloth/DeepSeek-R1-Distill-Qwen-7B-GGUF/resolve/main/DeepSeek-R1-Distill-Qwen-7B-Q4_K_M.gguf",
+        min_ram_gb: 16,
+        recommended_hardware: "Mac 16 GB+ / GPU 8 GB VRAM",
+        description: "Modello di ragionamento analitico: formula il pensiero logico (<think>) prima di rispondere.",
+        is_reasoning: true,
+    },
+    ModelCatalogDefinition {
+        id: "deepseek-r1-14b",
+        display_name: "DeepSeek-R1-Distill-Qwen-14B",
+        file_name: "DeepSeek-R1-Distill-Qwen-14B-Q4_K_M.gguf",
+        size_bytes: 8_988_109_984,
+        sha256: "67a7933cf2ad596a393c8e13b30bc4da2d50b283e250b78554aed18817eca31c",
+        download_url: "https://huggingface.co/unsloth/DeepSeek-R1-Distill-Qwen-14B-GGUF/resolve/main/DeepSeek-R1-Distill-Qwen-14B-Q4_K_M.gguf",
+        min_ram_gb: 24,
+        recommended_hardware: "Mac 24-36 GB+ / GPU 12 GB VRAM (es. RTX 3060)",
+        description: "Ragionamento avanzato e correlazione profonda di concetti. Richiede GPU 12 GB o Mac 24 GB+.",
+        is_reasoning: true,
+    },
+];
+
+pub fn find_model_def(model_id: &str) -> Option<&'static ModelCatalogDefinition> {
+    MODEL_CATALOG
+        .iter()
+        .find(|m| m.id.eq_ignore_ascii_case(model_id) || m.file_name.eq_ignore_ascii_case(model_id))
+}
+
+pub fn get_selected_model_config_path() -> Result<PathBuf, String> {
+    let dir = get_models_dir()?;
+    Ok(dir.join("selected_local_model.txt"))
+}
+
+pub fn get_selected_model_id() -> String {
+    if let Ok(cfg_path) = get_selected_model_config_path() {
+        if cfg_path.is_file() {
+            if let Ok(content) = fs::read_to_string(&cfg_path) {
+                let id = content.trim();
+                if find_model_def(id).is_some() {
+                    return id.to_string();
+                }
+            }
+        }
+    }
+    // Default in base all'hardware se nessuna selezione salvata
+    if is_sub_16gb_system() {
+        "ministral-3b".to_string()
+    } else {
+        "ministral-8b".to_string()
+    }
+}
+
+pub fn set_selected_model_id(id: &str) -> Result<String, String> {
+    let def = find_model_def(id).ok_or_else(|| format!("Modello '{}' non trovato nel catalogo.", id))?;
+    let cfg_path = get_selected_model_config_path()?;
+    fs::write(&cfg_path, def.id).map_err(|e| format!("Impossibile salvare selezione modello: {}", e))?;
+    Ok(def.id.to_string())
+}
+
+pub fn get_active_model_def() -> &'static ModelCatalogDefinition {
+    let id = get_selected_model_id();
+    find_model_def(&id).unwrap_or_else(|| {
+        if is_sub_16gb_system() {
+            &MODEL_CATALOG[0]
+        } else {
+            &MODEL_CATALOG[1]
+        }
+    })
+}
+
+pub fn get_active_model_display_name() -> String {
+    format!("{} (Locale)", get_active_model_def().display_name)
+}
+
 pub fn is_sub_16gb_system() -> bool {
     let ram = get_physical_ram_bytes();
     ram > 0 && ram < SIXTEEN_GB_BYTES
 }
 
 pub fn get_active_model_file_name() -> &'static str {
-    if is_sub_16gb_system() {
-        MINISTRAL_3B_MODEL_FILE_NAME
-    } else {
-        MINISTRAL_8B_MODEL_FILE_NAME
-    }
+    get_active_model_def().file_name
 }
 
 pub fn get_active_model_size_bytes() -> u64 {
-    if is_sub_16gb_system() {
-        MINISTRAL_3B_MODEL_SIZE_BYTES
-    } else {
-        MINISTRAL_8B_MODEL_SIZE_BYTES
-    }
+    get_active_model_def().size_bytes
 }
 
 pub fn get_active_model_sha256() -> &'static str {
-    if is_sub_16gb_system() {
-        MINISTRAL_3B_MODEL_SHA256
-    } else {
-        MINISTRAL_8B_MODEL_SHA256
-    }
+    get_active_model_def().sha256
 }
 
 pub fn get_active_download_url() -> &'static str {
-    if is_sub_16gb_system() {
-        MINISTRAL_3B_DOWNLOAD_URL
-    } else {
-        MINISTRAL_8B_DOWNLOAD_URL
-    }
+    get_active_model_def().download_url
 }
 
 /// Legge la memoria RAM fisica del sistema in byte (macOS sysctl hw.memsize).
@@ -104,7 +231,7 @@ pub fn get_physical_ram_bytes() -> u64 {
 pub fn ram_warning_for_bytes(bytes: u64) -> Option<String> {
     if bytes > 0 && bytes < SIXTEEN_GB_BYTES {
         Some(
-            "Questo Mac ha meno di 16 GB di RAM: viene utilizzato Ministral 3 3B Instruct Q5_K_M (2.47 GB) ottimizzato per memoria unificata."
+            "Questo Mac ha meno di 16 GB di RAM: viene raccomandato Ministral 3 3B Instruct Q5_K_M (2.47 GB) ottimizzato per memoria unificata."
                 .to_string(),
         )
     } else {
@@ -142,6 +269,35 @@ pub struct LocalLlmReport {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct LocalModelCatalogEntry {
+    pub id: String,
+    pub display_name: String,
+    pub file_name: String,
+    pub size_bytes: u64,
+    pub sha256: String,
+    pub download_url: String,
+    pub min_ram_gb: u32,
+    pub recommended_hardware: String,
+    pub description: String,
+    pub is_reasoning: bool,
+    pub installed: bool,
+    pub path: String,
+    pub current_bytes: u64,
+    pub sha256_ok: bool,
+    pub is_active: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LocalCatalogReport {
+    pub models: Vec<LocalModelCatalogEntry>,
+    pub active_model_id: String,
+    pub physical_ram_bytes: u64,
+    pub ram_warning: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LocalLlmServerReport {
     pub running: bool,
     pub port: u16,
@@ -168,6 +324,7 @@ struct LlmRunningState {
     log_path: Option<PathBuf>,
     last_error: Option<String>,
     starting: bool,
+    running_model_file: Option<String>,
 }
 
 #[derive(Clone, Default)]
@@ -178,9 +335,21 @@ pub fn get_target_ministral_path() -> Result<PathBuf, String> {
     Ok(dir.join(get_active_model_file_name()))
 }
 
+pub fn get_target_model_path_for_id(model_id: &str) -> Result<PathBuf, String> {
+    let def = find_model_def(model_id)
+        .ok_or_else(|| format!("Modello '{}' non trovato nel catalogo.", model_id))?;
+    let dir = get_models_dir()?;
+    Ok(dir.join(def.file_name))
+}
+
 pub fn get_ministral_verification_cache_path() -> Result<PathBuf, String> {
     let dir = get_models_dir()?;
     Ok(dir.join(format!("{}.verified.json", get_active_model_file_name())))
+}
+
+pub fn get_verification_cache_path_for_file(file_name: &str) -> Result<PathBuf, String> {
+    let dir = get_models_dir()?;
+    Ok(dir.join(format!("{}.verified.json", file_name)))
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -210,142 +379,127 @@ pub fn compute_file_sha256(path: &Path) -> Result<String, String> {
     Ok(format!("{:x}", hasher.finalize()))
 }
 
+pub fn get_model_status(
+    def: &ModelCatalogDefinition,
+    active_id: &str,
+    force_recompute: bool,
+) -> LocalModelCatalogEntry {
+    let models_dir = get_models_dir().ok();
+    let path = models_dir.map(|d| d.join(def.file_name));
+    let is_active = def.id.eq_ignore_ascii_case(active_id);
+
+    let (installed, path_str, current_bytes, sha256_ok) = match path {
+        Some(p) if p.is_file() => {
+            let meta = fs::metadata(&p).ok();
+            let bytes = meta.as_ref().map(|m| m.len()).unwrap_or(0);
+            if bytes == 0 {
+                (false, p.to_string_lossy().to_string(), 0, false)
+            } else {
+                let cache_file = get_verification_cache_path_for_file(def.file_name).ok();
+                let mtime_ms = meta
+                    .and_then(|m| m.modified().ok())
+                    .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+                    .map(|d| d.as_millis() as u64)
+                    .unwrap_or(0);
+
+                let mut hash_ok = false;
+                if !force_recompute {
+                    if let Some(ref cf) = cache_file {
+                        if cf.is_file() {
+                            if let Ok(c) = fs::read_to_string(cf) {
+                                if let Ok(cached) = serde_json::from_str::<MinistralVerificationCache>(&c) {
+                                    if cached.path == p.to_string_lossy()
+                                        && cached.bytes == bytes
+                                        && cached.mtime_ms == mtime_ms
+                                    {
+                                        hash_ok = cached.sha256_ok;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if !hash_ok {
+                    if let Ok(h) = compute_file_sha256(&p) {
+                        hash_ok = def.sha256.is_empty() || h.eq_ignore_ascii_case(def.sha256);
+                        if let Some(ref cf) = cache_file {
+                            let entry = MinistralVerificationCache {
+                                path: p.to_string_lossy().to_string(),
+                                bytes,
+                                mtime_ms,
+                                sha256: h,
+                                sha256_ok: hash_ok,
+                                verified_at: chrono::Utc::now().to_rfc3339(),
+                            };
+                            if let Ok(ser) = serde_json::to_string_pretty(&entry) {
+                                let _ = fs::write(cf, ser);
+                            }
+                        }
+                    }
+                }
+
+                (bytes > 0 && hash_ok, p.to_string_lossy().to_string(), bytes, hash_ok)
+            }
+        }
+        Some(p) => (false, p.to_string_lossy().to_string(), 0, false),
+        None => (false, String::new(), 0, false),
+    };
+
+    LocalModelCatalogEntry {
+        id: def.id.to_string(),
+        display_name: def.display_name.to_string(),
+        file_name: def.file_name.to_string(),
+        size_bytes: def.size_bytes,
+        sha256: def.sha256.to_string(),
+        download_url: def.download_url.to_string(),
+        min_ram_gb: def.min_ram_gb,
+        recommended_hardware: def.recommended_hardware.to_string(),
+        description: def.description.to_string(),
+        is_reasoning: def.is_reasoning,
+        installed,
+        path: path_str,
+        current_bytes,
+        sha256_ok,
+        is_active,
+    }
+}
+
+pub fn get_local_llm_catalog() -> LocalCatalogReport {
+    let active_id = get_selected_model_id();
+    let ram = get_physical_ram_bytes();
+    let ram_warning = ram_warning_for_bytes(ram);
+
+    let models = MODEL_CATALOG
+        .iter()
+        .map(|def| get_model_status(def, &active_id, false))
+        .collect();
+
+    LocalCatalogReport {
+        models,
+        active_model_id: active_id,
+        physical_ram_bytes: ram,
+        ram_warning,
+    }
+}
+
 pub fn local_llm_status() -> LocalLlmReport {
     local_llm_status_with_recheck(false)
 }
 
 pub fn local_llm_status_with_recheck(force_recompute_hash: bool) -> LocalLlmReport {
+    let active_def = get_active_model_def();
+    let active_id = get_selected_model_id();
+    let status_entry = get_model_status(active_def, &active_id, force_recompute_hash);
     let ram = get_physical_ram_bytes();
     let ram_warning = ram_warning_for_bytes(ram);
 
-    let path = match get_target_ministral_path() {
-        Ok(p) => p,
-        Err(_) => {
-            return LocalLlmReport {
-                installed: false,
-                path: String::new(),
-                bytes: 0,
-                sha256_ok: false,
-                model_name: get_active_model_file_name().to_string(),
-                physical_ram_bytes: ram,
-                ram_warning,
-            };
-        }
-    };
-
-    if !path.is_file() {
-        return LocalLlmReport {
-            installed: false,
-            path: path.to_string_lossy().to_string(),
-            bytes: 0,
-            sha256_ok: false,
-            model_name: get_active_model_file_name().to_string(),
-            physical_ram_bytes: ram,
-            ram_warning,
-        };
-    }
-
-    let meta = match fs::metadata(&path) {
-        Ok(m) => m,
-        Err(_) => {
-            return LocalLlmReport {
-                installed: false,
-                path: path.to_string_lossy().to_string(),
-                bytes: 0,
-                sha256_ok: false,
-                model_name: get_active_model_file_name().to_string(),
-                physical_ram_bytes: ram,
-                ram_warning,
-            };
-        }
-    };
-
-    let bytes = meta.len();
-    if bytes == 0 {
-        return LocalLlmReport {
-            installed: false,
-            path: path.to_string_lossy().to_string(),
-            bytes: 0,
-            sha256_ok: false,
-            model_name: get_active_model_file_name().to_string(),
-            physical_ram_bytes: ram,
-            ram_warning,
-        };
-    }
-
-    let mtime_ms = meta
-        .modified()
-        .ok()
-        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
-        .map(|d| d.as_millis() as u64)
-        .unwrap_or(0);
-
-    let cache_file = get_ministral_verification_cache_path().ok();
-    if !force_recompute_hash {
-        if let Some(ref cf) = cache_file {
-            if cf.is_file() {
-                if let Ok(content) = fs::read_to_string(cf) {
-                    if let Ok(cached) = serde_json::from_str::<MinistralVerificationCache>(&content)
-                    {
-                        if cached.path == path.to_string_lossy()
-                            && cached.bytes == bytes
-                            && cached.mtime_ms == mtime_ms
-                        {
-                            return LocalLlmReport {
-                                installed: true,
-                                path: path.to_string_lossy().to_string(),
-                                bytes,
-                                sha256_ok: cached.sha256_ok,
-                                model_name: get_active_model_file_name().to_string(),
-                                physical_ram_bytes: ram,
-                                ram_warning,
-                            };
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    // Calcolo SHA-256 e salvataggio cache
-    let hash = match compute_file_sha256(&path) {
-        Ok(h) => h,
-        Err(_) => {
-            return LocalLlmReport {
-                installed: true,
-                path: path.to_string_lossy().to_string(),
-                bytes,
-                sha256_ok: false,
-                model_name: get_active_model_file_name().to_string(),
-                physical_ram_bytes: ram,
-                ram_warning,
-            };
-        }
-    };
-
-    let target_hash = get_active_model_sha256();
-    let sha256_ok = hash.to_lowercase() == target_hash.to_lowercase();
-
-    if let Some(cf) = cache_file {
-        let entry = MinistralVerificationCache {
-            path: path.to_string_lossy().to_string(),
-            bytes,
-            mtime_ms,
-            sha256: hash,
-            sha256_ok,
-            verified_at: chrono::Utc::now().to_rfc3339(),
-        };
-        if let Ok(serialized) = serde_json::to_string_pretty(&entry) {
-            let _ = fs::write(cf, serialized);
-        }
-    }
-
     LocalLlmReport {
-        installed: true,
-        path: path.to_string_lossy().to_string(),
-        bytes,
-        sha256_ok,
-        model_name: get_active_model_file_name().to_string(),
+        installed: status_entry.installed,
+        path: status_entry.path,
+        bytes: status_entry.current_bytes,
+        sha256_ok: status_entry.sha256_ok,
+        model_name: active_def.file_name.to_string(),
         physical_ram_bytes: ram,
         ram_warning,
     }
@@ -355,19 +509,33 @@ pub async fn download_ministral_with_progress<F>(on_progress: F) -> Result<Local
 where
     F: Fn(u64, u64, f64) + Send + 'static,
 {
-    let target = get_target_ministral_path()?;
+    let active_id = get_selected_model_id();
+    download_model_with_progress(&active_id, on_progress).await
+}
+
+pub async fn download_model_with_progress<F>(
+    model_id: &str,
+    on_progress: F,
+) -> Result<LocalLlmReport, String>
+where
+    F: Fn(u64, u64, f64) + Send + 'static,
+{
+    let def = find_model_def(model_id)
+        .ok_or_else(|| format!("Modello '{}' non trovato nel catalogo.", model_id))?;
+    let dir = get_models_dir()?;
+    let target = dir.join(def.file_name);
     let temp_target = target.with_extension("downloading");
     let _ = fs::remove_file(&temp_target);
 
     let client = reqwest::Client::builder()
         .connect_timeout(Duration::from_secs(20))
-        .timeout(Duration::from_secs(7200)) // 2 ore per file da 6 GB
+        .timeout(Duration::from_secs(14400)) // 4 ore per file grandi fino a 9 GB
         .build()
         .map_err(|e| e.to_string())?;
 
-    let download_url = get_active_download_url();
-    let expected_size = get_active_model_size_bytes();
-    let expected_sha256 = get_active_model_sha256();
+    let download_url = def.download_url;
+    let expected_size = def.size_bytes;
+    let expected_sha256 = def.sha256;
 
     let mut resp = client
         .get(download_url)
@@ -379,9 +547,7 @@ where
         return Err(format!("Download fallito con stato HTTP: {}", resp.status()));
     }
 
-    let total_bytes = resp
-        .content_length()
-        .unwrap_or(expected_size);
+    let total_bytes = resp.content_length().unwrap_or(expected_size);
 
     let mut out = fs::File::create(&temp_target).map_err(|e| e.to_string())?;
 
@@ -415,17 +581,37 @@ where
     drop(out);
 
     let final_hash = format!("{:x}", hasher.finalize());
-    if final_hash.to_lowercase() != expected_sha256.to_lowercase() {
+    if !expected_sha256.is_empty() && final_hash.to_lowercase() != expected_sha256.to_lowercase() {
         let _ = fs::remove_file(&temp_target);
         return Err(format!(
-            "Verifica SHA-256 fallita su Ministral: calcolato {} vs atteso {}",
-            final_hash, expected_sha256
+            "Verifica SHA-256 fallita su {}: calcolato {} vs atteso {}",
+            def.display_name, final_hash, expected_sha256
         ));
     }
 
     fs::rename(&temp_target, &target).map_err(|e| e.to_string())?;
 
-    Ok(local_llm_status_with_recheck(true))
+    // Salva cache di verifica
+    let cache_file = get_verification_cache_path_for_file(def.file_name)?;
+    let meta = fs::metadata(&target).ok();
+    let mtime_ms = meta
+        .and_then(|m| m.modified().ok())
+        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or(0);
+    let entry = MinistralVerificationCache {
+        path: target.to_string_lossy().to_string(),
+        bytes: downloaded,
+        mtime_ms,
+        sha256: final_hash,
+        sha256_ok: true,
+        verified_at: chrono::Utc::now().to_rfc3339(),
+    };
+    if let Ok(serialized) = serde_json::to_string_pretty(&entry) {
+        let _ = fs::write(cache_file, serialized);
+    }
+
+    Ok(local_llm_status_with_recheck(false))
 }
 
 impl LlamaLlmServerState {
@@ -434,25 +620,22 @@ impl LlamaLlmServerState {
     }
 
     /// Attende che il server sia avviato e pronto entro il limite configurato (90s).
-    /// Se un avvio è già in corso (starting == true), non fallisce ma attende
-    /// che l'avvio si completi o che scada il timeout di 90 secondi.
     pub fn ensure_running(&self) -> Result<u16, String> {
         let t_deadline = Instant::now() + Duration::from_secs(MINISTRAL_STARTUP_TIMEOUT_SECS);
+        let active_def = get_active_model_def();
         loop {
             let rep = self.start()?;
-            if rep.running && rep.healthy && rep.port > 0 {
+            if rep.running && rep.healthy && rep.port > 0 && rep.model == active_def.file_name {
                 return Ok(rep.port);
             }
             if rep.starting {
-                // Avvio già in corso da parte di un altro thread/task: attendi
                 while Instant::now() < t_deadline {
                     std::thread::sleep(Duration::from_millis(250));
                     let status = self.status();
-                    if status.running && status.healthy && status.port > 0 {
+                    if status.running && status.healthy && status.port > 0 && status.model == active_def.file_name {
                         return Ok(status.port);
                     }
                     if !status.starting {
-                        // L'avvio in corso è terminato
                         if let Some(err) = status.last_error {
                             return Err(err);
                         }
@@ -461,13 +644,12 @@ impl LlamaLlmServerState {
                 }
                 if Instant::now() >= t_deadline {
                     return Err(
-                        "Timeout attesa avvio in corso del servizio LLM locale Ministral."
-                            .to_string(),
+                        "Timeout attesa avvio in corso del servizio LLM locale.".to_string(),
                     );
                 }
             } else {
                 return Err(rep.last_error.unwrap_or_else(|| {
-                    "Impossibile avviare il servizio LLM locale Ministral".to_string()
+                    "Impossibile avviare il servizio LLM locale".to_string()
                 }));
             }
         }
@@ -496,6 +678,7 @@ impl LlamaLlmServerState {
                             format!("Il processo LLM locale è terminato con codice: {}", code)
                         });
                         s.port = 0;
+                        s.running_model_file = None;
                     }
                     Ok(None) => {}
                     Err(e) => {
@@ -508,11 +691,13 @@ impl LlamaLlmServerState {
         let is_running = s.port > 0 && s.owned_pid.is_some();
         let healthy = is_running && check_health(s.port);
 
+        let active_file = s.running_model_file.clone().unwrap_or_else(|| get_active_model_file_name().to_string());
+
         LocalLlmServerReport {
             running: is_running,
             port: s.port,
             pid: s.owned_pid,
-            model: get_active_model_file_name().to_string(),
+            model: active_file,
             healthy,
             last_error: s.last_error.clone(),
             starting: s.starting,
@@ -522,9 +707,14 @@ impl LlamaLlmServerState {
     }
 
     pub fn start(&self) -> Result<LocalLlmServerReport, String> {
+        let active_def = get_active_model_def();
         let current = self.status();
         if current.running && current.healthy {
-            return Ok(current);
+            if current.model == active_def.file_name {
+                return Ok(current);
+            }
+            // Modello cambiato: arresta il modello precedente prima di avviare il nuovo
+            let _ = self.stop();
         }
 
         let ram = get_physical_ram_bytes();
@@ -537,7 +727,7 @@ impl LlamaLlmServerState {
                     running: false,
                     port: 0,
                     pid: None,
-                    model: get_active_model_file_name().to_string(),
+                    model: active_def.file_name.to_string(),
                     healthy: false,
                     last_error: None,
                     starting: true,
@@ -549,14 +739,15 @@ impl LlamaLlmServerState {
             s.last_error = None;
         }
 
-        let model_path = match get_target_ministral_path() {
+        let model_path = match get_target_model_path_for_id(active_def.id) {
             Ok(p) => {
                 if !p.is_file() {
                     let mut s = self.0.lock().unwrap_or_else(|e| e.into_inner());
                     s.starting = false;
-                    let err =
-                        "Modello Ministral non trovato su disco. Eseguire prima il download."
-                            .to_string();
+                    let err = format!(
+                        "Modello '{}' non trovato su disco. Eseguire prima il download dalle Impostazioni.",
+                        active_def.display_name
+                    );
                     s.last_error = Some(err.clone());
                     return Err(err);
                 }
@@ -592,8 +783,6 @@ impl LlamaLlmServerState {
             }
         };
 
-        // File di log dedicato per stderr di llama-server (troncato ad ogni avvio)
-        // Evita il blocco deadlock del pipe stderr (Punto 2)
         let log_path = match model_path.parent() {
             Some(dir) => dir.join("llama-llm.log"),
             None => PathBuf::from("llama-llm.log"),
@@ -603,7 +792,6 @@ impl LlamaLlmServerState {
             Err(_) => Stdio::null(),
         };
 
-        // Parametri per Ministral Instruct (generazione testo, Metal GPU, contesto 8k)
         let mut cmd = Command::new(&binary);
         cmd.args([
             "-m",
@@ -673,9 +861,9 @@ impl LlamaLlmServerState {
             s.model_path = model_path;
             s.binary_path = Some(binary);
             s.log_path = Some(log_path.clone());
+            s.running_model_file = Some(active_def.file_name.to_string());
         }
 
-        // Attesa /health fino a 90 secondi (caricamento modello 6GB in memoria Metal, specialmente con swap su Mac 8GB)
         let t_deadline = Instant::now() + Duration::from_secs(MINISTRAL_STARTUP_TIMEOUT_SECS);
         let mut is_healthy = false;
 
@@ -686,7 +874,6 @@ impl LlamaLlmServerState {
                 break;
             }
 
-            // Controllo se è crashato
             let mut s = self.0.lock().unwrap_or_else(|e| e.into_inner());
             if let Some(ref mut c) = s.child {
                 if let Ok(Some(st)) = c.try_wait() {
@@ -694,6 +881,7 @@ impl LlamaLlmServerState {
                     s.child = None;
                     s.owned_pid = None;
                     s.port = 0;
+                    s.running_model_file = None;
                     let last_line = read_last_log_line(&log_path).unwrap_or_default();
                     let err = if !last_line.is_empty() {
                         format!("Il processo LLM è uscito prematuramente: {}", last_line)
@@ -741,6 +929,7 @@ impl LlamaLlmServerState {
         s.owned_pid = None;
         s.port = 0;
         s.starting = false;
+        s.running_model_file = None;
 
         let ram = get_physical_ram_bytes();
         let ram_warning = ram_warning_for_bytes(ram);
@@ -749,7 +938,7 @@ impl LlamaLlmServerState {
             running: false,
             port: 0,
             pid: None,
-            model: MINISTRAL_MODEL_FILE_NAME.to_string(),
+            model: get_active_model_file_name().to_string(),
             healthy: false,
             last_error: None,
             starting: false,
@@ -873,4 +1062,53 @@ mod tests {
         assert!(res.is_err());
         assert_eq!(res.unwrap_err(), "Errore simulato terminazione avvio");
     }
+
+    #[test]
+    fn test_model_catalog_definitions() {
+        assert_eq!(MODEL_CATALOG.len(), 6);
+        for m in MODEL_CATALOG {
+            assert!(!m.id.is_empty());
+            assert!(!m.display_name.is_empty());
+            assert!(m.file_name.ends_with(".gguf"));
+            assert!(m.size_bytes > 1_000_000_000);
+            assert!(m.download_url.starts_with("https://huggingface.co/"));
+            assert!(m.min_ram_gb >= 8);
+            assert!(!m.description.is_empty());
+        }
+    }
+
+    #[test]
+    fn test_find_model_def() {
+        assert!(find_model_def("ministral-3b").is_some());
+        assert!(find_model_def("ministral-8b").is_some());
+        assert!(find_model_def("qwen-2.5-7b").is_some());
+        assert!(find_model_def("llama-3.1-8b").is_some());
+        assert!(find_model_def("deepseek-r1-7b").is_some());
+        assert!(find_model_def("deepseek-r1-14b").is_some());
+        assert!(find_model_def("non-existent-model").is_none());
+
+        let qwen = find_model_def("qwen-2.5-7b").unwrap();
+        assert_eq!(qwen.display_name, "Qwen 2.5 7B Instruct");
+        assert!(!qwen.is_reasoning);
+
+        let r1_7b = find_model_def("deepseek-r1-7b").unwrap();
+        assert!(r1_7b.is_reasoning);
+
+        let r1_14b = find_model_def("deepseek-r1-14b").unwrap();
+        assert!(r1_14b.is_reasoning);
+        assert_eq!(r1_14b.min_ram_gb, 24);
+    }
+
+    #[test]
+    fn test_catalog_report_serialization() {
+        let cat = get_local_llm_catalog();
+        assert_eq!(cat.models.len(), 6);
+        assert!(!cat.active_model_id.is_empty());
+        let json = serde_json::to_string(&cat).unwrap();
+        assert!(json.contains("\"activeModelId\""));
+        assert!(json.contains("\"models\""));
+        assert!(json.contains("\"minRamGb\""));
+        assert!(json.contains("\"recommendedHardware\""));
+    }
 }
+

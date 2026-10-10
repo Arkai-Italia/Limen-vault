@@ -2823,11 +2823,7 @@ pub async fn ask_stream_with_target(
         return Err("Consenso all'invio dei dati a OpenAI non concesso. Abilitalo nelle Impostazioni.".into());
     }
     let effective_model = if local_llm_port.is_some() {
-        if crate::llama_llm::is_sub_16gb_system() {
-            "Ministral 3 3B Instruct (Locale)".to_string()
-        } else {
-            "Ministral 3 8B Instruct (Locale)".to_string()
-        }
+        crate::llama_llm::get_active_model_display_name()
     } else if p.options.model.trim().is_empty() {
         "gpt-4o".to_string()
     } else {
