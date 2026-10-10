@@ -117,25 +117,118 @@ flowchart TD
 
 ## 3. STRUTTURA DELL’INTERFACCIA E NAVIGAZIONE A 3 AREE FUNZIONALI
 
-L'interfaccia di LIMEN Vault v6Mini è organizzata attorno a 3 aree funzionali principali più un'area avanzata:
+L'interfaccia di LIMEN Vault v6Mini è organizzata attorno a 3 aree funzionali primarie più un'area avanzata, progettate per consentire un passaggio fluido tra consultazione, catalogazione e amministrazione tecnica:
 
-### A. Barra Laterale Sinistra:
-- **Pulsante Globale "CARICA DOCUMENTI"**: Posizionato in cima alla barra laterale con colore verde lime ad alta visibilità (`#c8ff00`), permette di importare documenti (PDF, DOCX, XLSX, PPTX, TXT) in qualsiasi momento.
-- **Chiedi**: Conversazione continua con l'assistente AI e ricerca semantica (icona scintille).
-- **Documenti**: Inventario dei file originali acquisiti in `20_RAW_SOURCES/`, stato di estrazione testo e conteggio passaggi.
-- **Memoria / Note Wiki**: Catalogo navigabile delle note Markdown del Vault suddivise nelle categorie da `01_CLIENTS` a `10_APPROVED_OUTPUTS`.
-- **Avanzate**: Pannello di gestione tecnica, governance, manutenzione e collegamenti (icona cursori).
-- **Storico Conversazioni Persistente**: Sezione scorrevole nella parte inferiore della barra laterale che mostra tutte le conversazioni archiviate in `00_SYSTEM/` ordinate per data e ora locale.
-- **Pulsante "Apri in Obsidian"**: Collegamento diretto per aprire la cartella del Vault nell'applicazione Obsidian nativa.
+```mermaid
+graph TD
+    subgraph Sidebar["Barra Laterale Sinistra (Sempre Visibile)"]
+        UploadGlobal["🟢 PULSANTE 'CARICA DOCUMENTI' (Verde Lime)"]
+        NavAsk["✦ 1. CHIEDI (Chat Continua & Ricerca Semantica)"]
+        NavDocs["📁 2. DOCUMENTI (Archivio 20_RAW_SOURCES)"]
+        NavMemory["📚 3. MEMORIA (Note Wiki da 01 a 10)"]
+        NavAdvanced["⚙️ 4. AVANZATE (Gestione Tecnica & Governance)"]
+        HistoryList["🕒 STORICO CONVERSAZIONI (Thread passati ordinati per data)"]
+        ObsidianBtn["↗ 'Apri in Obsidian' (Apre la cartella nell'editor esterno)"]
+    end
 
-### B. Sezioni del Pannello "Avanzate":
-- **Bozze e Proposte**: Revisione e approvazione delle note generate (`90_PROPOSALS/`).
-- **Copie locali e Ripristino**: Snapshot crittografici SHA-256 e ripristino sicuro in cartella separata.
-- **Trasferimenti**: Sincronizzazione crittografata con storage cloud S3/R2.
-- **Collegamenti AI & MCP**: Configurazione del motore semantico locale (`bge-m3`), del catalogo modelli locali e dei parametri OpenAI.
-- **Compilatore manuale**: Compilazione batch di file di testo in bozze.
-- **Stato di Sistema**: Diagnostica del computer, percorsi attivi, memoria RAM e stato dei processi.
+    subgraph AreaAsk["Area 1: CHIEDI"]
+        ChatFeed["Feed Chat (Domande Utente & Risposte Assistente)"]
+        ToggleLocal["Toggle 'SOLO LOCALE (Mac)'"]
+        BarInput["Barra di Scrittura Fissa in Basso"]
+        SourcesDrawer["Cassetto Laterale Destro: FONTI CITATE"]
+        DocReaderModal["Modal Lettore Integrato (DocumentReaderModal)"]
+    end
+
+    subgraph AreaDocs["Area 2: DOCUMENTI"]
+        RawList["Tabella Documenti Grezzi (PDF, DOCX, XLSX, TXT)"]
+        ExtractionStatus["Stato Estrazione & Conteggio Passaggi"]
+        DocPreview["Anteprima Contenuto Estratto"]
+    end
+
+    subgraph AreaMemory["Area 3: MEMORIA"]
+        CategoryNav["Selettore Categorie (01_CLIENTS ... 10_APPROVED)"]
+        NotesGrid["Griglia Note Markdown & Stato Validazione Frontmatter"]
+    end
+
+    subgraph AreaAdvanced["Area 4: AVANZATE (Barra Sottomenu Superiore)"]
+        SubProposals["Bozze e Proposte (90_PROPOSALS/ - Approvazione Note)"]
+        SubSnapshots["Copie Locali & Ripristino (Manifesto SHA-256 e Restore)"]
+        SubTransfers["Trasferimenti (Sincronizzazione Cloud S3 / R2)"]
+        SubAI["Collegamenti AI & Catalogo Modelli (bge-m3 + 6 LLM Locali)"]
+        SubCompiler["Compilatore Manuale (Batch Markdown da Testo Grezzo)"]
+        SubSystem["Stato di Sistema (RAM, GPU Metal, Obsidian, Diagnostic)"]
+        SubHelp["Guida Vault (Manuale Integrato nell'Applicazione)"]
+    end
+
+    UploadGlobal -->|Apre selettore file e porta in| AreaDocs
+    NavAsk --> AreaAsk
+    NavDocs --> AreaDocs
+    NavMemory --> AreaMemory
+    NavAdvanced --> AreaAdvanced
+
+    ChatFeed -->|Clic su 'N fonti citate'| SourcesDrawer
+    SourcesDrawer -->|Clic su 'Apri documento'| DocReaderModal
+    AreaAdvanced --> SubProposals
+    AreaAdvanced --> SubSnapshots
+    AreaAdvanced --> SubTransfers
+    AreaAdvanced --> SubAI
+    AreaAdvanced --> SubCompiler
+    AreaAdvanced --> SubSystem
+    AreaAdvanced --> SubHelp
+```
+
+### A. Barra Laterale Sinistra (Sempre Visibile):
+- **Pulsante Globale "CARICA DOCUMENTI"**: Posizionato in cima alla barra laterale con colore verde lime ad alta visibilità (`#c8ff00`). Consente di importare documenti aziendali (PDF, DOCX, XLSX, PPTX, TXT) in qualsiasi momento da qualunque schermata.
+- **Chiedi (Ask)**: Interfaccia di conversazione aumentata continua con il Vault e ricerca semantica (icona scintille).
+- **Documenti (Documents)**: Inventario di tutti i file originali acquisiti in `20_RAW_SOURCES/`, con stato di estrazione testo e conteggio dei passaggi indicizzati.
+- **Memoria / Note Wiki (Knowledge)**: Catalogo navigabile delle note Markdown del Vault suddivise nelle categorie da `01_CLIENTS` a `10_APPROVED_OUTPUTS`.
+- **Avanzate (Advanced)**: Pannello di gestione tecnica, governance, manutenzione, collegamenti e diagnosi (icona cursori).
+- **Storico Conversazioni Persistente**: Sezione scorrevole nella parte inferiore della barra laterale che mostra tutte le conversazioni archiviate in `00_SYSTEM/` ordinate per data e ora locale. Cliccando su qualsiasi thread precedente, la chat viene ripristinata istantaneamente con tutte le sue fonti e citazioni originali.
+- **Pulsante "Apri in Obsidian"**: Collegamento rapido per aprire la cartella del Vault nell'applicazione Obsidian nativa.
+
+### B. Sezioni del Pannello "Avanzate" (Barra Secondaria Superiore):
+- **Bozze e Proposte**: Revisione e approvazione formale delle note generate dall'AI (`90_PROPOSALS/`).
+- **Copie locali e Ripristino**: Creazione snapshot crittografici SHA-256 e ripristino sicuro in cartella separata senza rischio di sovrascrittura.
+- **Trasferimenti**: Sincronizzazione crittografata con storage cloud S3/R2 o canali CRM.
+- **Collegamenti AI & Catalogo Modelli**: Configurazione del motore semantico locale (`bge-m3`), del catalogo dei 6 modelli generativi locali (con download e selezione a caldo) e delle credenziali OpenAI.
+- **Compilatore manuale**: Compilazione batch di file di testo e Markdown in bozze strutturate.
+- **Stato di Sistema**: Diagnostica del computer, memoria RAM fisica rilevata, disponibilità Metal GPU e percorsi attivi.
 - **Guida Vault**: Manuale e documentazione tecnica integrata nell'app.
+
+### C. Come Operativamente ci si Muove nei Menu (Guida Passo-Passo per l'Utente)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Utente
+    participant Sidebar as Barra Laterale Sinistra
+    participant MainView as Area Principale di Lavoro
+    participant Drawer as Cassetto Laterale / Modal
+
+    Utente->>Sidebar: Clic su "Chiedi"
+    Sidebar-->>MainView: Mostra la Chat (Feed messaggi e barra fissa in basso)
+    Utente->>MainView: Digita domanda e preme Invio
+    MainView-->>Utente: Riceve risposta in streaming con pulsante "N fonti citate"
+    Utente->>MainView: Clic su "N fonti citate"
+    MainView-->>Drawer: Si apre il cassetto Fonti a destra
+    Utente->>Drawer: Clic su "Apri documento"
+    Drawer-->>MainView: Si apre il DocumentReaderModal a schermo intero
+    Utente->>MainView: Chiude il lettore (tasto Esc o X) e torna alla chat senza perdere nulla
+    Utente->>Sidebar: Clic su "Documenti"
+    Sidebar-->>MainView: Mostra tabella 20_RAW_SOURCES con conteggi ed estratti
+    Utente->>Sidebar: Clic su "Avanzate"
+    Sidebar-->>MainView: Mostra la barra sottomenu di Avanzate
+    Utente->>MainView: Clic su "Collegamenti AI & MCP"
+    MainView-->>Utente: Visualizza stato bge-m3 e catalogo 6 modelli locali con pulsanti download e attiva
+```
+
+#### Regole Operative di Navigazione:
+1. **Passaggio Istantaneo tra le Aree Primarie**: È sufficiente fare clic su una delle voci della barra laterale sinistra (**Chiedi**, **Documenti**, **Memoria**, **Avanzate**). Il cambio di schermata preserva lo stato della chat e il testo digitato nella casella di ricerca.
+2. **Navigazione nelle Funzioni Avanzate**: Cliccando su **Avanzate**, compare in alto la barra orizzontale con le 7 sotto-schede (*Bozze*, *Copie locali*, *Trasferimenti*, *Collegamenti AI*, *Compilatore*, *Stato*, *Guida*). È sufficiente fare clic sulla scheda desiderata per visualizzarne i comandi specifici.
+3. **Consultazione Trasparente delle Fonti**: All'interno della scheda **Chiedi**, ogni risposta generata include un pulsante grigio con il numero esatto di passaggi usati (es. `3 fonti citate`). Cliccando sul pulsante si apre la colonna delle fonti a destra. Cliccando su un passaggio si apre il pop-up dei dettagli con il testo citato; cliccando su **"Apri documento"** si accede al file originale completo con evidenziazione del paragrafo e verifica SHA-256.
+4. **Ripresa dello Storico Conversazioni**: Nella parte bassa della barra sinistra compare l'elenco cronologico delle chat. Cliccando su un titolo (es. *"Analisi mercato MDD e packaging"*), l'intera discussione viene ricaricata a schermo con risposte, citazioni e fonti associate. Cliccando su **"Nuova conversazione"** (in testa alla chat) si riparte da una sessione pulita.
+5. **Caricamento Documenti da Qualsiasi Schermata**: Cliccando sul pulsante verde **"CARICA DOCUMENTI"** in alto a sinistra, si apre il file picker nativo del sistema operativo (macOS Finder o Windows Explorer). Selezionando i file, l'app li copia in `20_RAW_SOURCES/` ed esegue in tempo reale l'estrazione e l'indicizzazione dei passaggi.
+6. **Riapertura del Setup Wizard**: Se si desidera cambiare percorso del Vault, scaricare un nuovo modello o verificare la chiave API, è possibile cliccare in qualsiasi momento sul pulsante **"CONFIGURAZIONE GUIDATA"** (icona Bussola) presente nella card iniziale o in Avanzate.
 
 ---
 
