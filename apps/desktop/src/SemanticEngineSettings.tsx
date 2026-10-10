@@ -6,6 +6,8 @@ import {
   type LocalModelReport,
   type LocalServerReport,
   type LocalModelProgress,
+  type LocalCatalogReport,
+  type LocalModelCatalogEntry,
 } from './ai-ipc';
 import { getPlatformTerms, normalizeVaultPath } from './platform';
 
@@ -67,7 +69,9 @@ export function SemanticEngineSettings({ vaultPath }: { vaultPath: string }) {
     typeof localStorage !== 'undefined' ? localStorage.getItem('limen_openai_model') || 'gpt-4o-mini' : 'gpt-4o-mini'
   );
 
-  // Modello generativo locale Ministral 3 8B (FASE 8)
+  // Catalogo multi-modello generativo locale (FASE 3 & Catalogo 6 Modelli)
+  const [catalog, setCatalog] = useState<LocalCatalogReport | null>(null);
+  const [downloadingModelId, setDownloadingModelId] = useState<string | null>(null);
   const [llmModelReport, setLlmModelReport] = useState<LocalModelReport | null>(null);
   const [llmServerReport, setLlmServerReport] = useState<LocalServerReport | null>(null);
   const [llmDownloading, setLlmDownloading] = useState<boolean>(false);
@@ -85,13 +89,14 @@ export function SemanticEngineSettings({ vaultPath }: { vaultPath: string }) {
     if (!vaultPath) return;
     setRefreshing(true);
     try {
-      const [prov, model, srv, consent, llmModel, llmSrv] = await Promise.all([
+      const [prov, model, srv, consent, llmModel, llmSrv, cat] = await Promise.all([
         aiIpc.embeddingsGetProvider(vaultPath),
         aiIpc.localModelStatus(),
         aiIpc.localServerStatus(),
         aiIpc.getConsent(vaultPath).catch(() => false),
         aiIpc.localLlmStatus().catch(() => null),
         aiIpc.localLlmServerStatus().catch(() => null),
+        aiIpc.localLlmCatalog().catch(() => null),
       ]);
       if (isMounted.current) {
         setProviderReport(prov);
@@ -100,6 +105,7 @@ export function SemanticEngineSettings({ vaultPath }: { vaultPath: string }) {
         setOpenaiConsent(consent);
         if (llmModel) setLlmModelReport(llmModel);
         if (llmSrv) setLlmServerReport(llmSrv);
+        if (cat) setCatalog(cat);
         setOptimisticProvider(null);
       }
     } catch (err) {
@@ -238,6 +244,40 @@ export function SemanticEngineSettings({ vaultPath }: { vaultPath: string }) {
     }
   };
 
+  const handleSetActiveModel = async (modelId: string) => {
+    setError(null);
+    try {
+      const activeId = await aiIpc.localLlmSetActive(modelId);
+      if (isMounted.current) {
+        setSuccessMessage(`Modello attivo commutato con successo (${activeId}).`);
+        await refreshAll();
+      }
+    } catch (err) {
+      if (isMounted.current) setError(`Impossibile attivare il modello: ${String(err)}`);
+    }
+  };
+
+  const handleDownloadCatalogModel = async (modelId: string) => {
+    setDownloadingModelId(modelId);
+    setLlmDownloading(true);
+    setLlmDownloadProgress({ downloaded: 0, total: 100, percent: 0 });
+    setError(null);
+    try {
+      await aiIpc.localLlmDownloadModel(modelId);
+      if (isMounted.current) {
+        setSuccessMessage('Download e verifica del modello completati con successo.');
+        await refreshAll();
+      }
+    } catch (err) {
+      if (isMounted.current) setError(`Download modello fallito: ${String(err)}`);
+    } finally {
+      if (isMounted.current) {
+        setLlmDownloading(false);
+        setDownloadingModelId(null);
+      }
+    }
+  };
+
   const handleLlmStopServer = async () => {
     setLlmStoppingServer(true);
     setError(null);
@@ -245,10 +285,10 @@ export function SemanticEngineSettings({ vaultPath }: { vaultPath: string }) {
       const srv = await aiIpc.localLlmServerStop();
       if (isMounted.current) {
         setLlmServerReport(srv);
-        setSuccessMessage('Servizio locale Ministral 3 8B arrestato. Memoria Metal liberata.');
+        setSuccessMessage('Servizio locale arrestato. Memoria GPU/RAM liberata.');
       }
     } catch (err) {
-      if (isMounted.current) setError(`Arresto servizio Ministral fallito: ${String(err)}`);
+      if (isMounted.current) setError(`Arresto servizio fallito: ${String(err)}`);
     } finally {
       if (isMounted.current) setLlmStoppingServer(false);
     }
@@ -934,7 +974,7 @@ export function SemanticEngineSettings({ vaultPath }: { vaultPath: string }) {
           gap: 14,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: 10 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span
               style={{
@@ -947,7 +987,7 @@ export function SemanticEngineSettings({ vaultPath }: { vaultPath: string }) {
               }}
             />
             <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#0f172a' }}>
-              Modello Generativo Locale — Ministral 3 8B Instruct (100% Offline)
+              4. Motore Generativo Locale (Catalogo Multi-Modello 100% Offline)
             </h4>
           </div>
           <span
@@ -956,27 +996,33 @@ export function SemanticEngineSettings({ vaultPath }: { vaultPath: string }) {
               borderRadius: 12,
               fontSize: 11,
               fontWeight: 700,
-              backgroundColor: llmModelReport?.installed && llmModelReport?.sha256Ok ? '#dcfce7' : '#fee2e2',
-              color: llmModelReport?.installed && llmModelReport?.sha256Ok ? '#166534' : '#991b1b',
+              backgroundColor: catalog?.models.some((m) => m.installed && m.sha256Ok) ? '#dcfce7' : '#fee2e2',
+              color: catalog?.models.some((m) => m.installed && m.sha256Ok) ? '#166534' : '#991b1b',
             }}
           >
-            {llmModelReport?.installed && llmModelReport?.sha256Ok ? 'INSTALLATO (SHA-256 OK)' : 'NON INSTALLATO'}
+            {catalog?.models.some((m) => m.installed && m.sha256Ok)
+              ? `PRONTO (${catalog.models.filter((m) => m.installed && m.sha256Ok).length} MODELLI SU DISCO)`
+              : 'NESSUN MODELLO INSTALLATO'}
           </span>
         </div>
 
         <p style={{ margin: 0, fontSize: 13, color: '#475569', lineHeight: 1.5 }}>
-          Consente la generazione di risposte interamente sul Mac a rete zero tramite Mistral AI <strong>Ministral 3 8B Instruct</strong> (quantizzazione ad alta fedeltà <code>Q5_K_M</code>). Nessun byte lascia il computer e nessuna chiave API è richiesta.
+          Genera risposte interamente sul computer a rete zero scegliendo tra 6 modelli open-source (Ministral, Qwen, Llama 3.1, DeepSeek-R1).
+          Nessun dato esce dal dispositivo e nessuna chiave API esterna è richiesta.
         </p>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10, fontSize: 12 }}>
+        {/* Server & System Monitor */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10, fontSize: 12 }}>
           <div style={{ padding: 10, backgroundColor: '#f8fafc', borderRadius: 6, border: '1px solid #e2e8f0' }}>
-            <span style={{ color: '#64748b', display: 'block', marginBottom: 2 }}>File Modello GGUF</span>
-            <span style={{ fontWeight: 600, color: '#0f172a', fontFamily: 'monospace' }}>Ministral-3-8B-Instruct-2512-Q5_K_M.gguf</span>
+            <span style={{ color: '#64748b', display: 'block', marginBottom: 2 }}>RAM Fisica Rilevata</span>
+            <span style={{ fontWeight: 700, color: '#0f172a' }}>
+              {catalog?.physicalRamBytes ? `${Math.round(catalog.physicalRamBytes / (1024 * 1024 * 1024))} GB` : 'Rilevamento in corso…'}
+            </span>
           </div>
           <div style={{ padding: 10, backgroundColor: '#f8fafc', borderRadius: 6, border: '1px solid #e2e8f0' }}>
-            <span style={{ color: '#64748b', display: 'block', marginBottom: 2 }}>Dimensione su disco</span>
-            <span style={{ fontWeight: 600, color: '#0f172a' }}>
-              {llmModelReport?.installed ? `${formatBytes(llmModelReport.bytes)} (~6,06 GB)` : '~6,06 GB (non presente)'}
+            <span style={{ color: '#64748b', display: 'block', marginBottom: 2 }}>Modello Attivo</span>
+            <span style={{ fontWeight: 700, color: '#0f172a' }}>
+              {catalog?.models.find((m) => m.isActive)?.displayName || 'Nessuno selezionato'}
             </span>
           </div>
           <div style={{ padding: 10, backgroundColor: '#f8fafc', borderRadius: 6, border: '1px solid #e2e8f0' }}>
@@ -989,19 +1035,13 @@ export function SemanticEngineSettings({ vaultPath }: { vaultPath: string }) {
                 : 'INATTIVO'}
             </span>
           </div>
-          <div style={{ padding: 10, backgroundColor: '#f8fafc', borderRadius: 6, border: '1px solid #e2e8f0' }}>
-            <span style={{ color: '#64748b', display: 'block', marginBottom: 2 }}>Allocazione Memoria Metal</span>
-            <span style={{ fontWeight: 600, color: '#0f172a' }}>
-              {llmServerReport?.running && llmServerReport?.healthy ? '~6,2 GB (GPU Metal allocata)' : '0 MB (rilasciata)'}
-            </span>
-          </div>
         </div>
 
-        {/* Download Progress */}
+        {/* Download Progress Bar */}
         {llmDownloading && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: 10, backgroundColor: '#f0fdf4', borderRadius: 6, border: '1px solid #bbf7d0' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: 12, backgroundColor: '#f0fdf4', borderRadius: 8, border: '1px solid #bbf7d0' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontWeight: 600, color: '#166534' }}>
-              <span>Scaricamento Ministral 8B da Hugging Face in corso…</span>
+              <span>Scaricamento da Hugging Face in corso…</span>
               <span>{llmDownloadProgress ? `${llmDownloadProgress.percent.toFixed(1)}%` : '0%'}</span>
             </div>
             <div style={{ width: '100%', height: 8, backgroundColor: '#dcfce7', borderRadius: 4, overflow: 'hidden' }}>
@@ -1018,74 +1058,159 @@ export function SemanticEngineSettings({ vaultPath }: { vaultPath: string }) {
               <span>Verifica SHA-256 automatica al termine</span>
               <span>
                 {llmDownloadProgress
-                  ? `${((llmDownloadProgress.downloaded) / (1024 * 1024 * 1024)).toFixed(2)} GB / ${((llmDownloadProgress.total) / (1024 * 1024 * 1024)).toFixed(2)} GB`
-                  : '~6,06 GB'}
+                  ? `${(llmDownloadProgress.downloaded / (1024 * 1024 * 1024)).toFixed(2)} GB / ${(llmDownloadProgress.total / (1024 * 1024 * 1024)).toFixed(2)} GB`
+                  : ''}
               </span>
             </div>
           </div>
         )}
 
-        {/* Pulsanti di azione */}
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-          {!llmModelReport?.installed && (
-            <button
-              onClick={handleLlmDownload}
-              disabled={llmDownloading}
-              style={{
-                ...buttonPrimary,
-                backgroundColor: 'var(--limen-lime)',
-                color: '#0f172a',
-                border: '1px solid #52c41a',
-                fontWeight: 700,
-                opacity: llmDownloading ? 0.6 : 1,
-              }}
-            >
-              {llmDownloading ? 'Scaricamento in corso…' : 'Scarica Ministral 3 8B (~6,06 GB)'}
-            </button>
-          )}
+        {/* Catalogo Modelli a Griglia */}
+        <div style={{ marginTop: 8 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: '#334155', marginBottom: 8 }}>
+            Catalogo Modelli Open-Source Disponibili:
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
+            {(catalog?.models || []).map((m) => {
+              const isDownloadingThis = downloadingModelId === m.id;
+              const ramGb = catalog?.physicalRamBytes ? Math.round(catalog.physicalRamBytes / (1024 * 1024 * 1024)) : null;
+              const hasWarning = Boolean(ramGb && ramGb < m.minRamGb);
 
-          {llmModelReport?.installed && (
+              return (
+                <div
+                  key={m.id}
+                  style={{
+                    padding: 14,
+                    borderRadius: 8,
+                    border: m.isActive ? '2px solid #77f117' : '1px solid #e2e8f0',
+                    backgroundColor: m.isActive ? '#f7fee7' : '#ffffff',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    boxShadow: m.isActive ? '0 2px 8px rgba(119, 241, 23, 0.2)' : '0 1px 3px rgba(0,0,0,0.04)',
+                  }}
+                >
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>
+                        {m.displayName}
+                      </div>
+                      {m.isActive && (
+                        <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4, backgroundColor: '#77f117', color: '#0f172a' }}>
+                          ATTIVO
+                        </span>
+                      )}
+                    </div>
+
+                    <div style={{ fontSize: 11, color: '#64748b', marginBottom: 8 }}>
+                      Dimensione: <strong>{formatBytes(m.sizeBytes)}</strong> · File: <code style={{ fontSize: 10 }}>{m.fileName}</code>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+                      <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4, backgroundColor: '#f1f5f9', color: '#475569', fontWeight: 600 }}>
+                        RAM Min: {m.minRamGb} GB
+                      </span>
+                      <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4, backgroundColor: '#f1f5f9', color: '#0f172a', fontWeight: 600 }}>
+                        Hardware: {m.recommendedHardware}
+                      </span>
+                    </div>
+
+                    {hasWarning && (
+                      <div style={{ fontSize: 11, color: '#b45309', backgroundColor: '#fef3c7', padding: '4px 8px', borderRadius: 4, marginBottom: 8, lineHeight: 1.3 }}>
+                        Attenzione: la RAM di sistema ({ramGb} GB) è inferiore al minimo raccomandato ({m.minRamGb} GB).
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid #f1f5f9', display: 'flex', gap: 6, justifyContent: 'flex-end', alignItems: 'center' }}>
+                    {m.installed && m.sha256Ok ? (
+                      m.isActive ? (
+                        <span style={{ fontSize: 12, fontWeight: 600, color: '#15803d' }}>
+                          In uso
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleSetActiveModel(m.id)}
+                          style={{
+                            padding: '6px 12px',
+                            borderRadius: 6,
+                            border: '1px solid #cbd5e1',
+                            backgroundColor: '#ffffff',
+                            color: '#0f172a',
+                            fontSize: 12,
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          Imposta come Attivo
+                        </button>
+                      )
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleDownloadCatalogModel(m.id)}
+                        disabled={llmDownloading}
+                        style={{
+                          padding: '6px 12px',
+                          borderRadius: 6,
+                          border: 'none',
+                          backgroundColor: '#0f172a',
+                          color: '#ffffff',
+                          fontSize: 12,
+                          fontWeight: 600,
+                          cursor: llmDownloading ? 'not-allowed' : 'pointer',
+                          opacity: llmDownloading ? 0.6 : 1,
+                        }}
+                      >
+                        {isDownloadingThis ? 'Download in corso…' : `Scarica (${formatBytes(m.sizeBytes)})`}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Controlli Server di Fondo */}
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 12, paddingTop: 12, borderTop: '1px solid #e2e8f0' }}>
+          {llmServerReport?.running && llmServerReport?.healthy ? (
             <button
-              onClick={handleLlmVerifyIntegrity}
-              disabled={llmVerifyingIntegrity}
+              onClick={handleLlmStopServer}
+              disabled={llmStoppingServer}
               style={{
                 ...buttonSecondary,
-                opacity: llmVerifyingIntegrity ? 0.6 : 1,
+                color: '#991b1b',
+                borderColor: '#fca5a5',
+                opacity: llmStoppingServer ? 0.6 : 1,
               }}
             >
-              {llmVerifyingIntegrity ? 'Verifica in corso…' : 'Verifica integrità SHA-256'}
+              {llmStoppingServer ? 'Arresto…' : 'Arresta servizio (libera RAM/GPU)'}
+            </button>
+          ) : (
+            <button
+              onClick={handleLlmStartServer}
+              disabled={llmStartingServer}
+              style={{
+                ...buttonPrimary,
+                opacity: llmStartingServer ? 0.6 : 1,
+              }}
+            >
+              {llmStartingServer ? 'Avvio in corso…' : 'Avvia motore locale attivo'}
             </button>
           )}
 
-          {llmModelReport?.installed && llmModelReport?.sha256Ok && (
-            <>
-              {llmServerReport?.running && llmServerReport?.healthy ? (
-                <button
-                  onClick={handleLlmStopServer}
-                  disabled={llmStoppingServer}
-                  style={{
-                    ...buttonSecondary,
-                    color: '#991b1b',
-                    borderColor: '#fca5a5',
-                    opacity: llmStoppingServer ? 0.6 : 1,
-                  }}
-                >
-                  {llmStoppingServer ? 'Arresto…' : 'Arresta servizio (libera RAM)'}
-                </button>
-              ) : (
-                <button
-                  onClick={handleLlmStartServer}
-                  disabled={llmStartingServer}
-                  style={{
-                    ...buttonPrimary,
-                    opacity: llmStartingServer ? 0.6 : 1,
-                  }}
-                >
-                  {llmStartingServer ? 'Avvio in corso…' : 'Avvia motore locale Ministral'}
-                </button>
-              )}
-            </>
-          )}
+          <button
+            onClick={handleLlmVerifyIntegrity}
+            disabled={llmVerifyingIntegrity}
+            style={{
+              ...buttonSecondary,
+              opacity: llmVerifyingIntegrity ? 0.6 : 1,
+            }}
+          >
+            {llmVerifyingIntegrity ? 'Verifica in corso…' : 'Verifica integrità SHA-256 modello attivo'}
+          </button>
         </div>
       </div>
 
