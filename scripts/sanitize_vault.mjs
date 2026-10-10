@@ -2,7 +2,9 @@
 /**
  * LIMEN Vault — Script Unico di Sanitizzazione Referenze (Zero Backup)
  *
- * Scansiona e sostituisce ogni occorrenza di "Michele Bondani" con "[RIFERIMENTO_RISERVATO]"
+ * Scansiona e sostituisce ogni occorrenza di:
+ * 1. "Michele Bondani" -> "[RIFERIMENTO_RISERVATO]"
+ * 2. "Packaging in Italy" (e varianti) -> "[AZIENDA_RISERVATA]"
  * nei file del Vault, mantenendo intatti i file e SENZA creare alcun file di backup.
  *
  * Utilizzo:
@@ -11,6 +13,9 @@
  *
  *   # 2. Sanitizzazione di un singolo Vault specifico:
  *   node scripts/sanitize_vault.mjs "tests/scratch/vault_collaudo_local_rag_v2"
+ *
+ *   # 3. Sanitizzazione con termine personalizzato:
+ *   node scripts/sanitize_vault.mjs --target "Nome Target" --replace "[SOSTITUZIONE]"
  */
 
 import fs from 'node:fs';
@@ -20,20 +25,58 @@ import os from 'node:os';
 const args = process.argv.slice(2);
 const positionalArgs = args.filter((a) => !a.startsWith('--'));
 
-const targetPhrase = 'Michele Bondani';
-const replacementPhrase = '[RIFERIMENTO_RISERVATO]';
+// Definizione pattern predefiniti da sanitizzare
+const defaultRules = [
+  {
+    name: 'Michele Bondani',
+    regexes: [
+      new RegExp('Michele\\s+Bondani', 'gi'),
+      new RegExp('Michele_Bondani', 'gi'),
+    ],
+    replacement: '[RIFERIMENTO_RISERVATO]',
+  },
+  {
+    name: 'Packaging in Italy',
+    regexes: [
+      new RegExp('Packaging\\s+in\\s+Italy(?:\\s+s\\.?r\\.?l\\.?)?', 'gi'),
+      new RegExp('Packaging_in_Italy', 'gi'),
+      new RegExp('PackaginginItaly', 'gi'),
+    ],
+    replacement: '[AZIENDA_RISERVATA]',
+  },
+];
 
-const escapedTarget = targetPhrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-const targetRegex = new RegExp(escapedTarget, 'gi');
-const targetUnderscore = targetPhrase.replace(/\s+/g, '_');
-const targetUnderscoreRegex = new RegExp(targetUnderscore.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+// Supporto per override da riga di comando
+let activeRules = defaultRules;
+for (let i = 0; i < args.length; i++) {
+  if (args[i] === '--target' && args[i + 1]) {
+    const customTarget = args[i + 1];
+    let customReplace = '[RIFERIMENTO_RISERVATO]';
+    for (let j = 0; j < args.length; j++) {
+      if (args[j] === '--replace' && args[j + 1]) {
+        customReplace = args[j + 1];
+      }
+    }
+    const escaped = customTarget.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    activeRules = [
+      {
+        name: customTarget,
+        regexes: [new RegExp(escaped, 'gi'), new RegExp(customTarget.replace(/\s+/g, '_'), 'gi')],
+        replacement: customReplace,
+      },
+    ];
+    break;
+  }
+}
 
 console.log('\n================================================================');
 console.log('    LIMEN VAULT — SANITIZZATORE UNICO DIRETTO (NO BACKUP)');
 console.log('================================================================');
-console.log(`Termine cercato   : \x1b[33m"${targetPhrase}"\x1b[0m`);
-console.log(`Sostituzione con  : \x1b[32m"${replacementPhrase}"\x1b[0m`);
-console.log(`File di backup    : \x1b[31mDISABILITATI (Nessun backup creato)\x1b[0m`);
+console.log('Regole di sanitizzazione attive:');
+activeRules.forEach((r, idx) => {
+  console.log(`  ${idx + 1}. \x1b[33m"${r.name}"\x1b[0m -> \x1b[32m"${r.replacement}"\x1b[0m`);
+});
+console.log(`File di backup : \x1b[31mDISABILITATI (Nessun backup creato)\x1b[0m`);
 console.log('================================================================\n');
 
 // Funzione di validazione struttura Vault
@@ -48,7 +91,13 @@ function isLimenOrObsidianVault(dir) {
     const hasProposals = entries.includes('90_PROPOSALS');
     const hasLimen = entries.includes('.limen');
 
-    if ((hasRaw && hasClients) || (hasSystem && hasClients) || (hasObsidian && (hasClients || hasRaw || hasProposals)) || hasLimen) {
+    if (
+      (hasRaw && hasClients) ||
+      (hasRaw && hasSystem) ||
+      (hasSystem && hasClients) ||
+      (hasObsidian && (hasClients || hasRaw || hasProposals)) ||
+      hasLimen
+    ) {
       return true;
     }
   } catch {}
@@ -129,6 +178,10 @@ console.log(`Vault target da sanitizzare: \x1b[36m${targets.length}\x1b[0m\n`);
 
 let grandTotalFilesModified = 0;
 let grandTotalOccurrences = 0;
+const ruleStats = {};
+activeRules.forEach((r) => {
+  ruleStats[r.name] = 0;
+});
 
 for (const vault of targets) {
   console.log(`----------------------------------------------------------------`);
@@ -158,23 +211,28 @@ for (const vault of targets) {
 
         if (isText) {
           try {
-            const originalText = fs.readFileSync(fullPath, 'utf8');
-            let count = 0;
-            const matches1 = originalText.match(targetRegex);
-            const matches2 = originalText.match(targetUnderscoreRegex);
-            if (matches1) count += matches1.length;
-            if (matches2) count += matches2.length;
+            let currentText = fs.readFileSync(fullPath, 'utf8');
+            let fileChanged = false;
+            let fileOccurrences = 0;
 
-            if (count > 0) {
-              const sanitizedText = originalText
-                .replace(targetRegex, replacementPhrase)
-                .replace(targetUnderscoreRegex, 'RIFERIMENTO_RISERVATO');
+            for (const rule of activeRules) {
+              for (const rx of rule.regexes) {
+                const matches = currentText.match(rx);
+                if (matches && matches.length > 0) {
+                  currentText = currentText.replace(rx, rule.replacement);
+                  fileChanged = true;
+                  fileOccurrences += matches.length;
+                  ruleStats[rule.name] = (ruleStats[rule.name] || 0) + matches.length;
+                }
+              }
+            }
 
+            if (fileChanged) {
               // Scrittura diretta senza creare file di backup
-              fs.writeFileSync(fullPath, sanitizedText, 'utf8');
-              console.log(`  \x1b[32m✓ Sanitizzato:\x1b[0m ${relPath} (${count} occorrenze sostituite)`);
+              fs.writeFileSync(fullPath, currentText, 'utf8');
+              console.log(`  \x1b[32m✓ Sanitizzato:\x1b[0m ${relPath} (${fileOccurrences} occorrenze corrette)`);
               modifiedInVault++;
-              occurrencesInVault += count;
+              occurrencesInVault += fileOccurrences;
             }
           } catch (err) {
             console.error(`  \x1b[31m✗ Errore su ${relPath}:\x1b[0m ${err.message}`);
@@ -203,6 +261,10 @@ console.log('================================================================');
 console.log(`Totale Vault esaminati   : ${targets.length}`);
 console.log(`Totale file sanitizzati  : \x1b[32m${grandTotalFilesModified}\x1b[0m`);
 console.log(`Totale occorrenze corrette: \x1b[32m${grandTotalOccurrences}\x1b[0m`);
+console.log('Dettaglio per regola:');
+Object.entries(ruleStats).forEach(([name, count]) => {
+  console.log(`  - \x1b[33m"${name}"\x1b[0m: \x1b[32m${count} occorrenze sostituite\x1b[0m`);
+});
 console.log(`File di backup creati    : \x1b[36m0 (Nessun file di backup generato)\x1b[0m`);
 console.log('================================================================\n');
 console.log('\x1b[32mSanitizzazione completata con successo!\x1b[0m\n');

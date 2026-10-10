@@ -18,7 +18,7 @@ Welcome to your independent, local-first Knowledge Vault.
 - **02_PROJECTS**: Project manifests & deliverables
 - **03_BRANDS**: Brand identity & brand positioning specs
 - **04_POSITIONING**: Strategic positioning frameworks
-- **05_PACKAGING_KNOWLEDGE**: Packaging in Italy core domain knowledge
+- **05_PACKAGING_KNOWLEDGE**: Packaging core domain knowledge
 - **06_METHODS**: Methodologies & analytical workflows
 - **07_CASE_STUDIES**: Completed case studies & success stories
 - **08_MARKET_RESEARCH**: Market studies & sector intelligence
