@@ -114,9 +114,35 @@ export interface LocalServerReport {
 }
 
 export interface LocalModelProgress {
+  modelId?: string;
   downloaded: number;
   total: number;
   percent: number;
+}
+
+export interface LocalModelCatalogEntry {
+  id: string;
+  displayName: string;
+  fileName: string;
+  sizeBytes: number;
+  sha256: string;
+  downloadUrl: string;
+  minRamGb: number;
+  recommendedHardware: string;
+  description: string;
+  isReasoning: boolean;
+  installed: boolean;
+  path: string;
+  currentBytes: number;
+  sha256Ok: boolean;
+  isActive: boolean;
+}
+
+export interface LocalCatalogReport {
+  models: LocalModelCatalogEntry[];
+  activeModelId: string;
+  physicalRamBytes: number;
+  ramWarning?: string | null;
 }
 
 let mockProvider: EmbeddingsProviderReport = {
@@ -161,6 +187,116 @@ let mockLlmServer: LocalServerReport = {
   lastError: null,
 };
 
+let mockCatalog: LocalCatalogReport = {
+  activeModelId: 'ministral-8b',
+  physicalRamBytes: 17179869184,
+  ramWarning: null,
+  models: [
+    {
+      id: 'ministral-3b',
+      displayName: 'Ministral 3 3B Instruct',
+      fileName: 'Ministral-3-3B-Instruct-2512-Q5_K_M.gguf',
+      sizeBytes: 2474178720,
+      sha256: 'e23dd88b0e0951d3f5784d6d4092210cda2b006b251f33b226b283a6c9d1f6bb',
+      downloadUrl: 'https://huggingface.co/mistralai/Ministral-3-3B-Instruct-2512-GGUF/resolve/main/Ministral-3-3B-Instruct-2512-Q5_K_M.gguf',
+      minRamGb: 8,
+      recommendedHardware: 'Mac 8 GB RAM / Consumi minimi',
+      description: 'Ultra-compatto e veloce, ottimizzato per Mac con 8 GB di memoria unificata.',
+      isReasoning: false,
+      installed: false,
+      path: '',
+      currentBytes: 0,
+      sha256Ok: false,
+      isActive: false,
+    },
+    {
+      id: 'ministral-8b',
+      displayName: 'Ministral 3 8B Instruct',
+      fileName: 'Ministral-3-8B-Instruct-2512-Q5_K_M.gguf',
+      sizeBytes: 6059268512,
+      sha256: '7a5454127ec772e2389f0e71a77fedb88b83d4366d8a69facd0cfd0898f04d35',
+      downloadUrl: 'https://huggingface.co/mistralai/Ministral-3-8B-Instruct-2512-GGUF/resolve/main/Ministral-3-8B-Instruct-2512-Q5_K_M.gguf',
+      minRamGb: 16,
+      recommendedHardware: 'Mac 16 GB+ / GPU 8-12 GB',
+      description: 'Massima naturalezza espressiva e comprensione del testo in italiano.',
+      isReasoning: false,
+      installed: true,
+      path: '/Users/cesare/Library/Application Support/LIMEN Vault/models/Ministral-3-8B-Instruct-2512-Q5_K_M.gguf',
+      currentBytes: 6059268512,
+      sha256Ok: true,
+      isActive: true,
+    },
+    {
+      id: 'qwen-2.5-7b',
+      displayName: 'Qwen 2.5 7B Instruct',
+      fileName: 'Qwen2.5-7B-Instruct-Q4_K_M.gguf',
+      sizeBytes: 4683074240,
+      sha256: '65b8fcd92af6b4fefa935c625d1ac27ea29dcb6ee14589c55a8f115ceaaa1423',
+      downloadUrl: 'https://huggingface.co/bartowski/Qwen2.5-7B-Instruct-GGUF/resolve/main/Qwen2.5-7B-Instruct-Q4_K_M.gguf',
+      minRamGb: 16,
+      recommendedHardware: 'Mac 16 GB+ / GPU 8 GB VRAM',
+      description: 'Eccezionale per estrazione dati da note, tabelle, sintassi Markdown e risposte strutturate.',
+      isReasoning: false,
+      installed: false,
+      path: '',
+      currentBytes: 0,
+      sha256Ok: false,
+      isActive: false,
+    },
+    {
+      id: 'llama-3.1-8b',
+      displayName: 'Llama 3.1 8B Instruct (Meta)',
+      fileName: 'Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf',
+      sizeBytes: 4920739232,
+      sha256: '7b064f5842bf9532c91456deda288a1b672397a54fa729aa665952863033557c',
+      downloadUrl: 'https://huggingface.co/bartowski/Meta-Llama-3.1-8B-Instruct-GGUF/resolve/main/Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf',
+      minRamGb: 16,
+      recommendedHardware: 'Mac 16 GB+ / GPU 8 GB VRAM',
+      description: 'Lo standard globale open-weight: grande fedeltà alle istruzioni di sistema e RAG.',
+      isReasoning: false,
+      installed: false,
+      path: '',
+      currentBytes: 0,
+      sha256Ok: false,
+      isActive: false,
+    },
+    {
+      id: 'deepseek-r1-7b',
+      displayName: 'DeepSeek-R1-Distill-Qwen-7B',
+      fileName: 'DeepSeek-R1-Distill-Qwen-7B-Q4_K_M.gguf',
+      sizeBytes: 4683073248,
+      sha256: '78272d8d32084548bd450394a560eb2d70de8232ab96a725769b1f9171235c1c',
+      downloadUrl: 'https://huggingface.co/unsloth/DeepSeek-R1-Distill-Qwen-7B-GGUF/resolve/main/DeepSeek-R1-Distill-Qwen-7B-Q4_K_M.gguf',
+      minRamGb: 16,
+      recommendedHardware: 'Mac 16 GB+ / GPU 8 GB VRAM',
+      description: 'Modello di ragionamento analitico: formula il pensiero logico (<think>) prima di rispondere.',
+      isReasoning: true,
+      installed: false,
+      path: '',
+      currentBytes: 0,
+      sha256Ok: false,
+      isActive: false,
+    },
+    {
+      id: 'deepseek-r1-14b',
+      displayName: 'DeepSeek-R1-Distill-Qwen-14B',
+      fileName: 'DeepSeek-R1-Distill-Qwen-14B-Q4_K_M.gguf',
+      sizeBytes: 8988109984,
+      sha256: '67a7933cf2ad596a393c8e13b30bc4da2d50b283e250b78554aed18817eca31c',
+      downloadUrl: 'https://huggingface.co/unsloth/DeepSeek-R1-Distill-Qwen-14B-GGUF/resolve/main/DeepSeek-R1-Distill-Qwen-14B-Q4_K_M.gguf',
+      minRamGb: 24,
+      recommendedHardware: 'Mac 24-36 GB+ / GPU 12 GB VRAM (es. RTX 3060)',
+      description: 'Ragionamento avanzato e correlazione profonda di concetti. Richiede GPU 12 GB o Mac 24 GB+.',
+      isReasoning: true,
+      installed: false,
+      path: '',
+      currentBytes: 0,
+      sha256Ok: false,
+      isActive: false,
+    },
+  ],
+};
+
 let mockConsent = true;
 
 async function call<T>(command: string, args?: Record<string, unknown>): Promise<T> {
@@ -197,12 +333,43 @@ async function call<T>(command: string, args?: Record<string, unknown>): Promise
     if (command === 'local_llm_status' || command === 'local_llm_verify_integrity') return mockLlmModel as unknown as T;
     if (command === 'local_llm_server_status') return mockLlmServer as unknown as T;
     if (command === 'local_llm_server_start') {
-      mockLlmServer = { running: true, port: 58921, model: 'Ministral-3-8B-Instruct-2512-Q5_K_M.gguf', healthy: true, lastError: null };
+      mockLlmServer = { running: true, port: 58921, model: mockCatalog.activeModelId, healthy: true, lastError: null };
       return mockLlmServer as unknown as T;
     }
     if (command === 'local_llm_server_stop') {
-      mockLlmServer = { running: false, port: 0, model: 'Ministral-3-8B-Instruct-2512-Q5_K_M.gguf', healthy: false, lastError: null };
+      mockLlmServer = { running: false, port: 0, model: mockCatalog.activeModelId, healthy: false, lastError: null };
       return mockLlmServer as unknown as T;
+    }
+    if (command === 'local_llm_catalog') {
+      return mockCatalog as unknown as T;
+    }
+    if (command === 'local_llm_set_active') {
+      const mid = String((args as any)?.modelId || 'ministral-8b');
+      mockCatalog.activeModelId = mid;
+      mockCatalog.models.forEach((m) => {
+        m.isActive = m.id === mid;
+      });
+      const chosen = mockCatalog.models.find((m) => m.id === mid);
+      if (chosen) {
+        mockLlmModel.modelName = chosen.fileName;
+        mockLlmServer.model = chosen.fileName;
+      }
+      return mid as unknown as T;
+    }
+    if (command === 'local_llm_download_model') {
+      const mid = String((args as any)?.modelId || 'ministral-8b');
+      const chosen = mockCatalog.models.find((m) => m.id === mid);
+      if (chosen) {
+        chosen.installed = true;
+        chosen.sha256Ok = true;
+        chosen.currentBytes = chosen.sizeBytes;
+      }
+      return mockLlmModel as unknown as T;
+    }
+    if (command === 'local_llm_verify_model_integrity') {
+      const mid = String((args as any)?.modelId || 'ministral-8b');
+      const chosen = mockCatalog.models.find((m) => m.id === mid) || mockCatalog.models[0];
+      return chosen as unknown as T;
     }
     if (command === 'embeddings_sync_vault') {
       return { total_passages: 9458, cached_passages: 9458, missing_passages: 0, coverage: 1.0, is_available: true } as unknown as T;
@@ -309,11 +476,16 @@ export const aiIpc = {
   embeddingsSyncVault: (vaultPath: string, apiKey?: string, model?: string) =>
     call<any>('embeddings_sync_vault', { vaultPath, apiKey: apiKey ?? null, model: model ?? null }),
 
-  // Local Generative LLM (Ministral 3 8B Instruct Q5_K_M) IPC methods (FASE 8)
+  // Local Generative LLM (Multi-Model Catalog) IPC methods
   localLlmStatus: () => call<LocalModelReport>('local_llm_status'),
   localLlmDownload: () => call<LocalModelReport>('local_llm_download'),
   localLlmVerifyIntegrity: () => call<LocalModelReport>('local_llm_verify_integrity'),
   localLlmServerStart: () => call<LocalServerReport>('local_llm_server_start'),
   localLlmServerStop: () => call<LocalServerReport>('local_llm_server_stop'),
   localLlmServerStatus: () => call<LocalServerReport>('local_llm_server_status'),
+  localLlmCatalog: () => call<LocalCatalogReport>('local_llm_catalog'),
+  localLlmSetActive: (modelId: string) => call<string>('local_llm_set_active', { modelId }),
+  localLlmDownloadModel: (modelId: string) => call<LocalModelReport>('local_llm_download_model', { modelId }),
+  localLlmVerifyModelIntegrity: (modelId: string) =>
+    call<LocalModelCatalogEntry>('local_llm_verify_model_integrity', { modelId }),
 };
