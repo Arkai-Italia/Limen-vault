@@ -1,132 +1,183 @@
 # LIMEN VAULT v6Mini — MANUALE DELL’INTERFACCIA UTENTE
-Edizione italiana · 25 settembre 2026 · LIMEN Vault v6Mini (0.6.0)
+Edizione italiana · Ottobre 2026 · LIMEN Vault v6Mini (0.6.0)
 
-Applicazione desktop per macOS (Apple Silicon, macOS 26.0+) per la gestione, indicizzazione semantica locale e consultazione aumentata della memoria aziendale.
+Applicazione desktop per macOS (Apple Silicon / Intel, macOS 26.0+) e Windows per la gestione, indicizzazione semantica locale, consultazione aumentata e sovranità della memoria aziendale.
 
 ---
 
-## FILE CREATI O MODIFICATI IN QUESTA SESSIONE (FASE 7 Mac & FASE 8 Ministral)
+## RIEPILOGO COMPONENTI E ARCHITETTURA APPLICATIVA
 
-1. llama_llm.rs
-   Percorso: /Users/cesare/Documents/MEMAI V_FALLBACK OBSIDIAN/apps/desktop/src-tauri/src/llama_llm.rs
-   Link: file:///Users/cesare/Documents/MEMAI%20V_FALLBACK%20OBSIDIAN/apps/desktop/src-tauri/src/llama_llm.rs
-   Descrizione: Modulo di gestione lifecycle del modello generativo locale Ministral 3 8B Instruct Q5_K_M (~6,06 GB), downloader streaming SHA-256 e istanza dedicata di llama-server su Metal GPU.
+1. **llama_llm.rs**
+   Percorso: `apps/desktop/src-tauri/src/llama_llm.rs`
+   Descrizione: Modulo di gestione del catalogo multi-modello generativo locale `.gguf` (Ministral 3B/8B, Qwen 2.5 7B, Llama 3.1 8B, DeepSeek-R1 7B/14B), rilevamento RAM fisica di sistema, downloader streaming con verifica crittografica SHA-256 e istanza dedicata di `llama-server` su GPU Metal.
 
-2. ai.rs
-   Percorso: /Users/cesare/Documents/MEMAI V_FALLBACK OBSIDIAN/apps/desktop/src-tauri/src/ai.rs
-   Link: file:///Users/cesare/Documents/MEMAI%20V_FALLBACK%20OBSIDIAN/apps/desktop/src-tauri/src/ai.rs
-   Descrizione: Router di generazione unificato: dispatch verso OpenAI Responses API o Chat Completions su llama-server locale, con eventi SSE unificati.
+2. **ai.rs**
+   Percorso: `apps/desktop/src-tauri/src/ai.rs`
+   Descrizione: Router di generazione unificato: dispatch verso OpenAI Responses API o Chat Completions su `llama-server` locale, con eventi SSE unificati ed estrazione del modello attivo.
 
-3. main.rs
-   Percorso: /Users/cesare/Documents/MEMAI V_FALLBACK OBSIDIAN/apps/desktop/src-tauri/src/main.rs
-   Link: file:///Users/cesare/Documents/MEMAI%20V_FALLBACK%20OBSIDIAN/apps/desktop/src-tauri/src/main.rs
-   Descrizione: Inizializzazione LlamaLlmServerState, registrazione comandi Tauri local_llm_* e chiusura processi all'uscita.
+3. **main.rs**
+   Percorso: `apps/desktop/src-tauri/src/main.rs`
+   Descrizione: Inizializzazione `LlamaLlmServerState`, registrazione comandi Tauri `local_llm_*` (catalogo, set active, download, verify) e chiusura sicura dei processi all'uscita.
 
-4. ai-ipc.ts
-   Percorso: /Users/cesare/Documents/MEMAI V_FALLBACK OBSIDIAN/apps/desktop/src/ai-ipc.ts
-   Link: file:///Users/cesare/Documents/MEMAI%20V_FALLBACK%20OBSIDIAN/apps/desktop/src/ai-ipc.ts
-   Descrizione: Interfaccia TypeScript e chiamate IPC per la gestione del modello e server locale Ministral 8B.
+4. **ai-ipc.ts**
+   Percorso: `apps/desktop/src/ai-ipc.ts`
+   Descrizione: Interfaccia TypeScript, tipi (`LocalModelCatalogEntry`, `LocalCatalogReport`) e chiamate IPC per il catalogo multi-modello, download con progress bar ed eventi di streaming.
 
-5. AiPanel.tsx
-   Percorso: /Users/cesare/Documents/MEMAI V_FALLBACK OBSIDIAN/apps/desktop/src/AiPanel.tsx
-   Link: file:///Users/cesare/Documents/MEMAI%20V_FALLBACK%20OBSIDIAN/apps/desktop/src/AiPanel.tsx
-   Descrizione: Pulsante toggle Verde Lime ("SOLO LOCALE (Mac)"), modale interattiva di download per Ministral (~6,06 GB) e badge di generazione offline.
+5. **SetupWizardModal.tsx**
+   Percorso: `apps/desktop/src/SetupWizardModal.tsx`
+   Descrizione: Pop-up di onboarding a 3 step con grafica dark-glass minimal & premium, verifica automatica all'avvio (Vault, LLM Locale, Chiave API / Solo Locale), rilevamento RAM e spunte dinamiche `✓`.
 
-6. SemanticEngineSettings.tsx
-   Percorso: /Users/cesare/Documents/MEMAI V_FALLBACK OBSIDIAN/apps/desktop/src/SemanticEngineSettings.tsx
-   Link: file:///Users/cesare/Documents/MEMAI%20V_FALLBACK%20OBSIDIAN/apps/desktop/src/SemanticEngineSettings.tsx
-   Descrizione: Sezione 4 dedicata al Modello Generativo Locale (stato GGUF, monitoraggio memoria GPU Metal, pulsanti download e avvio/arresto).
+6. **AiPanel.tsx**
+   Percorso: `apps/desktop/src/AiPanel.tsx`
+   Descrizione: Interfaccia di chat continua aumentata, toggle Verde Lime ("SOLO LOCALE (Mac)"), modale di download per i modelli del catalogo, badge di generazione offline e isolamento della catena di ragionamento `<think>` per modelli DeepSeek-R1.
 
-7. ISTRUZIONI_TESTER_MAC.md
-   Percorso: /Users/cesare/Documents/MEMAI V_FALLBACK OBSIDIAN/IMPLEMENTATION/ISTRUZIONI_TESTER_MAC.md
-   Link: file:///Users/cesare/Documents/MEMAI%20V_FALLBACK%20OBSIDIAN/IMPLEMENTATION/ISTRUZIONI_TESTER_MAC.md
-   Descrizione: Guida collaudo tester per macOS con la descrizione della doppia modalità Ibrida vs Solo Locale.
+7. **SemanticEngineSettings.tsx**
+   Percorso: `apps/desktop/src/SemanticEngineSettings.tsx`
+   Descrizione: Sezione 4 dedicata al Catalogo Modelli Generativi Locali (schede per ciascun modello con RAM minima/consigliata, pulsanti "Imposta come Attivo", download e avvio/arresto server).
 
-8. MANUALE UTENTE.MD
-   Percorso: /Users/cesare/Documents/MEMAI V_FALLBACK OBSIDIAN/MANUALE UTENTE.MD
-   Link: file:///Users/cesare/Documents/MEMAI%20V_FALLBACK%20OBSIDIAN/MANUALE%20UTENTE.MD
-   Descrizione: Indice di sintesi e riferimento rapido per Obsidian e Markdown viewer.
+8. **App.tsx**
+   Percorso: `apps/desktop/src/App.tsx`
+   Descrizione: Struttura a 3 aree funzionali, controllo automatico dei requisiti al boot, storico conversazioni persistente sul Mac e pulsante globale "CARICA DOCUMENTI".
 
 ---
 
 ## INDICE GENERALE
 
 1. Che cos’è LIMEN Vault v6Mini e principi architetturali
-2. Primo avvio: Aprire o creare un Vault
-3. Struttura dell’interfaccia e navigazione
-4. Motore Semantico & RAG 100% Locale (bge-m3)
-5. Configurazione OpenAI, Consenso e Sicurezza Portachiavi
-6. Chiedi al Vault: Chat continua, Citazione Fonti e Lettore Documenti (Fase 6b)
-7. Acquisizione documenti (20_RAW_SOURCES) ed estrazione passaggi
-8. Proposte, Copie locali e Integrità crittografica
-9. Workflow operativi dettagliati con grafici Mermaid intuitivi
-10. Risoluzione problemi e messaggi frequenti
+2. Controllo di Avvio e Setup Wizard Guidato (Onboarding a 3 Step)
+3. Struttura dell’interfaccia e navigazione a 3 Aree Funzionali
+4. Catalogo Multi-Modello Locale e Vincoli Hardware (RAM Minima e Consigliata)
+5. Motore Semantico & RAG 100% Locale (bge-m3)
+6. Configurazione OpenAI, Consenso e Sicurezza Portachiavi
+7. Chiedi al Vault: Chat continua, Citazione Fonti, Ragionamento DeepSeek e Lettore Documenti
+8. Acquisizione documenti (20_RAW_SOURCES) ed estrazione passaggi
+9. Proposte, Copie locali e Integrità crittografica
+10. Workflow operativi dettagliati con grafici Mermaid
+11. Risoluzione problemi e messaggi frequenti
 
 ---
 
 ## 1. CHE COS’È LIMEN VAULT v6Mini E PRINCIPI ARCHITETTURALI
 
-Il **Vault** è una cartella locale sul Mac contenente note Markdown, documenti aziendali originali (PDF, Office, scansioni), bozze e indici di sistema crittografici. LIMEN Vault gestisce, indicizza e interroga questa struttura, mantenendo la piena compatibilità con Obsidian per l'editing testuale.
+Il **Vault** è una cartella locale contenente note Markdown strutturate, documenti aziendali originali (PDF, DOCX, XLSX, PPTX, TXT), bozze e registri crittografici di sistema. LIMEN Vault gestisce, indicizza e interroga questa struttura mantenendo la piena compatibilità bidirezionale con Obsidian.
 
 ### Principi chiave:
-- **Zero Rete per la Conoscenza Locale**: Il calcolo degli embedding semantici e la ricerca lessicale BM25 avvengono al 100% sul Mac tramite il motore nativo `llama-server` e il modello `bge-m3` su socket loopback locale (`127.0.0.1`). Nessun dato esce dal computer per la ricerca interna.
-- **Privacy e Opt-in per OpenAI**: La trasmissione di dati a OpenAI avviene unicamente se l'utente ha esplicitamente attivato la casella di consenso e solo per i passaggi documentali pertinenti alla domanda posta.
-- **Sicurezza Hardware**: La chiave API OpenAI è archiviata nel **Portachiavi di macOS** (Keychain) con cifratura hardware di sistema.
+- **Zero Rete per la Conoscenza Locale**: Il calcolo degli embedding semantici (`bge-m3`) e la ricerca lessicale BM25 avvengono al 100% sul computer tramite il motore nativo `llama-server` su socket loopback locale (`127.0.0.1`). Nessun dato documentale esce dal computer per la ricerca interna.
+- **Doppia Modalità di Risposta (Ibrida vs 100% Solo Locale)**:
+  - *Modalità Ibrida*: Interroga OpenAI (tramite modello selezionato dall'utente) trasmettendo esclusivamente i frammenti strettamente pertinenti estratti dal Vault, previa attivazione esplicita del consenso.
+  - *Modalità 100% Solo Locale*: La generazione del testo viene eseguita interamente sul Mac tramite GPU Metal e uno dei 6 modelli open-source installati, garantendo l'assoluta riservatezza e funzionamento anche in totale assenza di rete internet.
+- **Sicurezza Hardware**: La chiave API OpenAI è archiviata nel **Portachiavi di macOS** (Keychain) o Windows DPAPI con cifratura hardware di sistema.
 
 ---
 
-## 2. PRIMO AVVIO: APRIRE O CREARE UN VAULT
+## 2. CONTROLLO DI AVVIO E SETUP WIZARD GUIDATO (ONBOARDING A 3 STEP)
 
-All'avvio di LIMEN Vault v6Mini compare la schermata di benvenuto:
+All'avvio dell'applicazione viene eseguita una verifica automatica delle 3 condizioni fondamentali:
+1. **Presenza e apertura di un Vault valido** (`vaultPath && vaultLoaded`).
+2. **Modello LLM locale installato e verificato** (almeno un modello `.gguf` presente nel catalogo locale con SHA-256 integro).
+3. **Chiave API OpenAI configurata** nel Portachiavi di sistema OPPURE modalità *Solo Locale (Rete Zero)* confermata.
+
+Se anche una sola di queste condizioni non è soddisfatta, viene aperto automaticamente il **Pop-up di Configurazione Guidata (Setup Wizard)**:
 
 ```mermaid
 flowchart TD
-    Start([Avvio LIMEN Vault v6Mini]) --> SelectPath[Seleziona cartella sul Mac]
-    SelectPath --> Decision{Tipo operazione}
-    Decision -->|Cartella esistente| BtnOpen["APRI VAULT ESISTENTE"]
-    Decision -->|Cartella vuota / Nuova| BtnCreate["CREA NUOVO VAULT"]
-    BtnOpen --> IndexCheck[Verifica e Ricostruzione Indice Lessicale]
-    IndexCheck --> ReadyState[Stato: PRONTO - Schermata Principale]
-    BtnCreate --> InitStructure[Creazione cartelle 01-10, 20_RAW, 00_SYSTEM]
-    InitStructure --> ReadyState
+    Boot([Avvio LIMEN Vault]) --> Check{"Controllo Requisiti:
+    1. Vault Aperto?
+    2. LLM Locale Presente?
+    3. Chiave API o Solo Locale?"}
+    Check -->|Tutte e 3 Soddisfatte| MainUI[Schermata Principale Vault]
+    Check -->|Almeno 1 Mancante| WizardModal["POP-UP SETUP WIZARD GUIDATO
+    (Grafica Dark-Glass Minimal & Premium)"]
+    
+    subgraph WizardSteps["Stepper a 3 Fasi"]
+        S1["Step 1: Cartella Vault
+        - Sfoglia cartella locale
+        - oppure Crea Nuovo Vault"]
+        S2["Step 2: Motore AI Locale
+        - Rilevamento RAM di sistema
+        - Scelta modello consigliato
+        - Download con barra di avanzamento"]
+        S3["Step 3: Modalità AI & Chiave API
+        - Scelta 'Solo Locale (Rete Zero)'
+        - oppure Inserimento Chiave OpenAI"]
+        S1 --> S2 --> S3
+    end
+    
+    WizardModal --> WizardSteps
+    WizardSteps --> Complete["Clic su 'Entra in LIMEN Vault'"]
+    Complete --> MainUI
 ```
 
-1. **APRI VAULT ESISTENTE**: Clicca per selezionare una cartella Vault già strutturata.
-   - *Nota importante*: alla prima apertura di un vault esistente possono essere necessari alcuni secondi supplementari poiché l'indice di ricerca lessicale e semantico viene validato e ricostruito.
-2. **CREA NUOVO VAULT**: Crea le directory standard (`01_CLIENTS` ... `10_APPROVED_OUTPUTS`, `20_RAW_SOURCES`, `00_SYSTEM`) e i file di sistema iniziali.
+### Caratteristiche del Setup Wizard:
+- **Estetica Dark-Glass Premium**: Finitura scura ardesia (`#0f172a`), bordi semitrasparenti ad alta definizione, sfocatura di fondo (`backdrop-filter: blur(16px)`), accenti verde lime (`#77f117`).
+- **Indicatori di Stato Dinamici**: Badge con spunta verde `✓` che si attivano in tempo reale non appena ciascun requisito viene soddisfatto.
+- **Accessibilità Permanente**: Il Setup Wizard può essere riaperto in ogni momento cliccando sul pulsante **"CONFIGURAZIONE GUIDATA"** (con icona Bussola) presente nella schermata di benvenuto e nelle impostazioni.
 
 ---
 
-## 3. STRUTTURA DELL’INTERFACCIA E NAVIGAZIONE
+## 3. STRUTTURA DELL’INTERFACCIA E NAVIGAZIONE A 3 AREE FUNZIONALI
 
-L'interfaccia di LIMEN Vault v6Mini è articolata in due livelli di navigazione:
+L'interfaccia di LIMEN Vault v6Mini è organizzata attorno a 3 aree funzionali principali più un'area avanzata:
 
-### A. Menu Laterale Principale (Sinistra):
+### A. Barra Laterale Sinistra:
+- **Pulsante Globale "CARICA DOCUMENTI"**: Posizionato in cima alla barra laterale con colore verde lime ad alta visibilità (`#c8ff00`), permette di importare documenti (PDF, DOCX, XLSX, PPTX, TXT) in qualsiasi momento.
 - **Chiedi**: Conversazione continua con l'assistente AI e ricerca semantica (icona scintille).
-- **Documenti**: Inventario dei file originali acquisiti in `20_RAW_SOURCES`, stato di estrazione e conteggio passaggi.
-- **Memoria / Note Wiki**: Catalogo navigabile delle note Markdown del Vault suddivise nelle categorie da `01` a `10`.
-- **Avanzate**: Pannello di gestione tecnica, manutenzione, collegamenti e documentazione (icona ingranaggio).
+- **Documenti**: Inventario dei file originali acquisiti in `20_RAW_SOURCES/`, stato di estrazione testo e conteggio passaggi.
+- **Memoria / Note Wiki**: Catalogo navigabile delle note Markdown del Vault suddivise nelle categorie da `01_CLIENTS` a `10_APPROVED_OUTPUTS`.
+- **Avanzate**: Pannello di gestione tecnica, governance, manutenzione e collegamenti (icona cursori).
+- **Storico Conversazioni Persistente**: Sezione scorrevole nella parte inferiore della barra laterale che mostra tutte le conversazioni archiviate in `00_SYSTEM/` ordinate per data e ora locale.
+- **Pulsante "Apri in Obsidian"**: Collegamento diretto per aprire la cartella del Vault nell'applicazione Obsidian nativa.
 
-Sotto il menu laterale si trova il pulsante rapido **"Apri in Obsidian"** per aprire istantaneamente il vault nell'editor Markdown.
-
-### B. Barra Secondaria Superiore (dentro "Avanzate"):
+### B. Sezioni del Pannello "Avanzate":
 - **Bozze e Proposte**: Revisione e approvazione delle note generate (`90_PROPOSALS/`).
 - **Copie locali e Ripristino**: Snapshot crittografici SHA-256 e ripristino sicuro in cartella separata.
-- **Trasferimenti**: Sincronizzazione con il cloud (Cloudflare R2, canali CRM e Backup).
-- **Collegamenti AI & MCP**: Configurazione del motore semantico locale (`bge-m3`) e parametri OpenAI.
-- **Compilatore manuale**: Compilazione in batch di file di testo grezzi.
-- **Stato di Sistema**: Diagnostica del computer, percorsi attivi e disponibilità componenti.
+- **Trasferimenti**: Sincronizzazione crittografata con storage cloud S3/R2.
+- **Collegamenti AI & MCP**: Configurazione del motore semantico locale (`bge-m3`), del catalogo modelli locali e dei parametri OpenAI.
+- **Compilatore manuale**: Compilazione batch di file di testo in bozze.
+- **Stato di Sistema**: Diagnostica del computer, percorsi attivi, memoria RAM e stato dei processi.
 - **Guida Vault**: Manuale e documentazione tecnica integrata nell'app.
 
 ---
 
-## 4. MOTORE SEMANTICO & RAG 100% LOCALE (bge-m3)
+## 4. CATALOGO MULTI-MODELLO LOCALE E VINCOLI HARDWARE
+
+LIMEN Vault v6Mini offre un catalogo integrato con **6 modelli open-source all'avanguardia**, quantizzati in formato `Q4_K_M` per garantire velocità, ridotta occupazione di memoria ed eccellente qualità linguistica su Apple Silicon (GPU Metal) e processori moderni.
+
+```mermaid
+graph TD
+    RAMCheck[Rilevamento RAM di Sistema all'avvio] --> Choice{Capacità RAM}
+    Choice -->|< 16 GB (es. Mac 8 GB)| RecLight["Consigliato: Ministral 3B (~2,06 GB)"]
+    Choice -->|16 GB - 24 GB| RecMid["Consigliati: Ministral 8B, Qwen 2.5 7B, Llama 3.1 8B, DeepSeek-R1 7B"]
+    Choice -->|>= 32 GB| RecHeavy["Consigliato: DeepSeek-R1 14B (~8,99 GB)"]
+    RecLight --> Catalog[Catalogo Modelli Disponibili]
+    RecMid --> Catalog
+    RecHeavy --> Catalog
+```
+
+### Tabella Comparativa del Catalogo Modelli:
+
+| ID Modello | Nome Visualizzato | Peso GGUF | Context | RAM Minima | RAM Consigliata | Caratteristiche Principali |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| `ministral-3b` | **Ministral 3 3B Instruct** | ~2,06 GB | 32k | **8 GB** | 8–16 GB | Estremamente leggero e veloce; ideale per MacBook Air e macchine da 8 GB. |
+| `ministral-8b` | **Ministral 3 8B Instruct** | ~4,92 GB | 32k | **16 GB** | 16–24 GB | Ottimo equilibrio tra velocità su Metal GPU e ricchezza linguistica in italiano. |
+| `qwen-2.5-7b` | **Qwen 2.5 7B Instruct** | ~4,68 GB | 32k | **16 GB** | 16–24 GB | Aderenza eccezionale alle istruzioni complesse, formattazione Markdown e tabelle. |
+| `llama-3.1-8b` | **Llama 3.1 8B Instruct (Meta)** | ~4,92 GB | 32k | **16 GB** | 16–24 GB | Lo standard industriale open-source di Meta per sintesi esecutive e compiti generici. |
+| `deepseek-r1-7b` | **DeepSeek-R1-Distill-Qwen-7B** | ~4,68 GB | 32k | **16 GB** | 16–24 GB | **Ragionamento Profondo**: genera catena di pensiero (*Chain of Thought*) per problemi complessi. |
+| `deepseek-r1-14b`| **DeepSeek-R1-Distill-Qwen-14B**| ~8,99 GB | 32k | **24 GB** | 32 GB+ | Massima capacità analitica locale per deduzioni logiche incrociate e audit estesi. |
+
+### Note sui Vincoli Hardware:
+> [!IMPORTANT]
+> **Protezione della Memoria (Out-of-Memory)**: Sui computer con 8 GB di memoria totale unificata, l'app raccomanda e pre-seleziona automaticamente `ministral-3b`. L'esecuzione di modelli da 8B o superiori su macchine con 8 GB può causare saturazione della memoria di sistema (swap elevato) o chiusura forzata del processo Metal. I modelli da 14B richiedono almeno 24 GB di RAM libera per operare in sicurezza con contesto completo.
+
+---
+
+## 5. MOTORE SEMANTICO & RAG 100% LOCALE (bge-m3)
 
 Il motore semantico locale consente di trovare concetti, sinonimi e relazioni logiche nei documenti senza alcuna connessione internet.
 
 ```mermaid
 flowchart LR
-    subgraph Mac_Locale["macOS (100% Locale a Rete Zero)"]
+    subgraph Mac_Locale["macOS / Windows (100% Locale a Rete Zero)"]
         RawDocs["Documenti (20_RAW_SOURCES)"] --> Chunking["Estrattore & Chunking (~1200 car.)"]
         Chunking --> LlamaServer["llama-server (bge-m3 Q8_0)"]
         LlamaServer --> Embeddings["Vettori Semantici (1024 dim)"]
@@ -139,14 +190,14 @@ flowchart LR
 2. Nel riquadro **Motore semantico**:
    - Assicurati che il fornitore selezionato sia **Locale (bge-m3, nessun dato esce dal dispositivo)**.
    - **Stato Modello**: se mostra `NON INSTALLATO`, fai clic su **SCARICA MODELLO (635 MB)**. Il sistema scarica `bge-m3-Q8_0.gguf` e ne verifica l'impronta SHA-256. Al termine lo stato diventa verde: **`INSTALLATO (SHA-256 OK)`**.
-   - **Servizio Locale di Calcolo**: con modello installato, il servizio parte automaticamente in background all'avvio dell'app. Lo stato indica **`ATTIVO (PORTA nnnn)`**. È possibile usare manualmente i pulsanti **AVVIA SERVIZIO LOCALE** e **ARRESTA SERVIZIO LOCALE**.
-   - **Cache Semantica**: mostra il numero di passaggi indicizzati. Il pulsante **RICALCOLA CACHE** rigenera i vettori in modo atomico (tramite file `.staging.json`) senza disattivare la cache corrente prima del completamento.
+   - **Servizio Locale di Calcolo**: con modello installato, il servizio parte automaticamente in background all'avvio dell'app indicando **`ATTIVO (PORTA nnnn)`**.
+   - **Cache Semantica**: mostra il numero di passaggi indicizzati. Il pulsante **RICALCOLA CACHE** rigenera i vettori in modo atomico (tramite file transitorio `.staging.json`) senza disattivare la cache corrente prima del completamento.
 
 ---
 
-## 5. CONFIGURAZIONE OPENAI, CONSENSO E SICUREZZA PORTACHIAVI
+## 6. CONFIGURAZIONE OPENAI, CONSENSO E SICUREZZA PORTACHIAVI
 
-Per consentire a LIMEN Vault di comporre risposte argomentate basate sulle fonti del Vault, è necessario configurare l'accesso alle API OpenAI.
+Per gli utenti che desiderano la modalità ibrida (risposte composte via cloud con i modelli di punta OpenAI):
 
 ```mermaid
 flowchart TD
@@ -154,25 +205,23 @@ flowchart TD
     ConsentBox --> ModelSel["Seleziona: Modello OpenAI predefinito (es. gpt-4o-mini)"]
     ModelSel --> KeyInput["Inserisci: Chiave API OpenAI (sk-proj-...)"]
     KeyInput --> SaveBtn["Clicca: 'Salva chiave'"]
-    SaveBtn --> Keychain[("Portachiavi di macOS (Keychain Hardware)")]
+    SaveBtn --> Keychain[("Portachiavi Hardware di Sistema (Keychain / DPAPI)")]
     Keychain -.->|In sola lettura su richiesta| Chat["Generazione Risposte Chiedi"]
 ```
 
 ### Campi e Controlli Esatti:
-1. **Consenso all'invio (Obbligatorio)**:
+1. **Consenso all'invio (Obbligatorio per la modalità cloud)**:
    - Casella: **"Consenti l'invio a OpenAI dei passaggi pertinenti per generare le risposte"**.
-   - *Senza il consenso spuntato, le interrogazioni nella scheda Chiedi non partono per tutela della privacy.*
+   - *Se il consenso non è attivo e non si usa la modalità Solo Locale, le interrogazioni non partono per garantire la privacy dei dati.*
 2. **Scelta del Modello**:
-   - Selettore: **Modello OpenAI predefinito**.
    - Opzioni supportate: `gpt-4o-mini (veloce, consigliato)`, `gpt-4o (massima qualità)`, `gpt-4-turbo`, `o3-mini (ragionamento avanzato)`, `o1-mini`.
-3. **Archiviazione Chiave API**:
-   - Campo: **Chiave API OpenAI (memorizzata nel Portachiavi)** (placeholder `sk-proj-...`).
-   - Clicca **"Salva chiave"**.
-   - Pulsanti ausiliari: **"Verifica Portachiavi"** per controllare la presenza della credenziale, **"Rimuovi chiave"** per revocarla.
+3. **Archiviazione Protetta**:
+   - Inserimento con placeholder `sk-proj-...` e clic su **"Salva chiave"**.
+   - Pulsanti di verifica: **"Verifica Portachiavi"** per testare la corretta cifratura e **"Rimuovi chiave"** per revocarla.
 
 ---
 
-## 6. CHIEDI AL VAULT: CHAT CONTINUA, CITAZIONE FONTI E LETTORE DOCUMENTI (FASE 6b)
+## 7. CHIEDI AL VAULT: CHAT CONTINUA, CITAZIONE FONTI, RAGIONAMENTO DEEPSEEK E LETTORE DOCUMENTI
 
 La scheda **Chiedi** costituisce l'ambiente primario di consultazione aumentata:
 
@@ -181,47 +230,47 @@ sequenceDiagram
     autonumber
     actor Utente
     participant UI as Chat Chiedi (AiPanel)
-    participant Search as Motore Ibrido (BM25 + bge-m3)
-    participant OpenAI as API OpenAI
+    participant Search as Motore Ibrido (BM25 + bge-m3 Locale)
+    participant Engine as Motore Generativo (Locale o OpenAI)
     participant Reader as Lettore Documenti
 
     Utente->>UI: Digita domanda nella barra fissa in basso
     Utente->>UI: Invio o clic su "Chiedi"
     UI->>Search: Interroga indice lessicale BM25 e vettoriale locale
     Search-->>UI: Restituisce passaggi rilevanti (a rete zero)
-    UI->>OpenAI: Invia prompt con solo i passaggi estratti
-    OpenAI-->>UI: Risposta in streaming (bolla bianca a sinistra)
-    UI-->>Utente: Mostra pulsante "N fonti citate"
+    UI->>Engine: Invia prompt arricchito con i passaggi estratti
+    Engine-->>UI: Risposta in streaming (bolla bianca a sinistra)
+    UI-->>Utente: Mostra pulsante "N fonti citate" (+ Blocco Pensiero per DeepSeek)
     Utente->>UI: Clicca su "N fonti citate"
     UI->>Utente: Apre sezione "Fonti" nella barra laterale
-    Utente->>UI: Clicca sulla fonte desiderata
-    UI->>Utente: Pop-up con testo integrale del passaggio
+    Utente->>UI: Clicca sulla fonte desiderata → Pop-up dettagli passaggio
     Utente->>Reader: Clicca su "Apri documento"
     Reader-->>Utente: Apertura lettore con documento originale verificato
 ```
 
 ### Dettagli dell'Interfaccia Chat:
-- **Pulsante Toggle Verde Lime ("SOLO LOCALE (Mac)")**: Posto nella testata della chat e sopra la barra di scrittura. Quando attivo si illumina in verde lime (`var(--limen-lime)`) e commuta la generazione su **Ministral 3 8B Instruct (Offline)** a rete zero. Se il modello (~6,06 GB) non è ancora presente, apre una modale interattiva per avviare il download da Hugging Face con barra percentuale di avanzamento.
-- **Badge Risposta Offline**: Le risposte generate in modalità locale presentano in calce il badge distintivo in verde lime: `Generato sul Mac · Ministral 3 8B Instruct Q5_K_M (Offline)`.
-- **Domande Utente**: Allineate a destra con riquadro in **verde lime** (`var(--limen-lime-60)`).
-- **Risposte Assistente**: Allineate a sinistra in card **bianca** con bordo definito (`#e2e8f0`).
+- **Pulsante Toggle Verde Lime ("SOLO LOCALE (Mac)")**: Posto nella testata della chat e sopra la barra di scrittura. Quando attivo si illumina in verde lime (`var(--limen-lime)`) e commuta la generazione sul modello locale attivo a rete zero. Se nessun modello locale è presente, apre la modale interattiva per selezionare e scaricare un modello dal catalogo.
+- **Badge Risposta Offline**: Le risposte generate in modalità locale presentano in calce il badge distintivo in verde lime: `Generato sul Mac · [Nome Modello] (Offline)`.
+- **Isolamento del Ragionamento DeepSeek (`<think>`)**: Quando si usa un modello di ragionamento come DeepSeek-R1, i passaggi di pensiero vengono raggruppati in un accordion collassabile *"Ragionamento del modello (clicca per visualizzare)"*, lasciando la risposta finale limpida e immediatamente fruibile.
+- **Domande Utente**: Allineate a destra con riquadro in verde lime (`var(--limen-lime-60)`).
+- **Risposte Assistente**: Allineate a sinistra in card bianca con bordo definito (`#e2e8f0`).
 - **Casella di Scrittura Fissa in Basso**: Sempre visibile durante lo scorrimento della chat, con contatore caratteri (max 2000), pulsante **"Chiedi"**, indicatore visivo della modalità attiva e spunta **"Includi bozze e note non approvate"**.
 - **Pulsante Nuova Conversazione**: Presente in testa alla schermata e a fine pagina per azzerare il contesto e avviare una sessione pulita.
 - **Pulsante "N fonti citate"**: Posto in calce a ciascuna risposta; cliccandolo si evidenziano le fonti pertinenti nella barra laterale.
-- **Cassetto Laterale "Fonti"**: Elenca i documenti consultati e citati. Il pulsante **"Mostra tutte"** apre il pop-up modale completo.
+- **Cassetto Laterale "Fonti"**: Elenca i documenti consultati e citati. Il pulsante **"Mostra tutte"** apre il pop-up modale completo con estratto, metadati e rilevanza.
 - **Pulsante "Apri documento"**: All'interno del pop-up dei dettagli di ogni passaggio, apre il documento originale nel visualizzatore integrato (`DocumentReaderModal`).
 
 ---
 
-## 7. ACQUISIZIONE DOCUMENTI (20_RAW_SOURCES) ED ESTRAZIONE PASSAGGI
+## 8. ACQUISIZIONE DOCUMENTI (20_RAW_SOURCES) ED ESTRAZIONE PASSAGGI
 
-I documenti aziendali grezzi vengono custoditi nella cartella `20_RAW_SOURCES/` in modalità di sola lettura e immutabilità.
+I documenti aziendali grezzi vengono custoditi nella cartella `20_RAW_SOURCES/` in modalità di sola lettura e immutabilità:
 
 ```mermaid
 flowchart TD
-    UploadBtn["Pulsante: CARICA DOCUMENTI"] --> FileSelect[Selezione file: PDF, DOCX, XLSX, PPTX, TXT]
+    UploadBtn["Pulsante: CARICA DOCUMENTI (in barra laterale)"] --> FileSelect[Selezione file: PDF, DOCX, XLSX, PPTX, TXT]
     FileSelect --> RawDir["Archiviazione in 20_RAW_SOURCES/"]
-    RawDir --> Extractor["Estrattore Nativo"]
+    RawDir --> Extractor["Estrattore Testo Nativo"]
     Extractor --> Chunking["Segmentazione in passaggi (1200 car., overlap 150)"]
     Chunking --> BM25Index["Aggiornamento Indice BM25"]
     Chunking --> SemIndex["Calcolo Embedding bge-m3"]
@@ -230,7 +279,7 @@ flowchart TD
 
 ---
 
-## 8. PROPOSTE, COPIE LOCALI E INTEGRITÀ CRITTOGRAFICA
+## 9. PROPOSTE, COPIE LOCALI E INTEGRITÀ CRITTOGRAFICA
 
 ### A. Bozze e Proposte (`90_PROPOSALS/`):
 Permette di revisionare bozze originate dalle risposte dell'assistente prima di promuoverle a note definitive:
@@ -246,22 +295,20 @@ Permette di revisionare bozze originate dalle risposte dell'assistente prima di 
 
 ---
 
-## 9. WORKFLOW OPERATIVI DETTAGLIATI CON GRAFICI MERMAID INTUITIVI
+## 10. WORKFLOW OPERATIVI DETTAGLIATI CON GRAFICI MERMAID
 
-### WORKFLOW 1: Configurazione Completa al Primo Avvio
+### WORKFLOW 1: Configurazione Completa al Primo Avvio con Setup Wizard
 
 ```mermaid
 graph TD
-    A[Installazione DMG in Applicazioni] --> B[Avvio LIMEN Vault v6Mini]
-    B --> C[Clic su 'APRI VAULT ESISTENTE']
-    C --> D[Attesa ricostruzione iniziale indice]
-    D --> E[Avanzate → Collegamenti AI & MCP]
-    E --> F[Clic su 'SCARICA MODELLO (635 MB)']
-    F --> G[Verifica stato: 'INSTALLATO (SHA-256 OK)']
-    G --> H[Verifica stato servizio: 'ATTIVO']
-    H --> I[Spunta consenso OpenAI]
-    I --> J[Inserisci chiave e clic su 'Salva chiave']
-    J --> K[Vault pronto per il dialogo completo]
+    A[Avvio LIMEN Vault] --> B{Controllo Requisiti}
+    B -->|Mancano requisiti| C[Apertura Automatica Setup Wizard]
+    C --> D[Step 1: Selezione cartella Vault esistente o nuova]
+    D --> E[Step 2: Scelta modello locale da catalogo in base alla RAM]
+    E --> F[Download modello con progress bar e verifica SHA-256]
+    F --> G[Step 3: Selezione 'Solo Locale' o Inserimento Chiave OpenAI]
+    G --> H[Clic su 'Entra in LIMEN Vault']
+    H --> I[Vault Pronto all'Uso]
 ```
 
 ---
@@ -278,7 +325,7 @@ graph TD
     Q6 --> Q7[Clic su 'N fonti citate']
     Q7 --> Q8[Apertura cassetto Fonti nella barra laterale]
     Q8 --> Q9[Clic su una fonte → Pop-up dettagli passaggio]
-    Q9 --> Q10[Clic su 'Apri documento' → Lettore integrato]
+    Q9 --> Q10[Clic su 'Apri documento' → Lettore integrato con verifica SHA-256]
 ```
 
 ---
@@ -313,13 +360,14 @@ graph TD
 
 ---
 
-## 10. RISOLUZIONE PROBLEMI E MESSAGGI FREQUENTI
+## 11. RISOLUZIONE PROBLEMI E MESSAGGI FREQUENTI
 
 | Sintomo / Messaggio | Causa Principale | Soluzione Immediata |
 | :--- | :--- | :--- |
-| **"Consenso disattivato" / Domanda non inviata** | Manca la spunta sulla casella di consenso OpenAI | Vai in **Avanzate → Collegamenti AI & MCP** e attiva la casella *"Consenti l'invio a OpenAI dei passaggi pertinenti..."*. |
-| **Modello semantico: "NON INSTALLATO"** | Il file `.gguf` non è ancora presente in `~/.limen-vault/models/` | Clicca sul pulsante **SCARICA MODELLO (635 MB)** e attendi il completamento della verifica SHA-256. |
-| **Banner giallo: "Modalità degradata (solo ricerca lessicale)"** | Il servizio `llama-server` locale è fermo | Vai in **Avanzate → Collegamenti AI & MCP** e clicca su **AVVIA SERVIZIO LOCALE** (normalmente parte da solo all'avvio dell'app). |
+| **All'avvio si apre sempre il Setup Wizard** | Uno dei 3 requisiti (Vault aperto, modello LLM locale scaricato, chiave API o flag Solo Locale) non è completo | Completa i 3 passaggi guidati del Wizard. Al termine, le impostazioni restano salvate e il popup non si ripresenterà all'avvio successivo. |
+| **"Consenso disattivato" / Domanda non inviata** | Manca la spunta sulla casella di consenso OpenAI | Vai in **Avanzate → Collegamenti AI & MCP** e attiva la casella *"Consenti l'invio a OpenAI dei passaggi pertinenti..."*, oppure attiva il pulsante **"SOLO LOCALE (Mac)"** per non usare OpenAI. |
+| **Modello semantico: "NON INSTALLATO"** | Il file `.gguf` di `bge-m3` non è ancora presente | Clicca sul pulsante **SCARICA MODELLO (635 MB)** e attendi il completamento della verifica SHA-256. |
+| **Banner giallo: "Modalità degradata (solo ricerca lessicale)"** | Il servizio `llama-server` locale è momentaneamente fermo | Vai in **Avanzate → Collegamenti AI & MCP** e clicca su **AVVIA SERVIZIO LOCALE** (normalmente parte da solo all'avvio dell'app). |
+| **Generazione locale lenta o arresto anomalo su Mac 8 GB** | È stato selezionato un modello troppo pesante per la memoria di sistema | Usa il modello leggero **Ministral 3 3B Instruct** (`ministral-3b`) progettato appositamente per configurazioni da 8 GB. |
 | **Prima apertura del Vault lenta** | Ricostruzione dell'indice lessicale e verifica integrità | È un comportamento normale e previsto; attendere alcuni secondi fino alla visualizzazione dello stato **Pronto**. |
-| **Pulsante Chiedi disabilitato** | Modello OpenAI non selezionato o domanda vuota | Seleziona un modello valido nel menu a tendina e inserisci almeno un carattere di testo. |
-| **Pulsante Salva chiave non risponde** | Il campo chiave è vuoto | Incolla una chiave valida con formato `sk-proj-...` prima di fare clic su **Salva chiave**. |
+| **Pulsante Salva chiave non risponde** | Il campo chiave è vuoto o non rispetta il formato | Incolla una chiave valida con formato `sk-proj-...` prima di fare clic su **Salva chiave**. |
