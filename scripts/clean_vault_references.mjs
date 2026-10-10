@@ -45,10 +45,10 @@ for (let i = 0; i < args.length; i++) {
 }
 
 if (!vaultPath) {
-  console.error('\n\x1b[31m[ERRORE] Specificare il percorso del Vault locale.\x1b[0m\n');
-  console.log('Utilizzo:');
-  console.log('  node scripts/clean_vault_references.mjs "/percorso/del/vault" [--dry-run | --execute] [--delete-files]\n');
-  process.exit(1);
+  console.log('\n\x1b[33m[AVVISO] Nessun percorso Vault specificato.\x1b[0m');
+  console.log('Avvio automatico dello scanner per trovare tutti i Vault sul sistema...\n');
+  await import('./find_and_verify_vaults.mjs');
+  process.exit(0);
 }
 
 const resolvedVaultPath = path.resolve(vaultPath);
