@@ -1,0 +1,20 @@
+graph TD
+    Trigger(["Accesso a '3. Memoria' (SCR-005)"]) --> LoadIndex["Caricamento indice concetti e note del Vault"]
+    LoadIndex --> ViewLayout{"Selezione Modalità di Visualizzazione"}
+    
+    ViewLayout -->|Tag e Categorie| TagView["Pannello Tag Cloud e Categorie Semantiche"]
+    ViewLayout -->|Grafo Relazionale| GraphView["Mappa concettuale interattiva dei collegamenti"]
+    ViewLayout -->|Elenco Note| ListView["Tabella note consolidate in 10_KNOWLEDGE"]
+
+    TagView --> SelectTag["Filtro note per tag selezionato"]
+    GraphView --> ClickNode["Clic su nodo concettuale e apertura note correlate"]
+    ListView --> SearchNotes["Digitazione parole chiave nella barra di filtro"]
+
+    SelectTag --> DetailCard["Apertura scheda anteprima nota di memoria"]
+    ClickNode --> DetailCard
+    SearchNotes --> DetailCard
+
+    DetailCard --> NoteActions{"Azioni sulla Nota"}
+    NoteActions -->|Leggi| FullReader["Apertura visualizzatore completo"]
+    NoteActions -->|Apri Esterno| ObsidianLink["Apertura della nota in Obsidian Markdown"]
+    NoteActions -->|Rigenera| ReEmbed["Ricalcolo embedding semantico per la nota"]

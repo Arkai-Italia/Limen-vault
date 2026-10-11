@@ -1,0 +1,19 @@
+flowchart TD
+    RawFile["File Grezzo (PDF / MD / TXT)"] --> Hashing["PIPE-004: Calcolo Hash SHA-256"]
+    Hashing --> StoreRaw["Archiviazione in 20_RAW_SOURCES"]
+    
+    StoreRaw --> Parse{"Formato Documento"}
+    Parse -->|PDF| PdfParser["Parser PDF Rust (Estrazione testo e coordinate pagina)"]
+    Parse -->|MD / TXT| TextNormalizer["Normalizzatore UTF-8 e Frontmatter Parser"]
+    
+    PdfParser --> CleanText["Testo Normalizzato"]
+    TextNormalizer --> CleanText
+
+    CleanText --> Chunker["Semantic Chunker (~512 Token, Overlap 50 Token)"]
+    Chunker --> ChunkList["Frammenti Semantici con Metadati"]
+
+    ChunkList --> EmbedEngine["Modello Locale bge-m3 (Accelerazione Metal/AVX2)"]
+    EmbedEngine --> DenseVectors["Vettori Densi a 1024 Dimensioni"]
+
+    DenseVectors --> SQLiteVec["Database SQLite Locale (sqlite-vec / memai)"]
+    SQLiteVec --> ReadyStatus["Stato Documento: INDEXED"]

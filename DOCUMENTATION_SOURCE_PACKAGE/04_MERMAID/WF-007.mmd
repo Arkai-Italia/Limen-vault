@@ -1,0 +1,19 @@
+graph TD
+    Trigger(["Accesso ad 'Avanzate > Snapshot e Ripristino' (SCR-007)"]) --> FetchSnapshots["Lettura archivio snapshot locali"]
+    FetchSnapshots --> DisplaySnapshots["Visualizzazione tabella snapshot con data, dimensione, hash"]
+
+    DisplaySnapshots --> Choice{"Azione da Eseguire"}
+
+    Choice -->|Crea Nuovo Snapshot| InputName["Inserimento etichetta descrittiva dello snapshot"]
+    InputName --> PackVault["Compressione directory Vault (00, 10, 20) in archivio"]
+    PackVault --> GenManifest["Generazione manifesto crittografico SHA-256 (PIPE-004)"]
+    GenManifest --> SaveArchive["Salvataggio in archivio snapshots locale"]
+    SaveArchive --> RefreshList["Aggiornamento tabella con nuovo snapshot"]
+
+    Choice -->|Ripristina da Snapshot| SelectSnapshot["Selezione snapshot desiderato dalla lista"]
+    SelectSnapshot --> WarningModal["Modale di conferma con avviso di sovrascrittura"]
+    WarningModal --> Confirm{"Conferma ripristino?"}
+    Confirm -->|Annulla| DisplaySnapshots
+    Confirm -->|Procedi| ExtractArchive["Estrazione sicura e sovrascrittura cartelle Vault"]
+    ExtractArchive --> Reindex["Ricalcolo automatico indici vettoriali"]
+    Reindex --> SuccessToast["Notifica: 'Vault ripristinato con successo'"]

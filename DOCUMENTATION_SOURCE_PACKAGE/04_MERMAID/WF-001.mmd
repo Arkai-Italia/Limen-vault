@@ -1,0 +1,28 @@
+graph TD
+    Start(["Avvio Setup Wizard (SCR-001)"]) --> Step1["Step 1: Scelta Modalità Operativa"]
+    Step1 -->|Opzione A| ModeLocal["Modalità 100% Locale (Zero-Rete)"]
+    Step1 -->|Opzione B| ModeHybrid["Modalità Ibrida (Cloud OpenAI + Locale)"]
+    
+    ModeHybrid --> InputKey["Inserimento Chiave OPENAI_API_KEY"]
+    InputKey --> Step2["Step 2: Configurazione Percorso Vault"]
+    ModeLocal --> Step2
+
+    Step2 --> ChoosePath{"Scelta Percorso Cartella"}
+    ChoosePath -->|Nuovo Vault| CreateDirs["Creazione Struttura (00_INBOX, 10_KNOWLEDGE, 20_RAW_SOURCES)"]
+    ChoosePath -->|Vault Esistente| ValidateDirs["Validazione Struttura Directory Esistente"]
+
+    CreateDirs --> Step3["Step 3: Selezione Modello LLM Predefinito"]
+    ValidateDirs --> Step3
+
+    Step3 --> SelectModel{"Modello Selezionato"}
+    SelectModel -->|Ministral 3B / Qwen 7B| CheckModel{"File GGUF Presente?"}
+    SelectModel -->|OpenAI Cloud (Se Ibrido)| SkipDownload["Verifica Connessione API"]
+
+    CheckModel -->|Sì| Ready["Stato Pronto"]
+    CheckModel -->|No| TriggerDownload["Download Asincrono con Barra Avanzamento"]
+    TriggerDownload --> VerifyHash["Verifica Hash SHA-256 Integrità"]
+    VerifyHash --> Ready
+
+    SkipDownload --> Ready
+    Ready --> Finish["Clicca 'Completa Configurazione'"]
+    Finish --> MainUI(["Apertura Interfaccia Principale (SCR-002)"])

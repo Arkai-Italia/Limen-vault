@@ -1,0 +1,12 @@
+graph TD
+    Trigger(["Trigger: Clic su 'Apri in Obsidian' nell'header (NAV-004)"]) --> ReadConfig["Lettura percorso filesystem del Vault attivo"]
+    ReadConfig --> EncodeURI["Codifica URI secondo lo schema Obsidian: obsidian://open?path=..."]
+    EncodeURI --> TauriOpener["Invocazione comando Tauri shell open / tauri-plugin-opener"]
+    
+    TauriOpener --> OSCheck{"Obsidian installato nel sistema operativo?"}
+    OSCheck -->|Sì| OpenObsidian["Apertura istantanea di Obsidian con il Vault caricato"]
+    OSCheck -->|No| FallbackOS["Apertura cartella Vault nel file manager (Finder / Explorer)"]
+
+    OpenObsidian --> SyncWarning["Nota: Nessun conflitto sui file Markdown standard"]
+    FallbackOS --> SyncWarning
+    SyncWarning --> Done(["Completamento workflow senza interruzioni"])

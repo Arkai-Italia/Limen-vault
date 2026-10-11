@@ -1,0 +1,15 @@
+graph TD
+    Trigger(["Trigger: Clic su Selettore Lingua nell'header globale (NAV-005)"]) --> CurrentLang{"Lingua Attualmente Attiva"}
+    
+    CurrentLang -->|Attualmente IT| ClickEN["Utente clicca sul pulsante 'EN'"]
+    CurrentLang -->|Attualmente EN| ClickIT["Utente clicca sul pulsante 'IT'"]
+
+    ClickEN --> SetLocaleEN["React Context imposta locale: 'en-US'"]
+    ClickIT --> SetLocaleIT["React Context imposta locale: 'it-IT'"]
+
+    SetLocaleEN --> PersistStorage["Salvataggio preferenza in LocalStorage / config.json"]
+    SetLocaleIT --> PersistStorage
+
+    PersistStorage --> ReRender["Ricaricamento a caldo del dizionario i18n nell'interfaccia"]
+    ReRender --> UpdateLabels["Aggiornamento istantaneo testi: Menu, Pulsanti, Badge, Modali"]
+    UpdateLabels --> NoReload(["Interfaccia aggiornata senza ricaricamento di pagina"])

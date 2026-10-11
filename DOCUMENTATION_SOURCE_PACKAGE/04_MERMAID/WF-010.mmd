@@ -1,0 +1,16 @@
+graph TD
+    Trigger(["Accesso ad 'Avanzate > Compilazione Manuale' (SCR-010)"]) --> CheckEnv["Rilevamento toolchain di sistema (Node.js, Rust/Cargo, CMake)"]
+    CheckEnv --> CheckMetal["Rilevamento supporto accelerazione hardware (Metal / AVX2)"]
+    CheckMetal --> RenderCommands["Visualizzazione comandi ufficiali di compilazione offline"]
+
+    RenderCommands --> CopyCommand{"Azione dell'Utente"}
+
+    CopyCommand -->|Copia Comando Desktop| CopyDesktop["Copia negli appunti: pnpm --filter @limen-vault/desktop tauri dev --release"]
+    CopyCommand -->|Copia Comando llama.cpp| CopyLlama["Copia flag di build: cmake -B build -DGGML_METAL=ON"]
+    CopyCommand -->|Verifica Cache| ViewCacheStatus["Ispezione stato cache compilatore cargo/pnpm"]
+
+    CopyDesktop --> PasteTerminal["Incolla ed esecuzione nel terminale di sistema"]
+    CopyLlama --> PasteTerminal
+    ViewCacheStatus --> PasteTerminal
+
+    PasteTerminal --> BinaryOutput["Generazione binario nativo standalone privo di dipendenze esterne"]

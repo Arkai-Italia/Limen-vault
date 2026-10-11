@@ -1,0 +1,23 @@
+graph TD
+    Start(["Utente accede a 'Chiedi al Vault' (SCR-002)"]) --> InputPrompt["Digitazione domanda nel box di input"]
+    InputPrompt --> Submit["Clicca 'Invia Domanda' o preme INVIO"]
+    Submit --> Embed["Backend calcola embedding query con bge-m3 locale"]
+    Embed --> VectorSearch["Ricerca vettoriale Top-K nel database SQLite"]
+    VectorSearch --> ContextAssembly["Composizione prompt con frammenti di contesto"]
+    
+    ContextAssembly --> InferenceRouter{"Controllo Router Generativo"}
+    InferenceRouter -->|Modello Locale| LocalLlama["llama-server locale (HTTP 127.0.0.1:8080)"]
+    InferenceRouter -->|Modello Cloud| OpenAICloud["OpenAI API endpoint /v1/chat/completions"]
+
+    LocalLlama --> StreamSSE["Streaming Server-Sent Events (PIPE-003)"]
+    OpenAICloud --> StreamSSE
+
+    StreamSSE --> CheckThink{"Token entro tag &lt;think&gt;?"}
+    CheckThink -->|Sì| RenderThink["Render in pannello 'Pensiero del modello'"]
+    CheckThink -->|No| RenderBody["Render progressivo nel corpo risposta Markdown"]
+
+    RenderThink --> StreamSSE
+    RenderBody --> CheckComplete{"Ricevuto evento fine stream [DONE]?"}
+    CheckComplete -->|No| StreamSSE
+    CheckComplete -->|Sì| RenderSources["Render badge fonti verificate (Nome file, Pagina, Score)"]
+    RenderSources --> Done(["Risposta completa e interattiva"])

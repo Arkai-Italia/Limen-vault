@@ -1,0 +1,23 @@
+flowchart TD
+    EngineStream["Stream HTTP SSE (da llama-server o OpenAI)"] --> RustReader["Lettore SSE Asincrono in Rust (Tauri Backend)"]
+    RustReader --> TauriEmitter["Emissione Evento 'chat-stream-delta' su Loopback Locale"]
+    
+    TauriEmitter --> FrontendListener["React Hook: useChatStreamListener"]
+    FrontendListener --> TokenParse{"Parsing Token Ricevuto"}
+
+    TokenParse -->|Apertura tag &lt;think&gt;| StartThink["Attivazione Stato: isThinking = true"]
+    StartThink --> RenderAccordion["Espansione Card 'Pensiero del modello (Reasoning)'"]
+
+    TokenParse -->|Dentro &lt;think&gt;...&lt;/think&gt;| AppendThink["Scrittura Token nel Box Collapsabile di Ragionamento"]
+
+    TokenParse -->|Chiusura tag &lt;/think&gt;| EndThink["Attivazione Stato: isThinking = false (Collassa Box)"]
+
+    TokenParse -->|Testo Normale Fuori dai Tag| AppendBody["Scrittura Token nel Corpo Principale Markdown"]
+
+    AppendThink --> NextChunk{"Fine Stream [DONE]?"}
+    AppendBody --> NextChunk
+    EndThink --> NextChunk
+
+    NextChunk -->|No| RustReader
+    NextChunk -->|Sì| Finalize["Emissione Evento 'chat-stream-complete' con Fonti Verificate"]
+    Finalize --> RenderSources["Visualizzazione Pillole Cliccabili delle Fonti Utilizzate"]

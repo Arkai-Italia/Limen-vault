@@ -1,0 +1,26 @@
+graph TD
+    Trigger(["Trigger: Clic su pulsante globale 'Carica' (NAV-006)"]) --> OpenDrawer["Apertura UploadDrawer (SCR-004)"]
+    OpenDrawer --> ChooseMethod{"Metodo di Caricamento"}
+    
+    ChooseMethod -->|Singoli File| PickFiles["Finestra selezione file di sistema (PDF, MD, TXT)"]
+    ChooseMethod -->|Intera Cartella| PickFolder["Finestra selezione directory di sistema"]
+    ChooseMethod -->|Drag and Drop| DropArea["Trascina file nell'area tratteggiata"]
+
+    PickFiles --> StagingList["Popolamento coda documenti da elaborare"]
+    PickFolder --> StagingList
+    DropArea --> StagingList
+
+    StagingList --> StartIngest["Clicca 'Avvia Indicizzazione'"]
+    StartIngest --> LoopFile["Per ogni file nella coda (PIPE-001)"]
+    
+    LoopFile --> CopyRaw["Archiviazione in 20_RAW_SOURCES"]
+    CopyRaw --> HashCalc["Calcolo hash SHA-256 e registrazione"]
+    HashCalc --> ExtractText["Estrazione testo e pulizia caratteri"]
+    ExtractText --> ChunkSplit["Suddivisione in frammenti di ~512 token"]
+    ChunkSplit --> EmbedModel["Calcolo vettori semantici con bge-m3 locale"]
+    EmbedModel --> SaveDB["Salvataggio chunk e vettori in database SQLite"]
+
+    SaveDB --> NextFile{"Altri file in coda?"}
+    NextFile -->|Sì| LoopFile
+    NextFile -->|No| CompleteNotification["Notifica successo: X file indicizzati"]
+    CompleteNotification --> RefreshDocList(["Aggiornamento vista 'Documenti' (SCR-002)"])

@@ -1,0 +1,68 @@
+graph TD
+    classDef headerStyle fill:#1e293b,stroke:#3b82f6,stroke-width:2px,color:#f8fafc;
+    classDef navStyle fill:#1e293b,stroke:#64748b,stroke-width:1px,color:#f8fafc;
+    classDef areaStyle fill:#0f172a,stroke:#334155,stroke-width:1px,color:#94a3b8;
+    classDef modalStyle fill:#1e293b,stroke:#c8ff00,stroke-width:2px,color:#f8fafc;
+    classDef drawerStyle fill:#1e293b,stroke:#eab308,stroke-width:1px,color:#f8fafc;
+
+    subgraph Header ["BARRA SUPERIORE (GLOBAL HEADER)"]
+        H1["Logo LIMEN Vault & Badge 0.7.0"]:::headerStyle
+        H2["Stato Rete: 100% Locale / Ibrido"]:::headerStyle
+        H3["Pulsante Apri in Obsidian"]:::headerStyle
+        H4["Selettore Lingua: IT / EN"]:::headerStyle
+        H5["Pulsante Globale: Carica Documenti"]:::headerStyle
+    end
+
+    subgraph NavArea ["BARRA DI NAVIGAZIONE PRINCIPALE"]
+        N1["1. Chiedi al Vault"]:::navStyle
+        N2["2. Documenti"]:::navStyle
+        N3["3. Memoria"]:::navStyle
+        N4["4. Avanzate"]:::navStyle
+    end
+
+    subgraph Area1 ["1. CHIEDI AL VAULT (Chat RAG)"]
+        A1_1["Thread Storico Conversazioni"]:::areaStyle
+        A1_2["Pannello Reasoning Trace (DeepSeek-R1)"]:::areaStyle
+        A1_3["Output Risposta con Fonti Verificate"]:::areaStyle
+        A1_4["Input Prompt con Invio e Modello"]:::areaStyle
+    end
+
+    subgraph Area2 ["2. DOCUMENTI"]
+        A2_1["Filtro Ricerca Testuale & Ordinamento"]:::areaStyle
+        A2_2["Tabella File: Nome, Tipo, Data, Hash"]:::areaStyle
+        A2_3["Pulsante Leggi (Apre Lettore)"]:::areaStyle
+    end
+
+    subgraph Area3 ["3. MEMORIA"]
+        A3_1["Tag Cloud & Categorie Semantiche"]:::areaStyle
+        A3_2["Mappa Concettuale / Grafo di Memoria"]:::areaStyle
+        A3_3["Elenco Note Consolidate del Vault"]:::areaStyle
+    end
+
+    subgraph Area4 ["4. SEZIONI AVANZATE"]
+        A4_1["A. Approvazione Note (Bozze 00_INBOX)"]:::areaStyle
+        A4_2["B. Snapshot e Ripristino"]:::areaStyle
+        A4_3["C. Catalogo Modelli LLM & llama.cpp"]:::areaStyle
+        A4_4["D. Sincronizzazione Cloud S3/R2"]:::areaStyle
+        A4_5["E. Compilazione Manuale Rete Zero"]:::areaStyle
+        A4_6["F. Configurazione e Impostazioni"]:::areaStyle
+        A4_7["G. Diagnostica e Log di Sistema"]:::areaStyle
+    end
+
+    subgraph Overlays ["MODALI E CASSETTI CONTESTUALI"]
+        M1["SetupWizardModal: Configurazione Vault e LLM"]:::modalStyle
+        M2["DocumentReaderModal: Viewer TXT/MD/PDF con Hash SHA-256"]:::modalStyle
+        D1["UploadDrawer: Caricamento File e Directory"]:::drawerStyle
+        D2["ModelDownloadDrawer: Avanzamento Download GGUF"]:::drawerStyle
+    end
+
+    H5 -->|Clicca| D1
+    N1 --> Area1
+    N2 --> Area2
+    N3 --> Area3
+    N4 --> Area4
+
+    A2_3 -->|Clicca| M2
+    A1_3 -->|Clicca Fonte| M2
+    A4_3 -->|Download Modello| D2
+    H1 -->|Primo Avvio o Reset| M1

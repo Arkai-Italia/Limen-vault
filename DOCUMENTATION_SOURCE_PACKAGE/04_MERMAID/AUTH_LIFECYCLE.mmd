@@ -1,0 +1,38 @@
+sequenceDiagram
+    autonumber
+    actor Utente
+    participant App as Frontend (Tauri WebView)
+    participant Core as Backend Rust (Core Engine)
+    participant FS as Filesystem Locale
+    participant Model as Storage Modelli GGUF
+
+    Utente->>App: Avvio Applicazione LIMEN Vault
+    App->>Core: get_app_version() & check_system_requirements()
+    Core-->>App: Versione 0.7.0, Architettura rilevata (Metal/AVX2), RAM disponibile
+    App->>Core: check_vault_exists()
+    Core->>FS: Verifica cartella Vault e file di configurazione
+
+    alt Vault NON configurato (Primo Avvio)
+        Core-->>App: Vault non trovato (isConfigured: false)
+        App->>Utente: Apertura automatica Setup Wizard (Step 1/3: Modalità Rete)
+        Utente->>App: Selezione "100% Locale" o "Ibrida (Cloud + Locale)"
+        Utente->>App: Clicca "Avanti" (Step 2/3: Selezione/Creazione Vault)
+        Utente->>App: Clicca "Sfoglia cartella" o inserisce percorso
+        App->>Core: init_or_validate_vault_path(path)
+        Core->>FS: Creazione struttura cartelle (00_INBOX, 10_KNOWLEDGE, 20_RAW_SOURCES)
+        Core-->>App: Percorso Vault validato con successo
+        Utente->>App: Clicca "Avanti" (Step 3/3: Selezione Modello LLM)
+        Utente->>App: Sceglie modello (es. Ministral 3B) e clicca "Scarica / Configura"
+        App->>Core: download_or_verify_model(model_id)
+        Core->>Model: Controllo presenza GGUF e verifica SHA-256
+        Core-->>App: Modello pronto
+        Utente->>App: Clicca "Completa Configurazione"
+        App->>Core: save_configuration(vault_path, mode, model_id)
+        Core-->>App: Configurazione salvata
+    else Vault GIÀ configurato
+        Core-->>App: Vault valido rilevato (isConfigured: true)
+    end
+
+    App->>Core: start_llama_server_if_needed()
+    Core-->>App: llama-server attivo su porta locale 8080
+    App->>Utente: Visualizzazione Schermata Principale (1. Chiedi al Vault)
