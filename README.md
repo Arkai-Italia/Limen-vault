@@ -108,26 +108,30 @@ flowchart TD
 
 ## Getting Started
 
-### Option A: Standalone Pre-Release Build (macOS Apple Silicon)
+### Option A: Pre-compiled Build (macOS Apple Silicon)
 
-A pre-compiled build for macOS Apple Silicon (`v7Mini 0.7.0`) is included in the repository tree for testing:
-- **Repository path**: `USER INSTALL/LIMEN-Vault-v7Mini.dmg`
-- *Note*: This binary is tracked in git as a testing build. Official standalone GitHub Release assets will be attached to future repository release tags.
+Heavy release binaries are intentionally omitted from the `main` source branch to keep the repository lightweight. A pre-compiled, Apple-notarized build for macOS Apple Silicon (`v7Mini 0.7.0`, ~49 MB) is hosted on GitHub and available via the direct verified link below:
 
-**Running the macOS App:**
-1. Open `USER INSTALL/LIMEN-Vault-v7Mini.dmg` and drag **LIMEN Vault** into `/Applications`.
-2. First-run note: If macOS Gatekeeper alerts about an unnotarized or unsigned binary from the web, right-click (or Control-click) `LIMEN Vault.app` and choose **Open**.
+📥 **[Download LIMEN-Vault-v7Mini.dmg (macOS Apple Silicon)](https://github.com/cesarenegro/Limen-vault/raw/windows-build/USER%20INSTALL/LIMEN-Vault-v7Mini.dmg)**
+
+*Note: Future stable release tags will attach standalone binary packages directly to GitHub Releases.*
+
+**Installation & First Run:**
+1. Download and open `LIMEN-Vault-v7Mini.dmg`, then drag **LIMEN Vault** into your `/Applications` folder.
+2. The application bundle is signed and notarized with an Apple Developer ID (`Arkitecna Hong Kong Limited`). If prompted by macOS Gatekeeper on first open, confirm to allow.
 3. Complete the 3-step **Setup Wizard**:
-   - **Step 1: Vault Folder**: Select an existing Obsidian vault directory.
-   - **Step 2: Local AI Engine**: Confirm local loopback engine configuration.
-   - **Step 3: Mode & Optional API Key**: Select 100% Local mode or Hybrid mode.
+   - **Step 1: Vault Folder**: Select your existing Obsidian vault root directory.
+   - **Step 2: Local AI Engine**: Verify local loopback engine configuration (`127.0.0.1:8080`).
+   - **Step 3: Mode & Optional API Key**: Choose **100% Local** mode (offline) or **Hybrid** mode (cloud LLM).
+
+---
 
 ### Option B: Build & Run from Source
 
 #### Prerequisites
-- **Node.js** (>= 20.0.0) & **pnpm** (>= 9.0.0)
-- **Rust & Cargo** (latest stable)
-- **macOS** (14.0+ Apple Silicon) or **Windows 11**
+- **Node.js** (`>= 20.0.0`) & **pnpm** (`>= 9.0.0`)
+- **Rust & Cargo** (latest stable release)
+- **macOS** (14.0+ Apple Silicon) or **Windows 11** (preview)
 
 ```bash
 # 1. Clone the repository
@@ -137,13 +141,18 @@ cd Limen-vault
 # 2. Install monorepo dependencies
 pnpm install
 
-# 3. Run Desktop Application in development mode
-pnpm dev:desktop
-
-# 4. Run test suites and prohibited dependency guards
+# 3. Run test suites and prohibited dependency guards
 pnpm test
 pnpm typecheck
+
+# 4. Run Desktop Application frontend in development mode
+pnpm dev:desktop
 ```
+
+#### Native Engine & Local Loopback Notes for Developers
+- **Pre-compiled native binaries** (such as `llama-server` and platform-specific GGML runtime libraries) are excluded from the `main` source tree.
+- When running in local development mode, the Rust backend communicates over loopback socket `127.0.0.1:8080`. You can point the application to any running `llama-server` instance or package a complete standalone bundle using `scripts/package-v7mini-macos.sh`.
+- The frontend UI fallback ensures that lexical BM25 search remains fully operational even when no local AI service is active.
 
 ---
 
@@ -160,9 +169,8 @@ pnpm typecheck
 │   ├── search-engine/    # BM25 and hybrid retrieval engine
 │   └── snapshot-engine/  # Versioned snapshots & SHA-256 integrity verification
 ├── vault-template/       # Standard Obsidian-compatible knowledge structure
-├── docs/                 # Architectural specifications and engineering guides
-├── DOCUMENTATION_SOURCE_PACKAGE/ # Exhaustive user guides, screenshots & QA packages
-└── USER INSTALL/         # Pre-built release binaries (v7Mini DMG)
+├── docs/assets/          # Public documentation previews and screenshots
+└── scripts/              # Monorepo build and packaging tooling
 ```
 
 ---
