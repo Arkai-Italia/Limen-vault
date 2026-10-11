@@ -2,28 +2,94 @@
 node_modules
 .pnpm-store
 
-# Builds
+# Builds & Outputs
 dist
 .next
 out
 target
 build
 
-# Environment & Secrets
+# Environment & Credentials
 .env
+.env.*
 .env.local
 .env.production
+.env.development
+.env.test
+*.env
 SECRETS.TXT
 UTENTI PASSWORD.TXT
+SECRETS_NO_GIT/
+*.key
+*.pem
+*.p12
+*.pfx
+*.keystore
+*.cer
+*.crt
 
-# Copie da trasferire tramite Git su richiesta esplicita
-!SECRETS_NO_GIT/
-!SECRETS_NO_GIT/**
+# Agent Configurations & Rules
+.agents/
+AGENT.md
+AGENTS.md
+GEMINI.md
+CLAUDE.md
+CLAUDE.local.md
+.cursor/
+.cursorrules
+.windsurf/
+.windsurfrules
+.cline/
+.claude/
 
-# System / OS
+# Agent Instructions, Prompts, Transcripts & Chats
+CHAT_CODEX/
+Claude outputs/
+ISTRUZIONI_CODER_*.md
+MESSAGGIO AG - *.md
+RISPOSTE_MODELLO_LOCALE_IN_SOSPESO.md
+
+# Task Lists & Todo Backlogs
+TASK_LIST.md
+TASK_LIST*.md
+*TASK_LIST*
+TODO/
+TODO LIST.TXT
+TODO*.md
+*TODO*
+
+# Session Handover Files & Session Notes
+SESSION HANDOVER*
+SESSION_HANDOVER_*
+LAST SESSION/
+
+# Internal Audits, Evidence & Temporary Plans
+CLAUDE AUDIT - *.md
+IMPLEMENTATION/
+IMPL_PLANS/
+
+# Loose Working Drafts & Scratch Notes
+manuale UI utente.txt
+MANUALE UTENTE.MD
+
+# Installers & Heavy Binaries
+*.dmg
+*.pkg
+*.exe
+*.msi
+USER INSTALL/*
+!USER INSTALL/LIMEN-Vault-v7Mini.dmg
+
+# System & OS
 .DS_Store
+._*
+Thumbs.db
 *.log
-!IMPLEMENTATION/V3_AUDIT_CLOSURE_EVIDENCE/**/*.log
+
+# IDEs
+.idea/
+*.swp
+*.swo
 
 # Local M2 build tools, baselines and QA artifacts
 .local/
