@@ -121,7 +121,7 @@ Heavy release binaries are intentionally omitted from the `main` source branch t
 2. The application bundle is signed and notarized with an Apple Developer ID (`Arkitecna Hong Kong Limited`). If prompted by macOS Gatekeeper on first open, confirm to allow.
 3. Complete the 3-step **Setup Wizard**:
    - **Step 1: Vault Folder**: Select your existing Obsidian vault root directory.
-   - **Step 2: Local AI Engine**: Verify local loopback engine configuration (`127.0.0.1:8080`).
+   - **Step 2: Local AI Engine**: Verify local loopback embedding engine (`bge-m3`) status and initialization on `127.0.0.1`.
    - **Step 3: Mode & Optional API Key**: Choose **100% Local** mode (offline) or **Hybrid** mode (cloud LLM).
 
 ---
@@ -145,14 +145,17 @@ pnpm install
 pnpm test
 pnpm typecheck
 
-# 4. Run Desktop Application frontend in development mode
-pnpm dev:desktop
+# 4. Run Desktop Application with Tauri backend (includes IPC & BM25 engine)
+pnpm --filter @limen-vault/desktop tauri dev
+
+# Note: For frontend-only UI layout prototyping without Tauri native backend:
+# pnpm dev:desktop
 ```
 
-#### Native Engine & Local Loopback Notes for Developers
-- **Pre-compiled native binaries** (such as `llama-server` and platform-specific GGML runtime libraries) are excluded from the `main` source tree.
-- When running in local development mode, the Rust backend communicates over loopback socket `127.0.0.1:8080`. You can point the application to any running `llama-server` instance or package a complete standalone bundle using `scripts/package-v7mini-macos.sh`.
-- The frontend UI fallback ensures that lexical BM25 search remains fully operational even when no local AI service is active.
+#### Native Engine & Source Limitations Notes for Developers
+- **Pre-compiled native binaries & Packaging Limitations**: Standalone release packaging for macOS Apple Silicon (`v7Mini`) relies on pre-compiled native binaries (such as `llama-server` with GGML Metal acceleration) and internal release notarization pipelines that are intentionally omitted from the public `main` branch. Creating a fully self-contained `.dmg` installer is not reproducible directly from this public repository alone; developers should use the pre-compiled installer in Option A or run the app locally via `tauri dev`.
+- **Local AI Embedding Engine Lifecycle**: When local semantic retrieval is enabled, the Rust backend automatically manages its own internal `llama-server` subprocess hosting `bge-m3-Q8_0.gguf` (1024 dimensions). The binary is detected from standard system paths or via the `LLAMA_SERVER_PATH` environment variable. The backend dynamically allocates an available ephemeral loopback port on `127.0.0.1` (`find_free_port`) rather than binding to a fixed port, and does not connect to arbitrary third-party server endpoints.
+- **BM25 Lexical Engine & Desktop Runtime**: Vault document indexing and BM25 lexical search are implemented in Rust within the Tauri application. In the desktop application, BM25 operates as a reliable, fully local fallback whenever semantic embeddings are offline or unconfigured. Running the frontend alone (`pnpm dev:desktop`) in a standard web browser serves only web UI assets and cannot access the local filesystem or run IPC search queries.
 
 ---
 
