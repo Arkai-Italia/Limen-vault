@@ -1,0 +1,11 @@
+goal_id,goal_title,persona,trigger,primary_screen_id,key_workflow_id,expected_outcome
+GOAL-001,Configurare l'ambiente di lavoro al primo avvio,Tutti,Avvio app senza vault o modello,SCR-002,WF-001,Vault caricato modello locale pronto e chiave impostata o modalità solo locale attiva
+GOAL-002,Porre una domanda al Vault e verificare le fonti citate,Marco / Davide,Necessità di informazione specifica,SCR-003,WF-002,Risposta generata con badge modello fonti citate ed evidenziazione passaggi
+GOAL-003,Leggere e verificare l'integrità di un documento citato,Marco,Clic su una fonte citata,SCR-007,WF-003,Documento aperto a schermo intero verifica SHA-256 e scorrimento al paragrafo
+GOAL-004,Importare documenti aziendali (PDF DOCX XLSX),Elena,Ricezione nuovi file da archiviare,SCR-001,WF-004,File copiato in 20_RAW_SOURCES testo estratto e passaggi indicizzati
+GOAL-005,Esplorare e filtrare le note Markdown del Vault,Elena,Revisione archivio per categoria,SCR-004,WF-005,Griglia note visualizzata con validazione Frontmatter YAML
+GOAL-006,Approvare o modificare una proposta generata dall'AI,Elena,Presenza di bozze in 90_PROPOSALS,SCR-005,WF-006,Bozza promossa a nota ufficiale in categoria definitiva
+GOAL-007,Creare una copia di sicurezza certificata SHA-256,Elena / Marco,Prima di modifiche o fine giornata,SCR-010,WF-007,Snapshot compresso generato con manifesto crittografico
+GOAL-008,Scegliere e attivare un modello LLM locale dal catalogo,Davide,Esigenza di ragionamento avanzato (R1),SCR-006,WF-008,Modello scaricato verificato e impostato come attivo nel server locale
+GOAL-009,Alternare la lingua dell'interfaccia tra Italiano e Inglese,Tutti,Preferenza linguistica o presentazione,SCR-001,WF-011,Tutta la UI commutata istantaneamente tra IT ed EN
+GOAL-010,Aprire il Vault nell'applicazione Obsidian esterna,Tutti,Editing avanzato di grafi e canvas,SCR-001,WF-012,Cartella del Vault aperta nell'app Obsidian nativa

@@ -1,0 +1,8 @@
+dimension,total_identified,accounted_count,documented_count,live_tested_count,coverage_percentage,notes
+ROUTES,14,14,14,14,100%,Tutte le 14 route e overlay modali censite
+SCREENS,14,14,14,14,100%,Tutte le 14 superfici di interfaccia tracciate
+ACTIONS,16,16,16,16,100%,Tutte le azioni utente essenziali censite con trigger ed effetti
+WORKFLOWS,12,12,12,12,100%,12 workflow completi con schede .md e diagrammi .mmd
+ROLES,1,1,1,1,100%,Ruolo unificato standalone vault-operator
+PIPELINES,4,4,4,4,100%,4 pipeline asincrone bge-m3 router SSE e SHA-256 censite
+LOCALES,2,2,2,2,100%,Supporto bilingue completo IT ed EN
