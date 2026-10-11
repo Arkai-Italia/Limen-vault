@@ -52,9 +52,21 @@ Data: 10 Ottobre 2026 · Branch: `windows-build` · Workspace: `/Users/cesare/Do
 - [MANUALE UTENTE.MD](file:///Users/cesare/Documents/MEMAI%20V_FALLBACK%20OBSIDIAN/MANUALE%20UTENTE.MD):
   - Inseriti i diagrammi Mermaid completi della mappa dei menu, della sequenza di interazione e dei workflow operativi, rendendolo un documento visivo pronto per presentazioni in Markdown e Obsidian.
 
+### E. Supporto Bilingue macOS (Italiano / Inglese) & Snellimento Testi (Minimal & Premium)
+- **Motore di Internazionalizzazione Reattivo zero-dipendenze (`i18n.tsx`)**:
+  - Creato `LanguageContext`, `LanguageProvider`, hook `useTranslation()` e componente compatto `LanguageToggle` (`IT | EN`) integrato nell'header.
+  - Rilevamento automatico della lingua del sistema macOS (`navigator.language`) e persistenza della scelta in `localStorage.getItem('limen_language')`.
+  - Esteso [`locale.tsx`](file:///Users/cesare/Documents/MEMAI%20V_FALLBACK%20OBSIDIAN/apps/desktop/src/locale.tsx) con supporto dizionari bilingue per stati e categorie.
+- **Snellimento e Pulizia Testi Ridondanti**:
+  - Rimossi tutti i testi didascalici prolissi e ripetitivi nelle schermate operative.
+  - Semplificate le intestazioni e breadcrumbs: *Chiedi*, *Documenti*, *Memoria*, *Avanzate*.
+  - Aggiornate tutte le schermate principali ([`App.tsx`](file:///Users/cesare/Documents/MEMAI%20V_FALLBACK%20OBSIDIAN/apps/desktop/src/App.tsx), [`AiPanel.tsx`](file:///Users/cesare/Documents/MEMAI%20V_FALLBACK%20OBSIDIAN/apps/desktop/src/AiPanel.tsx), [`KnowledgePanel.tsx`](file:///Users/cesare/Documents/MEMAI%20V_FALLBACK%20OBSIDIAN/apps/desktop/src/KnowledgePanel.tsx), [`SemanticEngineSettings.tsx`](file:///Users/cesare/Documents/MEMAI%20V_FALLBACK%20OBSIDIAN/apps/desktop/src/SemanticEngineSettings.tsx), [`SetupWizardModal.tsx`](file:///Users/cesare/Documents/MEMAI%20V_FALLBACK%20OBSIDIAN/apps/desktop/src/SetupWizardModal.tsx), [`DocumentReaderModal.tsx`](file:///Users/cesare/Documents/MEMAI%20V_FALLBACK%20OBSIDIAN/apps/desktop/src/DocumentReaderModal.tsx), [`SourceDetailsModal.tsx`](file:///Users/cesare/Documents/MEMAI%20V_FALLBACK%20OBSIDIAN/apps/desktop/src/SourceDetailsModal.tsx)) con rendering bilingue istantaneo.
+
 ---
 
 ## 2. Stato della Compilazione e Collaudo
 - `pnpm typecheck`: Superato con successo su tutti gli 11 package del monorepo (Exit Code 0).
+- `pnpm test` desktop: 6 suite e tutti i test di integrità e contratti IPC superati (Exit Code 0).
 - `cargo test llama_llm --lib`: 10/10 test unitari superati con successo (Exit Code 0).
-- Git status: Albero di lavoro pulito, ogni fase committata atomica su branch `windows-build`.
+- Git status: Albero di lavoro pulito, ogni fase committata atomicamente su branch `windows-build`.
+
