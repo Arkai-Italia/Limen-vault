@@ -9,7 +9,7 @@ export async function invoke<T>(command: string, args: Record<string, unknown> =
   }
   if (command === 'local_llm_catalog') return { models: [], activeModelId: '', physicalRamBytes: 0 } as T;
   if (command.endsWith('_server_status')) return { running: false, healthy: false } as T;
-  if (command === 'local_llm_status') return { installed: false, sha256Ok: false } as T;
+  if (command === 'local_llm_status') return { installed: false, sha256Ok: false, modelName: 'Ministral-3-3B-Instruct-2512-Q5_K_M.gguf', ramWarning: 'Memoria limitata per il test' } as T;
   if (command === 'ai_list_models') return ['gpt-4o'] as T;
   if (command === 'ai_get_selected_model') return 'gpt-4o' as T;
   if (command === 'ai_get_consent') return false as T;
@@ -17,3 +17,10 @@ export async function invoke<T>(command: string, args: Record<string, unknown> =
 }
 export async function listen() { return () => {}; }
 export async function emit() {}
+
+export function getCurrentWebview() {
+  return { onDragDropEvent: async (handler: (event: unknown) => void) => {
+    (window as any).__nativeDrop = handler;
+    return () => { delete (window as any).__nativeDrop; };
+  } };
+}

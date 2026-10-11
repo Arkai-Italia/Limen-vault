@@ -70,3 +70,42 @@ fn release_serialized_explorer_contract_and_external_links() {
         assert!(!vault::list_vault_folder_files(t.path(), "CUSTOM").unwrap().files.iter().any(|f| f.name == "external"));
     }
 }
+
+#[test]
+fn release_recursive_import_and_document_format_filters() {
+    let t = fixture();
+    let input = tempfile::tempdir().unwrap();
+    fs::create_dir(input.path().join("nested")).unwrap();
+    fs::write(input.path().join("one.txt"), "testo uno").unwrap();
+    fs::write(input.path().join("nested/two.md"), "# nota due").unwrap();
+    fs::write(input.path().join("nested/three.PDF"), "%PDF synthetic filter only").unwrap();
+    fs::write(input.path().join(".DS_Store"), "hidden").unwrap();
+    #[cfg(unix)]
+    std::os::unix::fs::symlink(input.path(), input.path().join("loop")).unwrap();
+    let results = crate::automation::import_paths(t.path(), &[input.path()]);
+    assert_eq!(results.iter().filter(|r| r.status == "imported").count(), 3);
+    #[cfg(unix)]
+    assert_eq!(results.iter().filter(|r| r.status == "error").count(), 1);
+    assert!(results.iter().all(|r| !r.name.contains("DS_Store")));
+    let catalog = catalog::load_catalog(t.path()).unwrap();
+    assert_eq!(catalog.documents.values().filter(|d| d.original_path.starts_with("20_RAW_SOURCES/")).count(), 3);
+    assert!(catalog.documents.values().all(|d| d.indexing_authorized_hash.is_none()));
+    for (format, expected) in [("pdf", 1), ("md", 1), ("txt", 1), ("xlsx", 0)] {
+        let response = catalog::list_documents(t.path(), catalog::CatalogListOptions {
+            format: Some(format.into()), ..Default::default()
+        }).unwrap();
+        assert_eq!(response.documents.len(), expected, "format {format}");
+        assert!(response.documents.iter().all(|d| d.extension.eq_ignore_ascii_case(format)));
+    }
+    let again = crate::automation::import_paths(t.path(), &[input.path()]);
+    assert_eq!(again.iter().filter(|r| r.status == "duplicate").count(), 3);
+    assert_eq!(again.iter().filter(|r| r.status == "imported").count(), 0);
+    assert_eq!(fs::read_to_string(input.path().join("one.txt")).unwrap(), "testo uno");
+    let self_import = crate::automation::import_paths(t.path(), &[t.path()]);
+    assert_eq!(self_import.len(), 1);
+    assert_eq!(self_import[0].status, "error");
+    let empty = tempfile::tempdir().unwrap();
+    let empty_receipts = crate::automation::import_paths(t.path(), &[empty.path()]);
+    assert_eq!(empty_receipts.len(), 1);
+    assert!(empty_receipts[0].error.as_deref().unwrap().contains("Nessun file importabile"));
+}

@@ -1,3 +1,5 @@
+import { useCatalogDocuments } from './useCatalogDocuments';
+import { useNativeFileDrop } from './useNativeFileDrop';
 import { runIndexing } from './indexing';
 import {AutomationPanel,useAutomation} from './AutomationPanel';
 import {labelIt, MessageIt} from './locale';
@@ -155,7 +157,7 @@ export default function App() {
 
   // Unified Catalog and 3-Area State
   const [catalogSummary, setCatalogSummary] = useState<CatalogSummary | null>(null);
-  const [catalogDocuments, setCatalogDocuments] = useState<DocumentRecord[]>([]);
+  const [catalogRevision, setCatalogRevision] = useState(0);
   const [catalogFilterFormat, setCatalogFilterFormat] = useState<string>('all');
   const [catalogFilterStatus, setCatalogFilterStatus] = useState<string>('all');
   const [catalogSearchText, setCatalogSearchText] = useState<string>('');
@@ -434,6 +436,10 @@ export default function App() {
   const busy = useRef(false);
   const generation = useRef(0);
   const ipc = useRef(createVaultIpc(invoke, () => typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window)).current;
+  const { documents: catalogDocuments, loading: catalogLoading, error: catalogError } = useCatalogDocuments(
+    ipc.listCatalogDocuments, vaultPath || '', isTauriEnv, catalogRevision,
+    catalogFilterFormat, catalogFilterStatus, catalogSearchText,
+  );
   useEffect(() => () => { generation.current++; }, []);
   const begin = () => { if (busy.current) return null; busy.current=true; setIsProcessing(true); return ++generation.current; };
   const finish = (ticket:number) => { if(ticket===generation.current) {busy.current=false;setIsProcessing(false);} };
@@ -543,15 +549,9 @@ export default function App() {
   const refreshCatalog = async (target: string, ticket: number) => {
     try {
       const summary = await ipc.syncCatalog(target);
-      const list = await ipc.listCatalogDocuments(target, {
-        limit: 500,
-        format: catalogFilterFormat !== 'all' ? catalogFilterFormat : undefined,
-        status: catalogFilterStatus !== 'all' ? catalogFilterStatus : undefined,
-        filter: catalogSearchText.trim() || undefined,
-      });
       if (ticket !== generation.current) return;
       setCatalogSummary(summary);
-      setCatalogDocuments(list.documents);
+      setCatalogRevision(v => v + 1);
       if (summary.totalRawSources > 0 || summary.totalDocuments > 0) {
         setSourceCount(summary.totalRawSources || summary.totalDocuments);
       }
@@ -672,29 +672,14 @@ export default function App() {
     }
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-  };
-
-  const handleDrop = async (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleNativeDrop = async (filePaths: string[]) => {
     setIsDragging(false);
     if (!vaultPath) return;
-    const files = Array.from(e.dataTransfer.files);
-    const filePaths: string[] = [];
-    for (const f of files) {
-      const path = (f as any).path;
-      if (path) filePaths.push(path);
+    if (busy.current || showIndexingPrompt) {
+      setActionError('Completa o rimanda l’operazione corrente prima di caricare altri file.');
+      return;
     }
+    setActionError(null);
     if (filePaths.length > 0) {
       const ticket = begin();
       if (ticket === null) return;
@@ -732,10 +717,9 @@ export default function App() {
       } finally {
         finish(ticket);
       }
-    } else {
-      await handleUploadDocuments();
     }
   };
+  useNativeFileDrop(isTauriEnv && !!vaultPath, handleNativeDrop, setIsDragging, setActionError);
 
   const refreshCompiler = async (target:string,ticket:number) => {
     try {
@@ -1039,6 +1023,9 @@ export default function App() {
 
   return (
     <div style={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden', backgroundColor: 'var(--limen-bg-app)' }}>
+      {isDragging && <div role="status" style={{ position: 'fixed', inset: 12, zIndex: 10000, pointerEvents: 'none', border: '3px dashed #84cc16', borderRadius: 16, background: 'rgba(240,253,244,.92)', display: 'grid', placeItems: 'center', fontSize: 24, fontWeight: 700 }}>
+        {isProcessing || showIndexingPrompt ? 'Completa o rimanda l’operazione corrente' : 'Rilascia file o cartelle per caricarli nel Vault'}
+      </div>}
       {/* SIDEBAR NAVIGATION */}
       <aside
         style={{
@@ -2389,9 +2376,6 @@ export default function App() {
 
                 {/* DRAG AND DROP ZONE */}
                 <div
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  onDrop={handleDrop}
                   onClick={handleUploadDocuments}
                   style={{
                     border: `2px dashed ${isDragging ? '#c8ff00' : '#cbd5e1'}`,
@@ -2405,7 +2389,7 @@ export default function App() {
                 >
                   <Upload size={28} style={{ margin: '0 auto 8px', color: isDragging ? '#c8ff00' : '#64748b' }} />
                   <div style={{ fontSize: 13, fontWeight: 600, color: '#0f172a' }}>
-                    Trascina qui i tuoi documenti o clicca per selezionare {terms.fromDeviceTerm}
+                    Trascina file o cartelle nella finestra, oppure clicca per selezionare {terms.fromDeviceTerm}
                   </div>
                   <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
                     PDF, Word (.docx), Excel (.xlsx), presentazioni, scansioni, note e testi. Massimo 32 MB per file.
@@ -2420,10 +2404,14 @@ export default function App() {
                       { id: 'pdf', label: 'PDF' },
                       { id: 'docx', label: 'Word (DOCX)' },
                       { id: 'xlsx', label: 'Excel' },
-                      { id: 'txt', label: language === 'en' ? 'Text' : 'Testo' },
+                      { id: 'txt', label: 'TXT' },
+                      { id: 'md', label: 'Markdown' },
+                      { id: 'csv', label: 'CSV' },
+                      { id: 'pptx', label: 'PowerPoint' },
                     ].map((f) => (
                       <button
                         key={f.id}
+                        aria-pressed={catalogFilterFormat === f.id}
                         onClick={() => setCatalogFilterFormat(f.id)}
                         style={{
                           padding: '6px 12px',
@@ -2459,7 +2447,7 @@ export default function App() {
 
                 {/* DOCUMENTS TABLE */}
                 <div className="limen-card" style={{ padding: 20 }}>
-                  {catalogDocuments.length === 0 ? (
+                  {catalogLoading ? <p role="status">Caricamento documenti…</p> : catalogError ? <p role="alert">{catalogError}</p> : catalogDocuments.length === 0 ? (
                     <EmptyState
                       title="Nessun documento trovato"
                       description={catalogSearchText || catalogFilterFormat !== 'all' ? 'Nessun file corrisponde ai filtri selezionati.' : 'Nessun file presente in 20_RAW_SOURCES. Clicca su CARICA DOCUMENTI per iniziare.'}

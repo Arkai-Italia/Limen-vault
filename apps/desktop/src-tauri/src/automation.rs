@@ -403,17 +403,78 @@ pub fn import_selected(vault: &Path, source: &Path) -> Result<String, String> {
 pub fn import_paths(vault: &Path, sources: &[&Path]) -> Vec<ImportReceipt> {
     let mut receipts = Vec::with_capacity(sources.len());
     let mut any_success = false;
+    let mut files = Vec::new();
+    let mut errors = Vec::new();
+    let vault_root = vault.canonicalize().ok();
+    let mut remaining = 10_000usize;
     for src in sources {
-        let receipt = import_selected_with_receipt(vault, src);
+        collect_import_files(src, vault_root.as_deref(), 0, &mut remaining, &mut files, &mut errors);
+    }
+    for src in files {
+        let receipt = import_selected_with_receipt(vault, &src);
         if receipt.status == "imported" || receipt.status == "duplicate" {
             any_success = true;
         }
         receipts.push(receipt);
     }
+    receipts.extend(errors.into_iter().map(|(path, message)| ImportReceipt {
+        name: path.to_string_lossy().into_owned(), path: None, status: "error".into(),
+        error: Some(message), document_id: None, hash: None, size_bytes: None,
+    }));
+    if receipts.is_empty() && !sources.is_empty() {
+        receipts.push(ImportReceipt {
+            name: "Cartelle selezionate".into(), path: None, status: "error".into(),
+            error: Some("Nessun file importabile nelle cartelle selezionate".into()),
+            document_id: None, hash: None, size_bytes: None,
+        });
+    }
     if any_success {
         let _ = crate::catalog::sync_catalog(vault);
     }
     receipts
+}
+
+// Finder drops contain real paths, including directories. Never follow links or
+// recurse into the destination vault; bound traversal and retain per-item errors.
+fn collect_import_files(
+    path: &Path, vault: Option<&Path>, depth: usize, remaining: &mut usize,
+    files: &mut Vec<std::path::PathBuf>, errors: &mut Vec<(std::path::PathBuf, String)>,
+) {
+    if *remaining == 0 {
+        if !errors.iter().any(|(_, e)| e == "Limite di 10000 elementi raggiunto") {
+            errors.push((path.into(), "Limite di 10000 elementi raggiunto".into()));
+        }
+        return;
+    }
+    *remaining -= 1;
+    let result = (|| -> Result<(), String> {
+        if depth > 32 { return Err("Cartella oltre il limite di 32 livelli".into()); }
+        let meta = std::fs::symlink_metadata(path).map_err(err)?;
+        if meta.is_symlink() { return Err("Collegamento simbolico ignorato: scegli il file originale".into()); }
+        if meta.is_dir() {
+            let absolute = path.canonicalize().map_err(err)?;
+            if vault.is_some_and(|v| absolute.starts_with(v) || v.starts_with(&absolute)) {
+                return Err("Non è possibile reimportare il Vault o una cartella che lo contiene".into());
+            }
+            let mut children = std::fs::read_dir(path).map_err(err)?
+                .take(*remaining + 1)
+                .map(|entry| entry.map(|e| e.path())).collect::<Result<Vec<_>, _>>().map_err(err)?;
+            children.sort();
+            for child in children {
+                if child.file_name().is_some_and(|n| n.to_string_lossy().starts_with('.')) { continue; }
+                collect_import_files(&child, vault, depth + 1, remaining, files, errors);
+                if *remaining == 0 {
+                    if !errors.iter().any(|(_, e)| e == "Limite di 10000 elementi raggiunto") {
+                        errors.push((path.into(), "Limite di 10000 elementi raggiunto".into()));
+                    }
+                    break;
+                }
+            }
+        } else if meta.is_file() { files.push(path.into()); }
+        else { return Err("Elemento non importabile: non è un file regolare".into()); }
+        Ok(())
+    })();
+    if let Err(e) = result { errors.push((path.into(), e)); }
 }
 
 #[derive(Default)]

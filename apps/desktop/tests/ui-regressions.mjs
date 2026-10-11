@@ -22,7 +22,7 @@ try {
   unbox(native('set-mode', vault, 'hybrid'));
   mkdirSync(join(vault, 'CUSTOM/nested'), { recursive: true });
   writeFileSync(join(vault, 'CUSTOM/nested/nota.md'), '# Nota sintetica\nContenuto leggibile senza indicizzazione.');
-  const built = await esbuild.build({ entryPoints: [join(root, 'apps/desktop/tests/ui/fixture.tsx')], bundle: true, write: false, format: 'iife', loader: { '.png': 'dataurl', '.svg': 'dataurl', '.css': 'empty' }, alias: { '@tauri-apps/api/core': join(root, 'apps/desktop/tests/ui/tauri-fixture.ts'), '@tauri-apps/api/event': join(root, 'apps/desktop/tests/ui/tauri-fixture.ts') } });
+  const built = await esbuild.build({ entryPoints: [join(root, 'apps/desktop/tests/ui/fixture.tsx')], bundle: true, write: false, format: 'iife', loader: { '.png': 'dataurl', '.svg': 'dataurl', '.css': 'empty' }, alias: { '@tauri-apps/api/webview': join(root, 'apps/desktop/tests/ui/tauri-fixture.ts'), '@tauri-apps/api/core': join(root, 'apps/desktop/tests/ui/tauri-fixture.ts'), '@tauri-apps/api/event': join(root, 'apps/desktop/tests/ui/tauri-fixture.ts') } });
   server = createServer(async (req, res) => {
     if (req.url === '/bundle.js') { res.setHeader('Content-Type', 'text/javascript'); res.end(built.outputFiles[0].text); return; }
     if (req.url === '/native') {
@@ -67,6 +67,14 @@ try {
   await page.getByRole('button', { name: 'SOLO LOCALE', exact: true }).click();
   await page.getByLabel('Esito fixture').filter({ hasText: 'llm' }).waitFor();
   assert.equal(unbox(native('mode', vault)), 'local_only');
+  await page.getByText('Ministral', { exact: true }).waitFor();
+  await page.getByText('Avviso memoria:', { exact: true }).waitFor();
+  await page.getByRole('button', { name: 'Non mostrare più l’avviso memoria' }).click();
+  await page.reload();
+  await page.getByText('Ministral', { exact: true }).waitFor();
+  assert.equal(await page.getByText('Avviso memoria:', { exact: true }).count(), 0);
+  await page.locator('textarea').fill('Bozza da conservare');
+
   assert.equal(await page.getByRole('button', { name: /Consenti.*OpenAI/ }).count(), 0);
   await page.getByRole('button', { name: /Switch to Hybrid|Passa a Ibrido/ }).click();
   await page.getByRole('button', { name: 'SOLO LOCALE', exact: true }).waitFor();
@@ -85,8 +93,28 @@ try {
   await page.getByRole('dialog').waitFor();
   await page.keyboard.press('Escape');
   await page.getByRole('dialog').waitFor({ state: 'detached' });
+  await page.goto(`${url}/?panel=documents`);
+  await page.getByLabel('Documenti').filter({ hasText: 'uno.pdf,due.md' }).waitFor();
+  await page.getByRole('button', { name: 'pdf', exact: true }).click();
+  await page.waitForFunction(() => window.__calls.some(c => c.options?.format === 'pdf'));
+  await page.getByRole('button', { name: 'md', exact: true }).click();
+  await page.getByLabel('Documenti').filter({ hasText: /^due.md$/ }).waitFor();
+  // Allow the deliberately slow obsolete PDF response to complete.
+  await page.waitForTimeout(800);
+  assert.equal(await page.getByLabel('Documenti').innerText(), 'due.md');
+  await page.getByRole('button', { name: 'xlsx', exact: true }).click();
+  await page.getByLabel('Documenti').filter({ hasText: 'Nessun documento' }).waitFor();
+  await page.getByRole('button', { name: 'all', exact: true }).click();
+  await page.getByLabel('Nome file').fill('uno');
+  await page.getByLabel('Documenti').filter({ hasText: /^uno.pdf$/ }).waitFor();
+  await page.goto(`${url}/?panel=drop`);
+  await page.waitForFunction(() => !!window.__nativeDrop);
+  await page.evaluate(() => window.__nativeDrop({ payload: { type: 'enter', paths: ['/tmp/cartella'] } }));
+  assert.equal(await page.getByLabel('Trascinamento').innerText(), 'Rilascia');
+  await page.evaluate(() => window.__nativeDrop({ payload: { type: 'drop', paths: ['/tmp/cartella', '/tmp/file.pdf'] } }));
+  await page.getByLabel('Trascinamento').filter({ hasText: '/tmp/cartella,/tmp/file.pdf' }).waitFor();
   assert.deepEqual(errors, []);
-  console.log(`PASS browser: native JSON explorer, nested folder, unindexed text preview, Finder target, failed mode save, missing-model routing, retained draft, advanced toggle, postpone. Screenshots: ${temp}`);
+  console.log(`PASS browser: filter changes/empty/search/stale response, memory warning dismissal across reload, Ministral label, native drop handler contract, native JSON explorer, nested folder, unindexed text preview, Finder target, failed mode save, missing-model routing, retained draft, advanced toggle, postpone. Screenshots: ${temp}`);
 } finally {
   if (browser) await browser.close();
   if (server) await new Promise(r => server.close(r));

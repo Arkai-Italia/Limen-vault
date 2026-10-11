@@ -10,7 +10,7 @@ import { SemanticEngineSettings } from './SemanticEngineSettings';
 import { TunnelPanel } from './TunnelPanel';
 import { getPlatformTerms } from './platform';
 import { m7, operationId } from './proposal-ipc';
-import { ChevronDown, ChevronRight, ShieldAlert, Sparkles, FileText, Check, AlertCircle, Key, Lock, Clock, PlusCircle, AlertTriangle, Loader2, SlidersHorizontal, Info } from 'lucide-react';
+import { ChevronDown, ChevronRight, ShieldAlert, Sparkles, FileText, Check, AlertCircle, Key, Lock, Clock, PlusCircle, AlertTriangle, Loader2, SlidersHorizontal, Info, X } from 'lucide-react';
 import { AiHistoryDrawer } from './AiHistoryDrawer';
 import { historyIpc } from './history-ipc';
 import { cleanTitle, formatSourceCategory, formatLocator, formatSourceLabel } from './source-utils';
@@ -125,6 +125,15 @@ export function AiPanel({
   const [showLlmDownloadModal, setShowLlmDownloadModal] = useState<boolean>(false);
   const [isLlmDownloading, setIsLlmDownloading] = useState<boolean>(false);
   const [llmDownloadProgress, setLlmDownloadProgress] = useState<{ downloaded: number; total: number; percent: number } | null>(null);
+
+  const [memoryWarningDismissed, setMemoryWarningDismissed] = useState(() => {
+    try { return localStorage.getItem('limen.memory-warning-dismissed.v1') === 'true'; }
+    catch { return false; }
+  });
+  const dismissMemoryWarning = () => {
+    setMemoryWarningDismissed(true);
+    try { localStorage.setItem('limen.memory-warning-dismissed.v1', 'true'); } catch { /* Storage unavailable: dismiss for this session. */ }
+  };
 
   // Monitoraggio periodico stato modello e server LLM locale Ministral
   useEffect(() => {
@@ -654,7 +663,7 @@ export function AiPanel({
                   }}
                   title="Generazione testuale su Apple Silicon Metal GPU a rete zero"
                 >
-                  {localLlmReport?.modelName || 'Modello locale da configurare'}
+                  {localLlmReport?.modelName?.toLowerCase().includes('ministral') ? 'Ministral' : (localLlmReport?.modelName || 'Modello locale da configurare')}
                 </span>
               ) : (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -1285,7 +1294,7 @@ export function AiPanel({
               </button>
             </div>
 
-            {isLocalMode && (localLlmReport?.ramWarning || localLlmServer?.ramWarning || (localLlmReport?.physicalRamBytes && localLlmReport.physicalRamBytes < 17179869184)) && (
+            {isLocalMode && !memoryWarningDismissed && (localLlmReport?.ramWarning || localLlmServer?.ramWarning || (localLlmReport?.physicalRamBytes && localLlmReport.physicalRamBytes < 17179869184)) && (
               <div
                 style={{
                   backgroundColor: '#fffbeb',
@@ -1303,6 +1312,10 @@ export function AiPanel({
                 <span>
                   <strong>Avviso memoria:</strong> {localLlmReport?.ramWarning || localLlmServer?.ramWarning || 'Mac con meno di 16 GB di RAM. Il modello locale occupa circa 6 GB e può rallentare il Mac.'}
                 </span>
+                <button type="button" aria-label="Non mostrare più l’avviso memoria" title="Non mostrare più" onClick={dismissMemoryWarning}
+                  style={{ marginLeft: 'auto', flexShrink: 0, border: 0, background: 'transparent', color: 'inherit', cursor: 'pointer', padding: 6 }}>
+                  <X size={16} />
+                </button>
               </div>
             )}
 
