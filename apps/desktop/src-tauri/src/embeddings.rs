@@ -116,7 +116,7 @@ pub fn get_embeddings_provider(vault_path: &Path, active_port: u16) -> Embedding
         }
     }
 
-    let provider = configured_provider.unwrap_or_else(|| "openai".to_string());
+    let provider = if get_ai_mode(vault_path) == "local_only" { "local".to_string() } else { configured_provider.unwrap_or_else(|| "openai".to_string()) };
     let is_local = provider == "local";
     let model = if is_local {
         "bge-m3".to_string()
@@ -175,50 +175,69 @@ pub fn get_embeddings_provider(vault_path: &Path, active_port: u16) -> Embedding
     }
 }
 
-/// Atomically write embeddingsProvider to 00_SYSTEM/SYNC_PROFILE.json.
-/// Endpoint and model are NOT persisted: endpoint is built dynamically at runtime from active_port.
-pub fn set_embeddings_provider(
-    vault_path: &Path,
-    provider: &str,
-    active_port: u16,
-) -> Result<EmbeddingsProviderReport, String> {
+// Serialize profile updates so changing mode and provider cannot lose one another.
+static PROFILE_WRITE_LOCK: Mutex<()> = Mutex::new(());
+
+fn update_ai_profile(path: &Path, update: impl FnOnce(&mut serde_json::Map<String, Value>) -> Result<(), String>) -> Result<(), String> {
+    let _guard = PROFILE_WRITE_LOCK.lock().map_err(|e| e.to_string())?;
+    let d = root(path)?;
+    let sys = child(&d, "00_SYSTEM")?;
+    let mut value = if names(&sys)?.iter().any(|n| n == "SYNC_PROFILE.json") {
+        serde_json::from_slice::<Value>(&read(&sys, "SYNC_PROFILE.json")?).map_err(|e| e.to_string())?
+    } else { json!({}) };
+    let obj = value.as_object_mut().ok_or("Profilo AI non valido")?;
+    update(obj)?;
+    let tmp = format!(".ai-profile-{}.tmp", crate::ai::random_token()?);
+    write_new(&sys, &tmp, &serde_json::to_vec_pretty(&value).map_err(|e| e.to_string())?)?;
+    sys.rename(&tmp, &sys, "SYNC_PROFILE.json").map_err(|e| e.to_string())
+}
+
+pub fn set_embeddings_provider(vault_path: &Path, provider: &str, active_port: u16) -> Result<EmbeddingsProviderReport, String> {
     let prov = provider.trim().to_lowercase();
-    if prov != "local" && prov != "openai" {
-        return Err(format!(
-            "Fornitore non valido '{}': ammessi esclusivamente 'openai' o 'local'",
-            provider
-        ));
-    }
-
-    let profile_path = vault_path.join("00_SYSTEM").join("SYNC_PROFILE.json");
-    let mut val = if profile_path.exists() {
-        let content = std::fs::read_to_string(&profile_path).map_err(|e| e.to_string())?;
-        serde_json::from_str::<Value>(&content).unwrap_or_else(|_| json!({}))
-    } else {
-        json!({})
-    };
-
-    if !val.is_object() {
-        val = json!({});
-    }
-
-    let obj = val.as_object_mut().unwrap();
-    obj.insert("embeddingsProvider".into(), Value::String(prov.clone()));
-
-    // Never persist endpoint or model: endpoint is runtime-constructed from live server port
-    obj.remove("embeddingsEndpoint");
-    obj.remove("embeddingsModel");
-
-    let sys_dir = vault_path.join("00_SYSTEM");
-    if !sys_dir.exists() {
-        std::fs::create_dir_all(&sys_dir).map_err(|e| e.to_string())?;
-    }
-
-    let serialized = serde_json::to_string_pretty(&val).map_err(|e| e.to_string())?;
-    std::fs::write(&profile_path, serialized.as_bytes()).map_err(|e| e.to_string())?;
-    let _ = crate::ai::save_embeddings_provider_setting(&prov);
-
+    if prov != "local" && prov != "openai" { return Err("Fornitore non valido".into()); }
+    let mode_before = get_ai_mode(vault_path);
+    update_ai_profile(vault_path, |obj| {
+        obj.entry("aiMode".to_string()).or_insert(json!(mode_before));
+        if prov == "openai" && obj.get("aiMode").and_then(Value::as_str) == Some("local_only") {
+            return Err("Solo Locale: passa esplicitamente a Ibrido prima di usare embeddings cloud".into());
+        }
+        obj.insert("embeddingsProvider".into(), json!(prov));
+        obj.remove("embeddingsEndpoint"); obj.remove("embeddingsModel");
+        Ok(())
+    })?;
     Ok(get_embeddings_provider(vault_path, active_port))
+}
+
+/// Legacy local embeddings migrate conservatively to local-only. Unknown/unreadable
+/// profiles never authorize cloud; absent legacy profiles retain hybrid defaults.
+pub fn get_ai_mode(vault_path: &Path) -> String {
+    let profile = vault_path.join("00_SYSTEM/SYNC_PROFILE.json");
+    let bytes = match std::fs::read(profile) {
+        Ok(bytes) => bytes,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return "hybrid".into(),
+        Err(_) => return "local_only".into(),
+    };
+    let Ok(value) = serde_json::from_slice::<Value>(&bytes) else { return "local_only".into(); };
+    match value.get("aiMode").or_else(|| value.get("ai_mode")).and_then(Value::as_str) {
+        Some("hybrid") => "hybrid".into(),
+        Some(_) => "local_only".into(),
+        None if value.get("embeddingsProvider").and_then(Value::as_str) != Some("local") => "hybrid".into(),
+        _ => "local_only".into(),
+    }
+}
+
+pub fn require_cloud_allowed(path: &Path) -> Result<(), String> {
+    if get_ai_mode(path) == "local_only" { Err("Solo Locale: chiamate cloud bloccate per questo vault".into()) } else { Ok(()) }
+}
+
+pub fn set_ai_mode(vault_path: &Path, mode: &str) -> Result<String, String> {
+    if !matches!(mode, "local_only" | "hybrid") { return Err("Modalità AI non valida".into()); }
+    update_ai_profile(vault_path, |obj| {
+        obj.insert("aiMode".into(), json!(mode));
+        if mode == "local_only" { obj.insert("embeddingsProvider".into(), json!("local")); }
+        Ok(())
+    })?;
+    Ok(mode.into())
 }
 
 /// Security validation: if embeddingsProvider is "local", ensure the endpoint is strictly a loopback address.
@@ -884,6 +903,7 @@ pub async fn sync_embeddings_with_progress(
         let texts: Vec<String> = chunk.iter().map(|m| m.text_to_embed.clone()).collect();
         let chars: usize = texts.iter().map(|t| t.chars().count()).sum();
         let t0 = std::time::Instant::now();
+        if !is_loopback { require_cloud_allowed(vault_path)?; }
         let vectors = fetch_openai_embeddings_with_endpoint(&endpoint, effective_key, target_model, &texts).await?;
         let req_ms = t0.elapsed().as_millis();
         t_req_total += req_ms;

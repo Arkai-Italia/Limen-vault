@@ -150,7 +150,13 @@ pub fn status(path: &Path) -> Result<Report, String> {
     let sys = child(&d, "00_SYSTEM")?;
     let state: State = load(&sys, STATE)?;
     valid_state(&state)?;
-    report(&d, load(&sys, CONFIG)?, state, String::new())
+    let is_solo_locale = crate::embeddings::get_ai_mode(path) == "local_only";
+    let msg = if is_solo_locale {
+        "Modalità Solo Locale attiva: elaborazioni cloud OpenAI sospese.".to_string()
+    } else {
+        String::new()
+    };
+    report(&d, load(&sys, CONFIG)?, state, msg)
 }
 fn report(d: &Dir, config: Config, state: State, message: String) -> Result<Report, String> {
     let mut paths = Vec::new();
@@ -406,7 +412,6 @@ pub fn import_paths(vault: &Path, sources: &[&Path]) -> Vec<ImportReceipt> {
     }
     if any_success {
         let _ = crate::catalog::sync_catalog(vault);
-        let _ = crate::catalog::process_pending_extractions(vault);
     }
     receipts
 }
@@ -461,8 +466,14 @@ impl AutomationScheduler {
             return Ok(None);
         }
         let res = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let is_solo_locale = crate::embeddings::get_ai_mode(&vault) == "local_only";
+            if is_solo_locale {
+                // In Solo Locale lo scheduler non effettua chiamate cloud OpenAI
+                return status(&vault);
+            }
+
+            // Allinea la lista file nel catalogo ma NON avvia l'estrazione automatica prima del prompt "Indicizzo ora?"
             let _ = crate::catalog::sync_catalog(&vault);
-            let _ = crate::catalog::process_pending_extractions(&vault);
 
             let cfg = status(&vault).map(|r| r.config).unwrap_or_default();
             if cfg.enabled {
@@ -787,8 +798,15 @@ fn openai(key: &str, model: &str, kind: &str, input: Value) -> Result<Value, Str
         .map_err(|_| "JSON AI non valido".into())
 }
 pub fn run(path: &Path) -> Result<Report, String> {
+    let is_solo_locale = crate::embeddings::get_ai_mode(path) == "local_only";
+    if is_solo_locale {
+        let mut rep = status(path)?;
+        rep.message = "Modalità Solo Locale attiva: le chiamate automatiche a OpenAI sono sospese per garantire la privacy locale. Le credenziali nel portachiavi rimangono conservate.".to_string();
+        return Ok(rep);
+    }
+
     let _ = crate::catalog::sync_catalog(path);
-    let _ = crate::catalog::process_pending_extractions(path);
+    // Non avviare process_pending_extractions: l'indicizzazione è governata dal consenso utente ("Indicizzo ora?")
 
     let c = status(path)?.config;
     if !c.enabled {
@@ -796,6 +814,7 @@ pub fn run(path: &Path) -> Result<Report, String> {
     }
     let key = crate::keychain::load()?.filter(|k| !k.is_empty());
     run_with(path, key.is_some(), |kind, input| {
+        crate::embeddings::require_cloud_allowed(path)?;
         openai(
             key.as_deref()
                 .ok_or("Configura la chiave API in Impostazioni")?,
@@ -820,6 +839,7 @@ pub fn run_with(
     if !c.enabled {
         return report(&d, c, s, "Automazione in pausa".into());
     }
+    let catalog = crate::catalog::load_catalog(path)?;
     let mut paths = Vec::new();
     collect(
         &child(&d, "20_RAW_SOURCES")?,
@@ -862,6 +882,13 @@ pub fn run_with(
             j.attempts = 3;
         }
         if j.attempts >= 3 {
+            s.jobs.insert(p.clone(), j);
+            continue;
+        }
+        let authorized = catalog.documents.values().any(|doc| doc.original_path == *p && doc.indexing_authorized_hash.as_deref() == Some(hash.as_str()));
+        if !authorized {
+            j.status = "pending".into();
+            j.error = Some("In attesa di Indicizza: nessuna estrazione o classificazione automatica autorizzata".into());
             s.jobs.insert(p.clone(), j);
             continue;
         }
@@ -1220,7 +1247,12 @@ mod tests {
             _ => Err("Unexpected operation".into()),
         }
     }
+    fn authorize_indexing(t: &tempfile::TempDir) {
+        crate::catalog::sync_catalog(t.path()).unwrap();
+        crate::catalog::process_pending_extractions(t.path()).unwrap();
+    }
     fn drain(t: &tempfile::TempDir) -> Report {
+        authorize_indexing(t);
         let mut r = run_with(t.path(), true, provider).unwrap();
         for _ in 0..30 {
             if r.state
@@ -1269,10 +1301,10 @@ mod tests {
             ..Default::default()
         };
         let selected = crate::ai::select(t.path(), &o).await.unwrap();
-        assert_eq!(selected.len(), 2);
-        assert!(selected
-            .iter()
-            .all(|s| s.status.as_deref() == Some("review")));
+        // Explicit indexing now also makes the original RAW passage searchable.
+        assert_eq!(selected.len(), 3);
+        assert_eq!(selected.iter().filter(|s| s.status.as_deref() == Some("review")).count(), 2);
+        assert!(selected.iter().any(|s| s.relative_path == p));
         run_with(t.path(), true, |_, _| {
             panic!("Unchanged source must not call AI")
         })
@@ -1322,6 +1354,7 @@ mod tests {
     fn bounded_retries_resume_and_key_absence() {
         let t = fixture();
         let p = import(t.path(), "brief.txt", b"Acme").unwrap();
+        authorize_indexing(&t);
         let r = run_with(t.path(), false, |_, _| panic!()).unwrap();
         assert_eq!(r.state.jobs[&p].attempts, 0);
         for count in 1..=3 {
@@ -1345,6 +1378,7 @@ mod tests {
     fn forged_citations_human_edits_and_symlinks() {
         let t = fixture();
         let p = import(t.path(), "brief.txt", b"Acme").unwrap();
+        authorize_indexing(&t);
         let r=run_with(t.path(),true,|k,v|if k=="wiki"{Ok(json!({"title":"Bad","sections":[{"text":"Inventato","source_ids":["/etc/passwd"]}]}))}else{provider(k,v)}).unwrap();
         assert!(r
             .state
@@ -1473,8 +1507,14 @@ mod tests {
         assert!(!docs.documents.is_empty());
         let doc1_entry = docs.documents.iter().find(|d| d.file_name.contains("doc1.txt"));
         assert!(doc1_entry.is_some());
-        assert_eq!(doc1_entry.unwrap().extraction_status, crate::catalog::ExtractionStatus::Ready);
-        assert!(!doc1_entry.unwrap().passages.is_empty());
+        assert_eq!(doc1_entry.unwrap().extraction_status, crate::catalog::ExtractionStatus::Pending);
+
+        // Quando l'estrazione viene autorizzata dall'utente ed eseguita:
+        let ext_report = crate::catalog::process_pending_extractions(t.path()).unwrap();
+        assert!(ext_report >= 1);
+        let doc1_ready = crate::catalog::get_document(t.path(), receipts[0].document_id.as_ref().unwrap()).unwrap();
+        assert_eq!(doc1_ready.extraction_status, crate::catalog::ExtractionStatus::Ready);
+        assert!(!doc1_ready.passages.is_empty());
     }
 
     #[test]
@@ -1491,6 +1531,13 @@ mod tests {
         assert_eq!(receipts[0].status, "imported");
 
         let doc_id = receipts[0].document_id.as_ref().unwrap();
+        let doc_before = crate::catalog::get_document(t.path(), doc_id).unwrap();
+        assert_eq!(doc_before.extraction_status, crate::catalog::ExtractionStatus::Pending);
+
+        // L'estrazione deve avvenire solo quando esplicitamente autorizzata/invocata
+        let extracted = crate::catalog::process_pending_extractions(t.path()).unwrap();
+        assert_eq!(extracted, 1);
+
         let doc = crate::catalog::get_document(t.path(), doc_id).unwrap();
         assert_eq!(doc.extraction_status, crate::catalog::ExtractionStatus::Ready);
         assert_eq!(doc.passages.len(), 1);
@@ -1524,5 +1571,49 @@ mod tests {
         assert!(!scheduler.is_paused());
         let res = scheduler.tick().unwrap();
         assert!(res.is_some());
+    }
+
+    #[test]
+    fn release_postpone_blocks_internal_extraction_until_authorized() {
+        let t = fixture();
+        fs::write(t.path().join("20_RAW_SOURCES/source.txt"), "Original synthetic content").unwrap();
+        crate::catalog::sync_catalog(t.path()).unwrap();
+        let mut calls = 0;
+        run_with(t.path(), true, |kind, input| { calls += 1; provider(kind, input) }).unwrap();
+        assert_eq!(calls, 0, "No classification before Indicizza");
+        crate::catalog::process_pending_extractions(t.path()).unwrap();
+        run_with(t.path(), true, |kind, input| { calls += 1; provider(kind, input) }).unwrap();
+        assert!(calls > 0);
+        fs::write(t.path().join("20_RAW_SOURCES/source.txt"), "Changed synthetic content").unwrap();
+        crate::catalog::sync_catalog(t.path()).unwrap();
+        calls = 0;
+        run_with(t.path(), true, |kind, input| { calls += 1; provider(kind, input) }).unwrap();
+        assert_eq!(calls, 0, "Changed bytes require new authorization");
+    }
+
+    #[test]
+    fn test_solo_locale_blocks_cloud_automation() {
+        let t = fixture();
+        configure(t.path(), Config { enabled: true, model: "gpt-4o-mini".into() }).unwrap();
+
+        // 1. Modalità Solo Locale (aiMode = "local_only"): automazioni cloud bloccate con messaggio
+        crate::embeddings::set_ai_mode(t.path(), "local_only").unwrap();
+
+        let rep = run(t.path()).unwrap();
+        assert!(rep.message.contains("Solo Locale attiva"));
+        assert!(rep.message.contains("OpenAI"));
+
+        let scheduler = AutomationScheduler::new();
+        scheduler.set_vault(Some(t.path().to_path_buf()));
+        let tick_res = scheduler.tick().unwrap();
+        assert!(tick_res.is_some());
+        assert!(tick_res.unwrap().message.contains("Solo Locale attiva"));
+
+        // 2. Modalità Ibrida con embeddings locali (aiMode = "hybrid", embeddingsProvider = "local"):
+        // Solo Locale NON blocca l'automazione, che opera secondo la modalità configurata
+        crate::embeddings::set_ai_mode(t.path(), "hybrid").unwrap();
+        crate::embeddings::set_embeddings_provider(t.path(), "local", 0).unwrap();
+        let stat = status(t.path()).unwrap();
+        assert!(!stat.message.contains("Solo Locale attiva"), "La modalità ibrida con embeddings locali non deve essere confusa con Solo Locale");
     }
 }

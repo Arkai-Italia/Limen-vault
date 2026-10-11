@@ -1,3 +1,4 @@
+import { useVaultAiMode } from './useVaultAiMode';
 import React, { useState, useEffect } from 'react';
 import {
   FolderOpen,
@@ -73,12 +74,8 @@ export function SetupWizardModal({
   const [hasApiKey, setHasApiKey] = useState<boolean>(false);
   const [apiKeyInput, setApiKeyInput] = useState<string>('');
   const [apiKeySaving, setApiKeySaving] = useState<boolean>(false);
-  const [isLocalOnlyMode, setIsLocalOnlyMode] = useState<boolean>(() => {
-    if (typeof localStorage !== 'undefined') {
-      return localStorage.getItem('limen_ai_mode') === 'local_only';
-    }
-    return false;
-  });
+  const vaultMode = useVaultAiMode(currentVaultPath);
+  const isLocalOnlyMode = vaultMode.mode === 'local_only';
   const [apiActionError, setApiActionError] = useState<string | null>(null);
   const [apiActionSuccess, setApiActionSuccess] = useState<string | null>(null);
 
@@ -233,14 +230,15 @@ export function SetupWizardModal({
     }
   };
 
-  const handleSetLocalOnlyMode = (enabled: boolean) => {
-    setIsLocalOnlyMode(enabled);
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem('limen_ai_mode', enabled ? 'local_only' : 'hybrid');
-    }
-    if (enabled) {
-      setApiActionSuccess('Modalità 100% Solo Locale attivata. Nessuna chiamata di rete a OpenAI.');
-    }
+  const handleSetLocalOnlyMode = async (enabled: boolean) => {
+    setApiKeySaving(true);
+    setApiActionError(null);
+    setApiActionSuccess(null);
+    try {
+      await vaultMode.setMode(enabled ? 'local_only' : 'hybrid');
+      setApiActionSuccess(enabled ? 'Solo Locale configurato: chiamate cloud bloccate. Verifica i modelli locali prima di interrogare Limen.' : 'Modalità Ibrida configurata.');
+    } catch (e) { setApiActionError(String(e)); }
+    finally { setApiKeySaving(false); }
   };
 
   const systemRam = catalogReport?.physicalRamBytes || 0;

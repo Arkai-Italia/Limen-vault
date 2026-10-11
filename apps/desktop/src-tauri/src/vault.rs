@@ -493,6 +493,410 @@ pub fn create(
     Ok(response(target, validation).status)
 }
 
+#[derive(Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct VaultFolderReport {
+    pub id: String,
+    #[serde(default)]
+    pub name: String,
+    #[serde(default)]
+    pub path: String,
+    pub exists: bool,
+    #[serde(alias = "file_count")]
+    pub file_count: usize,
+    #[serde(default)]
+    #[serde(alias = "is_standard")]
+    pub is_standard: bool,
+    pub error: Option<String>,
+}
+
+impl Serialize for VaultFolderReport {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeMap;
+        let mut map = serializer.serialize_map(Some(9))?;
+        map.serialize_entry("id", &self.id)?;
+        map.serialize_entry("name", if self.name.is_empty() { &self.id } else { &self.name })?;
+        map.serialize_entry("path", if self.path.is_empty() { &self.id } else { &self.path })?;
+        map.serialize_entry("exists", &self.exists)?;
+        map.serialize_entry("file_count", &self.file_count)?;
+        map.serialize_entry("fileCount", &self.file_count)?;
+        map.serialize_entry("is_standard", &self.is_standard)?;
+        map.serialize_entry("isStandard", &self.is_standard)?;
+        map.serialize_entry("error", &self.error)?;
+        map.end()
+    }
+}
+
+#[derive(Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct VaultFileEntry {
+    pub name: String,
+    #[serde(alias = "relativePath")]
+    pub relative_path: String,
+    #[serde(alias = "isDir")]
+    pub is_dir: bool,
+    #[serde(alias = "sizeBytes")]
+    pub size_bytes: u64,
+    #[serde(alias = "modifiedEpochMs", alias = "modifiedMs", alias = "modified_ms")]
+    pub modified_epoch_ms: u64,
+    pub extension: String,
+}
+
+impl Serialize for VaultFileEntry {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeMap;
+        let mut map = serializer.serialize_map(Some(12))?;
+        map.serialize_entry("name", &self.name)?;
+        map.serialize_entry("relative_path", &self.relative_path)?;
+        map.serialize_entry("relativePath", &self.relative_path)?;
+        map.serialize_entry("is_dir", &self.is_dir)?;
+        map.serialize_entry("isDir", &self.is_dir)?;
+        map.serialize_entry("size_bytes", &self.size_bytes)?;
+        map.serialize_entry("sizeBytes", &self.size_bytes)?;
+        map.serialize_entry("modified_epoch_ms", &self.modified_epoch_ms)?;
+        map.serialize_entry("modifiedEpochMs", &self.modified_epoch_ms)?;
+        map.serialize_entry("modified_ms", &self.modified_epoch_ms)?;
+        map.serialize_entry("modifiedMs", &self.modified_epoch_ms)?;
+        map.serialize_entry("extension", &self.extension)?;
+        map.end()
+    }
+}
+
+#[derive(Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct VaultFolderFilesReport {
+    pub folder: String,
+    pub exists: bool,
+    pub files: Vec<VaultFileEntry>,
+    pub error: Option<String>,
+}
+
+impl Serialize for VaultFolderFilesReport {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeMap;
+        let mut map = serializer.serialize_map(Some(4))?;
+        map.serialize_entry("folder", &self.folder)?;
+        map.serialize_entry("exists", &self.exists)?;
+        map.serialize_entry("files", &self.files)?;
+        map.serialize_entry("error", &self.error)?;
+        map.end()
+    }
+}
+
+pub fn list_vault_folders(vault_path: &Path) -> Result<Vec<VaultFolderReport>, String> {
+    if !vault_path.exists() {
+        return Err("La cartella del vault non esiste".into());
+    }
+    let canonical_vault = match vault_path.canonicalize() {
+        Ok(p) => p,
+        Err(e) => return Err(format!("La cartella del vault non è valida: {}", e)),
+    };
+    let mut reports = Vec::new();
+
+    // 1. Scansione di tutte le 15 cartelle standard (inclusi 00_SYSTEM e 99_ARCHIVE)
+    for &folder_name in &REQUIRED_VAULT_FOLDERS {
+        let folder_path = vault_path.join(folder_name);
+        if !folder_path.exists() {
+            reports.push(VaultFolderReport {
+                id: folder_name.to_string(),
+                name: folder_name.to_string(),
+                path: folder_name.to_string(),
+                exists: false,
+                file_count: 0,
+                is_standard: true,
+                error: None,
+            });
+        } else if let Ok(canonical_f) = folder_path.canonicalize() {
+            if !canonical_f.starts_with(&canonical_vault) {
+                reports.push(VaultFolderReport {
+                    id: folder_name.to_string(),
+                    name: folder_name.to_string(),
+                    path: folder_name.to_string(),
+                    exists: false,
+                    file_count: 0,
+                    is_standard: true,
+                    error: Some("Collegamento esterno non consentito".into()),
+                });
+            } else if !canonical_f.is_dir() {
+                reports.push(VaultFolderReport {
+                    id: folder_name.to_string(),
+                    name: folder_name.to_string(),
+                    path: folder_name.to_string(),
+                    exists: false,
+                    file_count: 0,
+                    is_standard: true,
+                    error: Some("Il percorso non è una cartella".into()),
+                });
+            } else {
+                let count = match std::fs::read_dir(&canonical_f) {
+                    Ok(entries) => entries
+                        .flatten()
+                        .filter(|e| {
+                            let n = e.file_name().to_string_lossy().to_string();
+                            !n.starts_with('.')
+                        })
+                        .count(),
+                    Err(_) => 0,
+                };
+                reports.push(VaultFolderReport {
+                    id: folder_name.to_string(),
+                    name: folder_name.to_string(),
+                    path: folder_name.to_string(),
+                    exists: true,
+                    file_count: count,
+                    is_standard: true,
+                    error: None,
+                });
+            }
+        } else {
+            reports.push(VaultFolderReport {
+                id: folder_name.to_string(),
+                name: folder_name.to_string(),
+                path: folder_name.to_string(),
+                exists: false,
+                file_count: 0,
+                is_standard: true,
+                error: Some("Percorso non accessibile".into()),
+            });
+        }
+    }
+
+    // 2. Rilevamento dinamico cartelle personalizzate nella radice del vault
+    if let Ok(entries) = std::fs::read_dir(&canonical_vault) {
+        for entry in entries.flatten() {
+            let name = entry.file_name().to_string_lossy().to_string();
+            if name.starts_with('.') || REQUIRED_VAULT_FOLDERS.contains(&name.as_str()) {
+                continue;
+            }
+            if let Ok(meta) = entry.metadata() {
+                if meta.is_dir() {
+                    if let Ok(canonical_f) = entry.path().canonicalize() {
+                        if canonical_f.starts_with(&canonical_vault) {
+                            let count = match std::fs::read_dir(&canonical_f) {
+                                Ok(sub_entries) => sub_entries
+                                    .flatten()
+                                    .filter(|e| {
+                                        let n = e.file_name().to_string_lossy().to_string();
+                                        !n.starts_with('.')
+                                    })
+                                    .count(),
+                                Err(_) => 0,
+                            };
+                            reports.push(VaultFolderReport {
+                                id: name.clone(),
+                                name: name.clone(),
+                                path: name,
+                                exists: true,
+                                file_count: count,
+                                is_standard: false,
+                                error: None,
+                            });
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(reports)
+}
+
+pub fn list_vault_folder_files(vault_path: &Path, folder: &str) -> Result<VaultFolderFilesReport, String> {
+    if folder.contains("..") || folder.starts_with('/') || folder.starts_with('\\') {
+        return Err("Percorso cartella non valido o non autorizzato".into());
+    }
+    let canonical_vault = match vault_path.canonicalize() {
+        Ok(p) => p,
+        Err(e) => return Err(format!("Vault non accessibile: {}", e)),
+    };
+    let folder_path = vault_path.join(folder);
+    if !folder_path.exists() {
+        return Ok(VaultFolderFilesReport {
+            folder: folder.to_string(),
+            exists: false,
+            files: Vec::new(),
+            error: None,
+        });
+    }
+    let canonical_folder = match folder_path.canonicalize() {
+        Ok(p) => p,
+        Err(e) => {
+            return Ok(VaultFolderFilesReport {
+                folder: folder.to_string(),
+                exists: true,
+                files: Vec::new(),
+                error: Some(format!("Errore risoluzione percorso: {}", e)),
+            });
+        }
+    };
+    if !canonical_folder.starts_with(&canonical_vault) {
+        return Err("Accesso negato: il percorso punta all'esterno del vault".into());
+    }
+    if !canonical_folder.is_dir() {
+        return Ok(VaultFolderFilesReport {
+            folder: folder.to_string(),
+            exists: false,
+            files: Vec::new(),
+            error: Some("Il percorso non è una cartella".into()),
+        });
+    }
+
+    let entries = match std::fs::read_dir(&canonical_folder) {
+        Ok(e) => e,
+        Err(e) => {
+            return Ok(VaultFolderFilesReport {
+                folder: folder.to_string(),
+                exists: true,
+                files: Vec::new(),
+                error: Some(format!("Errore di accesso al disco: {}", e)),
+            });
+        }
+    };
+
+    let mut files = Vec::new();
+    for entry in entries.flatten() {
+        let file_name = entry.file_name().to_string_lossy().to_string();
+        if file_name.starts_with('.') {
+            continue;
+        }
+        let entry_path = entry.path();
+        // Verifica contenimento: ogni singolo elemento o symlink deve risiedere all'interno del vault
+        let canonical_entry = match entry_path.canonicalize() {
+            Ok(p) => p,
+            Err(_) => continue, // symlink rotto o inaccessibile
+        };
+        if !canonical_entry.starts_with(&canonical_vault) {
+            // Symlink esterno: ignorato per garantire l'isolamento del vault
+            continue;
+        }
+
+        let meta = entry.metadata().ok();
+        let is_dir = meta.as_ref().map(|m| m.is_dir()).unwrap_or(false);
+        let size_bytes = meta.as_ref().map(|m| m.len()).unwrap_or(0);
+        let modified_epoch_ms = meta
+            .and_then(|m| m.modified().ok())
+            .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+            .map(|d| d.as_millis() as u64)
+            .unwrap_or(0);
+        let extension = if is_dir {
+            String::new()
+        } else {
+            Path::new(&file_name)
+                .extension()
+                .and_then(|ext| ext.to_str())
+                .unwrap_or("")
+                .to_lowercase()
+        };
+        let rel_path = if folder.is_empty() {
+            file_name.clone()
+        } else {
+            format!("{}/{}", folder.trim_end_matches('/'), file_name)
+        };
+
+        files.push(VaultFileEntry {
+            name: file_name,
+            relative_path: rel_path,
+            is_dir,
+            size_bytes,
+            modified_epoch_ms,
+            extension,
+        });
+    }
+
+    files.sort_by(|a, b| {
+        if a.is_dir != b.is_dir {
+            b.is_dir.cmp(&a.is_dir)
+        } else {
+            a.name.to_lowercase().cmp(&b.name.to_lowercase())
+        }
+    });
+
+    Ok(VaultFolderFilesReport {
+        folder: folder.to_string(),
+        exists: true,
+        files,
+        error: None,
+    })
+}
+
+pub fn read_vault_text(vault_path: &Path, relative_path: &str) -> Result<String, String> {
+    if relative_path.split('/').any(|c| c.is_empty() || c == "." || c == ".." || c.contains(['\\', '\0'])) { return Err("Percorso non valido".into()); }
+    let root = crate::snapshots::root(vault_path)?;
+    let mut options = OpenOptions::new();
+    options.read(true);
+    #[cfg(unix)] { use std::os::unix::fs::OpenOptionsExt; options.custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK); }
+    let file = root.open_with(relative_path, &options).map_err(|e| e.to_string())?;
+    if !file.metadata().map_err(|e| e.to_string())?.is_file() { return Err("Seleziona un file".into()); }
+    let mut bytes = Vec::new();
+    file.take(1_048_577).read_to_end(&mut bytes).map_err(|e| e.to_string())?;
+    if bytes.len() > 1_048_576 { return Err("Anteprima disponibile per file di testo fino a 1 MiB. Usa Apri nel Finder.".into()); }
+    String::from_utf8(bytes).map_err(|_| "Anteprima testuale non disponibile per questo formato".into())
+}
+
+pub fn reveal_vault_path(vault_path: &Path, target: &str) -> Result<(), String> {
+    if target.is_empty() {
+        return Err("Percorso da aprire non specificato".into());
+    }
+
+    let canonical_vault = vault_path.canonicalize().map_err(|e| format!("Vault non accessibile: {}", e))?;
+
+    // 1. Prova prima se il target corrisponde a un document_id nel catalogo
+    let path_to_reveal = if let Ok(doc) = crate::catalog::get_document(vault_path, target) {
+        canonical_vault.join(&doc.original_path)
+    } else {
+        // 2. Altrimenti tratta il target come percorso relativo
+        if target.contains("..") {
+            return Err("Percorso non valido".into());
+        }
+        canonical_vault.join(target)
+    };
+
+    let canonical_target = path_to_reveal.canonicalize().map_err(|e| format!("File non trovato sul disco: {}", e))?;
+
+    if !canonical_target.starts_with(&canonical_vault) {
+        return Err("Accesso negato: il file si trova al di fuori del vault".into());
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        let status = std::process::Command::new("/usr/bin/open")
+            .arg("-R")
+            .arg(&canonical_target)
+            .status()
+            .map_err(|e| format!("Impossibile aprire il Finder: {}", e))?;
+        if !status.success() {
+            return Err("Comando Finder fallito".into());
+        }
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        let status = std::process::Command::new("explorer")
+            .arg(format!("/select,\"{}\"", canonical_target.display()))
+            .status()
+            .map_err(|e| format!("Impossibile aprire Esplora File: {}", e))?;
+        if !status.success() {
+            return Err("Comando Esplora File fallito".into());
+        }
+    }
+
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    {
+        let _ = canonical_target;
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -617,5 +1021,74 @@ mod tests {
         std::fs::write(p.join("01_CLIENTS/bad_doc.md"), foreign_yaml).unwrap();
         let res_outside = open(&p);
         assert_eq!(res_outside.status.state, "INVALID", "Vault with foreign YAML frontmatter in 01_CLIENTS must be INVALID");
+    }
+
+    #[test]
+    fn test_vault_explorer_list_folders_and_files() {
+        let t = tempfile::tempdir().unwrap();
+        let p = t.path().join("vault");
+        let template = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../vault-template");
+        create(&p, None, &template).unwrap();
+
+        // Popola con file di vario tipo (Markdown, PDF, XLSX), cartella custom e sottocartelle
+        std::fs::write(p.join("20_RAW_SOURCES/documento.pdf"), b"%PDF-1.4 dummy pdf bytes").unwrap();
+        std::fs::write(p.join("20_RAW_SOURCES/tabella.xlsx"), b"dummy excel bytes").unwrap();
+        std::fs::write(p.join("80_AI_OUTPUTS/sintesi.md"), "# Sintesi AI").unwrap();
+        std::fs::write(p.join("90_PROPOSALS/bozza.md"), "# Bozza").unwrap();
+        std::fs::create_dir(p.join("NOTE_PERSONALIZZATE")).unwrap();
+        std::fs::write(p.join("NOTE_PERSONALIZZATE/extra.txt"), b"nota extra").unwrap();
+
+        // 1. Test elenco cartelle standard + custom
+        let folders = list_vault_folders(&p).unwrap();
+        assert!(folders.iter().any(|f| f.id == "20_RAW_SOURCES" && f.exists && f.file_count >= 2));
+        assert!(folders.iter().any(|f| f.id == "80_AI_OUTPUTS" && f.exists && f.file_count >= 1));
+        assert!(folders.iter().any(|f| f.id == "90_PROPOSALS" && f.exists && f.file_count >= 1));
+        assert!(folders.iter().any(|f| f.id == "01_CLIENTS" && f.exists));
+        assert!(folders.iter().any(|f| f.id == "00_SYSTEM" && f.exists && f.is_standard));
+        assert!(folders.iter().any(|f| f.id == "99_ARCHIVE" && f.exists && f.is_standard));
+        assert!(folders.iter().any(|f| f.id == "NOTE_PERSONALIZZATE" && f.exists && !f.is_standard && f.file_count == 1));
+
+        // 2. Test serializzazione duale (camelCase e snake_case)
+        let serialized_folders = serde_json::to_string(&folders).unwrap();
+        assert!(serialized_folders.contains("\"fileCount\":"));
+        assert!(serialized_folders.contains("\"file_count\":"));
+        assert!(serialized_folders.contains("\"isStandard\":"));
+        assert!(serialized_folders.contains("\"is_standard\":"));
+
+        // 3. Test elenco file cartella reale
+        let rep_raw = list_vault_folder_files(&p, "20_RAW_SOURCES").unwrap();
+        assert!(rep_raw.exists);
+        assert!(rep_raw.error.is_none());
+        assert!(rep_raw.files.iter().any(|f| f.name == "documento.pdf" && f.extension == "pdf" && !f.is_dir && f.size_bytes > 0));
+        assert!(rep_raw.files.iter().any(|f| f.name == "tabella.xlsx" && f.extension == "xlsx" && !f.is_dir && f.size_bytes > 0));
+
+        let serialized_files = serde_json::to_string(&rep_raw).unwrap();
+        assert!(serialized_files.contains("\"relativePath\":"));
+        assert!(serialized_files.contains("\"relative_path\":"));
+        assert!(serialized_files.contains("\"isDir\":"));
+        assert!(serialized_files.contains("\"is_dir\":"));
+        assert!(serialized_files.contains("\"sizeBytes\":"));
+        assert!(serialized_files.contains("\"size_bytes\":"));
+        assert!(serialized_files.contains("\"modifiedMs\":"));
+        assert!(serialized_files.contains("\"modifiedEpochMs\":"));
+
+        // 4. Test cartella inesistente
+        let rep_missing = list_vault_folder_files(&p, "non_existent_folder").unwrap();
+        assert!(!rep_missing.exists);
+        assert_eq!(rep_missing.files.len(), 0);
+
+        // 5. Test protezione path traversal e symlink esterni
+        assert!(list_vault_folder_files(&p, "../outside").is_err());
+        assert!(reveal_vault_path(&p, "../outside").is_err());
+
+        #[cfg(unix)]
+        {
+            let outside_file = t.path().join("segreto.txt");
+            std::fs::write(&outside_file, "segreto esterno").unwrap();
+            std::os::unix::fs::symlink(&outside_file, p.join("20_RAW_SOURCES/link_segreto.txt")).unwrap();
+
+            let rep_sym = list_vault_folder_files(&p, "20_RAW_SOURCES").unwrap();
+            assert!(!rep_sym.files.iter().any(|f| f.name == "link_segreto.txt"), "I symlink a file esterni devono essere ignorati/bloccati dall'esploratore");
+        }
     }
 }

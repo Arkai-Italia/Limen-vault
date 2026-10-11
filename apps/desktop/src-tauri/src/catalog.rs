@@ -149,6 +149,8 @@ pub struct DocumentRecord {
     pub imported_at: String,
     pub updated_at: String,
 
+    #[serde(default)]
+    pub indexing_authorized_hash: Option<String>,
     pub extraction_status: ExtractionStatus,
     pub extraction_error: Option<String>,
     pub extracted_text_path: Option<String>,
@@ -628,6 +630,7 @@ pub fn sync_catalog_from_vault(vault_path: &Path) -> Result<CatalogState, String
                 mime_type: mime.to_string(),
                 imported_at: now_iso(),
                 updated_at: now_iso(),
+                indexing_authorized_hash: None,
                 extraction_status: ExtractionStatus::Pending,
                 extraction_error: None,
                 extracted_text_path: None,
@@ -693,6 +696,7 @@ pub fn sync_catalog_from_vault(vault_path: &Path) -> Result<CatalogState, String
                 mime_type: "text/markdown".into(),
                 imported_at: now_iso(),
                 updated_at: now_iso(),
+                indexing_authorized_hash: None,
                 extraction_status: ExtractionStatus::Ready,
                 extraction_error: None,
                 extracted_text_path: Some(rel_path.clone()),
@@ -781,6 +785,7 @@ pub fn sync_catalog_from_vault(vault_path: &Path) -> Result<CatalogState, String
                     mime_type: "text/markdown".into(),
                     imported_at: now_iso(),
                     updated_at: now_iso(),
+                    indexing_authorized_hash: None,
                     extraction_status: ExtractionStatus::Ready,
                     extraction_error: None,
                     extracted_text_path: Some(rel_path.clone()),
@@ -987,13 +992,19 @@ pub fn extract_document_content(bytes: &[u8], filename: &str) -> Result<String, 
 pub fn process_pending_extractions(vault_path: &Path) -> Result<usize, String> {
     let mut catalog = load_catalog(vault_path)?;
     let mut processed = 0;
+    let mut changed = false;
     let r = root(vault_path)?;
 
     for doc in catalog.documents.values_mut() {
-        if doc.extraction_status != ExtractionStatus::Pending {
+        if doc.original_path.starts_with("20_RAW_SOURCES/") && doc.indexing_authorized_hash.as_deref() != Some(&doc.content_hash) {
+            doc.indexing_authorized_hash = Some(doc.content_hash.clone());
+            changed = true;
+        }
+        if matches!(doc.extraction_status, ExtractionStatus::Ready | ExtractionStatus::Processing) {
             continue;
         }
 
+        changed = true;
         doc.extraction_status = ExtractionStatus::Processing;
         let original_bytes = match read_path(&r, &doc.original_path) {
             Ok(b) => b,
@@ -1034,7 +1045,7 @@ pub fn process_pending_extractions(vault_path: &Path) -> Result<usize, String> {
         }
     }
 
-    if processed > 0 || catalog.documents.values().any(|d| d.extraction_status == ExtractionStatus::Processing) {
+    if changed {
         save_catalog(vault_path, &mut catalog)?;
     }
 
@@ -1622,6 +1633,7 @@ mod tests {
             mime_type: "text/plain".into(),
             imported_at: now_iso(),
             updated_at: now_iso(),
+            indexing_authorized_hash: None,
             extraction_status: ExtractionStatus::Ready,
             extraction_error: None,
             extracted_text_path: None,

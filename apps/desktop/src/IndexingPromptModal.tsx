@@ -39,6 +39,24 @@ export const IndexingPromptModal: React.FC<IndexingPromptModalProps> = ({
   onPostpone,
   onClose,
 }) => {
+  const dialogRef = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const previous = document.activeElement as HTMLElement | null;
+    const dialog = dialogRef.current;
+    dialog?.querySelector<HTMLButtonElement>('button:not([disabled])')?.focus();
+    const keydown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !isProcessing) { event.preventDefault(); onPostpone(); }
+      if (event.key !== 'Tab' || !dialog) return;
+      const buttons = Array.from(dialog.querySelectorAll<HTMLButtonElement>('button:not([disabled])'));
+      const first = buttons[0], last = buttons[buttons.length - 1];
+      if (!first) { event.preventDefault(); return; }
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    };
+    dialog?.addEventListener('keydown', keydown);
+    return () => { dialog?.removeEventListener('keydown', keydown); previous?.focus(); };
+  }, [isOpen, isProcessing, onPostpone]);
   if (!isOpen) return null;
 
   return (
@@ -54,7 +72,9 @@ export const IndexingPromptModal: React.FC<IndexingPromptModalProps> = ({
         justifyContent: 'center',
         padding: 20,
       }}
+      ref={dialogRef}
       role="dialog"
+      aria-label="Indicizzazione documenti"
       aria-modal="true"
     >
       <div
@@ -82,7 +102,7 @@ export const IndexingPromptModal: React.FC<IndexingPromptModalProps> = ({
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <LimenAiIcon size={22} />
             <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#ffffff' }}>
-              Nuovi documenti in RAW: Indicizzo?
+              {filesCount > 0 ? 'Documenti caricati: indicizzo?' : 'Aggiorno l’indice del vault?'}
             </h3>
           </div>
 
@@ -106,7 +126,7 @@ export const IndexingPromptModal: React.FC<IndexingPromptModalProps> = ({
         <div style={{ padding: '24px' }}>
           <div style={{ marginBottom: 18 }}>
             <div style={{ fontSize: 14, fontWeight: 600, color: '#0f172a', marginBottom: 6 }}>
-              {filesCount === 1
+              {filesCount === 0 ? 'Elabora i documenti in attesa e completa gli indici del vault.' : filesCount === 1
                 ? 'È stato importato 1 nuovo documento in 20_RAW_SOURCES.'
                 : `Sono stati importati ${filesCount} nuovi documenti in 20_RAW_SOURCES.`}
             </div>

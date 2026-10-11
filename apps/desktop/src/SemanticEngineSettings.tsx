@@ -43,7 +43,13 @@ function formatBytes(bytes: number): string {
   return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
 }
 
-export function SemanticEngineSettings({ vaultPath }: { vaultPath: string }) {
+export function SemanticEngineSettings({
+  vaultPath,
+  targetSection,
+}: {
+  vaultPath: string;
+  targetSection?: 'local' | 'semantic' | 'llm' | 'keys' | 'models' | 'api' | 'general';
+}) {
   const { t, language } = useTranslation();
   const terms = getPlatformTerms();
   const [providerReport, setProviderReport] = useState<EmbeddingsProviderReport | null>(null);
@@ -978,13 +984,15 @@ export function SemanticEngineSettings({ vaultPath }: { vaultPath: string }) {
       <div
         className="limen-card"
         style={{
-          border: '1px solid #cbd5e1',
+          border: (targetSection === 'llm' || targetSection === 'models') ? '2px solid #3b82f6' : '1px solid #cbd5e1',
+          boxShadow: (targetSection === 'llm' || targetSection === 'models') ? '0 0 0 4px rgba(59, 130, 246, 0.2)' : 'none',
           borderRadius: 8,
           padding: 16,
           backgroundColor: '#ffffff',
           display: 'flex',
           flexDirection: 'column',
           gap: 14,
+          transition: 'all 0.2s ease',
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

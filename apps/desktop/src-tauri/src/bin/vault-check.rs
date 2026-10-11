@@ -3,6 +3,11 @@ use std::path::Path;
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     match args.get(1).map(String::as_str) {
+        Some("folders") => output(vault::list_vault_folders(Path::new(&args[2]))),
+        Some("folder-files") => output(vault::list_vault_folder_files(Path::new(&args[2]), &args[3])),
+        Some("read-text") => output(vault::read_vault_text(Path::new(&args[2]), &args[3])),
+        Some("mode") => output(Ok::<_, String>(limen_vault::embeddings::get_ai_mode(Path::new(&args[2])))),
+        Some("set-mode") => output(limen_vault::embeddings::set_ai_mode(Path::new(&args[2]), &args[3])),
         Some("auto-config") => output(limen_vault::automation::configure(Path::new(&args[2]), serde_json::from_str(&args[3]).expect("Config JSON"))),
         Some("auto-run") => output(limen_vault::automation::run(Path::new(&args[2]))),
         Some("auto-status") => output(limen_vault::automation::status(Path::new(&args[2]))),

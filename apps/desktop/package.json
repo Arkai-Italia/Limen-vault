@@ -10,14 +10,15 @@
     "preview": "vite preview",
     "typecheck": "pnpm build:deps && tsc --noEmit",
     "lint": "echo 'desktop clean'",
-    "test": "node --import tsx/esm tests/desktop-ipc.test.ts",
+    "test": "node --import tsx/esm tests/desktop-ipc.test.ts && node --import tsx/esm tests/release-regressions.test.ts",
     "tauri": "tauri",
     "test:native-parity": "node --import tsx/esm tests/native-parity.test.ts",
     "test:m3-e2e": "node --import tsx/esm tests/m3-native-e2e.test.ts",
     "test:m4-e2e": "node --import tsx/esm tests/m4-native-e2e.test.ts",
     "test:m5-e2e": "node --import tsx/esm tests/m5-native-e2e.test.ts",
     "test:m6-e2e": "node --import tsx/esm tests/m6-native-e2e.test.ts",
-    "test:m7-e2e": "node --import tsx/esm tests/m7-native-e2e.test.ts"
+    "test:m7-e2e": "node --import tsx/esm tests/m7-native-e2e.test.ts",
+    "test:ui": "node tests/ui-regressions.mjs"
   },
   "dependencies": {
     "@limen-vault/ui": "workspace:*",

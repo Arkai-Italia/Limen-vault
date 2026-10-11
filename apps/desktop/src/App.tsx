@@ -1,3 +1,4 @@
+import { runIndexing } from './indexing';
 import {AutomationPanel,useAutomation} from './AutomationPanel';
 import {labelIt, MessageIt} from './locale';
 import {LanguageToggle, useTranslation} from './i18n';
@@ -35,6 +36,7 @@ import {
   type CatalogSummary,
   type DocumentRecord,
   type SnapshotRestoreReport,
+  type EmbeddingsStatusReport,
 } from './vault-ipc';
 import {
   StatusBadge,
@@ -195,6 +197,7 @@ export default function App() {
   const [autoIndexPercent, setAutoIndexPercent] = useState<number>(0);
   const [hasPendingIndexing, setHasPendingIndexing] = useState<boolean>(false);
   const [settingsGuideMessage, setSettingsGuideMessage] = useState<string | null>(null);
+  const [settingsTargetSection, setSettingsTargetSection] = useState<'local' | 'semantic' | 'llm' | 'keys' | 'models' | 'api' | 'general'>('general');
 
   const refreshHistory = async () => {
     if (!vaultPath) {
@@ -492,7 +495,7 @@ export default function App() {
       // 3. Controllo Chiave API o Modalità Solo Locale
       let hasKeyOrLocal = false;
       try {
-        const isLocalOnly = typeof localStorage !== 'undefined' && localStorage.getItem('limen_local_only_mode') === 'true';
+        const isLocalOnly = currentPath ? await aiIpc.aiGetMode(currentPath) === 'local_only' : false;
         if (isLocalOnly) {
           hasKeyOrLocal = true;
         } else {
@@ -552,6 +555,13 @@ export default function App() {
       if (summary.totalRawSources > 0 || summary.totalDocuments > 0) {
         setSourceCount(summary.totalRawSources || summary.totalDocuments);
       }
+
+      try {
+        const indexing = await ipc.getIndexingStatus(target);
+        if (ticket === generation.current) setHasPendingIndexing(!indexing.complete);
+      } catch {
+        if (ticket === generation.current) setHasPendingIndexing(true);
+      }
     } catch (e) {
       console.error('refreshCatalog error:', e);
     }
@@ -562,26 +572,37 @@ export default function App() {
     const ticket = begin();
     if (ticket === null) return;
     setIsAutoIndexing(true);
-    setAutoIndexPercent(15);
-    setAutoIndexStep('1/3 Estrazione passaggi da documenti RAW...');
+    setShowIndexingPrompt(true);
     setActionError(null);
+    setRestoreMessage(null);
     try {
-      await ipc.processPendingExtractions(vaultPath);
-      setAutoIndexPercent(50);
-      setAutoIndexStep('2/3 Aggiornamento indice lessicale BM25...');
-      await ipc.indexVaultSearch(vaultPath).catch(() => {});
-      setAutoIndexPercent(80);
-      setAutoIndexStep('3/3 Sincronizzazione vettoriale semantica...');
-      await aiIpc.embeddingsSyncVault(vaultPath).catch(() => {});
-      setAutoIndexPercent(100);
+      const result = await runIndexing({
+        extract: ipc.processPendingExtractions,
+        index: ipc.indexVaultSearch,
+        vectors: aiIpc.embeddingsSyncVault,
+        status: ipc.getIndexingStatus,
+      }, vaultPath, (phase, percent) => {
+        if (ticket === generation.current) { setAutoIndexStep(phase); setAutoIndexPercent(percent); }
+      });
       await refreshCatalog(vaultPath, ticket);
       await refreshCompiler(vaultPath, ticket);
-      setSearchRevision((r) => r + 1);
-      setHasPendingIndexing(false);
-      setShowIndexingPrompt(false);
-      setRestoreMessage('Indicizzazione completata con successo! I contenuti sono pronti per Chiedi a Limen.');
-    } catch (err) {
-      setActionError(`Indicizzazione non riuscita: ${err instanceof Error ? err.message : String(err)}`);
+      if (ticket !== generation.current) return;
+      setSearchRevision(r => r + 1);
+      setHasPendingIndexing(!result.complete);
+      if (result.complete) {
+        setShowIndexingPrompt(false);
+        setRestoreMessage(`Indicizzazione completata: ${result.documents} documenti elaborati. Ricerca testuale e semantica aggiornate.`);
+      } else {
+        const st = result.status;
+        setActionError([
+          'Indicizzazione incompleta.',
+          `${st.pendingDocuments} documenti in attesa; ${st.attentionDocuments} da controllare; ${st.missingPassages} passaggi semantici mancanti.`,
+          !st.lexicalCurrent ? 'Indice testuale da aggiornare.' : '',
+          ...result.errors,
+        ].filter(Boolean).join(' '));
+      }
+    } catch (e) {
+      if (ticket === generation.current) { setHasPendingIndexing(true); setActionError(`Indicizzazione non verificata: ${String(e)}`); }
     } finally {
       setIsAutoIndexing(false);
       setAutoIndexStep(null);
@@ -595,12 +616,39 @@ export default function App() {
     if (ticket === null) return;
     setActionError(null);
     try {
-      await ipc.automationChooseFiles(vaultPath);
+      const receipts = await ipc.automationChooseFiles(vaultPath);
+      // Se l'utente ha annullato il selettore file o non ha selezionato alcun file:
+      if (!receipts || receipts.length === 0) {
+        return;
+      }
+
       await refreshCatalog(vaultPath, ticket);
       await refreshCompiler(vaultPath, ticket);
-      setImportedFilesList(['Nuovo file selezionato']);
-      setShowIndexingPrompt(true);
-      setHasPendingIndexing(true);
+
+      const imported = receipts.filter((r) => r.status === 'imported');
+      const duplicates = receipts.filter((r) => r.status === 'duplicate');
+      const errors = receipts.filter((r) => r.status === 'error');
+
+      if (imported.length > 0) {
+        const fileNames = imported.map((r) => {
+          const raw = r.name || r.path || 'file';
+          return raw.split(/[/\\]/).pop() || raw;
+        });
+        setImportedFilesList(fileNames);
+        setShowIndexingPrompt(true);
+        setHasPendingIndexing(true);
+
+        if (duplicates.length > 0 || errors.length > 0) {
+          const notes: string[] = [];
+          if (duplicates.length > 0) notes.push(`${duplicates.length} duplicati ignorati`);
+          if (errors.length > 0) notes.push(`${errors.length} errori: ${errors.map((e) => e.error || 'errore').join(', ')}`);
+          setActionError(`Caricati ${imported.length} file (${notes.join(', ')}).`);
+        }
+      } else if (duplicates.length > 0 && errors.length === 0) {
+        setActionError(`I ${duplicates.length} file selezionati sono già presenti nel Vault (duplicati ignorati). Nessun nuovo file da indicizzare.`);
+      } else if (errors.length > 0) {
+        setActionError(`Errore durante il caricamento: ${errors.map((e) => `${(e.name || e.path || 'file').split(/[/\\]/).pop()}: ${e.error || 'errore'}`).join(' · ')}`);
+      }
     } catch (err) {
       setActionError(`Caricamento non riuscito: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
@@ -651,12 +699,34 @@ export default function App() {
       const ticket = begin();
       if (ticket === null) return;
       try {
-        await ipc.automationImportFiles(vaultPath, filePaths);
+        const receipts = await ipc.automationImportFiles(vaultPath, filePaths);
         await refreshCatalog(vaultPath, ticket);
         await refreshCompiler(vaultPath, ticket);
-        setImportedFilesList(filePaths.map((p) => p.split(/[/\\]/).pop() || p));
-        setShowIndexingPrompt(true);
-        setHasPendingIndexing(true);
+
+        const imported = (receipts || []).filter((r) => r.status === 'imported');
+        const duplicates = (receipts || []).filter((r) => r.status === 'duplicate');
+        const errors = (receipts || []).filter((r) => r.status === 'error');
+
+        if (imported.length > 0) {
+          const names = imported.map((r) => {
+            const raw = r.name || r.path || 'file';
+            return raw.split(/[/\\]/).pop() || raw;
+          });
+          setImportedFilesList(names);
+          setShowIndexingPrompt(true);
+          setHasPendingIndexing(true);
+
+          if (duplicates.length > 0 || errors.length > 0) {
+            const notes: string[] = [];
+            if (duplicates.length > 0) notes.push(`${duplicates.length} duplicati ignorati`);
+            if (errors.length > 0) notes.push(`${errors.length} errori: ${errors.map((e) => e.error).join(', ')}`);
+            setActionError(`Importati ${imported.length} file (${notes.join(', ')}).`);
+          }
+        } else if (duplicates.length > 0 && errors.length === 0) {
+          setActionError(`Tutti i ${duplicates.length} file rilasciati sono già presenti nel Vault (duplicati ignorati). Nessun nuovo file da indicizzare.`);
+        } else if (errors.length > 0) {
+          setActionError(`Errore durante l'importazione: ${errors.map((e) => e.error).join(' · ')}`);
+        }
       } catch (err) {
         setActionError(`Errore durante il caricamento: ${err instanceof Error ? err.message : String(err)}`);
       } finally {
@@ -1982,9 +2052,16 @@ export default function App() {
               </div>
             )}
 
-            {/* 1. CHIEDI (CHAT CONTINUA TIPO CHATGPT CON STORICO E FONTI NELLA SIDEBAR) */}
-            {(currentTab === 'ask' || currentTab === 'search') && (
-              <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', overflow: 'hidden' }}>
+            {/* 1. CHIEDI (CHAT CONTINUA PRESERVATA NEL DOM ANCHE QUANDO SI PASSA ALLE IMPOSTAZIONI O ALTRI TAB) */}
+            <div
+              style={{
+                display: (currentTab === 'ask' || currentTab === 'search') ? 'flex' : 'none',
+                flexDirection: 'column',
+                height: '100%',
+                width: '100%',
+                overflow: 'hidden',
+              }}
+            >
                 {/* RICERCA MANUALE OPZIONALE (A SCOMPARSA SU RICHIESTA PER NON INTRALCIARE LA CHAT) */}
                 {showManualSearch && (
                   <div style={{ flexShrink: 0, borderBottom: '1px solid var(--limen-border-light)', backgroundColor: '#f8fafc', padding: '12px 24px', maxHeight: '45vh', overflowY: 'auto' }}>
@@ -2241,6 +2318,7 @@ export default function App() {
                     hasPendingIndexing={hasPendingIndexing}
                     onTriggerAutoIndex={handleOneClickAutoIndex}
                     onNavigateToSettings={(section, guide) => {
+                      setSettingsTargetSection(section || 'general');
                       setSettingsGuideMessage(guide || 'Configura le impostazioni per proseguire.');
                       setCurrentTab('advanced');
                       setAdvancedTab('settings');
@@ -2248,7 +2326,6 @@ export default function App() {
                   />
                 </div>
               </div>
-            )}
 
             {/* 2. DOCUMENTI (INVENTARIO COMPLETO ORIGINALI + ESTRAZIONE + CARICAMENTO LIME) */}
             {(currentTab === 'documents' || currentTab === 'sources') && (
@@ -2520,7 +2597,14 @@ export default function App() {
               <VaultPanel
                 vaultPath={vaultPath}
                 onOpenReader={(relPath) => openReader(relPath)}
-                onRevealInFinder={(relPath) => void ipc.revealInFinder(vaultPath, relPath)}
+                onRevealInFinder={async (relPath) => {
+                  try {
+                    await ipc.revealInFinder(vaultPath, relPath);
+                  } catch (err: any) {
+                    setActionError(`Impossibile mostrare nel Finder: ${err?.message || String(err)}`);
+                    throw err;
+                  }
+                }}
                 onNavigateToUpload={() => void handleUploadDocuments()}
                 onNavigateToAsk={() => setCurrentTab('ask')}
               />
@@ -2767,7 +2851,7 @@ export default function App() {
                         </button>
                       </div>
                     )}
-                    <AiSettings key={vaultPath} vaultPath={vaultPath!} />
+                    <AiSettings key={vaultPath} vaultPath={vaultPath!} targetSection={settingsTargetSection} />
                     <div className="limen-card" style={{ padding: 24, maxWidth: 640 }}>
                       <h3 style={{ fontSize: 16, fontWeight: 600, margin: '0 0 16px 0' }}>Impostazioni del Vault</h3>
                       <label style={{ fontSize: 12, fontWeight: 600, color: '#475569', display: 'block', marginBottom: 6 }}>

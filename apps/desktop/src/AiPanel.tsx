@@ -1,3 +1,5 @@
+import { useVaultAiMode } from './useVaultAiMode';
+import { activateLocalMode, LocalSetupRequired } from './ai-mode';
 import React, { useEffect, useRef, useState } from 'react';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { aiIpc, type AiAnswer, type AiPreview, type AiSource, type AiStreamChunkPayload, type AiStreamEndPayload, type LocalModelReport, type LocalServerReport } from './ai-ipc';
@@ -70,7 +72,10 @@ export interface AiPanelProps {
   onToggleManualSearch?: () => void;
   hasPendingIndexing?: boolean;
   onTriggerAutoIndex?: () => void;
-  onNavigateToSettings?: (section: 'semantic' | 'llm' | 'api', guideText?: string) => void;
+  onNavigateToSettings?: (
+    section: 'local' | 'semantic' | 'llm' | 'keys' | 'models' | 'api' | 'general',
+    guideText?: string
+  ) => void;
 }
 
 export function AiPanel({
@@ -112,10 +117,10 @@ export function AiPanel({
   const [localStatusMessage, setLocalStatusMessage] = useState<string | null>(null);
 
   // Modalità 100% Solo Locale con Ministral 3 8B Instruct (FASE 8)
-  const [isLocalMode, setIsLocalMode] = useState<boolean>(() => {
-    return typeof localStorage !== 'undefined' ? localStorage.getItem('limen_ai_mode') === 'local_only' : false;
-  });
+  const vaultMode = useVaultAiMode(vaultPath);
+  const isLocalMode = vaultMode.mode === 'local_only';
   const [localLlmReport, setLocalLlmReport] = useState<LocalModelReport | null>(null);
+  const [localSearchHealthy, setLocalSearchHealthy] = useState(false);
   const [localLlmServer, setLocalLlmServer] = useState<LocalServerReport | null>(null);
   const [showLlmDownloadModal, setShowLlmDownloadModal] = useState<boolean>(false);
   const [isLlmDownloading, setIsLlmDownloading] = useState<boolean>(false);
@@ -125,6 +130,7 @@ export function AiPanel({
   useEffect(() => {
     let live = true;
     const checkLlm = () => {
+      aiIpc.localServerStatus().then(r => { if (live) setLocalSearchHealthy(r.healthy); }).catch(() => { if (live) setLocalSearchHealthy(false); });
       aiIpc.localLlmStatus().then(r => { if (live) setLocalLlmReport(r); }).catch(() => {});
       aiIpc.localLlmServerStatus().then(s => { if (live) setLocalLlmServer(s); }).catch(() => {});
     };
@@ -142,108 +148,40 @@ export function AiPanel({
     return () => { if (unlisten) unlisten(); };
   }, []);
 
-  const handleToggleLocalMode = async () => {
-    if (isStartingLocal) return;
-
-    if (!isLocalMode) {
-      setIsStartingLocal(true);
-      setLocalStatusMessage('Verifica componenti locali in corso...');
-      setError(null);
-
-      try {
-        // 1. Verifica modello LLM locale
-        const rep = await aiIpc.localLlmStatus().catch(() => null);
-        if (rep) setLocalLlmReport(rep);
-        if (!rep?.installed || !rep?.sha256Ok) {
-          setIsStartingLocal(false);
-          setLocalStatusMessage(null);
-          if (onNavigateToSettings) {
-            onNavigateToSettings(
-              'llm',
-              'Per attivare la modalità Solo Locale con un click, completa prima il download del modello linguistico locale Ministral 3B.'
-            );
-          } else {
-            setShowLlmDownloadModal(true);
-          }
-          return;
-        }
-
-        // 2. Configura automaticamente il motore semantico su Locale in un solo click
-        setLocalStatusMessage('Allineamento motore semantico su Locale...');
-        const semReport = await aiIpc.embeddingsGetProvider(vaultPath).catch(() => null);
-        if (!semReport || semReport.provider !== 'local') {
-          const setRep = await aiIpc.embeddingsSetProvider(vaultPath, 'local').catch(() => null);
-          if (!setRep || setRep.provider !== 'local') {
-            setIsStartingLocal(false);
-            setLocalStatusMessage(null);
-            if (onNavigateToSettings) {
-              onNavigateToSettings(
-                'semantic',
-                'Imposta il motore semantico su Locale nelle impostazioni per abilitare la ricerca 100% offline.'
-              );
-            } else {
-              setError('Configura il motore semantico Locale nelle Impostazioni per proseguire.');
-            }
-            return;
-          }
-        }
-
-        // 3. Avvio del server LLM con verifica salute (Non dichiarare attivo prima di healthy!)
-        setLocalStatusMessage('Avvio del motore linguistico locale (Ministral 3B)...');
-        const startRep = await aiIpc.localLlmServerStart().catch((err) => {
-          throw new Error(err?.message || String(err));
-        });
-
-        // Verifica disponibilità effettiva su 127.0.0.1
-        let healthy = Boolean(startRep?.healthy);
-        if (!healthy) {
-          for (let attempt = 0; attempt < 6; attempt++) {
-            await new Promise((resolve) => setTimeout(resolve, 800));
-            const check = await aiIpc.localLlmServerStatus().catch(() => null);
-            if (check?.healthy) {
-              healthy = true;
-              break;
-            }
-          }
-        }
-
-        if (healthy) {
-          setIsLocalMode(true);
-          localStorage.setItem('limen_ai_mode', 'local_only');
-          setLocalStatusMessage(null);
-        } else {
-          setIsLocalMode(false);
-          setError(`Avvio modello locale non riuscito: ${startRep?.lastError || 'Il server locale non risponde su 127.0.0.1.'}`);
-        }
-      } catch (err: any) {
-        setIsLocalMode(false);
-        setError(`Errore durante l'attivazione automatica di Solo Locale: ${err?.message || String(err)}`);
-      } finally {
-        setIsStartingLocal(false);
-        setLocalStatusMessage(null);
+  const handleToggleLocalMode = async (forceHybrid = false) => {
+    if (isStartingLocal || !vaultMode.ready || loadingStep || isStreaming) return;
+    setIsStartingLocal(true);
+    setError(null);
+    try {
+      if (!forceHybrid && (!isLocalMode || !localLlmServer?.healthy || !localSearchHealthy)) {
+        setLocalStatusMessage('Preparazione dei modelli locali…');
+        const result = await activateLocalMode({ ...aiIpc, aiSetMode: (_path, mode) => vaultMode.setMode(mode) }, vaultPath);
+        setLocalLlmServer(result.server);
+        setLocalSearchHealthy(true);
+      } else {
+        await vaultMode.setMode('hybrid');
       }
-    } else {
-      setIsLocalMode(false);
-      localStorage.setItem('limen_ai_mode', 'hybrid');
-      void aiIpc.localLlmServerStop().catch(() => {});
+    } catch (e) {
+      if (e instanceof LocalSetupRequired && onNavigateToSettings) onNavigateToSettings(e.section, e.message);
+      else setError(String(e));
+    } finally {
+      setIsStartingLocal(false);
+      setLocalStatusMessage(null);
     }
   };
 
   const handleStartLlmDownload = async () => {
     setIsLlmDownloading(true);
-    setLlmDownloadProgress({ downloaded: 0, total: 6059268512, percent: 0 });
     try {
+      await vaultMode.setMode('local_only');
       const rep = await aiIpc.localLlmDownload();
       setLocalLlmReport(rep);
-      setIsLlmDownloading(false);
+      const result = await activateLocalMode({ ...aiIpc, aiSetMode: (_path, mode) => vaultMode.setMode(mode) }, vaultPath);
+      setLocalLlmServer(result.server);
+        setLocalSearchHealthy(true);
       setShowLlmDownloadModal(false);
-      setIsLocalMode(true);
-      localStorage.setItem('limen_ai_mode', 'local_only');
-      void aiIpc.localLlmServerStart().catch(() => {});
-    } catch (e: any) {
-      setIsLlmDownloading(false);
-      setError(`Download del modello locale fallito: ${e?.message || String(e)}`);
-    }
+    } catch (e) { setError(String(e)); }
+    finally { setIsLlmDownloading(false); }
   };
 
   const isArchived = Boolean(archivedConversation);
@@ -265,7 +203,7 @@ export function AiPanel({
   const unlistenChunkRef = useRef<UnlistenFn | null>(null);
   const unlistenEndRef = useRef<UnlistenFn | null>(null);
   const isRunningRef = useRef(false);
-  const isBusy = !!loadingStep || isStreaming;
+  const isBusy = !!loadingStep || isStreaming || isStartingLocal || !vaultMode.ready;
 
   // Scorrimento automatico all'ultimo messaggio
   useEffect(() => {
@@ -282,7 +220,7 @@ export function AiPanel({
   // Carica i modelli disponibili e il modello selezionato memorizzato (default: gpt-4o)
   useEffect(() => {
     let live = true;
-    void aiIpc.models().then(list => {
+    void aiIpc.models(vaultPath).then(list => {
       if (!live) return;
       if (list && list.length > 0) {
         setAvailableModels(list);
@@ -302,9 +240,12 @@ export function AiPanel({
 
     return () => {
       live = false;
-      if (unlistenChunkRef.current) unlistenChunkRef.current();
-      if (unlistenEndRef.current) unlistenEndRef.current();
     };
+  }, [vaultPath, vaultMode.mode]);
+
+  useEffect(() => () => {
+    unlistenChunkRef.current?.();
+    unlistenEndRef.current?.();
   }, []);
 
   async function handleModelChange(newModel: string) {
@@ -377,7 +318,7 @@ export function AiPanel({
   }
 
   async function executeAsk(queryText: string) {
-    if (!queryText || isRunningRef.current || loadingStep || isStreaming) return;
+    if (!queryText || isRunningRef.current || isBusy) return;
     isRunningRef.current = true;
     const currentModel = model || 'gpt-4o';
     setActivePrompt(queryText);
@@ -419,10 +360,8 @@ export function AiPanel({
 
     setLoadingStep('Selezione passaggi pertinenti dal Vault…');
     const t0 = Date.now();
-    const is3B = localLlmReport?.modelName?.includes('3B') || (localLlmReport?.physicalRamBytes ? localLlmReport.physicalRamBytes < 16 * 1024 * 1024 * 1024 : true);
-    const localModelName = is3B ? 'Ministral 3 3B Instruct Q5_K_M' : 'Ministral 3 8B Instruct Q5_K_M';
-    const answerModel = isLocalMode ? localModelName : currentModel;
-    const answerProvider = isLocalMode ? 'Ministral (Locale Mac)' : 'OpenAI';
+    const answerModel = isLocalMode ? (localLlmReport?.modelName || localLlmServer?.model || 'Modello locale') : currentModel;
+    const answerProvider = isLocalMode ? 'Locale' : 'OpenAI';
 
     // Contesto al modello: per ogni domanda di seguito si inviano, oltre alle fonti,
     // le ultime 3 coppie domanda-risposta della stessa conversazione come testo nella richiesta.
@@ -438,7 +377,7 @@ export function AiPanel({
       // Step 1: Preview / Select sources automaticamente
       const preview = await aiIpc.preview(vaultPath, {
         prompt: queryText,
-        model: isLocalMode ? (is3B ? 'Ministral 3 3B Instruct (Locale)' : 'Ministral 3 8B Instruct (Locale)') : currentModel,
+        model: answerModel,
         mode: isLocalMode ? 'local_only' : 'hybrid',
         includeDrafts: drafts,
         sourceIds: [],
@@ -660,8 +599,8 @@ export function AiPanel({
               {/* Toggle Verde Lime: SOLO LOCALE (Ministral 3B) vs IBRIDO (OpenAI) */}
               <button
                 type="button"
-                onClick={handleToggleLocalMode}
-                disabled={isStartingLocal}
+                onClick={() => void handleToggleLocalMode()}
+                disabled={isBusy}
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -687,11 +626,12 @@ export function AiPanel({
                 ) : (
                   <>
                     <Sparkles size={13} color={isLocalMode ? '#0f172a' : '#64748b'} />
-                    <span>{isLocalMode ? 'SOLO LOCALE ATTIVO' : 'SOLO LOCALE'}</span>
+                    <span>{isLocalMode ? (localLlmServer?.healthy && localSearchHealthy ? 'SOLO LOCALE ATTIVO' : 'SOLO LOCALE · CONFIGURA') : 'SOLO LOCALE'}</span>
                   </>
                 )}
               </button>
 
+              {vaultMode.error && <span role="alert">{vaultMode.error}</span>}
               {localStatusMessage && (
                 <span style={{ fontSize: 11, color: '#64748b', fontStyle: 'italic' }}>
                   {localStatusMessage}
@@ -714,7 +654,7 @@ export function AiPanel({
                   }}
                   title="Generazione testuale su Apple Silicon Metal GPU a rete zero"
                 >
-                  Ministral 3 8B Instruct (Offline)
+                  {localLlmReport?.modelName || 'Modello locale da configurare'}
                 </span>
               ) : (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -839,7 +779,7 @@ export function AiPanel({
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: '#92400e' }}>
             <Info size={15} />
-            <span>Nuovi documenti importati in attesa di indicizzazione per la ricerca locale.</span>
+            <span>Indicizzazione da completare: alcuni documenti o indici richiedono attenzione.</span>
           </div>
           <button
             onClick={onTriggerAutoIndex}
@@ -1223,7 +1163,7 @@ export function AiPanel({
           </div>
         )}
 
-        {consentGranted === false && (
+        {!isLocalMode && vaultMode.ready && consentGranted === false && (
           <div
             style={{
               padding: 16,
@@ -1327,7 +1267,7 @@ export function AiPanel({
               </div>
               <button
                 type="button"
-                onClick={handleToggleLocalMode}
+                onClick={() => void handleToggleLocalMode(isLocalMode)}
                 style={{
                   background: 'none',
                   border: 'none',
@@ -1621,7 +1561,13 @@ export function AiPanel({
   );
 }
 
-export function AiSettings({ vaultPath }: { vaultPath: string }) {
+export function AiSettings({
+  vaultPath,
+  targetSection,
+}: {
+  vaultPath: string;
+  targetSection?: 'local' | 'semantic' | 'llm' | 'keys' | 'models' | 'api' | 'general';
+}) {
   const terms = getPlatformTerms();
   const [key, setKey] = useState('');
   const [configured, setConfigured] = useState<boolean | null>(null);
@@ -1635,7 +1581,7 @@ export function AiSettings({ vaultPath }: { vaultPath: string }) {
   useEffect(() => {
     void aiIpc.mcpStatus().then(setConnection).catch(e => setMessage(String(e)));
     void aiIpc.getConsent(vaultPath).then(setConsent).catch(() => {});
-    void aiIpc.models().then(m => { if (m && m.length > 0) setAvailableModels(m); }).catch(() => {});
+    void aiIpc.models(vaultPath).then(m => { if (m && m.length > 0) setAvailableModels(m); }).catch(() => {});
     void aiIpc.getSelectedModel().then(m => {
       if (m) setSelectedModel(m);
       else setSelectedModel('gpt-4o');
@@ -1668,10 +1614,27 @@ export function AiSettings({ vaultPath }: { vaultPath: string }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <SemanticEngineSettings vaultPath={vaultPath} />
+      <div
+        style={{
+          borderRadius: 12,
+          border: (targetSection === 'local' || targetSection === 'semantic') ? '2px solid #65a30d' : '1px solid transparent',
+          boxShadow: (targetSection === 'local' || targetSection === 'semantic') ? '0 0 0 4px rgba(101, 163, 13, 0.2)' : 'none',
+          transition: 'all 0.2s ease',
+        }}
+      >
+        <SemanticEngineSettings vaultPath={vaultPath} targetSection={targetSection} />
+      </div>
 
       {/* OpenAI & Consent Settings Box */}
-      <div className="limen-card" style={{ padding: 24 }}>
+      <div
+        className="limen-card"
+        style={{
+          padding: 24,
+          border: (targetSection === 'keys' || targetSection === 'api') ? '2px solid #3b82f6' : undefined,
+          boxShadow: (targetSection === 'keys' || targetSection === 'api') ? '0 0 0 4px rgba(59, 130, 246, 0.2)' : undefined,
+          transition: 'all 0.2s ease',
+        }}
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
           <Key size={18} color="#0f172a" />
           <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>Impostazioni OpenAI & Consenso</h3>

@@ -22,3 +22,8 @@ pub mod llama;
 pub mod llama_llm;
 
 pub mod history;
+
+pub mod indexing;
+
+#[cfg(test)]
+mod release_regressions;

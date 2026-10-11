@@ -298,10 +298,13 @@ let mockCatalog: LocalCatalogReport = {
 };
 
 let mockConsent = true;
+const mockAiModes = new Map<string, 'local_only' | 'hybrid'>();
 
 async function call<T>(command: string, args?: Record<string, unknown>): Promise<T> {
   if (!('__TAURI_INTERNALS__' in window)) {
     // Browser preview fallback mode for headless verification / screenshot capture
+    if (command === 'ai_get_mode') return (mockAiModes.get(String(args?.vaultPath)) ?? 'local_only') as T;
+    if (command === 'ai_set_mode') { mockAiModes.set(String(args?.vaultPath), args?.mode as 'local_only' | 'hybrid'); return args?.mode as T; }
     if (command === 'ai_get_consent') return mockConsent as unknown as T;
     if (command === 'ai_set_consent') {
       mockConsent = Boolean(args?.granted);
@@ -442,7 +445,7 @@ async function call<T>(command: string, args?: Record<string, unknown>): Promise
 export const aiIpc = {
   getConsent: (vaultPath: string) => call<boolean>('ai_get_consent', { vaultPath }),
   setConsent: (vaultPath: string, granted: boolean) => call<void>('ai_set_consent', { vaultPath, granted }),
-  models: () => call<string[]>('ai_list_models'),
+  models: (vaultPath: string) => call<string[]>('ai_list_models', { vaultPath }),
   getSelectedModel: () => call<string | null>('ai_get_selected_model'),
   saveSelectedModel: (model: string) => call<void>('ai_save_selected_model', { model }),
   status: () => call<boolean>('ai_key_status'),
@@ -475,6 +478,8 @@ export const aiIpc = {
   embeddingsCancelSync: () => call<void>('embeddings_cancel_sync'),
   embeddingsSyncVault: (vaultPath: string, apiKey?: string, model?: string) =>
     call<any>('embeddings_sync_vault', { vaultPath, apiKey: apiKey ?? null, model: model ?? null }),
+  aiGetMode: (vaultPath: string) => call<'hybrid' | 'local_only'>('ai_get_mode', { vaultPath }),
+  aiSetMode: (vaultPath: string, mode: 'hybrid' | 'local_only') => call<'hybrid' | 'local_only'>('ai_set_mode', { vaultPath, mode }),
 
   // Local Generative LLM (Multi-Model Catalog) IPC methods
   localLlmStatus: () => call<LocalModelReport>('local_llm_status'),

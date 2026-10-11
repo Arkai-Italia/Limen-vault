@@ -2184,6 +2184,8 @@ pub async fn ask(
     let t_handoff_ms = p.created_at.elapsed().as_millis() as u64;
     let t_ask_start = Instant::now();
 
+    crate::embeddings::require_cloud_allowed(&p.path)?;
+
     if !get_openai_consent(&p.path) {
         return Err("Consenso all'invio dei dati a OpenAI non concesso. Abilitalo nelle Impostazioni.".into());
     }
@@ -2818,6 +2820,8 @@ pub async fn ask_stream_with_target(
             return Err("La modalità Solo Locale richiede il modello locale Ministral.".into());
         }
     }
+
+    if local_llm_port.is_none() { crate::embeddings::require_cloud_allowed(&p.path)?; }
 
     if local_llm_port.is_none() && !get_openai_consent(&p.path) {
         return Err("Consenso all'invio dei dati a OpenAI non concesso. Abilitalo nelle Impostazioni.".into());
@@ -4740,6 +4744,7 @@ mod tests {
           mime_type: "text/markdown".into(),
           imported_at: "".into(),
           updated_at: "".into(),
+          indexing_authorized_hash: None,
           extraction_status: ExtractionStatus::Ready,
           extraction_error: None,
           extracted_text_path: None,
@@ -4898,6 +4903,7 @@ mod tests {
           mime_type: "text/markdown".into(),
           imported_at: "".into(),
           updated_at: "".into(),
+          indexing_authorized_hash: None,
           extraction_status: ExtractionStatus::Ready,
           extraction_error: None,
           extracted_text_path: None,
@@ -4959,6 +4965,7 @@ mod tests {
           mime_type: "text/markdown".into(),
           imported_at: "".into(),
           updated_at: "".into(),
+          indexing_authorized_hash: None,
           extraction_status: ExtractionStatus::Ready,
           extraction_error: None,
           extracted_text_path: None,

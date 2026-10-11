@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import {
   Folder,
@@ -32,33 +32,69 @@ export interface VaultFileItem {
   extension: string;
 }
 
+export interface VaultFolderReport {
+  id?: string;
+  name?: string;
+  path?: string;
+  exists: boolean;
+  file_count?: number;
+  fileCount?: number;
+  is_standard?: boolean;
+  isStandard?: boolean;
+  error?: string | null;
+}
+
+export interface VaultFolderFilesReport {
+  folder: string;
+  exists: boolean;
+  files: {
+    name: string;
+    relative_path?: string;
+    relativePath?: string;
+    is_dir?: boolean;
+    isDir?: boolean;
+    size_bytes?: number;
+    sizeBytes?: number;
+    modified_epoch_ms?: number;
+    modifiedEpochMs?: number;
+    modified_ms?: number;
+    modifiedMs?: number;
+    extension?: string;
+  }[];
+  error?: string | null;
+}
+
 export interface VaultFolderItem {
   id: string;
   label: string;
   description: string;
-  kind: 'knowledge' | 'raw' | 'proposals' | 'outputs' | 'system';
+  kind: 'knowledge' | 'raw' | 'proposals' | 'outputs' | 'system' | 'custom';
+  exists: boolean;
+  fileCount: number;
 }
 
-const VAULT_FOLDERS: VaultFolderItem[] = [
-  { id: '20_RAW_SOURCES', label: '20_RAW_SOURCES (Originali)', description: 'Documenti e file originali importati (PDF, Word, Excel, TXT, immagini)', kind: 'raw' },
-  { id: '01_CLIENTS', label: '01_CLIENTS (Clienti)', description: 'Note di conoscenza strutturata sui clienti e committenti', kind: 'knowledge' },
-  { id: '02_PROJECTS', label: '02_PROJECTS (Progetti)', description: 'Schede dei progetti, roadmap e avanzamento', kind: 'knowledge' },
-  { id: '03_BRANDS', label: '03_BRANDS (Brand)', description: 'Identità di marca, linee guida e posizionamento brand', kind: 'knowledge' },
-  { id: '04_POSITIONING', label: '04_POSITIONING (Posizionamento)', description: 'Strategie di mercato, target e valore distintivo', kind: 'knowledge' },
-  { id: '05_PACKAGING_KNOWLEDGE', label: '05_PACKAGING_KNOWLEDGE', description: 'Specifiche, materiali e requisiti di confezionamento', kind: 'knowledge' },
-  { id: '06_METHODS', label: '06_METHODS (Metodi)', description: 'Procedure operative, metodologie e standard', kind: 'knowledge' },
-  { id: '07_CASE_STUDIES', label: '07_CASE_STUDIES (Casi Studio)', description: 'Studi di caso, risultati e benchmark', kind: 'knowledge' },
-  { id: '08_MARKET_RESEARCH', label: '08_MARKET_RESEARCH', description: 'Analisi di mercato, report e statistiche di settore', kind: 'knowledge' },
-  { id: '09_COMPETITORS', label: '09_COMPETITORS (Concorrenti)', description: 'Analisi competitiva e monitoraggio concorrenza', kind: 'knowledge' },
-  { id: '10_APPROVED_OUTPUTS', label: '10_APPROVED_OUTPUTS', description: 'Documenti approvati per la consultazione aziendale', kind: 'knowledge' },
-  { id: '90_PROPOSALS', label: '90_PROPOSALS (Proposte)', description: 'Bozze di note e proposte in attesa di revisione o approvazione', kind: 'proposals' },
-  { id: '80_AI_OUTPUTS', label: '80_AI_OUTPUTS (Output AI)', description: 'Sintesi, report ed estratti generati dall’intelligenza artificiale', kind: 'outputs' },
-];
+const STATIC_METADATA: Record<string, { label: string; description: string; kind: VaultFolderItem['kind'] }> = {
+  '20_RAW_SOURCES': { label: '20_RAW_SOURCES (Originali)', description: 'Documenti e file originali importati (PDF, Word, Excel, TXT, immagini)', kind: 'raw' },
+  '01_CLIENTS': { label: '01_CLIENTS (Clienti)', description: 'Note di conoscenza strutturata sui clienti e committenti', kind: 'knowledge' },
+  '02_PROJECTS': { label: '02_PROJECTS (Progetti)', description: 'Schede dei progetti, roadmap e avanzamento', kind: 'knowledge' },
+  '03_BRANDS': { label: '03_BRANDS (Brand)', description: 'Identità di marca, linee guida e posizionamento brand', kind: 'knowledge' },
+  '04_POSITIONING': { label: '04_POSITIONING (Posizionamento)', description: 'Strategie di mercato, target e valore distintivo', kind: 'knowledge' },
+  '05_PACKAGING_KNOWLEDGE': { label: '05_PACKAGING_KNOWLEDGE', description: 'Specifiche, materiali e requisiti di confezionamento', kind: 'knowledge' },
+  '06_METHODS': { label: '06_METHODS (Metodi)', description: 'Procedure operative, metodologie e standard', kind: 'knowledge' },
+  '07_CASE_STUDIES': { label: '07_CASE_STUDIES (Casi Studio)', description: 'Studi di caso, risultati e benchmark', kind: 'knowledge' },
+  '08_MARKET_RESEARCH': { label: '08_MARKET_RESEARCH', description: 'Analisi di mercato, report e statistiche di settore', kind: 'knowledge' },
+  '09_COMPETITORS': { label: '09_COMPETITORS (Concorrenti)', description: 'Analisi competitiva e monitoraggio concorrenza', kind: 'knowledge' },
+  '10_APPROVED_OUTPUTS': { label: '10_APPROVED_OUTPUTS', description: 'Documenti approvati per la consultazione aziendale', kind: 'knowledge' },
+  '90_PROPOSALS': { label: '90_PROPOSALS (Proposte)', description: 'Bozze di note e proposte in attesa di revisione o approvazione', kind: 'proposals' },
+  '80_AI_OUTPUTS': { label: '80_AI_OUTPUTS (Output AI)', description: 'Sintesi, report ed estratti generati dall’intelligenza artificiale', kind: 'outputs' },
+  '00_SYSTEM': { label: '00_SYSTEM (Sistema)', description: 'Regole, manifest e file di configurazione del Vault', kind: 'system' },
+  '99_ARCHIVE': { label: '99_ARCHIVE (Archivio)', description: 'Versioni storiche, note archiviate e documenti dismessi', kind: 'system' },
+};
 
 export interface VaultPanelProps {
   vaultPath: string;
   onOpenReader: (relativePath: string) => void;
-  onRevealInFinder?: (relativePath: string) => void;
+  onRevealInFinder?: (relativePath: string) => Promise<void> | void;
   onNavigateToUpload?: () => void;
   onNavigateToAsk?: () => void;
 }
@@ -70,96 +106,152 @@ export const VaultPanel: React.FC<VaultPanelProps> = ({
   onNavigateToUpload,
   onNavigateToAsk,
 }) => {
+  const fileRequest = useRef(0);
+  const folderRequest = useRef(0);
+  const [folders, setFolders] = useState<VaultFolderItem[]>([]);
   const [selectedFolder, setSelectedFolder] = useState<string>('20_RAW_SOURCES');
   const [files, setFiles] = useState<VaultFileItem[]>([]);
-  const [folderCounts, setFolderCounts] = useState<Record<string, number>>({});
+  const [folderExists, setFolderExists] = useState<boolean>(true);
   const [loading, setLoading] = useState<boolean>(false);
+  const [loadingFolders, setLoadingFolders] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [revealError, setRevealError] = useState<string | null>(null);
+  const [textPreview, setTextPreview] = useState<{ path: string; text: string } | null>(null);
   const [filterQuery, setFilterQuery] = useState<string>('');
 
+  const previewFile = async (file: VaultFileItem) => {
+    if (!['md', 'txt', 'json', 'csv', 'tsv', 'yaml', 'yml'].includes(file.extension)) { onOpenReader(file.relativePath); return; }
+    try {
+      const text = await invoke<string>('vault_read_text', { vaultPath, relativePath: file.relativePath });
+      setTextPreview({ path: file.relativePath, text });
+    } catch (e) { setError(String(e)); }
+  };
+
+  const loadFolders = async () => {
+    if (!vaultPath) return;
+    const ticket = ++folderRequest.current;
+    setLoadingFolders(true);
+    try {
+      const reports = await invoke<VaultFolderReport[]>('vault_list_folders', { vaultPath });
+      if (ticket !== folderRequest.current) return;
+      const mapped: VaultFolderItem[] = reports.map((r) => {
+        const folderId = r.id || r.name || '';
+        const count = r.fileCount ?? r.file_count ?? 0;
+        const meta = STATIC_METADATA[folderId] || {
+          label: folderId,
+          description: `Cartella ${folderId} sul disco del Vault`,
+          kind: 'custom' as const,
+        };
+        return {
+          id: folderId,
+          label: meta.label,
+          description: meta.description,
+          kind: meta.kind,
+          exists: r.exists,
+          fileCount: count,
+        };
+      });
+      setFolders(mapped);
+    } catch (e: any) {
+      if (ticket === folderRequest.current) {
+        setFolders([]);
+        setError(`Impossibile leggere le cartelle: ${String(e)}`);
+      }
+    } finally {
+      if (ticket === folderRequest.current) setLoadingFolders(false);
+    }
+  };
+
   const loadFolderFiles = async (folderName: string) => {
+    const ticket = ++fileRequest.current;
     setLoading(true);
     setError(null);
+    setRevealError(null);
     try {
-      // Invocazione comando Tauri IPC o fallback a scansione compatibile
-      const items = await invoke<any[]>('vault_list_folder_files', {
+      const rep = await invoke<VaultFolderFilesReport>('vault_list_folder_files', {
         vaultPath,
         folder: folderName,
-      }).catch(async () => {
-        // Fallback tramite catalog o knowledge se il nuovo comando è ancora in compilazione
-        if (folderName === '20_RAW_SOURCES') {
-          const raw = await invoke<any[]>('list_raw_sources', { vaultPath }).catch(() => []);
-          return raw.map((r: any) => ({
-            name: r.relative_path.split('/').pop() || r.relative_path,
-            relativePath: r.relative_path,
-            isDir: false,
-            sizeBytes: r.size_bytes || 0,
-            modifiedMs: r.modified_epoch_ms || 0,
-            extension: (r.relative_path.split('.').pop() || '').toLowerCase(),
-          }));
-        } else {
-          const kn = await invoke<any[]>('list_knowledge', { vaultPath, folder: folderName }).catch(() => []);
-          return kn.map((k: any) => ({
-            name: (k.relativePath || '').split('/').pop() || k.title,
-            relativePath: k.relativePath,
-            isDir: false,
-            sizeBytes: (k.markdown || '').length,
-            modifiedMs: Date.now(),
-            extension: 'md',
-          }));
-        }
       });
 
-      const formatted: VaultFileItem[] = (items || []).map((it: any) => ({
-        name: it.name || it.relative_path || it.relativePath || '',
-        relativePath: it.relative_path || it.relativePath || it.name || '',
-        isDir: Boolean(it.is_dir || it.isDir),
-        sizeBytes: Number(it.size_bytes || it.sizeBytes || 0),
-        modifiedMs: Number(it.modified_ms || it.modifiedMs || 0),
+      if (ticket !== fileRequest.current) return;
+      setFolderExists(rep.exists);
+      if (rep.error) {
+        setError(`Errore durante l'accesso a ${folderName}: ${rep.error}`);
+      }
+
+      const formatted: VaultFileItem[] = (rep.files || []).map((it) => ({
+        name: it.name,
+        relativePath: it.relativePath || it.relative_path || it.name,
+        isDir: Boolean(it.isDir ?? it.is_dir),
+        sizeBytes: Number(it.sizeBytes ?? it.size_bytes ?? 0),
+        modifiedMs: Number(it.modifiedMs ?? it.modified_ms ?? it.modifiedEpochMs ?? it.modified_epoch_ms ?? 0),
         extension: String(it.extension || (it.name ? it.name.split('.').pop() : '')).toLowerCase(),
       }));
 
       setFiles(formatted);
-      setFolderCounts((prev) => ({ ...prev, [folderName]: formatted.length }));
+      // Aggiorna anche il conteggio nella lista cartelle se a livello radice
+      if (!folderName.includes('/')) {
+        setFolders((prev) =>
+          prev.map((f) => (f.id === folderName ? { ...f, fileCount: formatted.length, exists: rep.exists } : f))
+        );
+      }
     } catch (e: any) {
+      if (ticket !== fileRequest.current) return;
       setError(`Impossibile leggere la cartella ${folderName}: ${e?.message || String(e)}`);
+      setFolderExists(false);
       setFiles([]);
     } finally {
-      setLoading(false);
+      if (ticket === fileRequest.current) setLoading(false);
     }
   };
 
-  // Caricamento iniziale e al cambio di cartella
+  // Caricamento cartelle all'avvio o cambio vault
   useEffect(() => {
-    if (vaultPath && selectedFolder) {
-      void loadFolderFiles(selectedFolder);
+    if (vaultPath) {
+      void loadFolders();
     }
-  }, [vaultPath, selectedFolder]);
-
-  // Aggiorna i conteggi di tutte le cartelle in background
-  useEffect(() => {
-    let cancelled = false;
-    const fetchAllCounts = async () => {
-      for (const f of VAULT_FOLDERS) {
-        if (cancelled) break;
-        try {
-          if (f.id === '20_RAW_SOURCES') {
-            const raw = await invoke<any[]>('list_raw_sources', { vaultPath }).catch(() => []);
-            if (!cancelled) setFolderCounts((p) => ({ ...p, [f.id]: raw.length }));
-          } else if (f.kind === 'knowledge') {
-            const kn = await invoke<any[]>('list_knowledge', { vaultPath, folder: f.id }).catch(() => []);
-            if (!cancelled) setFolderCounts((p) => ({ ...p, [f.id]: kn.length }));
-          }
-        } catch (_) {}
-      }
-    };
-    if (vaultPath) void fetchAllCounts();
-    return () => { cancelled = true; };
+    return () => { folderRequest.current += 1; };
   }, [vaultPath]);
 
+  // Caricamento file al cambio cartella
+  useEffect(() => {
+    if (vaultPath) {
+      void loadFolderFiles(selectedFolder);
+    }
+    return () => { fileRequest.current += 1; };
+  }, [vaultPath, selectedFolder]);
+
   const activeFolderMeta = useMemo(() => {
-    return VAULT_FOLDERS.find((f) => f.id === selectedFolder) || VAULT_FOLDERS[0];
-  }, [selectedFolder]);
+    const found = folders.find((f) => f.id === selectedFolder);
+    if (found) return found;
+    const staticMeta = STATIC_METADATA[selectedFolder] || {
+      label: selectedFolder,
+      description: `Cartella ${selectedFolder}`,
+      kind: 'custom' as const,
+    };
+    return {
+      id: selectedFolder,
+      label: staticMeta.label,
+      description: staticMeta.description,
+      kind: staticMeta.kind,
+      exists: folderExists,
+      fileCount: files.length,
+    };
+  }, [selectedFolder, folders, folderExists, files.length]);
+
+  const handleReveal = async (relPath: string) => {
+    setRevealError(null);
+    try {
+      if (onRevealInFinder) {
+        await onRevealInFinder(relPath);
+      } else {
+        await invoke('vault_reveal_path', { vaultPath, target: relPath });
+      }
+    } catch (err: any) {
+      const msg = err?.message || String(err);
+      setRevealError(`Impossibile mostrare nel Finder: ${msg}`);
+    }
+  };
 
   const filteredFiles = useMemo(() => {
     if (!filterQuery.trim()) return files;
@@ -176,7 +268,10 @@ export const VaultPanel: React.FC<VaultPanelProps> = ({
     return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
   };
 
-  const getFileIcon = (ext: string) => {
+  const getFileIcon = (ext: string, isDir?: boolean) => {
+    if (isDir) {
+      return <Folder size={18} color="#f59e0b" />;
+    }
     switch (ext) {
       case 'md':
         return <FileCode size={18} color="#6366f1" />;
@@ -201,6 +296,11 @@ export const VaultPanel: React.FC<VaultPanelProps> = ({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20, height: '100%' }}>
+      {textPreview && <div role="dialog" aria-modal="true" aria-label="Anteprima file" style={{ position: 'fixed', inset: 30, zIndex: 10000, background: 'white', border: '1px solid #cbd5e1', borderRadius: 12, padding: 24, overflow: 'auto' }}>
+        <button autoFocus onClick={() => setTextPreview(null)}>Chiudi anteprima</button>
+        <h3>{textPreview.path}</h3>
+        <pre style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{textPreview.text}</pre>
+      </div>}
       {/* HEADER BANNER */}
       <div
         style={{
@@ -229,7 +329,7 @@ export const VaultPanel: React.FC<VaultPanelProps> = ({
 
         <div style={{ display: 'flex', gap: 10 }}>
           <button
-            onClick={() => void loadFolderFiles(selectedFolder)}
+            onClick={() => { void loadFolders(); void loadFolderFiles(selectedFolder); }}
             disabled={loading}
             style={{
               display: 'inline-flex',
@@ -301,9 +401,9 @@ export const VaultPanel: React.FC<VaultPanelProps> = ({
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {VAULT_FOLDERS.map((f) => {
+            {folders.map((f) => {
               const isSelected = selectedFolder === f.id;
-              const count = folderCounts[f.id];
+              const count = f.fileCount;
 
               return (
                 <button
@@ -317,27 +417,43 @@ export const VaultPanel: React.FC<VaultPanelProps> = ({
                     borderRadius: 8,
                     border: 'none',
                     backgroundColor: isSelected ? '#ffffff' : 'transparent',
-                    color: isSelected ? '#0f172a' : '#475569',
+                    color: isSelected ? '#0f172a' : f.exists ? '#475569' : '#94a3b8',
                     boxShadow: isSelected ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
                     fontWeight: isSelected ? 700 : 500,
                     fontSize: 12.5,
                     cursor: 'pointer',
                     textAlign: 'left',
                     transition: 'all 0.15s ease',
+                    opacity: f.exists ? 1 : 0.75,
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, overflow: 'hidden' }}>
                     {isSelected ? (
                       <FolderOpen size={16} color="var(--limen-lime-dark, #4d7c0f)" />
                     ) : (
-                      <Folder size={16} color="#94a3b8" />
+                      <Folder size={16} color={f.exists ? '#94a3b8' : '#cbd5e1'} />
                     )}
                     <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
                       {f.id}
                     </span>
+                    {!f.exists && (
+                      <span
+                        style={{
+                          fontSize: 9.5,
+                          padding: '1px 5px',
+                          borderRadius: 4,
+                          backgroundColor: '#f1f5f9',
+                          color: '#64748b',
+                          fontWeight: 600,
+                          flexShrink: 0,
+                        }}
+                      >
+                        assente
+                      </span>
+                    )}
                   </div>
 
-                  {typeof count === 'number' && (
+                  {f.exists && typeof count === 'number' && (
                     <span
                       style={{
                         padding: '1px 6px',
@@ -387,11 +503,79 @@ export const VaultPanel: React.FC<VaultPanelProps> = ({
                     fontWeight: 600,
                   }}
                 >
-                  {activeFolderMeta.kind === 'raw' ? 'Originali RAW' : activeFolderMeta.kind === 'knowledge' ? 'Note Conoscenza' : 'Bozze / Output'}
+                  {activeFolderMeta.kind === 'raw' ? 'Originali RAW' : activeFolderMeta.kind === 'knowledge' ? 'Note Conoscenza' : activeFolderMeta.kind === 'proposals' ? 'Proposte' : activeFolderMeta.kind === 'outputs' ? 'Output AI' : 'Cartella'}
                 </span>
+                {!folderExists && (
+                  <span
+                    style={{
+                      fontSize: 11,
+                      padding: '2px 8px',
+                      borderRadius: 12,
+                      backgroundColor: '#fee2e2',
+                      color: '#991b1b',
+                      fontWeight: 700,
+                    }}
+                  >
+                    Non presente sul disco
+                  </span>
+                )}
               </div>
               <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
                 {activeFolderMeta.description}
+              </div>
+
+              {/* Breadcrumb navigazione sottocartelle */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, marginTop: 8, color: '#64748b', flexWrap: 'wrap' }}>
+                <span style={{ fontWeight: 600, color: '#334155' }}>Percorso:</span>
+                {selectedFolder.split('/').map((crumb, idx, arr) => {
+                  const isLast = idx === arr.length - 1;
+                  const pathToCrumb = arr.slice(0, idx + 1).join('/');
+                  return (
+                    <React.Fragment key={pathToCrumb}>
+                      {idx > 0 && <span style={{ color: '#cbd5e1' }}>/</span>}
+                      {isLast ? (
+                        <span style={{ fontWeight: 700, color: '#0f172a' }}>{crumb}</span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedFolder(pathToCrumb)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            padding: 0,
+                            color: '#3b82f6',
+                            cursor: 'pointer',
+                            textDecoration: 'underline',
+                            fontSize: 12,
+                          }}
+                        >
+                          {crumb}
+                        </button>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+                {selectedFolder.includes('/') && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const parts = selectedFolder.split('/');
+                      setSelectedFolder(parts.slice(0, -1).join('/'));
+                    }}
+                    style={{
+                      marginLeft: 8,
+                      padding: '2px 8px',
+                      borderRadius: 4,
+                      border: '1px solid #cbd5e1',
+                      backgroundColor: '#f1f5f9',
+                      fontSize: 11,
+                      color: '#475569',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    ← Livello superiore
+                  </button>
+                )}
               </div>
             </div>
 
@@ -418,6 +602,26 @@ export const VaultPanel: React.FC<VaultPanelProps> = ({
 
           {/* LISTA / TABELLA DEI FILE */}
           <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
+            {revealError && (
+              <div
+                style={{
+                  padding: '10px 14px',
+                  borderRadius: 8,
+                  backgroundColor: '#fffbeb',
+                  border: '1px solid #fde68a',
+                  color: '#92400e',
+                  fontSize: 12.5,
+                  marginBottom: 14,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                }}
+              >
+                <Info size={16} color="#d97706" />
+                <span>{revealError}</span>
+              </div>
+            )}
+
             {error && (
               <div
                 style={{
@@ -434,7 +638,28 @@ export const VaultPanel: React.FC<VaultPanelProps> = ({
               </div>
             )}
 
-            {filteredFiles.length === 0 && !loading && (
+            {!folderExists && !loading && (
+              <div
+                style={{
+                  textAlign: 'center',
+                  padding: '48px 24px',
+                  color: '#64748b',
+                  backgroundColor: '#fef2f2',
+                  borderRadius: 10,
+                  border: '1px dashed #fca5a5',
+                }}
+              >
+                <Folder size={36} color="#ef4444" style={{ marginBottom: 12 }} />
+                <h4 style={{ margin: '0 0 6px 0', fontSize: 14, fontWeight: 700, color: '#991b1b' }}>
+                  Cartella non presente su disco
+                </h4>
+                <p style={{ margin: 0, fontSize: 12.5, color: '#7f1d1d', maxWidth: 460, marginInline: 'auto' }}>
+                  La cartella <code>{selectedFolder}</code> non esiste attualmente all'interno del percorso del Vault selezionato. Verrà creata automaticamente non appena verranno salvati contenuti corrispondenti.
+                </p>
+              </div>
+            )}
+
+            {!error && folderExists && filteredFiles.length === 0 && !loading && (
               <div
                 style={{
                   textAlign: 'center',
@@ -447,7 +672,7 @@ export const VaultPanel: React.FC<VaultPanelProps> = ({
               >
                 <Folder size={36} color="#94a3b8" style={{ marginBottom: 12 }} />
                 <h4 style={{ margin: '0 0 6px 0', fontSize: 14, fontWeight: 700, color: '#0f172a' }}>
-                  Nessun file presente in questa cartella
+                  {filterQuery ? 'Nessun file corrisponde al filtro' : 'Cartella vuota'}
                 </h4>
                 <p style={{ margin: 0, fontSize: 12.5, color: '#64748b', maxWidth: 420, marginInline: 'auto' }}>
                   {activeFolderMeta.kind === 'raw'
@@ -474,13 +699,16 @@ export const VaultPanel: React.FC<VaultPanelProps> = ({
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
-                      {getFileIcon(file.extension)}
-                      <div style={{ minWidth: 0, overflow: 'hidden' }}>
+                      {getFileIcon(file.extension, file.isDir)}
+                      <div
+                        style={{ minWidth: 0, overflow: 'hidden', cursor: file.isDir ? 'pointer' : 'default' }}
+                        onClick={() => file.isDir && setSelectedFolder(file.relativePath)}
+                      >
                         <div
                           style={{
                             fontSize: 13,
-                            fontWeight: 600,
-                            color: '#0f172a',
+                            fontWeight: file.isDir ? 700 : 600,
+                            color: file.isDir ? '#1d4ed8' : '#0f172a',
                             textOverflow: 'ellipsis',
                             overflow: 'hidden',
                             whiteSpace: 'nowrap',
@@ -505,51 +733,75 @@ export const VaultPanel: React.FC<VaultPanelProps> = ({
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0, marginLeft: 16 }}>
                       <span style={{ fontSize: 12, color: '#64748b' }}>
-                        {formatBytes(file.sizeBytes)}
+                        {file.isDir ? 'Cartella' : formatBytes(file.sizeBytes)}
                       </span>
 
                       <div style={{ display: 'flex', gap: 6 }}>
-                        <button
-                          onClick={() => onOpenReader(file.relativePath)}
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 5,
-                            padding: '5px 10px',
-                            borderRadius: 6,
-                            border: '1px solid #cbd5e1',
-                            backgroundColor: '#ffffff',
-                            color: '#0f172a',
-                            fontSize: 11.5,
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                          }}
-                          title="Apri nel lettore integrato"
-                        >
-                          <Eye size={13} />
-                          <span>Anteprima</span>
-                        </button>
-
-                        {onRevealInFinder && (
+                        {file.isDir ? (
                           <button
-                            onClick={() => onRevealInFinder(file.relativePath)}
+                            type="button"
+                            onClick={() => setSelectedFolder(file.relativePath)}
                             style={{
                               display: 'inline-flex',
                               alignItems: 'center',
                               gap: 5,
-                              padding: '5px 8px',
+                              padding: '5px 10px',
+                              borderRadius: 6,
+                              border: '1px solid #cbd5e1',
+                              backgroundColor: '#f8fafc',
+                              color: '#0f172a',
+                              fontSize: 11.5,
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                            }}
+                            title="Apri sottocartella"
+                          >
+                            <FolderOpen size={13} color="#f59e0b" />
+                            <span>Apri</span>
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => void previewFile(file)}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 5,
+                              padding: '5px 10px',
                               borderRadius: 6,
                               border: '1px solid #cbd5e1',
                               backgroundColor: '#ffffff',
-                              color: '#64748b',
+                              color: '#0f172a',
                               fontSize: 11.5,
+                              fontWeight: 600,
                               cursor: 'pointer',
                             }}
-                            title="Rivela nel Finder / File Explorer"
+                            title="Apri nel lettore integrato"
                           >
-                            <ExternalLink size={13} />
+                            <Eye size={13} />
+                            <span>Anteprima</span>
                           </button>
                         )}
+
+                        <button
+                          type="button"
+                          onClick={() => void handleReveal(file.relativePath)}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 5,
+                            padding: '5px 8px',
+                            borderRadius: 6,
+                            border: '1px solid #cbd5e1',
+                            backgroundColor: '#ffffff',
+                            color: '#64748b',
+                            fontSize: 11.5,
+                            cursor: 'pointer',
+                          }}
+                          title="Rivela nel Finder / File Explorer"
+                        >
+                          <ExternalLink size={13} />
+                        </button>
                       </div>
                     </div>
                   </div>

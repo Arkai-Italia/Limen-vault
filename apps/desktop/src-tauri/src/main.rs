@@ -2,7 +2,7 @@
 mod compiler;
 use limen_vault::search;
 mod snapshots;
-mod vault;
+use limen_vault::vault;
 
 use snapshots::*;
 use std::{
@@ -103,7 +103,6 @@ fn open_vault(
     let res = vault::open(p);
     if res.validation.is_valid {
         let _ = limen_vault::catalog::sync_catalog(p);
-        let _ = limen_vault::catalog::process_pending_extractions(p);
         let rep = limen_vault::embeddings::get_embeddings_provider(p, 0);
         if rep.provider == "local" {
             let _ = limen_vault::ai::save_embeddings_provider_setting("local");
@@ -404,8 +403,9 @@ fn main() {
             get_search_index_status,
             vault_id_get_or_create,ai_history_list,ai_history_get,ai_history_delete,ai_history_clear,ai_history_verify_sources,ai_list_models,ai_get_selected_model,ai_save_selected_model,search_read_document,ai_key_status,ai_save_key,ai_delete_key,ai_get_consent,ai_set_consent,ai_preview,ai_ask,ai_ask_stream,ai_cancel,ai_read_source,mcp_start,mcp_stop,mcp_status,
             catalog_sync,catalog_list_documents,catalog_process_extractions,catalog_get_document,catalog_get_by_path,catalog_verify_document_passage,catalog_read_verified_text,catalog_read_text,catalog_read_passage,catalog_open_original,catalog_reveal_in_finder,catalog_get_summary,
-            embeddings_get_status,embeddings_sync_vault,search_vault_hybrid,
-            embeddings_get_provider,embeddings_set_provider,
+            vault_list_folders,vault_list_folder_files,vault_reveal_path,vault_read_text,
+            indexing_status,embeddings_get_status,embeddings_sync_vault,search_vault_hybrid,
+            embeddings_get_provider,embeddings_set_provider,ai_get_mode,ai_set_mode,
             local_model_status,local_model_download,local_model_select_file,local_model_pick_and_install,local_model_verify_integrity,select_vault_folder,
             local_server_start,local_server_stop,local_server_status,embeddings_cancel_sync,
             local_llm_status,local_llm_download,local_llm_verify_integrity,local_llm_server_start,local_llm_server_stop,local_llm_server_status,
@@ -538,7 +538,8 @@ async fn ai_history_verify_sources(
 }
 
 #[tauri::command]
-async fn ai_list_models()->Result<Vec<String>,String>{
+async fn ai_list_models(vault_path: String)->Result<Vec<String>,String>{
+ if limen_vault::embeddings::get_ai_mode(Path::new(&vault_path)) == "local_only" { return Ok(Vec::new()); }
  let key=tauri::async_runtime::spawn_blocking(limen_vault::keychain::load).await.map_err(|_|"Portachiavi non disponibile")??.filter(|k|!k.is_empty()).ok_or("Configura la chiave API OpenAI in Impostazioni per vedere i modelli disponibili")?;
  limen_vault::ai::list_models(key).await
 }
@@ -762,6 +763,7 @@ async fn catalog_list_documents(
 #[tauri::command]
 async fn catalog_process_extractions(vault_path: String) -> Result<usize, String> {
     tauri::async_runtime::spawn_blocking(move || {
+        limen_vault::catalog::sync_catalog(Path::new(&vault_path))?;
         limen_vault::catalog::process_pending_extractions(Path::new(&vault_path))
     })
     .await
@@ -864,7 +866,47 @@ async fn catalog_open_original(vault_path: String, document_id: String) -> Resul
 #[tauri::command]
 async fn catalog_reveal_in_finder(vault_path: String, document_id: String) -> Result<(), String> {
     tauri::async_runtime::spawn_blocking(move || {
-        limen_vault::catalog::reveal_in_finder(Path::new(&vault_path), &document_id)
+        vault::reveal_vault_path(Path::new(&vault_path), &document_id)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+async fn vault_list_folders(
+    vault_path: String,
+) -> Result<Vec<vault::VaultFolderReport>, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        vault::list_vault_folders(Path::new(&vault_path))
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+async fn vault_list_folder_files(
+    vault_path: String,
+    folder: String,
+) -> Result<vault::VaultFolderFilesReport, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        vault::list_vault_folder_files(Path::new(&vault_path), &folder)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+async fn vault_read_text(vault_path: String, relative_path: String) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || vault::read_vault_text(Path::new(&vault_path), &relative_path)).await.map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+async fn vault_reveal_path(
+    vault_path: String,
+    target: String,
+) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        vault::reveal_vault_path(Path::new(&vault_path), &target)
     })
     .await
     .map_err(|e| e.to_string())?
@@ -879,6 +921,11 @@ async fn catalog_get_summary(
     })
     .await
     .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+async fn indexing_status(vault_path: String) -> Result<limen_vault::indexing::IndexingStatus, String> {
+    tauri::async_runtime::spawn_blocking(move || limen_vault::indexing::status(Path::new(&vault_path))).await.map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
@@ -923,6 +970,24 @@ async fn embeddings_set_provider(
         llama_clone.on_app_startup();
     }
     Ok(rep)
+}
+
+#[tauri::command]
+async fn ai_get_mode(vault_path: String) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        limen_vault::embeddings::get_ai_mode(Path::new(&vault_path))
+    })
+    .await
+    .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn ai_set_mode(vault_path: String, mode: String) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        limen_vault::embeddings::set_ai_mode(Path::new(&vault_path), &mode)
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
