@@ -1,6 +1,0 @@
-asset_id,asset_name,file_path,asset_type,dimensions,color_profile,format,licensing,usage_context
-ASSET-001,Icona Applicazione macOS,apps/desktop/src-tauri/icons/icon.icns,ICON,Multi-resolution,sRGB,ICNS,Proprietary Arkitecna,Icona del bundle desktop macOS
-ASSET-002,Icona Applicazione Windows,apps/desktop/src-tauri/icons/icon.ico,ICON,Multi-resolution,sRGB,ICO,Proprietary Arkitecna,Icona dell eseguibile Windows
-ASSET-003,Icona PNG Retina,apps/desktop/src-tauri/icons/128x128@2x.png,ICON,256x256,sRGB,PNG,Proprietary Arkitecna,Logo per splash header e documentazione
-ASSET-004,Set Iconografico UI,lucide-react,ICON_SET,Vector SVG,CurrentColor,React Component,ISC License,Icone dei menu controlli e card
-ASSET-005,Template Vault Dimostrativo,vault-template/,DATASET,Folder tree,UTF-8,Markdown / YAML,Open-source Template,Contenuti predefiniti per primo avvio

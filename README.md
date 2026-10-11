@@ -1,139 +1,188 @@
 # LIMEN Vault
 
-> **Independent Local-First AI Knowledge System**
+<p align="center">
+  <strong>Local-First AI Knowledge Engine & Hybrid Search for Markdown & Obsidian Vaults</strong>
+</p>
 
-LIMEN Vault is a standalone, local-first knowledge environment built for LIMEN / Packaging in Italy. M2/M3 provide offline Vault creation/opening, structural validation, versioned snapshots and SHA-256 verification in the native desktop app. Local search, knowledge compilation and AI workflows remain later milestones.
-
----
-
-## 1. Why LIMEN Vault is Independent from MEMAI
-
-LIMEN Vault is architected specifically so that core knowledge operations remain usable even when cloud services and external CRM systems are offline. 
-
-**Fundamental Principle:**
-> LIMEN Vault must never require MEMAI, PII_CRM, Render, Vercel, or Cloudflare R2 in order to open, browse, search, or inspect an already available local knowledge snapshot on macOS.
+<p align="center">
+  <img src="https://img.shields.io/badge/Pre--Release-v7Mini_(0.7.0)-blue.svg" alt="Pre-release v7Mini" />
+  <img src="https://img.shields.io/badge/Privacy-Local_Loopback-emerald.svg" alt="Local Loopback" />
+  <img src="https://img.shields.io/badge/Stack-Tauri_v2_%7C_Rust_%7C_React-orange.svg" alt="Tauri + Rust" />
+  <img src="https://img.shields.io/badge/License-Decision_Pending-gray.svg" alt="License Pending" />
+</p>
 
 ---
 
-## 2. Monorepo Architecture
+## What is LIMEN Vault?
+
+**LIMEN Vault** is a standalone, local-first desktop application designed to connect to Markdown knowledge bases (compatible with **Obsidian**) to provide localized AI search and document ingestion.
+
+By utilizing an embedded `llama-server` background process, LIMEN Vault performs dense semantic vector embedding (`bge-m3`, 1024 dimensions) and combines it with length-normalized lexical search (**BM25**).
+
+---
+
+## Who is it for?
+
+- **Obsidian & Markdown Users**: Anyone managing personal notes, research papers, or documentation in standard `.md` files who wants conceptual retrieval without cloud lock-in.
+- **Privacy-Sensitive Professionals**: Researchers, legal teams, and engineers whose data cannot leave the local workstation.
+- **Developers & Systems Builders**: Anyone seeking a lightweight, auditable Tauri v2 application built in Rust and React instead of heavy containerized stacks.
+
+---
+
+## Operating Modes: Local vs. Hybrid
+
+LIMEN Vault provides distinct architectural boundaries between local and cloud operations:
+
+| Capability | 100% Local Mode | Hybrid Mode (Optional) |
+|---|---|---|
+| **Network Profile** | **Local Loopback Scope**: Semantic embedding and retrieval calls communicate over `127.0.0.1`. Network isolation was verified via socket inspection (`lsof`) on build `a08e769` (2026-09-20); a full OS-level sandbox audit has not been conducted. | Outbound HTTPS calls to external AI APIs |
+| **Prerequisites (Search)** | Requires one-time local download of the `bge-m3` GGUF embedding model (~1.2 GB). | Local BM25 or optional cloud vector endpoints |
+| **Prerequisites (Generative Chat)** | Requires a local generative LLM (such as `Ministral 3 3B Instruct`, ~2.5 GB). *Note: `bge-m3` is an embedding model for vector search; it does not generate natural language answers.* | User-provided API key (e.g. OpenAI) & active internet connection |
+| **Data Privacy** | Notes, chunks, and embeddings are processed on the local machine via loopback daemon | Selected context excerpts are transmitted to the cloud API endpoint |
+
+---
+
+## Key Features
+
+- 🔒 **Local Loopback Communication**: In Local Mode, embedding generation and vector scoring communicate over loopback `127.0.0.1`.
+- ⚡ **Hybrid Search**: Fuses length-normalized BM25 lexical ranking (for exact terms, codes, and acronyms) with dense semantic vectors (`bge-m3`).
+- 🛡️ **Automatic Degraded Fallback**: If the local AI inference process is unavailable or stopped, search automatically switches to lexical BM25 matching, displaying an advisory warning banner so queries can proceed against the lexical index.
+- 📄 **Native Document Ingestion**: Ingests PDFs, Word documents (`.docx`), Excel spreadsheets (`.xlsx`), and plain text into the vault's `20_RAW_SOURCES` directory with native text extraction.
+- 📂 **Native Obsidian Compatibility**: Uses standard Markdown files (`.md`), YAML frontmatter, and wiki-link conventions (`[[Note]]`). No proprietary database lock-in.
+- 🖥️ **Desktop Shell**: Built with **Tauri v2** (Rust backend and React webview) to avoid bundling a separate Chromium runtime as required by Electron architectures.
+- 🧙 **3-Step Setup Wizard**: First-run onboarding to select your vault directory, configure the local AI engine, and select operational mode.
+
+### Application Previews
+
+> *Note: These are historical verification captures from desktop build v3 (0.3.0, 20 September 2026) using synthetic test data (`vault_collaudo_local_rag_v2`). The v7Mini 0.7.0 release retains this core screen layout and workflow; updated v7Mini captures are pending live GUI recording sessions.*
+
+| Hybrid Search (Active) | Semantic Engine Settings | Degraded Fallback Mode |
+|---|---|---|
+| ![Hybrid Search](docs/assets/01_hero_hybrid_search.png) | ![Semantic Engine](docs/assets/02_semantic_engine_active.png) | ![Degraded Mode](docs/assets/03_degraded_mode_banner.png) |
+
+---
+
+## Architecture
+
+```mermaid
+flowchart TD
+    subgraph Host ["Local Workstation"]
+        User["User Interface (React / Tauri Shell)"]
+        
+        subgraph Core ["LIMEN Vault Core (Rust / TypeScript)"]
+            Engine["Search Orchestrator"]
+            BM25["BM25 Lexical Indexer (Length-Normalized)"]
+            Extractor["Native Ingestion & Document Extractor"]
+        end
+        
+        subgraph LocalAI ["Local Inference Daemon (Local Mode)"]
+            Server["llama-server (Loopback 127.0.0.1)"]
+            Model["bge-m3 GGUF (1024-dim dense vectors)"]
+        end
+        
+        subgraph Vault ["Obsidian / Markdown Vault"]
+            Raw["20_RAW_SOURCES (Originals)"]
+            Notes["01-10 Approved & Review Notes"]
+            System["00_SYSTEM (Manifests & SHA-256 Cache)"]
+        end
+    end
+
+    User --> Engine
+    Engine --> BM25
+    Engine --> Server
+    Server --> Model
+    Extractor --> Raw
+    BM25 --> Notes
+    Engine --> System
+```
+
+---
+
+## Platform Availability & Status
+
+- **macOS (Apple Silicon — ARM64)**: Primary verified desktop target.
+- **Windows 11 (x64)**: Preview implementation actively developed on the `windows-build` branch.
+- **Linux**: Planned for future development milestones.
+
+---
+
+## Getting Started
+
+### Option A: Standalone Pre-Release Build (macOS Apple Silicon)
+
+A pre-compiled build for macOS Apple Silicon (`v7Mini 0.7.0`) is included in the repository tree for testing:
+- **Repository path**: `USER INSTALL/LIMEN-Vault-v7Mini.dmg`
+- *Note*: This binary is tracked in git as a testing build. Official standalone GitHub Release assets will be attached to future repository release tags.
+
+**Running the macOS App:**
+1. Open `USER INSTALL/LIMEN-Vault-v7Mini.dmg` and drag **LIMEN Vault** into `/Applications`.
+2. First-run note: If macOS Gatekeeper alerts about an unnotarized or unsigned binary from the web, right-click (or Control-click) `LIMEN Vault.app` and choose **Open**.
+3. Complete the 3-step **Setup Wizard**:
+   - **Step 1: Vault Folder**: Select an existing Obsidian vault directory.
+   - **Step 2: Local AI Engine**: Confirm local loopback engine configuration.
+   - **Step 3: Mode & Optional API Key**: Select 100% Local mode or Hybrid mode.
+
+### Option B: Build & Run from Source
+
+#### Prerequisites
+- **Node.js** (>= 20.0.0) & **pnpm** (>= 9.0.0)
+- **Rust & Cargo** (latest stable)
+- **macOS** (14.0+ Apple Silicon) or **Windows 11**
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/cesarenegro/Limen-vault.git
+cd Limen-vault
+
+# 2. Install monorepo dependencies
+pnpm install
+
+# 3. Run Desktop Application in development mode
+pnpm dev:desktop
+
+# 4. Run test suites and prohibited dependency guards
+pnpm test
+pnpm typecheck
+```
+
+---
+
+## Monorepo Structure
 
 ```text
-LIMEN-VAULT/
 ├── apps/
-│   ├── web/                    # Next.js Web Dashboard (Vercel target: limen-vault)
-│   └── desktop/                # Tauri / React Desktop Application (macOS primary target)
-│
+│   ├── desktop/          # Tauri v2 native desktop app (React + TypeScript + Rust)
+│   └── web/              # Next.js web application shell
 ├── packages/
-│   ├── ui/                     # Shared Design System (macOS minimal aesthetic)
-│   ├── vault-core/             # Core Vault interfaces & security guards
-│   ├── vault-schema/           # Zod schemas & TypeScript contracts
-│   ├── knowledge-compiler/     # Knowledge compiler interfaces & contracts
-│   ├── search-engine/          # Offline local search abstractions
-│   ├── snapshot-engine/        # Local snapshot & SHA-256 integrity contracts
-│   ├── ai-engine/              # OpenAI / Codex abstract provider interfaces
-│   └── proposal-engine/        # Proposal workflow & write-safety contracts
-│
-├── vault-template/             # Obsidian-compatible directory template & system markdown specs
-│   ├── 00_SYSTEM/
-│   ├── 01_CLIENTS/
-│   ├── 02_PROJECTS/
-│   ├── 03_BRANDS/
-│   ├── 04_POSITIONING/
-│   ├── 05_PACKAGING_KNOWLEDGE/
-│   ├── 06_METHODS/
-│   ├── 07_CASE_STUDIES/
-│   ├── 08_MARKET_RESEARCH/
-│   ├── 09_COMPETITORS/
-│   ├── 10_APPROVED_OUTPUTS/
-│   ├── 20_RAW_SOURCES/
-│   ├── 80_AI_OUTPUTS/
-│   ├── 90_PROPOSALS/
-│   └── 99_ARCHIVE/
-│
-├── docs/                       # Architecture, security, and milestone documentation
-├── tests/                      # Automated guard tests & verification suites
-├── scripts/                    # Workspace verification helpers
-├── AGENTS.md                   # System rules and independence guidelines
-└── SECRETS.TXT                 # Local environment template (Git-ignored)
+│   ├── ui/               # Shared Design System
+│   ├── vault-core/       # Core Vault interfaces & filesystem security guards
+│   ├── vault-schema/     # Zod schemas & TypeScript domain contracts
+│   ├── search-engine/    # BM25 and hybrid retrieval engine
+│   └── snapshot-engine/  # Versioned snapshots & SHA-256 integrity verification
+├── vault-template/       # Standard Obsidian-compatible knowledge structure
+├── docs/                 # Architectural specifications and engineering guides
+├── DOCUMENTATION_SOURCE_PACKAGE/ # Exhaustive user guides, screenshots & QA packages
+└── USER INSTALL/         # Pre-built release binaries (v7Mini DMG)
 ```
 
 ---
 
-## 3. Quick Start & Running Locally
+## Known Limitations
 
-### Prerequisites
-- Native macOS development/build also requires Rust/Cargo and Xcode. The packaged app does not require Node or a development server.
-- Node.js (>= 20.0.0)
-- `pnpm` (>= 9.0.0)
-
-### Installation
-```bash
-pnpm install
-```
-
-### Running Applications
-```bash
-# Run Web Application (Next.js)
-pnpm dev:web
-
-# Run Desktop Application (React / Tauri shell)
-pnpm dev:desktop
-```
+- **Model Download Prerequisite**: Semantic vector search requires placing the `bge-m3` GGUF model file into your local model cache before dense vector scoring is available.
+- **Windows Platform**: The Windows build is currently in preview and under active testing.
+- **Open Source License**: License selection is currently being finalized by the maintainer.
 
 ---
 
-## 4. Verification & Testing
+## Contributing
 
-```bash
-# Run unit & prohibited-dependency guard tests
-pnpm test
-
-# TypeScript type checking across all apps & packages
-pnpm typecheck
-
-# Frontend/package production build (does not build the native app)
-pnpm build
-
-# Native tests, TS/Rust parity and macOS app bundle (Rust + Xcode required)
-./scripts/m3-native-check.sh
-```
+We welcome community feedback, bug reports, and code contributions:
+1. Please open a GitHub Issue with reproducible steps for bugs or feature proposals.
+2. Ensure all automated tests (`pnpm test`) pass before submitting pull requests.
 
 ---
 
-## 5. Current Milestone Status
+## License
 
-**Latest completed milestone:** `M3 — SNAPSHOTS & INTEGRITY` (VERIFIED LOCALLY, 12 September 2026, macOS ARM64). No release published; see [TASK_LIST.md](TASK_LIST.md).
-
-- [x] Monorepo architecture established
-- [x] Standalone independence guards implemented
-- [x] Obsidian vault template (`vault-template/`) created with markdown system specs
-- [x] Reusable macOS minimal design system (`packages/ui`)
-- [x] Desktop application shell with first-run flow and 11 core screens
-- [x] Web application shell with MEMAI status placeholder & LIMEN Vault landing
-- [x] Architecture & milestone documentation complete (`docs/`)
-
----
-
-## 6. Authorized AI Ecosystem & Non-Goals
-
-### Authorized AI Ecosystem
-- OpenAI (GPT-4o, ChatGPT)
-- Codex
-- Future local LLMs
-
-### Explicitly Prohibited
-- Anthropic & Claude (Strictly prohibited by design policy)
-- Gemini & DeepSeek (Prohibited)
-- `memaiFetch`, `PII_CRM` or `M3MAI` runtime dependencies
-
-### Explicit Non-Goals for M0/M1
-- Direct AI writes to approved knowledge directories (AI output is strictly written to `80_AI_OUTPUTS` or `90_PROPOSALS`).
-- Simulated or fake working health data when external services are unavailable.
-
----
-
-## 7. Security & Filesystem Principles
-
-1. **Path Traversal Protection**: Vault core strictly validates paths to prevent relative escapes (`..`), symlink redirection outside vault root, or absolute path traversal.
-2. **Deterministic Manifests**: Manifests track relative file paths and SHA-256 hashes to verify vault integrity locally.
-3. **Secret Isolation**: Secrets are kept outside vault markdown files and stored in local OS facilities or git-ignored environment configs.
+*License decision pending: The project license is currently being finalized by the maintainer.*
