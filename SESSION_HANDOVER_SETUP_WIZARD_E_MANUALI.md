@@ -62,11 +62,29 @@ Data: 10 Ottobre 2026 · Branch: `windows-build` · Workspace: `/Users/cesare/Do
   - Semplificate le intestazioni e breadcrumbs: *Chiedi*, *Documenti*, *Memoria*, *Avanzate*.
   - Aggiornate tutte le schermate principali ([`App.tsx`](file:///Users/cesare/Documents/MEMAI%20V_FALLBACK%20OBSIDIAN/apps/desktop/src/App.tsx), [`AiPanel.tsx`](file:///Users/cesare/Documents/MEMAI%20V_FALLBACK%20OBSIDIAN/apps/desktop/src/AiPanel.tsx), [`KnowledgePanel.tsx`](file:///Users/cesare/Documents/MEMAI%20V_FALLBACK%20OBSIDIAN/apps/desktop/src/KnowledgePanel.tsx), [`SemanticEngineSettings.tsx`](file:///Users/cesare/Documents/MEMAI%20V_FALLBACK%20OBSIDIAN/apps/desktop/src/SemanticEngineSettings.tsx), [`SetupWizardModal.tsx`](file:///Users/cesare/Documents/MEMAI%20V_FALLBACK%20OBSIDIAN/apps/desktop/src/SetupWizardModal.tsx), [`DocumentReaderModal.tsx`](file:///Users/cesare/Documents/MEMAI%20V_FALLBACK%20OBSIDIAN/apps/desktop/src/DocumentReaderModal.tsx), [`SourceDetailsModal.tsx`](file:///Users/cesare/Documents/MEMAI%20V_FALLBACK%20OBSIDIAN/apps/desktop/src/SourceDetailsModal.tsx)) con rendering bilingue istantaneo.
 
+### F. Rilascio Ufficiale macOS LIMEN Vault v7Mini (0.7.0)
+- **Allineamento Versioning**: Impostato `LIMEN Vault v7Mini` e versione `0.7.0` in `tauri.conf.json`, `package.json`, `HelpPanel.tsx` e nella documentazione.
+- **Pipeline di Packaging e Notarizzazione (`scripts/package-v7mini-macos.sh`)**:
+  - Compilazione frontend Vite/React reale da worktree pulito con verifica anti-segnaposto.
+  - Compilazione release bundle con Tauri (`--bundles app --no-sign`).
+  - Firma profonda Developer ID (`E01892F9C136DA67B393B9CD29AF97E369956968`) con Hardened Runtime ed Entitlements per librerie native (`native/`), helper MCP (`mcp/`) e bundle applicativo.
+  - **Notarizzazione Apple App**: Accettata ufficialmente (`status: Accepted`, id: `0a7df268-0801-4537-9fe4-390652c66766`), ticket graffettato con `xcrun stapler staple`.
+  - Creazione DMG compresso UDZO e firma Developer ID.
+  - **Notarizzazione Apple DMG**: Accettata ufficialmente (`status: Accepted`, id: `626432c1-1f18-44c0-8132-4fdaa8e454ae`), ticket graffettato con `xcrun stapler staple`.
+  - **Validazione Gatekeeper**: `spctl --assess --type execute` e `--type open` superati con esito `accepted, source=Notarized Developer ID`.
+- **Artefatto Finale Distribuito**:
+  - Percorso: `USER INSTALL/LIMEN-Vault-v7Mini.dmg`
+  - Dimensione: `51113656 byte` (~51,1 MB)
+  - Hash SHA-256: `4d11ba254877762ece89cb334717164d8418b0e2181444b8363994f6134d6c38`
+
 ---
 
 ## 2. Stato della Compilazione e Collaudo
 - `pnpm typecheck`: Superato con successo su tutti gli 11 package del monorepo (Exit Code 0).
 - `pnpm test` desktop: 6 suite e tutti i test di integrità e contratti IPC superati (Exit Code 0).
 - `cargo test llama_llm --lib`: 10/10 test unitari superati con successo (Exit Code 0).
+- `scripts/package-v7mini-macos.sh`: Eseguito con successo (Exit Code 0).
+- DMG installatore pronto: `USER INSTALL/LIMEN-Vault-v7Mini.dmg` (firmato e notarizzato Apple).
 - Git status: Albero di lavoro pulito, ogni fase committata atomicamente su branch `windows-build`.
+
 
