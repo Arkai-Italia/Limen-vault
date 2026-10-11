@@ -994,7 +994,7 @@ export default function App() {
                 }}
               >
                 <Upload size={15} />
-                <span>{isProcessing ? 'CARICAMENTO…' : 'CARICA DOCUMENTI'}</span>
+                <span>{isProcessing ? t.nav.uploading : t.nav.upload}</span>
               </button>
             </div>
           )}
@@ -1004,21 +1004,21 @@ export default function App() {
             {[
               {
                 id: 'ask',
-                label: 'Chiedi',
+                label: t.nav.ask,
                 icon: <Sparkles size={16} color={currentTab === 'ask' || currentTab === 'search' ? '#0f172a' : '#64748b'} />,
                 active: currentTab === 'ask' || currentTab === 'search',
                 badge: undefined,
               },
               {
                 id: 'documents',
-                label: 'Documenti',
+                label: t.nav.documents,
                 icon: <FolderArchive size={16} color={currentTab === 'documents' || currentTab === 'sources' ? '#0f172a' : '#64748b'} />,
                 active: currentTab === 'documents' || currentTab === 'sources',
                 badge: String(catalogSummary?.totalRawSources ?? sourceCount),
               },
               {
                 id: 'memory',
-                label: 'Memoria',
+                label: t.nav.memory,
                 icon: <BookOpen size={16} color={currentTab === 'memory' || currentTab === 'knowledge' ? '#0f172a' : '#64748b'} />,
                 active: currentTab === 'memory' || currentTab === 'knowledge',
                 badge: String(pageCount),
@@ -1083,7 +1083,7 @@ export default function App() {
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <Sliders size={16} />
-                <span>Avanzate</span>
+                <span>{t.nav.advanced}</span>
               </div>
             </button>
           </nav>
@@ -1120,10 +1120,10 @@ export default function App() {
                 fontWeight: 600,
                 cursor: 'pointer',
               }}
-              title="Avvia una nuova conversazione"
+              title={t.nav.newChat}
             >
               <PlusCircle size={13} color="#0f172a" />
-              <span>Nuova conversazione</span>
+              <span>{t.nav.newChat}</span>
             </button>
 
             {conversationGroups.length > 0 && (
@@ -1139,7 +1139,7 @@ export default function App() {
                   display: 'flex',
                   alignItems: 'center',
                 }}
-                title="Svuota lo storico di questo vault"
+                title={t.nav.clearHistoryTitle}
               >
                 <Trash2 size={13} />
               </button>
@@ -1150,12 +1150,12 @@ export default function App() {
           <div style={{ flex: 1, overflowY: 'auto', padding: '4px 6px', display: 'flex', flexDirection: 'column', gap: 4 }}>
             {conversationGroups.length === 0 ? (
               <div style={{ padding: '16px 8px', textAlign: 'center', fontSize: 11, color: '#94a3b8' }}>
-                Nessuna conversazione
+                {t.nav.noConversations}
               </div>
             ) : (
               conversationGroups.map(group => {
                 const isSelected = archivedConversation?.conversationId === group.conversationId;
-                const firstPrompt = group.turns[0]?.prompt || 'Conversazione';
+                const firstPrompt = group.turns[0]?.prompt || t.nav.newChat;
                 return (
                   <div
                     key={group.conversationId}
@@ -1199,7 +1199,7 @@ export default function App() {
                           cursor: 'pointer',
                           display: 'flex',
                         }}
-                        title="Elimina questa conversazione"
+                        title={t.common.delete}
                       >
                         <Trash2 size={12} />
                       </button>
@@ -1207,7 +1207,7 @@ export default function App() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, color: '#64748b' }}>
                       <span>{formatLocalDate(group.latestCreatedAtUtc)}</span>
                       <span>·</span>
-                      <span>{group.turns.length} {group.turns.length === 1 ? 'turno' : 'turni'}</span>
+                      <span>{group.turns.length} {group.turns.length === 1 ? t.nav.turn : t.nav.turns}</span>
                     </div>
                   </div>
                 );
@@ -1248,7 +1248,7 @@ export default function App() {
                 {sourcesSidebarOpen ? <ChevronDown size={14} color="#0f172a" /> : <ChevronRight size={14} color="#0f172a" />}
                 <FileText size={14} color="#0f172a" />
                 <span style={{ fontSize: 11, fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap' }}>
-                  Fonti: {selectedTurnCitedCount} citat{selectedTurnCitedCount === 1 ? 'a' : 'e'} / {selectedTurnSources.length}
+                  {t.nav.sources}: {selectedTurnCitedCount} {selectedTurnCitedCount === 1 ? t.nav.cited : t.nav.citedPlural} / {selectedTurnSources.length}
                 </span>
               </div>
               {sourcesSidebarOpen && (
@@ -1269,9 +1269,9 @@ export default function App() {
                     color: '#ffffff',
                     cursor: 'pointer',
                   }}
-                  title="Mostra tutte le fonti con dettagli completi"
+                  title={t.nav.showAll}
                 >
-                  Mostra tutte
+                  {t.nav.showAll}
                 </button>
               )}
             </div>
@@ -1304,7 +1304,7 @@ export default function App() {
                         gap: 6,
                         transition: 'background-color 0.15s ease',
                       }}
-                      title={`Clicca per dettagli di: ${cleanName}`}
+                      title={cleanName}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden' }}>
                         <FileText size={12} color={isCited ? '#16a34a' : '#64748b'} style={{ flexShrink: 0 }} />
@@ -1333,7 +1333,7 @@ export default function App() {
                             flexShrink: 0,
                           }}
                         >
-                          CITATA
+                          {t.nav.cited.toUpperCase()}
                         </span>
                       )}
                     </div>
@@ -1366,7 +1366,7 @@ export default function App() {
             }}
           >
             <ExternalLink size={14} />
-            <span>Apri in Obsidian</span>
+            <span>{t.nav.openObsidian}</span>
           </button>
         </div>
       </aside>
@@ -1391,11 +1391,11 @@ export default function App() {
           {/* LEFT: Current Section Breadcrumb */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>
-              {currentTab === 'home' && 'Panoramica'}
-              {(currentTab === 'ask' || currentTab === 'search') && 'Chiedi al Vault'}
-              {(currentTab === 'documents' || currentTab === 'sources') && 'Documenti Aziendali'}
-              {(currentTab === 'memory' || currentTab === 'knowledge') && 'Memoria Aziendale'}
-              {(currentTab === 'advanced' || ['proposals', 'outputs', 'snapshots', 'transfers', 'system', 'help', 'settings'].includes(currentTab)) && 'Avanzate e Manutenzione'}
+              {currentTab === 'home' && t.nav.overview}
+              {(currentTab === 'ask' || currentTab === 'search') && t.nav.ask}
+              {(currentTab === 'documents' || currentTab === 'sources') && t.nav.documents}
+              {(currentTab === 'memory' || currentTab === 'knowledge') && t.nav.memory}
+              {(currentTab === 'advanced' || ['proposals', 'outputs', 'snapshots', 'transfers', 'system', 'help', 'settings'].includes(currentTab)) && t.nav.advanced}
             </span>
             {vaultPath && (
               <span style={{ fontSize: 11, color: '#64748b', backgroundColor: '#f1f5f9', padding: '2px 8px', borderRadius: 4, fontFamily: 'monospace' }}>
@@ -1409,7 +1409,7 @@ export default function App() {
             <button
               onClick={handleRecheck}
               disabled={isProcessing || !vaultPath}
-              title="Aggiorna stato, file e dati del Vault"
+              title={t.nav.refresh}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -1439,7 +1439,7 @@ export default function App() {
               }}
             >
               <RotateCw size={15} className={isProcessing ? 'spin' : ''} color={isProcessing ? '#94a3b8' : '#0f172a'} />
-              <span>{isProcessing ? 'Aggiornamento...' : 'Aggiorna'}</span>
+              <span>{isProcessing ? t.nav.refreshing : t.nav.refresh}</span>
             </button>
           </div>
 
@@ -1528,133 +1528,133 @@ export default function App() {
               }}
             >
               <div style={{ fontSize: 24, fontWeight: 700, margin: '0 0 8px 0', letterSpacing: '-0.02em' }}>
-              Benvenuto in LIMEN Vault v6Mini
-            </div>
-            <p style={{ fontSize: 14, color: '#475569', lineHeight: 1.6, margin: '0 0 28px 0' }}>
-              Un ambiente di conoscenza locale e indipendente. Crea un nuovo Vault compatibile con Obsidian oppure apri la cartella di un Vault esistente.
-            </p>
+                {t.home.welcomeTitle}
+              </div>
+              <p style={{ fontSize: 14, color: '#475569', lineHeight: 1.6, margin: '0 0 28px 0' }}>
+                {t.home.welcomeSubtitle}
+              </p>
 
-            <div style={{ marginBottom: 20, textAlign: 'left' }}>
-              <label style={{ fontSize: 12, fontWeight: 600, color: '#475569', display: 'block', marginBottom: 6 }}>
-                Percorso del Vault (cartella locale)
-              </label>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <input
-                  type="text"
-                  value={customPathInput}
-                  onChange={(e) => {
-                    const val = normalizeVaultPath(e.target.value);
-                    setCustomPathInput(val);
-                    if (typeof localStorage !== 'undefined') {
-                      try {
-                        localStorage.setItem('limen_last_vault_path', val);
-                      } catch {}
-                    }
-                  }}
-                  placeholder="Scegli la cartella del vault"
-                  disabled={isProcessing}
-                  style={{
-                    flex: 1,
-                    padding: '10px 14px',
-                    borderRadius: 6,
-                    border: '1px solid #cbd5e1',
-                    fontSize: 13,
-                    fontFamily: 'monospace',
-                  }}
-                />
+              <div style={{ marginBottom: 20, textAlign: 'left' }}>
+                <label style={{ fontSize: 12, fontWeight: 600, color: '#475569', display: 'block', marginBottom: 6 }}>
+                  {t.home.vaultFolder}
+                </label>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input
+                    type="text"
+                    value={customPathInput}
+                    onChange={(e) => {
+                      const val = normalizeVaultPath(e.target.value);
+                      setCustomPathInput(val);
+                      if (typeof localStorage !== 'undefined') {
+                        try {
+                          localStorage.setItem('limen_last_vault_path', val);
+                        } catch {}
+                      }
+                    }}
+                    placeholder={t.home.vaultFolder}
+                    disabled={isProcessing}
+                    style={{
+                      flex: 1,
+                      padding: '10px 14px',
+                      borderRadius: 6,
+                      border: '1px solid #cbd5e1',
+                      fontSize: 13,
+                      fontFamily: 'monospace',
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleBrowseFolder}
+                    disabled={isProcessing}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      backgroundColor: '#f1f5f9',
+                      color: '#0f172a',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: 6,
+                      padding: '10px 16px',
+                      fontSize: 13,
+                      fontWeight: 600,
+                      cursor: isProcessing ? 'not-allowed' : 'pointer',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    <FolderOpen size={16} />
+                    <span>{t.home.browse}</span>
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 16, justifyContent: 'center' }}>
                 <button
                   type="button"
-                  onClick={handleBrowseFolder}
+                  onClick={handleCreateVault}
                   disabled={isProcessing}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 6,
-                    backgroundColor: '#f1f5f9',
-                    color: '#0f172a',
-                    border: '1px solid #cbd5e1',
-                    borderRadius: 6,
-                    padding: '10px 16px',
+                    gap: 8,
+                    backgroundColor: isProcessing ? '#94a3b8' : '#0f172a',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: 8,
+                    padding: '12px 20px',
                     fontSize: 13,
                     fontWeight: 600,
                     cursor: isProcessing ? 'not-allowed' : 'pointer',
-                    whiteSpace: 'nowrap',
                   }}
                 >
-                  <FolderOpen size={16} />
-                  <span>Sfoglia…</span>
+                  {isProcessing ? <Loader2 size={16} className="spin" /> : <PlusCircle size={16} />}
+                  <span>{t.home.createVault}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleOpenExistingVault}
+                  disabled={isProcessing}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    backgroundColor: isProcessing ? '#f1f5f9' : 'var(--limen-lime)',
+                    color: '#0f172a',
+                    border: '1px solid rgba(119, 241, 23, 0.6)',
+                    borderRadius: 8,
+                    padding: '12px 20px',
+                    fontSize: 13,
+                    fontWeight: 700,
+                    cursor: isProcessing ? 'not-allowed' : 'pointer',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+                  }}
+                >
+                  {isProcessing ? <Loader2 size={16} className="spin" /> : <FolderOpen size={16} />}
+                  <span>{t.home.openVault}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSetupWizardOpen(true)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    backgroundColor: 'rgba(15, 23, 42, 0.05)',
+                    color: '#0f172a',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: 8,
+                    padding: '12px 20px',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <Compass size={16} />
+                  <span>{t.home.guidedSetup}</span>
                 </button>
               </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: 16, justifyContent: 'center' }}>
-              <button
-                type="button"
-                onClick={handleCreateVault}
-                disabled={isProcessing}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  backgroundColor: isProcessing ? '#94a3b8' : '#0f172a',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: 8,
-                  padding: '12px 20px',
-                  fontSize: 13,
-                  fontWeight: 600,
-                  cursor: isProcessing ? 'not-allowed' : 'pointer',
-                }}
-              >
-                {isProcessing ? <Loader2 size={16} className="spin" /> : <PlusCircle size={16} />}
-                <span>CREA NUOVO VAULT</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={handleOpenExistingVault}
-                disabled={isProcessing}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  backgroundColor: isProcessing ? '#f1f5f9' : 'var(--limen-lime)',
-                  color: '#0f172a',
-                  border: '1px solid rgba(119, 241, 23, 0.6)',
-                  borderRadius: 8,
-                  padding: '12px 20px',
-                  fontSize: 13,
-                  fontWeight: 700,
-                  cursor: isProcessing ? 'not-allowed' : 'pointer',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-                }}
-              >
-                {isProcessing ? <Loader2 size={16} className="spin" /> : <FolderOpen size={16} />}
-                <span>APRI VAULT ESISTENTE</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setSetupWizardOpen(true)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  backgroundColor: 'rgba(15, 23, 42, 0.05)',
-                  color: '#0f172a',
-                  border: '1px solid #cbd5e1',
-                  borderRadius: 8,
-                  padding: '12px 20px',
-                  fontSize: 13,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                <Compass size={16} color="#77f117" />
-                <span>CONFIGURAZIONE GUIDATA</span>
-              </button>
-            </div>
 
             {/* VALIDATION ERRORS IN WELCOME CARD */}
             {validationErrors.length > 0 && (
@@ -1695,20 +1695,20 @@ export default function App() {
             {currentTab === 'home' && (
               <div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 28 }}>
-                  <MetricCard title="File Markdown" value={pageCount} subtitle="Tutti i file Markdown del Vault" />
-                  <MetricCard title="Fonti originali" value={sourceCount} subtitle="Documenti in sola lettura" />
-                  <MetricCard title="File delle proposte" value={proposalCount} subtitle="Revisioni delle bozze salvate" />
+                  <MetricCard title={t.home.metricsProcessedNotes} value={pageCount} subtitle={t.home.knowledgeDesc} />
+                  <MetricCard title={t.home.metricsRawSources} value={sourceCount} subtitle={t.home.rawSourcesDesc} />
+                  <MetricCard title={t.home.metricsProposals} value={proposalCount} subtitle={labelIt('proposal', language)} />
                   <MetricCard
-                    title="Integrità SHA-256"
-                    value={integrityReport?.is_integrity_valid ? 'Verificata' : integrityReport?.errors.length ? 'Non verificata' : integrityReport ? 'Differenze rilevate' : 'Non verificata'}
+                    title={t.home.metricsIntegrity}
+                    value={integrityReport?.is_integrity_valid ? t.home.verified : integrityReport?.errors.length ? t.home.unverified : integrityReport ? t.home.diffDetected : t.home.unverified}
                     subtitle={
                       integrityReport?.is_integrity_valid
-                        ? `Tutti i ${integrityReport.verified_files_count} file corrispondono alle impronte SHA-256`
+                        ? t.home.allFilesMatch
                         : integrityReport?.errors.length
-                        ? 'Verifica non completata'
+                        ? t.home.checkFailed
                         : integrityReport
-                        ? `${integrityReport.modified_files.length} modificati, ${integrityReport.missing_files.length} mancanti, ${integrityReport.added_files.length} aggiunti`
-                        : 'Impronte crittografiche non verificate'
+                        ? `${integrityReport.modified_files.length} mod, ${integrityReport.missing_files.length} miss, ${integrityReport.added_files.length} add`
+                        : t.home.unverified
                     }
                   />
                 </div>
@@ -1718,27 +1718,27 @@ export default function App() {
                   const modCount = integrityReport.modified_files.length;
                   const misCount = integrityReport.missing_files.length;
                   const addCount = integrityReport.added_files.length;
-                  const diffSummary = `${modCount} modificat${modCount === 1 ? 'o' : 'i'}, ${misCount} mancant${misCount === 1 ? 'e' : 'i'}, ${addCount} aggiunt${addCount === 1 ? 'o' : 'i'}`;
+                  const diffSummary = `${modCount} mod, ${misCount} miss, ${addCount} add`;
                   return (
                     <div style={{ marginBottom: 20, backgroundColor: '#fffbe5', padding: '10px 16px', borderRadius: 8, border: '1px solid #fef08a' }}>
                       <details>
                         <summary style={{ fontSize: 13, fontWeight: 700, color: '#854d0e', cursor: 'pointer' }}>
-                          Differenze rispetto al manifesto SHA-256 ({diffSummary})
+                          SHA-256 ({diffSummary})
                         </summary>
                         <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
                           {modCount > 0 && (
                             <div style={{ fontSize: 12, color: '#a16207' }}>
-                              <strong>File modificati ({modCount}):</strong> {integrityReport.modified_files.join(', ')}
+                              <strong>{language === 'en' ? 'Modified files' : 'File modificati'} ({modCount}):</strong> {integrityReport.modified_files.join(', ')}
                             </div>
                           )}
                           {misCount > 0 && (
                             <div style={{ fontSize: 12, color: '#a16207' }}>
-                              <strong>File mancanti ({misCount}):</strong> {integrityReport.missing_files.join(', ')}
+                              <strong>{language === 'en' ? 'Missing files' : 'File mancanti'} ({misCount}):</strong> {integrityReport.missing_files.join(', ')}
                             </div>
                           )}
                           {addCount > 0 && (
                             <div style={{ fontSize: 12, color: '#a16207' }}>
-                              <strong>File aggiunti non presenti nel manifesto ({addCount}):</strong> {integrityReport.added_files.join(', ')}
+                              <strong>{language === 'en' ? 'Added files' : 'File aggiunti'} ({addCount}):</strong> {integrityReport.added_files.join(', ')}
                             </div>
                           )}
                         </div>
@@ -1750,8 +1750,7 @@ export default function App() {
                 <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 24 }}>
                   <div className="limen-card" style={{ padding: 24 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                      <h3 style={{ fontSize: 16, fontWeight: 600, margin: 0 }}>Accesso rapido</h3>
-                      <span style={{ fontSize: 12, color: '#64748b' }}>Aree operative e cartelle del Vault</span>
+                      <h3 style={{ fontSize: 16, fontWeight: 600, margin: 0 }}>{t.home.quickAccess}</h3>
                     </div>
 
                     {/* VAULT / RAW (20_RAW_SOURCES) CARD */}
@@ -1800,7 +1799,7 @@ export default function App() {
                         <div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             <span style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>
-                              Vault / RAW
+                              {t.home.rawSourcesTitle}
                             </span>
                             <span
                               style={{
@@ -1817,7 +1816,7 @@ export default function App() {
                             </span>
                           </div>
                           <div style={{ fontSize: 12, color: '#475569', marginTop: 2 }}>
-                            Documenti originali, note grezze, brief e file di testo da compilare
+                            {t.home.rawSourcesDesc}
                           </div>
                         </div>
                       </div>
@@ -1886,7 +1885,7 @@ export default function App() {
                           }}
                         >
                           <span style={{ fontSize: 13, fontWeight: 600, color: '#0f172a' }}>
-                            {labelIt(cat.id)}
+                            {labelIt(cat.id, language)}
                           </span>
                           <span style={{ fontSize: 10, fontFamily: 'monospace', color: '#64748b', marginTop: 2 }}>
                             {cat.folder}/
@@ -1897,10 +1896,12 @@ export default function App() {
                   </div>
 
                   <div className="limen-card" style={{ padding: 24 }}>
-                    <h3 style={{ fontSize: 16, fontWeight: 600, margin: '0 0 12px 0' }}>Integrazione AI</h3>
-                    <button onClick={() => setCurrentTab('ask')} className="limen-btn-primary">Chiedi al Vault</button>
+                    <h3 style={{ fontSize: 16, fontWeight: 600, margin: '0 0 12px 0' }}>AI</h3>
+                    <button onClick={() => setCurrentTab('ask')} className="limen-btn-primary">{t.home.askVaultButton}</button>
                     <p style={{ fontSize: 13, color: '#475569', lineHeight: 1.5, marginTop: 12 }}>
-                      Controlla le fonti locali prima di inviare una domanda a OpenAI. Configura le credenziali e MCP in sola lettura nelle Impostazioni.
+                      {language === 'en'
+                        ? 'Query local documents with offline models or OpenAI hybrid search.'
+                        : 'Interroga i documenti locali con modelli offline o connettiti a OpenAI.'}
                     </p>
                   </div>
                 </div>
