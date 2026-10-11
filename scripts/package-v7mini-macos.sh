@@ -45,8 +45,8 @@ trap cleanup EXIT
 if [ -d "$ROOT_DIR/apps/desktop/src-tauri/target/release/deps" ]; then
     echo "Seeding cache release deps nel worktree..."
     mkdir -p "$BUILD_WORKTREE/apps/desktop/src-tauri/target/release"
-    cp -R "$ROOT_DIR/apps/desktop/src-tauri/target/release/deps" "$BUILD_WORKTREE/apps/desktop/src-tauri/target/release/" 2>/dev/null || true
-    cp -R "$ROOT_DIR/apps/desktop/src-tauri/target/release/build" "$BUILD_WORKTREE/apps/desktop/src-tauri/target/release/" 2>/dev/null || true
+    cp -Rc "$ROOT_DIR/apps/desktop/src-tauri/target/release/deps" "$BUILD_WORKTREE/apps/desktop/src-tauri/target/release/" 2>/dev/null || cp -R "$ROOT_DIR/apps/desktop/src-tauri/target/release/deps" "$BUILD_WORKTREE/apps/desktop/src-tauri/target/release/" 2>/dev/null || true
+    cp -Rc "$ROOT_DIR/apps/desktop/src-tauri/target/release/build" "$BUILD_WORKTREE/apps/desktop/src-tauri/target/release/" 2>/dev/null || cp -R "$ROOT_DIR/apps/desktop/src-tauri/target/release/build" "$BUILD_WORKTREE/apps/desktop/src-tauri/target/release/" 2>/dev/null || true
 fi
 
 echo "Compilazione dipendenze e frontend nel worktree pulito..."
