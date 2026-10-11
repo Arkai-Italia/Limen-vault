@@ -1,5 +1,5 @@
-# LIMEN VAULT v6Mini — MANUALE DELL’INTERFACCIA UTENTE
-Edizione italiana · Ottobre 2026 · LIMEN Vault v6Mini (0.6.0)
+# LIMEN VAULT v7Mini — MANUALE DELL’INTERFACCIA UTENTE
+Edizione italiana · Ottobre 2026 · LIMEN Vault v7Mini (0.7.0)
 
 Applicazione desktop per macOS (Apple Silicon / Intel, macOS 26.0+) e Windows per la gestione, indicizzazione semantica locale, consultazione aumentata e sovranità della memoria aziendale.
 
@@ -48,7 +48,7 @@ Applicazione desktop per macOS (Apple Silicon / Intel, macOS 26.0+) e Windows pe
 
 ## INDICE GENERALE
 
-1. Che cos’è LIMEN Vault v6Mini e principi architetturali
+1. Che cos’è LIMEN Vault v7Mini e principi architetturali
 2. Controllo di Avvio e Setup Wizard Guidato (Onboarding a 3 Step)
 3. Struttura dell’interfaccia e navigazione a 3 Aree Funzionali
 4. Catalogo Multi-Modello Locale e Vincoli Hardware (RAM Minima e Consigliata)
@@ -62,7 +62,7 @@ Applicazione desktop per macOS (Apple Silicon / Intel, macOS 26.0+) e Windows pe
 
 ---
 
-## 1. CHE COS’È LIMEN VAULT v6Mini E PRINCIPI ARCHITETTURALI
+## 1. CHE COS’È LIMEN VAULT v7Mini E PRINCIPI ARCHITETTURALI
 
 Il **Vault** è una cartella locale contenente note Markdown strutturate, documenti aziendali originali (PDF, DOCX, XLSX, PPTX, TXT), bozze e registri crittografici di sistema. LIMEN Vault gestisce, indicizza e interroga questa struttura mantenendo la piena compatibilità bidirezionale con Obsidian.
 
@@ -122,7 +122,7 @@ flowchart TD
 
 ## 3. STRUTTURA DELL’INTERFACCIA E NAVIGAZIONE A 3 AREE FUNZIONALI
 
-L'interfaccia di LIMEN Vault v6Mini è organizzata attorno a 3 aree funzionali primarie più un'area avanzata, progettate per consentire un passaggio fluido tra consultazione, catalogazione e amministrazione tecnica:
+L'interfaccia di LIMEN Vault v7Mini è organizzata attorno a 3 aree funzionali primarie più un'area avanzata, progettate per consentire un passaggio fluido tra consultazione, catalogazione e amministrazione tecnica:
 
 ```mermaid
 graph TD
@@ -244,7 +244,7 @@ sequenceDiagram
 
 ## 4. CATALOGO MULTI-MODELLO LOCALE E VINCOLI HARDWARE
 
-LIMEN Vault v6Mini offre un catalogo integrato con **6 modelli open-source all'avanguardia**, quantizzati in formato `Q4_K_M` per garantire velocità, ridotta occupazione di memoria ed eccellente qualità linguistica su Apple Silicon (GPU Metal) e processori moderni.
+LIMEN Vault v7Mini offre un catalogo integrato con **6 modelli open-source all'avanguardia**, quantizzati in formato `Q4_K_M` per garantire velocità, ridotta occupazione di memoria ed eccellente qualità linguistica su Apple Silicon (GPU Metal) e processori moderni.
 
 ```mermaid
 graph TD

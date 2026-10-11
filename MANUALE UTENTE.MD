@@ -1,5 +1,5 @@
-# LIMEN Vault v6Mini — Manuale Utente & Guida Operativa
-Edizione italiana · Ottobre 2026 · Versione 0.6.0 (macOS / Windows)
+# LIMEN Vault v7Mini — Manuale Utente & Guida Operativa
+Edizione italiana · Ottobre 2026 · Versione 0.7.0 (macOS / Windows)
 
 ---
 
