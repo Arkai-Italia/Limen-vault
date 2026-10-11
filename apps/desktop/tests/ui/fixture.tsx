@@ -75,7 +75,7 @@ function Fixture() {
   return <LanguageProvider><main style={{ height: '95vh', fontFamily: 'Arial', '--limen-lime': '#c8ff00' } as React.CSSProperties}>
     {panel === 'organization' ? <OrganizationFixture /> : panel === 'banner' ? <VaultStatusBanner status="READY" vaultPath="/fixture" vaultName="Vault test" dismissible onOpenObsidian={() => {}} /> : panel === 'documents' ? <DocumentsFixture /> : panel === 'drop' ? <DropFixture /> : panel === 'vault' ? <VaultPanel vaultPath="/fixture" onOpenReader={p => setSection(p)} onRevealInFinder={async p => { setSection(`Finder: ${p}`); }} /> :
       panel === 'import' ? <IndexingPromptModal isOpen={open} filesCount={2} fileNames={['Uno.txt', 'Due.txt']} isProcessing={false} onProceed={() => setSection('index-requested')} onPostpone={() => { setOpen(false); setSection('postponed'); }} /> :
-      <AiPanel vaultPath="/fixture" showManualSearch={manual} onToggleManualSearch={() => setManual(v => !v)} onNavigateToSettings={s => setSection(s)} />}
+      <AiPanel archivedConversation={panel === 'plain-chat' ? { conversationId: 'plain', turns: [{ id: 'plain-turn', prompt: 'Risposta pulita', answer: { answer: '## Riepilogo\n**Costo**: 12,50 € [1]\n- ✅ Confermato\n_file_name resta invariato_', provider: 'Locale', model: 'Ministral', citations: [] } }] } : null} vaultPath="/fixture" showManualSearch={manual} onToggleManualSearch={() => setManual(v => !v)} onNavigateToSettings={s => setSection(s)} />}
     <output aria-label="Esito fixture">{section}</output>
   </main></LanguageProvider>;
 }

@@ -1882,7 +1882,7 @@ export default function App() {
             />
 
             {(currentTab === 'documents' || currentTab === 'sources' || currentTab === 'vault') && <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
-              <button disabled={isProcessing} style={{ padding: '9px 14px', border: 0, borderRadius: 8, background: 'var(--limen-lime)', color: '#0f172a', fontWeight: 700, cursor: isProcessing ? 'wait' : 'pointer' }} onClick={() => { setImportedFilesList([]); setShowIndexingPrompt(true); }}>Indicizza e organizza</button>
+              <button disabled={isProcessing} style={{ padding: '9px 14px', border: 0, borderRadius: 8, background: 'var(--limen-lime)', color: '#0f172a', fontWeight: 700, cursor: isProcessing ? 'wait' : 'pointer' }} onClick={() => { setImportedFilesList([]); setShowIndexingPrompt(true); }}>Indicizza automaticamente</button>
               {lastMove && !organizationMessage && <button disabled={isProcessing} onClick={() => void handleUndoOrganization()} title={`${lastMove.to} → ${lastMove.from}`}>Annulla ultimo spostamento</button>}
             </div>}
             {organizationMessage && <div role="status" style={{ display: 'flex', alignItems: 'center', gap: 12, background: '#f0fdf4', padding: '12px 16px', borderRadius: 8, marginBottom: 14 }}>

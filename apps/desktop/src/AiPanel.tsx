@@ -1,3 +1,4 @@
+import { plainChatText } from './chat-text';
 import { useVaultAiMode } from './useVaultAiMode';
 import { activateLocalMode, LocalSetupRequired } from './ai-mode';
 import React, { useEffect, useRef, useState } from 'react';
@@ -811,7 +812,7 @@ export function AiPanel({
               cursor: 'pointer',
             }}
           >
-            <span style={{ fontSize: 11.5, fontWeight: 700 }}>⚡ Indicizza automaticamente</span>
+            <span style={{ fontSize: 11.5, fontWeight: 700 }}>Indicizza automaticamente</span>
             <span style={{ fontSize: 9, opacity: 0.8, color: '#94a3b8' }}>ricalcola cache</span>
           </button>
         </div>
@@ -922,7 +923,7 @@ export function AiPanel({
                       }}
                     >
                       <AlertCircle size={18} style={{ flexShrink: 0, color: '#dc2626' }} />
-                      <div><strong>Attenzione:</strong> {turn.answer.answer}</div>
+                      <div><strong>Attenzione:</strong> {plainChatText(turn.answer.answer)}</div>
                     </div>
                   )}
 
@@ -950,7 +951,7 @@ export function AiPanel({
 
                   {turn.answer.status !== 'error' && (
                     <div style={{ fontSize: 14, lineHeight: 1.65, color: '#0f172a', whiteSpace: 'pre-wrap' }}>
-                      {turn.answer.answer}
+                      {plainChatText(turn.answer.answer)}
                     </div>
                   )}
 
@@ -1132,7 +1133,7 @@ export function AiPanel({
                 )}
                 {isStreaming && (
                   <div style={{ fontSize: 14, lineHeight: 1.65, color: '#0f172a', whiteSpace: 'pre-wrap' }}>
-                    {streamingText || <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Elaborazione in corso e attesa token…</span>}
+                    {plainChatText(streamingText) || <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Elaborazione in corso e attesa token…</span>}
                     <span
                       style={{
                         display: 'inline-block',

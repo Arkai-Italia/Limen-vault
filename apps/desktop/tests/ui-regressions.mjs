@@ -47,6 +47,12 @@ try {
   const errors = [];
   page.on('pageerror', e => errors.push(String(e)));
   await page.route('**/*', route => route.request().url().startsWith(url) ? route.continue() : route.abort());
+  await page.goto(`${url}/?panel=plain-chat`);
+  await page.getByText('Riepilogo', { exact: false }).waitFor();
+  const cleanAnswer = await page.getByText('Riepilogo', { exact: false }).innerText();
+  assert.ok(cleanAnswer.includes('Costo: 12,50 € [1]'));
+  assert.ok(cleanAnswer.includes('Confermato'));
+  assert.doesNotMatch(cleanAnswer, /##|\*\*|✅/);
   await page.goto(`${url}/?panel=vault`);
   await page.getByRole('button', { name: /CUSTOM/ }).click();
   await page.getByRole('button', { name: 'Apri', exact: true }).click();
