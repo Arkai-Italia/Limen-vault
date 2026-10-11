@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { StatusBadge } from './StatusBadge.js';
 
 export interface VaultStatusBannerProps {
@@ -8,6 +8,7 @@ export interface VaultStatusBannerProps {
   pageCount?: number;
   onOpenObsidian?: () => void;
   obsidianAvailable?: boolean;
+  dismissible?: boolean;
 }
 
 export const VaultStatusBanner: React.FC<VaultStatusBannerProps> = ({
@@ -17,7 +18,13 @@ export const VaultStatusBanner: React.FC<VaultStatusBannerProps> = ({
   pageCount = 0,
   onOpenObsidian,
   obsidianAvailable = true,
+  dismissible = false,
 }) => {
+  const storageKey = `limen.vault-banner-hidden.v1:${vaultPath || ''}`;
+  const [hidden, setHidden] = useState(() => {
+    try { return localStorage.getItem(storageKey) === 'true'; } catch { return false; }
+  });
+  if (dismissible && hidden) return null;
   return (
     <div
       className="limen-card"
@@ -42,6 +49,7 @@ export const VaultStatusBanner: React.FC<VaultStatusBannerProps> = ({
         </div>
       </div>
 
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
       {onOpenObsidian && (
         <button
           onClick={onOpenObsidian}
@@ -65,6 +73,13 @@ export const VaultStatusBanner: React.FC<VaultStatusBannerProps> = ({
           {!obsidianAvailable && <span style={{ fontSize: 10, color: '#e11d48' }}>(Non disponibile)</span>}
         </button>
       )}
+      {dismissible && <button type="button" aria-label="Nascondi informazioni Vault" title="Nascondi informazioni Vault"
+        onClick={() => {
+          setHidden(true);
+          try { localStorage.setItem(storageKey, 'true'); } catch { /* Session-only when storage is unavailable. */ }
+        }}
+        style={{ border: 0, background: 'transparent', color: 'var(--limen-text-muted)', fontSize: 24, cursor: 'pointer', padding: '4px 8px' }}>×</button>}
+      </div>
     </div>
   );
 };

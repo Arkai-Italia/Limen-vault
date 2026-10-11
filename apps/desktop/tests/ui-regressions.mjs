@@ -55,6 +55,11 @@ try {
   await page.getByTitle('Rivela nel Finder / File Explorer').click();
   assert.match(await page.getByLabel('Esito fixture').innerText(), /CUSTOM\/nested\/nota.md/);
   await page.screenshot({ path: join(temp, 'vault.png') });
+  await page.goto(`${url}/?panel=banner`);
+  await page.getByRole('button', { name: 'Nascondi informazioni Vault' }).click();
+  assert.equal(await page.getByText('Vault test', { exact: true }).count(), 0);
+  await page.reload();
+  assert.equal(await page.getByRole('button', { name: 'Nascondi informazioni Vault' }).count(), 0);
   await page.goto(`${url}/?panel=chat`);
   await page.getByRole('button', { name: 'SOLO LOCALE', exact: true }).waitFor();
   await page.locator('textarea').fill('Bozza da conservare');
@@ -80,7 +85,10 @@ try {
   await page.getByRole('button', { name: 'SOLO LOCALE', exact: true }).waitFor();
   assert.equal(unbox(native('mode', vault)), 'hybrid');
   assert.equal(await page.locator('textarea').inputValue(), 'Bozza da conservare');
+  assert.equal(await page.getByText(/Press Enter to send|Premi Invio per inviare/).count(), 0);
+  assert.equal(await page.getByText(/Include drafts and unapproved notes|Includi bozze e note non approvate/).count(), 0);
   await page.getByRole('button', { name: 'Strumenti Ricerca' }).click();
+  await page.getByRole('checkbox').waitFor();
   await page.getByRole('button', { name: 'Nascondi Ricerca' }).waitFor();
   await page.screenshot({ path: join(temp, 'chat.png') });
   await page.goto(`${url}/?panel=import`);

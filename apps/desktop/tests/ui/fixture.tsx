@@ -1,3 +1,4 @@
+import { VaultStatusBanner } from '../../../../packages/ui/src/components/VaultStatusBanner';
 import React, { useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { VaultPanel } from '../../src/VaultPanel';
@@ -40,7 +41,7 @@ function Fixture() {
   const [open, setOpen] = useState(true);
   const [manual, setManual] = useState(false);
   return <LanguageProvider><main style={{ height: '95vh', fontFamily: 'Arial', '--limen-lime': '#c8ff00' } as React.CSSProperties}>
-    {panel === 'documents' ? <DocumentsFixture /> : panel === 'drop' ? <DropFixture /> : panel === 'vault' ? <VaultPanel vaultPath="/fixture" onOpenReader={p => setSection(p)} onRevealInFinder={async p => { setSection(`Finder: ${p}`); }} /> :
+    {panel === 'banner' ? <VaultStatusBanner status="READY" vaultPath="/fixture" vaultName="Vault test" dismissible onOpenObsidian={() => {}} /> : panel === 'documents' ? <DocumentsFixture /> : panel === 'drop' ? <DropFixture /> : panel === 'vault' ? <VaultPanel vaultPath="/fixture" onOpenReader={p => setSection(p)} onRevealInFinder={async p => { setSection(`Finder: ${p}`); }} /> :
       panel === 'import' ? <IndexingPromptModal isOpen={open} filesCount={2} fileNames={['Uno.txt', 'Due.txt']} isProcessing={false} onProceed={() => setSection('index-requested')} onPostpone={() => { setOpen(false); setSection('postponed'); }} /> :
       <AiPanel vaultPath="/fixture" showManualSearch={manual} onToggleManualSearch={() => setManual(v => !v)} onNavigateToSettings={s => setSection(s)} />}
     <output aria-label="Esito fixture">{section}</output>

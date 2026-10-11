@@ -1814,6 +1814,8 @@ export default function App() {
           <>
             {/* VAULT BANNER */}
             <VaultStatusBanner
+              key={vaultPath}
+              dismissible={currentTab === 'ask'}
               status={vaultState === 'READY' ? 'READY' : 'INVALID'}
               vaultName={vaultName}
               vaultPath={vaultPath}

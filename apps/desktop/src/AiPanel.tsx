@@ -586,6 +586,11 @@ export function AiPanel({
             <span style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>Chiedi a Limen</span>
           </div>
 
+            {showManualSearch && <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+              <input type="checkbox" checked={drafts} onChange={e => setDrafts(e.target.checked)} />
+              {language === 'en' ? 'Include drafts and unapproved notes' : 'Includi bozze e note non approvate'}
+            </label>}
+
           {isArchived ? (
             <span
               style={{
@@ -722,6 +727,7 @@ export function AiPanel({
               <SlidersHorizontal size={13} />
               <span>{showManualSearch ? 'Nascondi Ricerca' : 'Strumenti Ricerca'}</span>
             </button>
+
           )}
 
           {isArchived ? (
@@ -1365,17 +1371,7 @@ export function AiPanel({
               </button>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12, color: '#64748b' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-                <input
-                  type="checkbox"
-                  checked={drafts}
-                  onChange={e => setDrafts(e.target.checked)}
-                />
-                {language === 'en' ? 'Include drafts and unapproved notes' : 'Includi bozze e note non approvate'}
-              </label>
-              <span>{language === 'en' ? 'Press Enter to send' : 'Premi Invio per inviare'}</span>
-            </div>
+
           </div>
         )}
       </div>
