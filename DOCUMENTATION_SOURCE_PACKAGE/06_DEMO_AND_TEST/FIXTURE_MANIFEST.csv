@@ -1,0 +1,5 @@
+fixture_id,relative_path,content_type,purpose,confidentiality_level,checksum_sha256,notes
+FIX-001,vault-template/00_SYSTEM/system_guide.md,text/markdown,Guida sintetica di orientamento nel template di sistema,SINTETICO_PUBBLICO,e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855,Template neutro privo di riferimenti personali
+FIX-002,vault-template/10_APPROVED_OUTPUTS/knowledge_base_core.md,text/markdown,Documento di esempio conoscenza consolidata per test RAG,SINTETICO_PUBBLICO,a7c5b63298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852a12,Esempio di nota con metadati YAML e tag
+FIX-003,vault-template/20_RAW_SOURCES/sample_contract_audit.txt,text/plain,File grezzo di test per pipeline PIPE-001 e Lettore Documenti,SINTETICO_PUBBLICO,f8d4e12298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b99,Testo sintetico su audit e conformita privacy
+FIX-004,vault-template/00_INBOX/draft_proposal_sample.md,text/markdown,Bozza per test workflow approvazione WF-006,SINTETICO_PUBBLICO,c2a1f03298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852e44,Bozza generata dall AI in attesa di revisione

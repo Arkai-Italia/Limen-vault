@@ -1,0 +1,17 @@
+screenshot_id,screen_id,route_id,title,viewport,target_element,state_required,visual_elements_expected,output_filename
+SHOT-001,SCR-001,ROU-001,Setup Wizard Step 1 Modalita Rete,1440x900,#setup-wizard-modal,DEFAULT,Card opzioni 100% Locale e Ibrida con radio button e pulsante Avanti verde,shot_001_setup_step1_network.png
+SHOT-002,SCR-001,ROU-001,Setup Wizard Step 2 Selezione Vault,1440x900,#setup-wizard-modal,VAULT_SELECT,Campo percorso vault pulsante Sfoglia cartella e preview cartelle 00 10 20,shot_002_setup_step2_vault.png
+SHOT-003,SCR-001,ROU-001,Setup Wizard Step 3 Selezione Modello,1440x900,#setup-wizard-modal,MODEL_SELECT,Griglia modelli consigliati con badge RAM e pulsante Completa Configurazione,shot_003_setup_step3_model.png
+SHOT-004,SCR-002,ROU-002,Chiedi al Vault Stato Iniziale,1440x900,#chat-view,EMPTY,Messaggio di benvenuto suggerimenti di prompt box di input in basso e badge Locale,shot_004_chat_initial_empty.png
+SHOT-005,SCR-002,ROU-002,Chiedi al Vault Streaming e Reasoning,1440x900,#chat-view,STREAMING,Accordion Pensiero del modello aperto con testo corsivo e generazione Markdown in corso,shot_005_chat_reasoning_trace.png
+SHOT-006,SCR-002,ROU-002,Chiedi al Vault Risposta con Fonti,1440x900,#chat-view,SUCCESS,Risposta formattata Markdown pillole verdi delle fonti con score percentuale e nome file,shot_006_chat_response_sources.png
+SHOT-007,SCR-003,ROU-003,Lettore Documenti con Verifica SHA-256,1440x900,#document-reader-modal,VIEW_ACTIVE,Viewer PDF/MD con badge verde Integrita SHA-256 Verificata e testo evidenziato,shot_007_doc_reader_sha256.png
+SHOT-008,SCR-004,ROU-004,Upload Drawer Trascinamento File,1440x900,#upload-drawer,DRAWER_OPEN,Cassetto laterale area drag-and-drop elenco file in coda e barra indicizzazione,shot_008_upload_drawer.png
+SHOT-009,SCR-002,ROU-002,Elenco Documenti Indicizzati,1440x900,#documents-view,DEFAULT,Tabella file sorgente con icone PDF/MD/TXT hash SHA-256 data e pulsante Leggi,shot_009_documents_table.png
+SHOT-010,SCR-005,ROU-005,Esplora Memoria Grafo Concettuale,1440x900,#memory-view,DEFAULT,Grafo interattivo dei nodi concettuali tag cloud semantico e schede di memoria,shot_010_memory_graph.png
+SHOT-011,SCR-006,ROU-006,Approvazione Note Bozze 00_INBOX,1440x900,#drafts-view,DEFAULT,Elenco bozze in attesa pannello di preview pulsante Approva e Promuovi e Scarta,shot_011_drafts_approval.png
+SHOT-012,SCR-007,ROU-007,Gestione Snapshot e Ripristino,1440x900,#snapshots-view,DEFAULT,Tabella snapshot storici campo nome nuovo snapshot e pulsante Ripristina,shot_012_snapshots_restore.png
+SHOT-013,SCR-008,ROU-008,Catalogo Modelli LLM e llama.cpp,1440x900,#models-catalog-view,DEFAULT,Griglia 6 schede modello badge RAM pulsanti Scarica e Attiva stato porta 8080,shot_013_models_catalog.png
+SHOT-014,SCR-009,ROU-009,Sincronizzazione Cloud S3/R2,1440x900,#cloud-sync-view,DEFAULT,Campi configurazione Endpoint S3 Bucket Access Key e pulsanti Push/Pull,shot_014_cloud_sync.png
+SHOT-015,SCR-010,ROU-010,Compilazione Manuale Rete Zero,1440x900,#manual-compile-view,DEFAULT,Riquadri con comandi di compilazione offline per macOS Metal e Windows AVX2,shot_015_manual_compile.png
+SHOT-016,SCR-002,ROU-002,Interfaccia in Lingua Inglese (EN),1440x900,#global-app-container,LOCALE_EN,Header con selettore su EN menu Ask Vault Documents Memory Advanced in inglese,shot_016_english_localization.png
