@@ -1,0 +1,83 @@
+app_id: "dev.arkai.limenvault"
+app_name: "LIMEN Vault v7Mini"
+owner: "Arkitecna Hong Kong Limited / Cesare Negro"
+repo: "https://github.com/cesarenegro/vault_memai_obsi.git"
+branch: "windows-build"
+commit_sha: "677745c367d64de7d21eb66d111cac7558300f84"
+release_version: "0.7.0 (v7Mini)"
+release_date: "2026-10-11"
+architecture: "Monorepo (pnpm workspaces), Rust Tauri v2 Backend, React 18 + Vite 6 Frontend"
+runtime_dependencies:
+  rust: "1.80+"
+  tauri: "2.1.1"
+  react: "18.3.1"
+  vite: "6.0.3"
+  llama_server: "b2427-native (Metal GPU / Apple Silicon & AVX2 / Windows)"
+  embedding_model: "BAAI/bge-m3-Q8_0.gguf (1024 dims)"
+  local_llm_catalog:
+    - id: "ministral-3b"
+      name: "Ministral 3 3B Instruct"
+      format: "Q4_K_M.gguf"
+      size_bytes: 2212389600
+    - id: "ministral-8b"
+      name: "Ministral 3 8B Instruct"
+      format: "Q4_K_M.gguf"
+      size_bytes: 5283457728
+    - id: "qwen-2.5-7b"
+      name: "Qwen 2.5 7B Instruct"
+      format: "Q4_K_M.gguf"
+      size_bytes: 5026939520
+    - id: "llama-3.1-8b"
+      name: "Meta Llama 3.1 8B Instruct"
+      format: "Q4_K_M.gguf"
+      size_bytes: 5283457728
+    - id: "deepseek-r1-7b"
+      name: "DeepSeek-R1-Distill-Qwen-7B"
+      format: "Q4_K_M.gguf"
+      size_bytes: 5026939520
+    - id: "deepseek-r1-14b"
+      name: "DeepSeek-R1-Distill-Qwen-14B"
+      format: "Q4_K_M.gguf"
+      size_bytes: 9651582272
+environments:
+  - id: "macos-silicon"
+    os: "macOS 26.0+ (Apple Silicon M1/M2/M3/M4)"
+    hardware_accel: "Metal GPU"
+    status: "VERIFIED_ACTIVE"
+  - id: "windows-x64"
+    os: "Windows 10/11 x64"
+    hardware_accel: "CPU (AVX2) / optional CUDA"
+    status: "TARGET_SUPPORTED"
+public_url: "NOT_APPLICABLE"
+authenticated_url: "NOT_APPLICABLE"
+target_audiences:
+  - "Professionisti della consulenza, legali, direttori d'azienda"
+  - "Knowledge manager aziendali"
+  - "Team di ricerca con vincoli di riservatezza e confidenzialità assoluta"
+locales:
+  - "it-IT (Predefinito)"
+  - "en-US (Localizzazione nativa con commutatore istantaneo IT | EN)"
+platforms:
+  - "macOS Desktop (Bundle signed Developer ID, Notarized, DMG)"
+  - "Windows Desktop (Installer NSIS)"
+roles:
+  - id: "vault-operator"
+    name: "Operatore del Vault / Utente Locale"
+    scope: "Pieno accesso ai file del Vault locale, alla memoria semantica, agli snapshot e alle configurazioni di rete zero"
+plans:
+  - id: "local-first"
+    name: "Modalità 100% Solo Locale (Rete Zero)"
+    cost: "Gratuita / Open-source"
+    network: "Nessun pacchetto dati esce dal computer; calcolo semantico e inferenza generativa completamente on-device"
+  - id: "hybrid-openai"
+    name: "Modalità Ibrida OpenAI"
+    cost: "Consumo API OpenAI a carico dell'utente tramite propria chiave"
+    network: "Trasmissione esclusiva dei passaggi rilevanti estratti localmente, previa autorizzazione esplicita"
+feature_flags: []
+visual_audit_authorized: true
+non_destructive_testing_authorized: true
+demo_account_source: "FIXTURE (Cartella 'vault-template/')"
+design_system_source: "apps/desktop/src/ (Dark Slate #0f172a, Lime Accent #c8ff00, Success #77f117, Text #f8fafc)"
+output_language: "it-IT"
+output_directory: "DOCUMENTATION_SOURCE_PACKAGE"
+requested_scope: "ALL_USER_VISIBLE_FUNCTIONALITY"
