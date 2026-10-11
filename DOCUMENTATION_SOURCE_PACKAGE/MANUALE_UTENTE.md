@@ -31,7 +31,7 @@ Il presente documento costituisce il manuale operativo ufficiale per LIMEN Vault
 - [Capitolo 10: Ispezione delle Fonti e Citazioni Verificate](#capitolo-10-ispezione-delle-fonti-e-citazioni-verificate)
 - [Capitolo 11: Il Lettore Documenti Integrato con Calcolo Hash SHA-256](#capitolo-11-il-lettore-documenti-integrato-con-calcolo-hash-sha-256)
 - [Capitolo 12: Area 2 — Gestione Documenti e Archivio 20_RAW_SOURCES](#capitolo-12-area-2--gestione-documenti-e-archivio-20_raw_sources)
-- [Capitolo 13: Caricamento File e Cartelle (UploadDrawer e Formati Ammessi)](#capitolo-13-caricamento-file-e-cartelle-uploaddrawer-e-formati-ammessi)
+- [Capitolo 13: Acquisizione Documenti e Formati Supportati (Selettore Nativo e Trascinamento)](#capitolo-13-acquisizione-documenti-e-formati-supportati-selettore-nativo-e-trascinamento)
 - [Capitolo 14: Area 3 — Esplorazione della Memoria (Categorie 01_CLIENTS - 10_APPROVED_OUTPUTS)](#capitolo-14-area-3--esplorazione-della-memoria-categorie-01_clients---10_approved_outputs)
 
 ### Parte IV — Amministrazione e Sezioni Avanzate
@@ -60,7 +60,7 @@ Il presente documento costituisce il manuale operativo ufficiale per LIMEN Vault
 
 ### 1. Indice per Menu e Struttura dell'Interfaccia
 
-L'applicazione LIMEN Vault si articola in una Barra Laterale Sinistra fissa (240px), in un Header Superiore fisso (52px) e nell'Area di Lavoro Dinamica Centrale:
+L'applicazione LIMEN Vault si articola in una Barra Laterale Sinistra fissa (240px), in un Header Superiore fisso (52px) e nell'Area di Lavoro Dinamica Centrale (SCR-001):
 
 ```
 +------------------------------------------------------------------------------+
@@ -80,14 +80,14 @@ L'applicazione LIMEN Vault si articola in una Barra Laterale Sinistra fissa (240
 ```
 
 - **Barra Laterale Sinistra (240px):**
-  - **Pulsante Primario d'Azione:** `Carica Documenti` (`#c8ff00`, `CTL-001`)
-  - **Navigazione:** `Chiedi al Vault` (`SCR-002`), `Documenti` (`SCR-003`), `Memoria` (`SCR-004`), `Avanzate` (`SCR-005`)
+  - **Pulsante Primario d'Azione:** `Carica Documenti` (`#c8ff00`, `CTL-002`)
+  - **Navigazione:** `Chiedi al Vault` (`SCR-003`), `Documenti` (`SCR-004`), `Memoria` (`SCR-005`), `Avanzate` (`SCR-006` a `SCR-012`)
   - **Sezione Note Recenti:** Cronologia dei documenti consultati di recente
-  - **Pulsante Inferiore:** `Apri in Obsidian` (`CTL-007`)
+  - **Pulsante Inferiore:** `Apri in Obsidian` (`CTL-001`, `NAV-005`)
 - **Header Globale Superiore (52px):**
   - Logo e Marchio Applicativo: Icona Scudo LIMEN Vault
-  - **Pulsante Centrale:** `Verifica` (icona `RotateCw`, `CTL-008`)
-  - **Selettore Lingua:** `IT | EN` (`CTL-009`)
+  - **Pulsante Centrale:** `Verifica` (icona `RotateCw`, `CTL-021`)
+  - **Selettore Lingua:** `IT | EN` (`CTL-019`)
   - **Badge di Stato:** `● PRONTO` (verde `#047857`) / `OFFLINE` (grigio `#64748b`)
 
 ---
@@ -100,8 +100,8 @@ L'applicazione LIMEN Vault si articola in una Barra Laterale Sinistra fissa (240
   -> Vai al [Capitolo 8: Chiedi al Vault](#capitolo-8-area-1--chiedi-al-vault-ricerca-semantica-rag-e-chat) e alla scheda `WF-002`.
 - **«Voglio verificare l'esatto paragrafo e l'integrità del file citato dall'AI»**  
   -> Vai al [Capitolo 10](#capitolo-10-ispezione-delle-fonti-e-citazioni-verificate) e [Capitolo 11](#capitolo-11-il-lettore-documenti-integrato-con-calcolo-hash-sha-256) / `WF-003`.
-- **«Devo caricare file PDF, Word, Excel, presentazioni o note nel Vault»**  
-  -> Vai al [Capitolo 13: Caricamento File e Cartelle](#capitolo-13-caricamento-file-e-cartelle-uploaddrawer-e-formati-ammessi) e alla scheda `WF-004`.
+- **«Devo acquisire file PDF, Word, Excel, presentazioni o note nel Vault»**  
+  -> Vai al [Capitolo 13: Acquisizione Documenti e Formati Supportati](#capitolo-13-acquisizione-documenti-e-formati-supportati-selettore-nativo-e-trascinamento) e alla scheda `WF-004`.
 - **«Voglio consultare le note approvate divise per categoria»**  
   -> Vai al [Capitolo 14: Esplorazione della Memoria](#capitolo-14-area-3--esplorazione-della-memoria-categorie-01_clients---10_approved_outputs) e alla scheda `WF-005`.
 - **«Devo revisionare, approvare o scartare le bozze generate dall'AI»**  
@@ -180,12 +180,12 @@ In modalità predefinita "100% Locale", LIMEN Vault garantisce che:
 
 ### Capitolo 5: Il Setup Wizard Guidato (Configurazione in 3 Passaggi)
 
-All'avvio iniziale in assenza di un Vault configurato, si apre automaticamente la modale del **Setup Wizard** (`SCR-001`, `WF-001`):
+All'avvio iniziale in assenza di un Vault configurato, si apre automaticamente la modale del **Setup Wizard** (`SCR-002`, `WF-001`), gestita dal componente reale `apps/desktop/src/SetupWizardModal.tsx`:
 
-- **Step 1/3 (Selezione Cartella Vault):** L'utente seleziona o crea la directory sul disco locale tramite il pulsante "Sfoglia" (`CTL-004`). Il sistema predispone la topologia standard (`01_CLIENTS` ... `10_APPROVED_OUTPUTS`, `20_RAW_SOURCES/`, `90_PROPOSALS/`, `.limen/`).
-- **Step 2/3 (Scelta Motore LLM):** Scelta tra "100% Locale (Zero-Network)" e "Modalità Ibrida" (connessione OpenAI).
-- **Step 3/3 (Modello Locale o Chiave API):** Download del modello locale GGUF (con progress bar e verifica hash SHA-256) oppure inserimento della chiave `OPENAI_API_KEY`.
-- **Conferma Finale:** Clic sul pulsante **"ENTRA IN LIMEN VAULT"** (`CTL-006`) per sbloccare l'interfaccia principale.
+- **Step 1/3 (Cartella Vault):** L'utente seleziona o crea la directory sul disco locale tramite i pulsanti "Sfoglia cartella…", "Apri cartella" o "Crea nuova cartella" (`CTL-007`). Il sistema predispone la topologia standard (`01_CLIENTS` ... `10_APPROVED_OUTPUTS`, `20_RAW_SOURCES/`, `90_PROPOSALS/`, `.limen/`). Condizione di sblocco: `isStep1Ready = isVaultLoaded && Boolean(currentVaultPath)`.
+- **Step 2/3 (Motore AI Locale):** Rilevamento automatico della RAM fisica di sistema e catalogo dei 6 modelli GGUF (`CTL-008`). Clic su "Scarica Modello" per avviare il download da Hugging Face con barra di avanzamento e percentuale; verifica crittografica dell'hash SHA-256 e impostazione attivo. Condizione di sblocco: `isStep2Ready = models.some(m => m.installed && m.sha256Ok)`.
+- **Step 3/3 (Modalità & Chiave API):** Scelta tra "Modalità 100% Solo Locale (Rete Zero)" (nessuna connessione di rete, dati strettamente locali) e "Modalità Ibrida OpenAI" con inserimento della chiave `sk-...` salvata nel portachiavi di sistema (`CTL-009`). Condizione di sblocco: `isStep3Ready = hasApiKey || isLocalOnlyMode`.
+- **Conferma Finale:** Quando tutti e tre i passaggi sono soddisfatti, il pulsante **"ENTRA IN LIMEN VAULT"** (`CTL-010`) diventa attivo (verde lime `#77f117`) per accedere alla Panoramica principale (`SCR-001`).
 
 ---
 
@@ -194,24 +194,24 @@ All'avvio iniziale in assenza di un Vault configurato, si apre automaticamente l
 ### Capitolo 6: Panoramica dell'Interfaccia: Header 52px e Sidebar 240px
 
 L'interfaccia adotta un tema Light Slate ad alta definizione:
-- **Sidebar sinistra (240px):** Sfondo `#f1f5f9`, pulsante d'azione primario "Carica Documenti" (`#c8ff00`), navigazione a 4 sezioni, elenco note recenti, pulsante inferiore "Apri in Obsidian" (`CTL-007`).
-- **Header globale (52px):** Logo applicazione, pulsante centrale `Verifica` (`RotateCw`), selettore lingua `IT | EN`, badge di stato `● PRONTO`.
+- **Sidebar sinistra (240px):** Sfondo `#f1f5f9`, pulsante d'azione primario "Carica Documenti" (`#c8ff00`, `CTL-002`), navigazione a 4 sezioni (`SCR-003`..`SCR-012`), elenco note recenti, pulsante inferiore "Apri in Obsidian" (`CTL-001`, `NAV-005`).
+- **Header globale (52px):** Logo applicazione, pulsante centrale `Verifica` (`RotateCw`, `CTL-021`), selettore lingua `IT | EN` (`CTL-019`), badge di stato `● PRONTO`.
 - **Superfici di lavoro:** Sfondo card `#ffffff` su tela `#f8fafc`, con testi Slate 900 `#0f172a`.
 
 ---
 
 ### Capitolo 7: L'Header Globale: Pulsante Verifica, Lingua IT/EN e Stato
 
-1. **Pulsante "Verifica" (`RotateCw`, `CTL-008`):** Avvia il controllo a caldo sullo stato dei database e del processo `llama-server`.
-2. **Selettore Lingua "IT | EN" (`CTL-009`):** Commuta all'istante l'interfaccia tra Italiano e Inglese senza riavviare l'app.
+1. **Pulsante "Verifica" (`RotateCw`, `CTL-021`):** Avvia il controllo a caldo sullo stato dei database e del processo `llama-server`.
+2. **Selettore Lingua "IT | EN" (`CTL-019`):** Commuta all'istante l'interfaccia tra Italiano e Inglese senza riavviare l'app.
 3. **Badge di Stato Motore:** Verde `● PRONTO` quando il modello è pronto a rispondere, ambra `● CARICAMENTO` durante i cambi modello, grigio `● OFFLINE` in assenza di motore attivo.
 
 ---
 
 ### Capitolo 8: Area 1 — Chiedi al Vault: Ricerca Semantica RAG e Chat
 
-L'Area "Chiedi al Vault" (`SCR-002`, `WF-002`) è la schermata principale di consultazione:
-1. **Input Domanda:** L'utente immette il quesito nella casella in basso (`CTL-010`) e invia premendo INVIO.
+L'Area "Chiedi al Vault" (`SCR-003`, `WF-002`) è la schermata principale di consultazione:
+1. **Input Domanda:** L'utente immette il quesito nella casella in basso (`CTL-003`) e invia premendo INVIO.
 2. **Pipeline RAG:**
    - La domanda viene vettorizzata tramite `bge-m3` (1024 dimensioni).
    - Viene eseguita la ricerca semantica Top-K su `sqlite-vec`.
@@ -228,31 +228,40 @@ Nei modelli `DeepSeek-R1 Distill 7B` e `14B`, i passaggi logici intermedi genera
 
 ### Capitolo 10: Ispezione delle Fonti e Citazioni Verificate
 
-In calce a ogni risposta generata compaiono le pillole interattive delle fonti citate (`CTL-012`). Ogni pillola riporta il nome del file, la pagina/paragrafo e la percentuale di pertinenza. Facendo clic sulla pillola si apre il Lettore Documenti focalizzato sul passaggio esatto.
+In calce a ogni risposta generata compaiono le pillole interattive delle fonti citate (`CTL-006`). Ogni pillola riporta il nome del file, la pagina/paragrafo e la percentuale di pertinenza. Facendo clic sulla pillola si apre il cassetto fonti (`SourceDetailsModal`, `SCR-014`) o il Lettore Documenti (`SCR-013`) focalizzato sul passaggio esatto.
 
 ---
 
 ### Capitolo 11: Il Lettore Documenti Integrato con Calcolo Hash SHA-256
 
-Il Lettore Documenti (`DocumentReaderModal`, `SCR-003`, `WF-003`) visualizza i documenti originali in `20_RAW_SOURCES`:
+Il Lettore Documenti (`DocumentReaderModal`, `SCR-013`, `WF-003`) visualizza i documenti originali in `20_RAW_SOURCES`:
 - Ricalcolo automatico dell'impronta hash SHA-256 all'apertura.
 - Badge verde "Integrità SHA-256 Verificata" se l'impronta coincide con il record dell'ingestione.
 - Badge rosso di allarme in caso di discrepanza o modifica esterna del file.
 - Pulsante "Copia Hash" per estrarre la stringa esadecimale a 64 caratteri.
+- Chiusura modale tramite pulsante o tasto Esc (`CTL-018`).
 
 ---
 
 ### Capitolo 12: Area 2 — Gestione Documenti e Archivio 20_RAW_SOURCES
 
-L'Area "Documenti" (`SCR-003`) mostra la tabella completa dei file in `20_RAW_SOURCES/`:
+L'Area "Documenti" (`SCR-004`) mostra la tabella completa dei file in `20_RAW_SOURCES/`:
 - Barra di ricerca rapida per nome ed estensione.
-- Colonne: Nome file, Dimensione (KB/MB), Data di indicizzazione, Hash SHA-256, Azioni ("Leggi").
+- Colonne: Nome file, Dimensione (KB/MB), Data di indicizzazione, Hash SHA-256, Azioni ("Leggi" -> `SCR-013`).
 
 ---
 
-### Capitolo 13: Caricamento File e Cartelle (UploadDrawer e Formati Ammessi)
+### Capitolo 13: Acquisizione Documenti e Formati Supportati (Selettore Nativo e Trascinamento)
 
-Facendo clic sul pulsante **"Carica Documenti"** (`#c8ff00`, `CTL-001`) nella barra laterale sinistra, si apre l'UploadDrawer (`SCR-004`, `WF-004`).
+Il caricamento dei documenti non prevede cassetti intermedi (zero UploadDrawer): l'ingestione avviene direttamente tramite il selettore nativo del sistema operativo o tramite drag-and-drop:
+
+1. **Percorso Reale:** Cliccando sul pulsante **"Carica Documenti"** (`#c8ff00`, `CTL-002`) nella barra laterale sinistra (`SCR-001`), la funzione `handleUploadDocuments` in `App.tsx` invoca `automationChooseFiles(vaultPath)` che apre direttamente il selettore file nativo del sistema operativo (`blocking_pick_files()`).
+2. **Avvio Immediato:** Alla conferma ("Apri"), l'applicazione commuta automaticamente sulla vista **"Documenti"** (`SCR-004`), avviando la pipeline in background `PIPE-001`:
+   - Copia in `20_RAW_SOURCES/`
+   - Calcolo hash SHA-256
+   - Estrazione testo con `limen-extract` (incluso OCR nativo Apple Vision su macOS)
+   - Scomposizione in chunk semantici (~512 token) e indicizzazione vettoriale con `bge-m3`.
+3. **Drag-and-Drop:** Supportato il trascinamento diretto di singoli file o cartelle dal filesystem nella finestra dell'applicazione.
 
 #### Formati Supportati:
 - **Documenti:** PDF (`.pdf`), Microsoft Word (`.docx`), PowerPoint (`.pptx`), OpenDocument (`.odt`).
@@ -265,8 +274,8 @@ Facendo clic sul pulsante **"Carica Documenti"** (`#c8ff00`, `CTL-001`) nella ba
 
 ### Capitolo 14: Area 3 — Esplorazione della Memoria (Categorie 01_CLIENTS - 10_APPROVED_OUTPUTS)
 
-L'Area "Memoria" (`SCR-004`, `WF-005`) permette di navigare la conoscenza consolidata attraverso l'interfaccia gerarchica `KnowledgePanel`:
-- Navigazione tra le 10 categorie standard del Vault (`01_CLIENTS` a `10_APPROVED_OUTPUTS`).
+L'Area "Memoria" (`SCR-005`, `WF-005`) permette di navigare la conoscenza consolidata attraverso l'interfaccia gerarchica `KnowledgePanel`:
+- Navigazione tra le 10 categorie standard del Vault (`01_CLIENTS` a `10_APPROVED_OUTPUTS`) con filtri rapidi (`CTL-011`).
 - Visualizzazione delle note Markdown con metadati, autore della revisione e collegamenti Obsidian (`[[Nota]]`).
 
 ---
@@ -275,23 +284,24 @@ L'Area "Memoria" (`SCR-004`, `WF-005`) permette di navigare la conoscenza consol
 
 ### Capitolo 15: Area 4 — Sezioni Avanzate: Panoramica Generale
 
-L'Area "Avanzate" (`SCR-005`) raccoglie 7 sezioni di manutenzione e controllo del Vault:
-- Sezione A: Approvazione Note e Gestione Bozze (`90_PROPOSALS/`)
-- Sezione B: Snapshot e Ripristino Vault (Cartella RECUPERO)
-- Sezione C: Modelli LLM & llama.cpp
-- Sezione D: Sincronizzazione Remota Cloud S3/R2 (BYOB)
-- Sezione E: Compilatore Fonti Testo
-- Sezione F: Configurazione e Parametri di Sistema
-- Sezione G: Diagnostica, Stato Processi e Log
+L'Area "Avanzate" (`SCR-006` a `SCR-012`, `NAV-004`) raccoglie le sezioni di manutenzione e controllo del Vault:
+- Sezione A: Approvazione Note e Gestione Bozze (`90_PROPOSALS/`, `SCR-006`)
+- Sezione B: Snapshot e Ripristino Vault (Cartella RECUPERO, `SCR-007`)
+- Sezione C: Modelli LLM & llama.cpp (`SCR-009`)
+- Sezione D: Sincronizzazione Remota Cloud S3/R2 (BYOB, `SCR-008`)
+- Sezione E: Compilatore Fonti Testo (`SCR-010`)
+- Sezione F: Configurazione e Parametri di Sistema (`SCR-011`)
+- Sezione G: Diagnostica, Stato Processi e Log (`SCR-011`)
+- Sezione H: Guida Vault e Documentazione (`SCR-012`)
 
 ---
 
 ### Capitolo 16: Sezione Avanzate A — Approvazione Note e Gestione Bozze (90_PROPOSALS)
 
 I testi generati dall'AI o elaborati dal Compilatore risiedono in `90_PROPOSALS/` (`SCR-006`, `WF-006`):
-- **APPROVA REVISIONE MOSTRATA (`CTL-013`):** Sposta fisicamente il file nella categoria appropriata (01-10) e traccia l'azione nell'audit log.
-- **SALVA NUOVA REVISIONE (`CTL-014`):** Salva le modifiche redazionali apportate al testo nella bozza.
-- **RIFIUTA REVISIONE MOSTRATA (`CTL-015`):** Rifiuto formale archiviato; traccia la decisione nell'audit log con motivazione senza cancellare il file.
+- **APPROVA REVISIONE MOSTRATA (`CTL-012`):** Sposta fisicamente il file nella categoria appropriata (01-10) e traccia l'azione nell'audit log.
+- **SALVA NUOVA REVISIONE (CONSERVA LA PRECEDENTE) (`CTL-013`):** Salva le modifiche redazionali apportate al testo creando una nuova revisione nella bozza.
+- **RIFIUTA REVISIONE MOSTRATA (`CTL-014`):** Rifiuto formale archiviato; traccia la decisione nell'audit log con motivazione senza cancellare il file.
 - **ELIMINA DEFINITIVAMENTE:** Rimozione fisica del file dal disco su comando esplicito.
 
 ---
@@ -299,7 +309,7 @@ I testi generati dall'AI o elaborati dal Compilatore risiedono in `90_PROPOSALS/
 ### Capitolo 17: Sezione Avanzate B — Gestione Snapshot e Ripristino Sicuro (Cartella RECUPERO)
 
 #### 17.1 Creazione Snapshot
-Accedere ad `Avanzate > Snapshot e Ripristino` (`SCR-007`, `WF-007`), digitare il nome e fare clic su "Crea Nuovo Snapshot". Il sistema comprime le cartelle in un archivio protetto `.tar.zst` corredato da manifest crittografico SHA-256.
+Accedere ad `Avanzate > Snapshot e Ripristino` (`SCR-007`, `WF-007`), digitare il nome e fare clic su **"CREA COPIA LOCALE"** (`CTL-015`). Il sistema comprime le cartelle in un archivio protetto `.tar.zst` corredato da manifest crittografico SHA-256.
 
 #### 17.2 Ripristino Sicuro in Cartella Separata
 A tutela dell'integrità dei dati, il backend estrae i file dello snapshot in una directory separata dedicata:  
@@ -310,10 +320,10 @@ A tutela dell'integrità dei dati, il backend estrae i file dello snapshot in un
 
 ### Capitolo 18: Sezione Avanzate C — Catalogo Modelli LLM e Gestione llama.cpp
 
-Permette di gestire l'eseguibile locale `llama-server` (`SCR-008`, `WF-008`):
+Permette di gestire l'eseguibile locale `llama-server` (`SCR-009`, `WF-008`):
 - Monitoraggio stato del processo (PID, porta 8080, modello attivo).
-- Download di nuovi modelli GGUF con barra di avanzamento e verifica checksum SHA-256.
-- Attivazione modello: arresto istanza precedente, rilascio RAM e avvio nuova istanza con verifica endpoint `/health`.
+- Download di nuovi modelli GGUF con barra di avanzamento e verifica checksum SHA-256 (`CTL-017`).
+- Attivazione modello (`CTL-016`): arresto istanza precedente, rilascio RAM e avvio nuova istanza con verifica endpoint `/health`.
 
 ---
 
@@ -327,7 +337,7 @@ Permette di gestire l'eseguibile locale `llama-server` (`SCR-008`, `WF-008`):
 
 ### Capitolo 20: Sezione Avanzate D — Sincronizzazione Cloud S3/R2 (BYOB)
 
-Architettura Bring-Your-Own-Bucket (`SCR-009`, `WF-009`):
+Architettura Bring-Your-Own-Bucket (`SCR-008`, `WF-009`):
 - Configurazione parametri S3: Endpoint, Nome Bucket, Access Key, Secret Key e Passphrase crittografica per la cifratura lato client.
 - Funzioni "Sincronizza su Cloud (Push)" e "Scarica da Cloud (Pull)".
 
@@ -338,7 +348,7 @@ Architettura Bring-Your-Own-Bucket (`SCR-009`, `WF-009`):
 La schermata `Compilatore Fonti Testo` (`SCR-010`, `WF-010`) automatizza la trasformazione di testi grezzi:
 - Esegue la funzione backend `batch_compile_sources`.
 - Analizza i documenti grezzi in `20_RAW_SOURCES/` e genera note Markdown strutturate con metadati YAML salvandole in `90_PROPOSALS/`.
-- Clic su **"COMPILA FONTI TESTO"** (`CTL-016`) per avviare il processo con indicatore di progresso.
+- Clic su **"COMPILA FONTI TESTO"** (`CTL-020`) per avviare il processo con indicatore di progresso.
 
 ---
 
@@ -354,7 +364,7 @@ Gestione parametri globali (`SCR-011`):
 
 ### Capitolo 23: Sezione Avanzate G — Diagnostica, Log di Sistema e Manutenzione
 
-Monitoraggio e manutenzione (`SCR-012`):
+Monitoraggio e manutenzione (`SCR-011`, Guida Vault `SCR-012`):
 - PID e porta di `llama-server`.
 - Monitor RAM occupata e VRAM Metal.
 - Conteggio chunk e dimensione database `sqlite-vec`.
@@ -366,7 +376,7 @@ Monitoraggio e manutenzione (`SCR-012`):
 
 ### Capitolo 24: Integrazione Nativa con Obsidian (obsidian://open)
 
-Nella parte inferiore della barra laterale sinistra (240px), il pulsante **"Apri in Obsidian"** (`CTL-007`) invia al sistema operativo il comando standard:  
+Nella parte inferiore della barra laterale sinistra (240px), il pulsante **"Apri in Obsidian"** (`CTL-001`, `NAV-005`) invia al sistema operativo il comando standard:  
 `obsidian://open?path=<percorso_vault_url_encoded>`  
 Obsidian apre direttamente la cartella del Vault caricando tutte le note delle categorie `01_CLIENTS` - `10_APPROVED_OUTPUTS` e le bozze in `90_PROPOSALS/`.
 
@@ -387,24 +397,24 @@ Obsidian apre direttamente la cartella del Vault caricando tutte le note delle c
 
 | Obiettivo Operativo | Sezione dell'Interfaccia | Controllo o Azione da Eseguire |
 | :--- | :--- | :--- |
-| **Configurare il Vault al primo avvio** | Avvio dell'app | Completare i 3 step del Setup Wizard e cliccare "ENTRA IN LIMEN VAULT" |
-| **Porre una domanda sui documenti** | 1. Chiedi al Vault | Digitare nel box di input in basso e premere INVIO |
-| **Verificare la fonte di una risposta** | Sotto la risposta | Cliccare sulla pillola interattiva con il nome del documento |
-| **Caricare nuovi documenti o note** | Sidebar sinistra | Cliccare sul pulsante verde lime "Carica Documenti" (`#c8ff00`) |
-| **Consultare l'archivio dei file caricati**| 2. Documenti | Esaminare la tabella o filtrare tramite la barra di ricerca |
-| **Leggere un documento originale** | 2. Documenti | Cliccare su "Leggi" nella riga del file per aprire la modale |
-| **Esplorare le note consolidate** | 3. Memoria | Navigare tra le 10 categorie standard del Vault (01-10) |
-| **Revisionare e approvare le bozze** | 4. Avanzate > Approvazione Note | Selezionare la bozza in 90_PROPOSALS e cliccare "Approva Revisione Mostrata" |
-| **Salvare una nuova stesura della bozza** | 4. Avanzate > Approvazione Note | Modificare il testo e cliccare "Salva Nuova Revisione" |
-| **Rifiutare con traccia di audit** | 4. Avanzate > Approvazione Note | Cliccare "Rifiuta Revisione Mostrata" (registra il motivo senza cancellare) |
-| **Trasformare testi grezzi in bozze** | 4. Avanzate > Compilatore Fonti | Selezionare le fonti e cliccare "COMPILA FONTI TESTO" |
-| **Creare uno snapshot di backup** | 4. Avanzate > Snapshot | Inserire un nome e cliccare "Crea Nuovo Snapshot" |
+| **Configurare il Vault al primo avvio** | Avvio dell'app | Completare i 3 step del Setup Wizard e cliccare "ENTRA IN LIMEN VAULT" (`CTL-010`) |
+| **Porre una domanda sui documenti** | 1. Chiedi al Vault | Digitare nel box di input in basso e premere INVIO (`CTL-003`) |
+| **Verificare la fonte di una risposta** | Sotto la risposta | Cliccare sulla pillola interattiva con il nome del documento (`CTL-006`) |
+| **Caricare nuovi documenti o note** | Sidebar sinistra | Cliccare sul pulsante verde lime "Carica Documenti" (`#c8ff00`, `CTL-002`) |
+| **Consultare l'archivio dei file caricati**| 2. Documenti | Esaminare la tabella o filtrare tramite la barra di ricerca (`SCR-004`) |
+| **Leggere un documento originale** | 2. Documenti | Cliccare su "Leggi" nella riga del file per aprire la modale (`SCR-013`) |
+| **Esplorare le note consolidate** | 3. Memoria | Navigare tra le 10 categorie standard del Vault (`SCR-005`, filtri `CTL-011`) |
+| **Revisionare e approvare le bozze** | 4. Avanzate > Approvazione Note | Selezionare la bozza in 90_PROPOSALS e cliccare "Approva Revisione Mostrata" (`CTL-012`) |
+| **Salvare una nuova stesura della bozza** | 4. Avanzate > Approvazione Note | Modificare il testo e cliccare "Salva Nuova Revisione" (`CTL-013`) |
+| **Rifiutare con traccia di audit** | 4. Avanzate > Approvazione Note | Cliccare "Rifiuta Revisione Mostrata" (`CTL-014`, registra il motivo senza cancellare) |
+| **Trasformare testi grezzi in bozze** | 4. Avanzate > Compilatore Fonti | Selezionare le fonti e cliccare "COMPILA FONTI TESTO" (`CTL-020`) |
+| **Creare uno snapshot di backup** | 4. Avanzate > Snapshot | Inserire un nome e cliccare "CREA COPIA LOCALE" (`CTL-015`) |
 | **Ripristinare file da uno snapshot** | 4. Avanzate > Snapshot | Cliccare "Ripristina da Snapshot" (estrae in directory RECUPERO) |
-| **Cambiare il modello LLM locale** | 4. Avanzate > Modelli LLM | Cliccare "Attiva Modello" sulla scheda desiderata |
-| **Scaricare un nuovo modello GGUF** | 4. Avanzate > Modelli LLM | Cliccare "Scarica Modello" con barra di progresso e check hash |
-| **Commutare la lingua (IT/EN)** | Header superiore | Cliccare sul pulsante selettore "IT \| EN" |
-| **Avviare il controllo di integrità** | Header superiore | Cliccare sul pulsante centrale "Verifica" (icona RotateCw) |
-| **Aprire il Vault dentro Obsidian** | Sidebar sinistra | Cliccare sul pulsante inferiore "Apri in Obsidian" |
+| **Cambiare il modello LLM locale** | 4. Avanzate > Modelli LLM | Cliccare "Imposta come Attivo" sulla scheda desiderata (`CTL-016`) |
+| **Scaricare un nuovo modello GGUF** | 4. Avanzate > Modelli LLM | Cliccare "Scarica Modello" con barra di progresso e check hash (`CTL-017`) |
+| **Commutare la lingua (IT/EN)** | Header superiore | Cliccare sul pulsante selettore "IT \| EN" (`CTL-019`) |
+| **Avviare il controllo di integrità** | Header superiore | Cliccare sul pulsante centrale "Verifica" (`CTL-021`, icona RotateCw) |
+| **Aprire il Vault dentro Obsidian** | Sidebar sinistra | Cliccare sul pulsante inferiore "Apri in Obsidian" (`CTL-001`) |
 
 ---
 

@@ -119,4 +119,4 @@ Garantire l'assoluta conformità e anti-manomissione dei dati archiviati nel Vau
    - Al completamento del download progressivo, il downloader calcola l'hash del file salvato in `models/`.
    - Se l'hash non corrisponde al byte, il file parziale o corrotto viene scartato con errore `DOWNLOAD_INTEGRITY_MISMATCH`, proteggendo l'utente da esecuzioni arbitrarie di codice o pesi compromessi.
 3. **Generazione Snapshot:**
-   - La creazione di un punto di ripristino calcola l'albero di integrità di tutte le cartelle (`00_INBOX`, `10_KNOWLEDGE`, `20_RAW_SOURCES`) memorizzando il manifesto all'interno del file zip / tar compresso.
+   - La creazione di un punto di ripristino calcola l'albero di integrità di tutte le cartelle di conoscenza (`01_CLIENTS` ... `10_APPROVED_OUTPUTS`), delle bozze (`90_PROPOSALS`) e dei documenti originali (`20_RAW_SOURCES`) memorizzando il manifesto crittografico all'interno dell'archivio `.tar.zst` compresso.

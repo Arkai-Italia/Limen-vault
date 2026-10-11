@@ -1,34 +1,33 @@
-# Raccolta Completa Sorgenti Mermaid — LIMEN Vault v7Mini
+# Raccolta Ufficiale di Tutti i Diagrammi Mermaid — LIMEN Vault v7Mini
 
-Il presente documento raccoglie tutti i **18 diagrammi Mermaid** del pacchetto di documentazione di LIMEN Vault (0.7.0).  
-Ogni diagramma è racchiuso in un blocco di codice fenced (` ```mermaid `) ed è immediatamente renderizzabile all'interno di Obsidian, GitHub, GitLab o visualizzatori Markdown compatibili.
+Il presente documento raccoglie in un unico file esportabile tutti i 18 diagrammi Mermaid del pacchetto di documentazione, generati direttamente dai rispettivi file sorgente in `04_MERMAID/`.
 
 ---
 
 ## Indice dei Diagrammi
 
-1. [MMD-001: Mappa di Navigazione Completa del Sistema](#1-mmd-001-mappa-di-navigazione-completa-del-sistema)
-2. [MMD-002: Ciclo di Avvio, Verifica Requisiti e Setup Wizard](#2-mmd-002-ciclo-di-avvio-verifica-requisiti-e-setup-wizard)
-3. [MMD-003: WF-001 — Configurazione Iniziale e Setup Wizard](#3-mmd-003-wf-001--configurazione-iniziale-e-setup-wizard)
-4. [MMD-004: WF-002 — Chiedi al Vault (Ricerca RAG e Chat)](#4-mmd-004-wf-002--chiedi-al-vault-ricerca-rag-e-chat)
-5. [MMD-005: WF-003 — Ispezione Fonti nel Lettore Documenti](#5-mmd-005-wf-003--ispezione-fonti-nel-lettore-documenti)
-6. [MMD-006: WF-004 — Caricamento e Ingestione Documenti](#6-mmd-006-wf-004--caricamento-e-ingestione-documenti)
-7. [MMD-007: WF-005 — Esplorazione e Navigazione Memoria](#7-mmd-007-wf-005--esplorazione-e-navigazione-memoria)
-8. [MMD-008: WF-006 — Revisione e Approvazione Bozze Note](#8-mmd-008-wf-006--revisione-e-approvazione-bozze-note)
-9. [MMD-009: WF-007 — Gestione Snapshot e Ripristino Vault](#9-mmd-009-wf-007--gestione-snapshot-e-ripristino-vault)
-10. [MMD-010: WF-008 — Gestione Catalogo Modelli LLM e llama.cpp](#10-mmd-010-wf-008--gestione-catalogo-modelli-llm-e-llamacpp)
-11. [MMD-011: WF-009 — Sincronizzazione Cloud S3/R2](#11-mmd-011-wf-009--sincronizzazione-cloud-s3r2)
-12. [MMD-012: WF-010 — Compilazione Manuale Rete Zero](#12-mmd-012-wf-010--compilazione-manuale-rete-zero)
-13. [MMD-013: WF-011 — Commutazione Lingua Interfaccia (IT / EN)](#13-mmd-013-wf-011--commutazione-lingua-interfaccia-it--en)
-14. [MMD-014: WF-012 — Apertura Diretta del Vault in Obsidian](#14-mmd-014-wf-012--apertura-diretta-del-vault-in-obsidian)
-15. [MMD-015: PIPE-001 — Ingestione, Chunking ed Embedding bge-m3](#15-mmd-015-pipe-001--ingestione-chunking-ed-embedding-bge-m3)
-16. [MMD-016: PIPE-002 — Generazione Risposte e Routing Ibrido](#16-mmd-016-pipe-002--generazione-risposte-e-routing-ibrido)
-17. [MMD-017: PIPE-003 — Streaming SSE e Reasoning Trace](#17-mmd-017-pipe-003--streaming-sse-e-reasoning-trace)
-18. [MMD-018: PIPE-004 — Integrità Crittografica SHA-256](#18-mmd-018-pipe-004--integrità-crittografica-sha-256)
+1. [**MMD-001:** Navigazione Globale e Topologia Interfaccia](#1-mmd-001-system_navigationmmd)
+2. [**MMD-002:** Ciclo di Avvio, Controllo Requisiti e Setup Wizard](#2-mmd-002-auth_lifecyclemmd)
+3. [**MMD-003:** WF-001 — Configurazione Iniziale (Setup Wizard)](#3-mmd-003-wf-001mmd)
+4. [**MMD-004:** WF-002 — Chiedi al Vault (Ricerca RAG e Chat)](#4-mmd-004-wf-002mmd)
+5. [**MMD-005:** WF-003 — Ispezione Fonti nel Lettore Documenti SHA-256](#5-mmd-005-wf-003mmd)
+6. [**MMD-006:** WF-004 — Ingestione Documenti (Selettore Nativo / Drag-and-Drop)](#6-mmd-006-wf-004mmd)
+7. [**MMD-007:** WF-005 — Esplorazione e Navigazione Memoria (01-10)](#7-mmd-007-wf-005mmd)
+8. [**MMD-008:** WF-006 — Revisione e Approvazione Bozze (90_PROPOSALS)](#8-mmd-008-wf-006mmd)
+9. [**MMD-009:** WF-007 — Gestione Snapshot e Ripristino Sicuro (Cartella RECUPERO)](#9-mmd-009-wf-007mmd)
+10. [**MMD-010:** WF-008 — Gestione Catalogo Modelli LLM e llama.cpp](#10-mmd-010-wf-008mmd)
+11. [**MMD-011:** WF-009 — Sincronizzazione Cloud S3/R2 (BYOB)](#11-mmd-011-wf-009mmd)
+12. [**MMD-012:** WF-010 — Compilatore Fonti Testo da 20_RAW_SOURCES a 90_PROPOSALS](#12-mmd-012-wf-010mmd)
+13. [**MMD-013:** WF-011 — Commutazione Istantanea Lingua (IT | EN)](#13-mmd-013-wf-011mmd)
+14. [**MMD-014:** WF-012 — Apertura Diretta del Vault in Obsidian](#14-mmd-014-wf-012mmd)
+15. [**MMD-015:** PIPE-001 — Ingestione ed Embedding Locale (bge-m3)](#15-mmd-015-pipe-001mmd)
+16. [**MMD-016:** PIPE-002 — Routing della Risposta e Fallback RAG](#16-mmd-016-pipe-002mmd)
+17. [**MMD-017:** PIPE-003 — Streaming Asincrono Token e Reasoning Trace](#17-mmd-017-pipe-003mmd)
+18. [**MMD-018:** PIPE-004 — Catena di Integrità e Validazione SHA-256](#18-mmd-018-pipe-004mmd)
 
 ---
 
-### 1. MMD-001: Mappa di Navigazione Completa del Sistema
+### 1. MMD-001: Navigazione Globale e Topologia Interfaccia
 *File sorgente: `04_MERMAID/SYSTEM_NAVIGATION.mmd`*
 
 ```mermaid
@@ -105,7 +104,7 @@ graph TD
 
 ---
 
-### 2. MMD-002: Ciclo di Avvio, Verifica Requisiti e Setup Wizard
+### 2. MMD-002: Ciclo di Avvio, Controllo Requisiti e Setup Wizard
 *File sorgente: `04_MERMAID/AUTH_LIFECYCLE.mmd`*
 
 ```mermaid
@@ -151,7 +150,7 @@ sequenceDiagram
 
 ---
 
-### 3. MMD-003: WF-001 — Configurazione Iniziale e Setup Wizard
+### 3. MMD-003: WF-001 — Configurazione Iniziale (Setup Wizard)
 *File sorgente: `04_MERMAID/WF-001.mmd`*
 
 ```mermaid
@@ -221,7 +220,7 @@ graph TD
 
 ---
 
-### 5. MMD-005: WF-003 — Ispezione Fonti nel Lettore Documenti
+### 5. MMD-005: WF-003 — Ispezione Fonti nel Lettore Documenti SHA-256
 *File sorgente: `04_MERMAID/WF-003.mmd`*
 
 ```mermaid
@@ -253,41 +252,44 @@ graph TD
 
 ---
 
-### 6. MMD-006: WF-004 — Caricamento e Ingestione Documenti
+### 6. MMD-006: WF-004 — Ingestione Documenti (Selettore Nativo / Drag-and-Drop)
 *File sorgente: `04_MERMAID/WF-004.mmd`*
 
 ```mermaid
 graph TD
-    Trigger(["Trigger: Clic su pulsante globale 'Carica' (NAV-006)"]) --> OpenDrawer["Apertura UploadDrawer (SCR-004)"]
-    OpenDrawer --> ChooseMethod{"Metodo di Caricamento"}
-    
-    ChooseMethod -->|Singoli File| PickFiles["Finestra selezione file di sistema (PDF, MD, TXT)"]
-    ChooseMethod -->|Intera Cartella| PickFolder["Finestra selezione directory di sistema"]
-    ChooseMethod -->|Drag and Drop| DropArea["Trascina file nell'area tratteggiata"]
+    TriggerChoice{"Azione di Ingestione Documenti"}
+    TriggerChoice -->|Clic su Pulsante| ClickBtn["Clic su 'Carica Documenti' (#c8ff00, CTL-001) in Sidebar"]
+    TriggerChoice -->|Trascinamento Diretto| DragDrop["Trascinamento (Drag-and-Drop) di file sull'interfaccia"]
 
-    PickFiles --> StagingList["Popolamento coda documenti da elaborare"]
-    PickFolder --> StagingList
-    DropArea --> StagingList
+    ClickBtn --> CallChoose["Invocazione IPC automationChooseFiles(vaultPath)"]
+    CallChoose --> NativePicker["Apertura Selettore File Nativo OS (blocking_pick_files)"]
+    NativePicker --> SelectFiles["Selezione file supportati (PDF, Word, Excel, Testo, Immagini)"]
 
-    StagingList --> StartIngest["Clicca 'Avvia Indicizzazione'"]
-    StartIngest --> LoopFile["Per ogni file nella coda (PIPE-001)"]
-    
-    LoopFile --> CopyRaw["Archiviazione in 20_RAW_SOURCES"]
-    CopyRaw --> HashCalc["Calcolo hash SHA-256 e registrazione"]
-    HashCalc --> ExtractText["Estrazione testo e pulizia caratteri"]
-    ExtractText --> ChunkSplit["Suddivisione in frammenti di ~512 token"]
-    ChunkSplit --> EmbedModel["Calcolo vettori semantici con bge-m3 locale"]
-    EmbedModel --> SaveDB["Salvataggio chunk e vettori in database SQLite"]
+    DragDrop --> ExtractPaths["Cattura percorsi file da dataTransfer.files"]
+    ExtractPaths --> CallImport["Invocazione IPC automationImportFiles(vaultPath, filePaths)"]
 
-    SaveDB --> NextFile{"Altri file in coda?"}
+    SelectFiles --> StartPipeline["Avvio Automatico Pipeline Ingestione ed Estrazione"]
+    CallImport --> StartPipeline
+
+    StartPipeline --> ExecExtraction["Invocazione processPendingExtractions(vaultPath) (PIPE-001)"]
+    ExecExtraction --> LoopFile["Elaborazione File per File"]
+
+    LoopFile --> CopyRaw["Archiviazione documento originale in 20_RAW_SOURCES/"]
+    CopyRaw --> HashCalc["Calcolo immediato impronta crittografica SHA-256"]
+    HashCalc --> ExtractText["Estrazione testo con limen-extract / Apple Vision OCR"]
+    ExtractText --> ChunkSplit["Frammentazione semantica in chunk da ~512 token"]
+    ChunkSplit --> EmbedModel["Calcolo vettori semantici con modello locale bge-m3"]
+    EmbedModel --> SaveDB["Salvataggio vettori e metadati in database SQLite locale"]
+
+    SaveDB --> NextFile{"Altri file da elaborare?"}
     NextFile -->|Sì| LoopFile
-    NextFile -->|No| CompleteNotification["Notifica successo: X file indicizzati"]
-    CompleteNotification --> RefreshDocList(["Aggiornamento vista 'Documenti' (SCR-002)"])
+    NextFile -->|No| RefreshState["refreshCatalog() & refreshCompiler()"]
+    RefreshState --> UpdateUI(["Aggiornamento Tabella Documenti (SCR-004) con stato 'Pronto'"])
 ```
 
 ---
 
-### 7. MMD-007: WF-005 — Esplorazione e Navigazione Memoria
+### 7. MMD-007: WF-005 — Esplorazione e Navigazione Memoria (01-10)
 *File sorgente: `04_MERMAID/WF-005.mmd`*
 
 ```mermaid
@@ -309,7 +311,7 @@ graph TD
 
 ---
 
-### 8. MMD-008: WF-006 — Revisione e Approvazione Bozze Note
+### 8. MMD-008: WF-006 — Revisione e Approvazione Bozze (90_PROPOSALS)
 *File sorgente: `04_MERMAID/WF-006.mmd`*
 
 ```mermaid
@@ -342,18 +344,18 @@ graph TD
 
 ---
 
-### 9. MMD-009: WF-007 — Gestione Snapshot e Ripristino Vault
+### 9. MMD-009: WF-007 — Gestione Snapshot e Ripristino Sicuro (Cartella RECUPERO)
 *File sorgente: `04_MERMAID/WF-007.mmd`*
 
 ```mermaid
 graph TD
-    Trigger(["Accesso ad 'Avanzate > Snapshot e Ripristino' (SCR-007)"]) --> FetchSnapshots["Lettura archivio snapshot locali"]
+    Trigger(["Accesso ad 'Avanzate > Copie Locali & Ripristino' (SCR-007)"]) --> FetchSnapshots["Lettura archivio snapshot locali"]
     FetchSnapshots --> DisplaySnapshots["Visualizzazione tabella snapshot con data, dimensione, hash"]
 
     DisplaySnapshots --> Choice{"Azione da Eseguire"}
 
     Choice -->|Crea Nuovo Snapshot| InputName["Inserimento etichetta descrittiva dello snapshot"]
-    InputName --> PackVault["Compressione directory Vault in archivio"]
+    InputName --> PackVault["Compressione directory Vault (note 01-10, bozze 90, sorgenti 20) in archivio .tar.zst"]
     PackVault --> GenManifest["Generazione manifesto crittografico SHA-256 (PIPE-004)"]
     GenManifest --> SaveArchive["Salvataggio in archivio snapshots locale"]
     SaveArchive --> RefreshList["Aggiornamento tabella con nuovo snapshot"]
@@ -364,8 +366,8 @@ graph TD
     CreateDestDir --> ExtractFiles["Estrazione File con Verifica SHA-256 su Ciascun File"]
     ExtractFiles --> VerifyHashes{"Tutti gli Hash Corrispondono a snapshot_manifest.json?"}
     VerifyHashes -->|Errore / Corruzione| AbortRestore["Blocco Ripristino per Corruzione Rilevata"]
-    VerifyHashes -->|Integrità Verificata| GenManifest["Generazione Nuovo VAULT_MANIFEST.json nella Cartella RECUPERO"]
-    GenManifest --> SuccessToast["Notifica: Snapshot recuperato in cartella separata senza toccare il Vault attivo"]
+    VerifyHashes -->|Integrità Verificata| GenRecuperoManifest["Generazione Nuovo VAULT_MANIFEST.json nella Cartella RECUPERO"]
+    GenRecuperoManifest --> SuccessToast["Notifica: Snapshot recuperato in cartella separata senza toccare il Vault attivo"]
 ```
 
 ---
@@ -375,7 +377,7 @@ graph TD
 
 ```mermaid
 graph TD
-    Trigger(["Accesso ad 'Avanzate > Modelli LLM & llama.cpp' (SCR-008)"]) --> QueryCatalog["Caricamento catalogo 6 modelli da llama_llm.rs"]
+    Trigger(["Accesso ad 'Avanzate > Modelli LLM & llama.cpp' (SCR-009)"]) --> QueryCatalog["Caricamento catalogo 6 modelli da llama_llm.rs"]
     QueryCatalog --> CheckDisk["Scansione cartella models/ per verificare file GGUF presenti"]
     CheckDisk --> RenderCards["Renderizzazione 6 schede modello con tag RAM consigliata"]
 
@@ -404,12 +406,12 @@ graph TD
 
 ---
 
-### 11. MMD-011: WF-009 — Sincronizzazione Cloud S3/R2
+### 11. MMD-011: WF-009 — Sincronizzazione Cloud S3/R2 (BYOB)
 *File sorgente: `04_MERMAID/WF-009.mmd`*
 
 ```mermaid
 graph TD
-    Trigger(["Accesso ad 'Avanzate > Sincronizzazione Cloud' (SCR-009)"]) --> LoadConfig["Lettura parametri S3/R2 da configurazione"]
+    Trigger(["Accesso ad 'Avanzate > Sincronizzazione Cloud' (SCR-008)"]) --> LoadConfig["Lettura parametri S3/R2 da configurazione"]
     LoadConfig --> CheckCreds{"Credenziali S3 configurate?"}
 
     CheckCreds -->|No| PromptInput["Inserimento Endpoint, Bucket, Access Key, Secret Key"]
@@ -433,7 +435,7 @@ graph TD
 
 ---
 
-### 12. MMD-012: WF-010 — Compilazione Markdown Manuale di Fonti di Testo
+### 12. MMD-012: WF-010 — Compilatore Fonti Testo da 20_RAW_SOURCES a 90_PROPOSALS
 *File sorgente: `04_MERMAID/WF-010.mmd`*
 
 ```mermaid
@@ -456,7 +458,7 @@ graph TD
 
 ---
 
-### 13. MMD-013: WF-011 — Commutazione Lingua Interfaccia (IT / EN)
+### 13. MMD-013: WF-011 — Commutazione Istantanea Lingua (IT | EN)
 *File sorgente: `04_MERMAID/WF-011.mmd`*
 
 ```mermaid
@@ -499,7 +501,7 @@ graph TD
 
 ---
 
-### 15. MMD-015: PIPE-001 — Ingestione, Chunking ed Embedding bge-m3
+### 15. MMD-015: PIPE-001 — Ingestione ed Embedding Locale (bge-m3)
 *File sorgente: `04_MERMAID/PIPE-001.mmd`*
 
 ```mermaid
@@ -526,7 +528,7 @@ flowchart TD
 
 ---
 
-### 16. MMD-016: PIPE-002 — Generazione Risposte e Routing Ibrido
+### 16. MMD-016: PIPE-002 — Routing della Risposta e Fallback RAG
 *File sorgente: `04_MERMAID/PIPE-002.mmd`*
 
 ```mermaid
@@ -554,7 +556,7 @@ flowchart TD
 
 ---
 
-### 17. MMD-017: PIPE-003 — Streaming SSE e Reasoning Trace
+### 17. MMD-017: PIPE-003 — Streaming Asincrono Token e Reasoning Trace
 *File sorgente: `04_MERMAID/PIPE-003.mmd`*
 
 ```mermaid
@@ -585,7 +587,7 @@ flowchart TD
 
 ---
 
-### 18. MMD-018: PIPE-004 — Integrità Crittografica SHA-256
+### 18. MMD-018: PIPE-004 — Catena di Integrità e Validazione SHA-256
 *File sorgente: `04_MERMAID/PIPE-004.mmd`*
 
 ```mermaid
@@ -614,3 +616,5 @@ flowchart TD
         RestoreTrigger["Trigger Ripristino Snapshot"] --> VerifyZip["Verifica Integrità Manifest prima dell'estrazione"]
     end
 ```
+
+---

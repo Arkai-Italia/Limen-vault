@@ -1,5 +1,5 @@
 graph TD
-    Trigger(["Accesso ad 'Avanzate > Sincronizzazione Cloud' (SCR-009)"]) --> LoadConfig["Lettura parametri S3/R2 da configurazione"]
+    Trigger(["Accesso ad 'Avanzate > Sincronizzazione Cloud' (SCR-008)"]) --> LoadConfig["Lettura parametri S3/R2 da configurazione"]
     LoadConfig --> CheckCreds{"Credenziali S3 configurate?"}
 
     CheckCreds -->|No| PromptInput["Inserimento Endpoint, Bucket, Access Key, Secret Key"]

@@ -63,15 +63,15 @@ Elena gestisce la knowledge base di un team di ricerca. Riceve periodicamente de
 [Selezione di una cartella contenente 40 file PDF/Markdown]
        │
        ▼ (PIPE-001: Ingestione batch ed embedding locale)
-[I file confluiscono in 20_RAW_SOURCES; l'AI propone bozze di sintesi in 00_INBOX]
+[I file confluiscono in 20_RAW_SOURCES; l'AI propone bozze di sintesi in 90_PROPOSALS]
        │
        ▼ (WF-006: Approvazione Bozze e Note di Memoria)
-[Elena accede ad "Avanzate > Approvazione Note (Bozze)"]
-[Revisiona 8 note: ne accetta 6 con modifiche al titolo e ne rigetta 2]
-[Le note approvate vengono promosse in 10_KNOWLEDGE con badge verde]
+[Elena accede ad "Avanzate > Approvazione Note (Bozze in 90_PROPOSALS)"]
+[Revisiona 8 note: ne accetta 6 con modifiche al titolo e ne rifiuta 2 con traccia di audit]
+[Le note approvate vengono promosse nelle cartelle di memoria 01-10 con registrazione]
        │
        ▼ (WF-005: Esplorazione Memoria del Vault)
-[Navigazione tra categorie e tag tematici; verifica collegamenti semantici]
+[Navigazione tra le 10 categorie aziendali 01_CLIENTS - 10_APPROVED_OUTPUTS tramite KnowledgePanel]
        │
        ▼ (WF-007: Creazione Snapshot di Backup)
 [Elena accede ad "Avanzate > Snapshot e Ripristino"]
@@ -80,7 +80,7 @@ Elena gestisce la knowledge base di un team di ricerca. Riceve periodicamente de
 ```
 
 ### 2.3 Risultato Finale
-La knowledge base è strutturata, certificata e priva di allucinazioni. Lo snapshot garantisce un punto di ripristino istantaneo in caso di cancellazioni accidentali.
+La knowledge base è strutturata, verificata e ancorata a documenti reali. Lo snapshot garantisce un archivio di sicurezza estraibile in cartella separata di recupero in caso di necessità.
 
 ---
 

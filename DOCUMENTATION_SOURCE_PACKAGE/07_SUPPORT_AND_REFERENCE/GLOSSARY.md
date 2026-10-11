@@ -30,7 +30,7 @@ Il presente glossario definisce i termini tecnici, architetturali e di interfacc
 | **Documenti** | Documents | Archivio tabellare dei documenti importati con visualizzazione metadati e stato integrità (Sidebar). |
 | **Memoria** | Memory | Navigatore gerarchico strutturato sulle 10 categorie standard del Vault (`01_CLIENTS` a `10_APPROVED_OUTPUTS`) con anteprima note (Sidebar). |
 | **Avanzate** | Advanced | Pannello impostazioni, gestione modelli LLM, snapshot e diagnostica (Sidebar). |
-| **Carica Documenti** | Upload Documents | Pulsante d'azione primario evidenziato in colore lime (`#c8ff00`) nella barra laterale sinistra per aprire l'UploadDrawer. |
+| **Carica Documenti** | Upload Documents | Pulsante d'azione primario evidenziato in colore lime (`#c8ff00`) nella barra laterale sinistra per aprire il selettore nativo file/cartelle del sistema operativo (`blocking_pick_files()`). |
 | **Verifica** | Verify | Pulsante centrale nell'header globale con icona RotateCw per avviare il controllo di integrità di sistema. |
 | **Apri in Obsidian** | Open in Obsidian | Pulsante nella parte inferiore della sidebar che invia il protocollo `obsidian://open?path=...` per aprire la directory attiva nell'editor Obsidian. |
 | **Bozze (90_PROPOSALS)** | Drafts (Proposals) | Sezione di revisione per note e bozze generate; consente l'approvazione con promozione nelle cartelle 01-10 o il rifiuto tracciato nell'audit log. |

@@ -22,7 +22,7 @@ La presente guida illustra le procedure di diagnosi e risoluzione per tutte le c
 - **Sintomo Visivo:** Messaggio "Impossibile connettersi al motore locale (127.0.0.1:8080)" nella vista Chiedi al Vault.
 - **Causa Primaria:** Il processo in background `llama-server` non è attivo, è andato in timeout all'avvio o la porta 8080 è occupata da un altro processo di sistema.
 - **Procedura di Risoluzione:**
-  1. Accedere ad `Avanzate > Modelli LLM & llama.cpp` (`SCR-008`).
+  1. Accedere ad `Avanzate > Modelli LLM & llama.cpp` (`SCR-009`).
   2. Verificare che il modello prescelto risulti scaricato su disco (file `.gguf` con spunta verde).
   3. Fare clic su **"Attiva Modello"**. Il backend avvia l'eseguibile `llama-server` e attende la risposta `200 OK` dall'endpoint `/health`.
   4. Se l'errore persiste, verificare in `Avanzate > Diagnostica` se la porta 8080 è occupata da un altro servizio e riavviare l'applicazione.
@@ -30,7 +30,7 @@ La presente guida illustra le procedure di diagnosi e risoluzione per tutte le c
 ---
 
 ### ERR-002: Formato File Non Supportato o Superamento Limite Dimensionale
-- **Sintomo Visivo:** Durante il caricamento nell'UploadDrawer, il file è contrassegnato con un'icona rossa di avviso o viene rifiutato.
+- **Sintomo Visivo:** Durante la selezione o il trascinamento del file, compare una segnalazione di errore o il file viene rifiutato.
 - **Causa Primaria:** Il file presenta un'estensione non ammessa (es. archivi `.zip`, eseguibili binari `.exe`), supera la dimensione massima consentita di **32 MB**, oppure il file PDF è corrotto o protetto da crittografia a password.
 - **Procedura di Risoluzione:**
   1. Verificare che il file rientri nei formati ammessi dal motore di ingestione:

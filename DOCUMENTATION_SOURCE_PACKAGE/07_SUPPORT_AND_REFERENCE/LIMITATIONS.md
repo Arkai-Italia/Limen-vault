@@ -49,7 +49,7 @@ LIMEN Vault implementa un motore di ingestione multi-formato (`crates/ingestion/
 - **Immagini con Testo (Esclusivo macOS):** `.png`, `.jpg`, `.jpeg`, `.webp` elaborate tramite modulo nativo OCR Apple Vision (`vision_ocr.rs`).
 
 ### Limiti Dimensionali e di Elaborazione:
-- **Dimensione Massima per Singolo File:** 32 MB per file in ingresso nell'UploadDrawer.
+- **Dimensione Massima per Singolo File:** 32 MB per singolo file in ingresso.
 - **Troncamento Testo di Sicurezza:** L'estrattore applica un limite di sicurezza di 16 MB sul testo grezzo estratto da un singolo file per prevenire saturazioni della memoria.
 - **Frammentazione Semantica (Chunking):** Il testo viene segmentato in blocchi semantici di circa 512 token (~1.500 caratteri) con sovrapposizione contestuale di 50-100 token prima del calcolo dei vettori `bge-m3`.
 

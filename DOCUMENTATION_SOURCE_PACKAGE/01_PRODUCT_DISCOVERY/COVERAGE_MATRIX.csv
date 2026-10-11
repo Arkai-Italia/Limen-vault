@@ -1,8 +1,8 @@
-dimension,total_identified,accounted_count,documented_count,live_tested_count,coverage_percentage,notes
-ROUTES,14,14,14,14,100%,Tutte le 14 route e overlay modali censite
-SCREENS,14,14,14,14,100%,Tutte le 14 superfici di interfaccia tracciate
-ACTIONS,16,16,16,16,100%,Tutte le azioni utente essenziali censite con trigger ed effetti
-WORKFLOWS,12,12,12,12,100%,12 workflow completi con schede .md e diagrammi .mmd
-ROLES,1,1,1,1,100%,Ruolo unificato standalone vault-operator
-PIPELINES,4,4,4,4,100%,4 pipeline asincrone bge-m3 router SSE e SHA-256 censite
-LOCALES,2,2,2,2,100%,Supporto bilingue completo IT ed EN
+dimension,total_identified,code_verified_count,automated_tested_count,live_ui_tested_count,code_coverage_percentage,live_ui_coverage_percentage,verification_notes
+ROUTES,14,14,14,0,100%,0%,"Tutte le 14 route verificate staticamente nel codice sorgente e coperte da contratti IPC; nessuna esecuzione live con test suite UI registrata"
+SCREENS,14,14,0,0,100%,0%,"14 superfici di interfaccia verificate nei componenti React (TSX/CSS); screenshot reali non acquisiti (stato NOT_CAPTURED per permessi TCC macOS)"
+ACTIONS,16,16,8,0,100%,0%,"16 azioni essenziali verificate nei trigger e handler React/Rust; azioni con unit test backend verificate parzialmente (8/16); nessun test live UI registrato"
+WORKFLOWS,12,12,6,0,100%,0%,"12 workflow operativi verificati integralmente sul codice sorgente e logiche di business; 6 coperti da test automatici backend; 0 collaudati con registrazione live UI"
+ROLES,1,1,1,0,100%,0%,"Ruolo unificato standalone vault-operator verificato nelle policy del backend"
+PIPELINES,4,4,4,0,100%,0%,"4 pipeline asincrone (ingestione, router, streaming SSE, SHA-256) verificate nei test di integrazione backend Rust"
+LOCALES,2,2,2,0,100%,0%,"Dizionario bilingue IT ed EN verificato al 100% in apps/desktop/src/i18n.tsx"

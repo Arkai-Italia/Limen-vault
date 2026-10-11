@@ -43,10 +43,10 @@
 
 ### 2.4 Lettore Documenti & Integrità SHA-256
 - Tracciati: Visualizzatore modale per PDF/Office/Testo, calcolo hash a caldo, badge verde "Integrità Verificata", allarme discrepanza hash, salto al paragrafo citato, copia hash.
-- File collegati: `SCR-003`, `WF-003-lettore-documenti.md`, `PIPE-004.mmd`, `WF-003.mmd`.
+- File collegati: `SCR-013`, `WF-003-lettore-documenti.md`, `PIPE-004.mmd`, `WF-003.mmd`.
 
-### 2.5 Caricamento & Ingestione Documentale
-- Tracciati: UploadDrawer richiamato da pulsante sidebar `#c8ff00`, selezione file singoli, intera cartella, drag-and-drop, supporto formati Office/Excel/PDF/MD/TXT/Immagini Vision OCR, limite 32 MB per file, chunking (~512 token).
+### 2.5 Acquisizione & Ingestione Documentale
+- Tracciati: Selettore nativo di file/cartelle del sistema operativo richiamato da pulsante sidebar `#c8ff00` (`automationChooseFiles` -> `blocking_pick_files()`), drag-and-drop su finestra, supporto formati Office/Excel/PDF/MD/TXT/Immagini Vision OCR, limite 32 MB per file, chunking (~512 token) e pipeline automatica in background (`PIPE-001`). Zero UploadDrawer.
 - File collegati: `SCR-004`, `WF-004-carica-documenti.md`, `PIPE-001.mmd`, `WF-004.mmd`.
 
 ### 2.6 Memoria & Struttura del Vault
@@ -54,13 +54,13 @@
 - File collegati: `SCR-005`, `WF-005-esplora-memoria.md`, `WF-005.mmd`.
 
 ### 2.7 Sezioni Avanzate A-G
-- A: Approvazione Note (Bozze in `90_PROPOSALS/` con salvataggio, promozione in 01-10 o rifiuto archiviato tracciato) -> `WF-006`
-- B: Snapshot e Ripristino (Archiviazione `.tar.zst`, recupero sicuro in directory separata `{vault}_RECUPERO_{snapshot_id}`) -> `WF-007`
-- C: Catalogo Modelli LLM & llama.cpp (6 modelli con matrice RAM verificata) -> `WF-008`
-- D: Sincronizzazione Cloud S3/R2 (BYOB - bucket proprietario con crittografia client-side) -> `WF-009`
-- E: Compilatore Fonti Testo (Generazione in blocco di note Markdown da `20_RAW_SOURCES/` verso `90_PROPOSALS/`) -> `WF-010`
+- A: Approvazione Note (Bozze in `90_PROPOSALS/` con salvataggio, promozione in 01-10 o rifiuto archiviato tracciato) -> `WF-006` (`SCR-006`)
+- B: Snapshot e Ripristino (Archiviazione `.tar.zst`, recupero sicuro in directory separata `{vault}_RECUPERO_{snapshot_id}`) -> `WF-007` (`SCR-007`)
+- C: Catalogo Modelli LLM & llama.cpp (6 modelli con matrice RAM verificata) -> `WF-008` (`SCR-009`)
+- D: Sincronizzazione Cloud S3/R2 (BYOB - bucket proprietario con crittografia client-side) -> `WF-009` (`SCR-008`)
+- E: Compilatore Fonti Testo (Generazione in blocco di note Markdown da `20_RAW_SOURCES/` verso `90_PROPOSALS/`) -> `WF-010` (`SCR-010`)
 - F: Configurazione & Parametri di Sistema -> `SCR-011`
-- G: Diagnostica & Log -> `SCR-012`
+- G: Diagnostica & Log -> `SCR-011` (Guida Vault: `SCR-012`)
 
 ---
 

@@ -27,11 +27,11 @@ Tutti i 18 diagrammi Mermaid contenuti nella cartella `04_MERMAID/` sono stati i
 | **`MMD-005`** | `WF-003.mmd` | `graph TD` | 13 nodi, 2 decisioni | 13 archi di flusso | **SUPERATO** | Salto citazioni e hash check quotati |
 | **`MMD-006`** | `WF-004.mmd` | `graph TD` | 14 nodi, 2 decisioni | 14 archi con loop batch | **SUPERATO** | Ingestione asincrona e feedback |
 | **`MMD-007`** | `WF-005.mmd` | `graph TD` | 11 nodi, 2 decisioni | 11 archi | **SUPERATO** | Layout semantico e collegamenti nota |
-| **`MMD-008`** | `WF-006.mmd` | `graph TD` | 11 nodi, 2 decisioni | 11 archi | **SUPERATO** | Spostamento 00_INBOX -> 10_KNOWLEDGE tracciato |
-| **`MMD-009`** | `WF-007.mmd` | `graph TD` | 11 nodi, 2 decisioni | 11 archi | **SUPERATO** | Compressione e ripristino con manifest SHA-256 |
+| **`MMD-008`** | `WF-006.mmd` | `graph TD` | 11 nodi, 2 decisioni | 11 archi | **SUPERATO** | Spostamento 90_PROPOSALS -> categorie 01-10 tracciato |
+| **`MMD-009`** | `WF-007.mmd` | `graph TD` | 11 nodi, 2 decisioni | 11 archi | **SUPERATO** | Compressione e ripristino sicuro in cartella RECUPERO |
 | **`MMD-010`** | `WF-008.mmd` | `graph TD` | 15 nodi, 3 decisioni | 15 archi | **SUPERATO** | Download Hugging Face e porta 8080 tracciati |
 | **`MMD-011`** | `WF-009.mmd` | `graph TD` | 11 nodi, 2 decisioni | 11 archi | **SUPERATO** | Push / Pull S3/R2 asincrono |
-| **`MMD-012`** | `WF-010.mmd` | `graph TD` | 8 nodi, 1 decisione | 8 archi | **SUPERATO** | Comandi cli offline quotati |
+| **`MMD-012`** | `WF-010.mmd` | `graph TD` | 8 nodi, 1 decisione | 8 archi | **SUPERATO** | Compilatore Markdown Manuale da 20_RAW_SOURCES a 90_PROPOSALS |
 | **`MMD-013`** | `WF-011.mmd` | `graph TD` | 9 nodi, 1 decisione | 9 archi | **SUPERATO** | Switch lingua IT / EN a caldo tracciato |
 | **`MMD-014`** | `WF-012.mmd` | `graph TD` | 8 nodi, 1 decisione | 8 archi | **SUPERATO** | URI scheme `obsidian://open` documentato |
 | **`MMD-015`** | `PIPE-001.mmd` | `flowchart TD` | 11 blocchi di flusso | 11 connettori direzionali | **SUPERATO** | Pipeline bge-m3 ed estrazione |

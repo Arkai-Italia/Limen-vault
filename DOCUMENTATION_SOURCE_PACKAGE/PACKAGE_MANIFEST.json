@@ -17,12 +17,13 @@
     "design_tokens": "DOCUMENTATION_SOURCE_PACKAGE/08_DESIGN_SYSTEM_HANDOFF/DESIGN_TOKENS_EXTRACTED.yml"
   },
   "metrics": {
-    "total_files": 86,
+    "total_files": 89,
     "total_folders": 16,
+    "csv_files_count": 19,
     "screens_documented": 14,
     "routes_documented": 14,
     "navigation_items_documented": 16,
-    "controls_documented": 19,
+    "controls_documented": 21,
     "error_messages_documented": 9,
     "ui_states_documented": 11,
     "workflows_documented": 12,
@@ -33,8 +34,9 @@
     "screenshots_planned": 16,
     "screenshots_captured": 0,
     "code_verification_coverage_percentage": 100.0,
+    "design_system_gate_status": "HOLD",
     "ready_for_publication": false,
-    "publication_blocking_reason": "Screenshots are NOT_CAPTURED due to macOS TCC Screen Recording permissions in dev environment"
+    "publication_blocking_reason": "Multiple mandatory release gates open: 1) 16 native screenshots NOT_CAPTURED due to macOS TCC display restrictions; 2) Design System handoff gate in HOLD status pending Graphic Designer approval (design-to-document-map.yml); 3) Layout verification and proofing required on final A4 landscape document; 4) Live UI execution sessions pending recording."
   },
   "supported_architectures": [
     "macOS Apple Silicon (aarch64 Metal GPU)",

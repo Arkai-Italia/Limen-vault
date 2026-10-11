@@ -1,27 +1,42 @@
 # TASK LIST — LIMEN Vault: archivio chat Codex, installatori e rilascio v6Mini
 
-## Correzione e Allineamento Pacchetto Documentale LIMEN Vault v7Mini (0.7.0) — 11 Ottobre 2026
+## Sanatoria e Revisione Rigorosa Post-Commit c3c4d9d (8 Punti Audit) — 11 Ottobre 2026
 
 Stato operativo:
-- **COMPLETATO IN LOCALE:** Testi, matrici CSV, schede operative, diagrammi Mermaid, design tokens e manuali master riscritti e sanitizzati da contraddizioni.
-- **VERIFICATO SU CODICE:** Sequenza Setup Wizard (3 step fino a ENTRA IN LIMEN VAULT), layout UI reale (Header 52px con RotateCw, Sidebar 240px con Carica Documenti #c8ff00 e Apri in Obsidian), topologia Vault (Memoria su cartelle 01-10, Bozze in 90_PROPOSALS, archivio in 20_RAW_SOURCES), Compilatore Markdown Manuale da 20_RAW_SOURCES a 90_PROPOSALS, Ripristino sicuro in directory RECUPERO (zero sovrascrittura Vault), formati Office/Excel/OCR Vision macOS (32MB/16MB), modelli GGUF Q4/Q5 e matrice RAM.
-- **BLOCCATO:** I 16 screenshot nativi risultano `NOT_CAPTURED` a causa dei permessi di sicurezza TCC dello schermo su macOS (AppleScript -25211). Il pacchetto **NON È PRONTO PER L'IMPAGINAZIONE / PUBBLICAZIONE DEFINITIVA** fino all'acquisizione delle immagini reali da parte dell'operatore umano.
+- **COMPLETATO AL 100% IN LOCALE:** Tutti gli 8 punti di audit sollevati dall'utente sono stati risolti e verificati con rigore estremo su codice reale, standard Bibbia Manuali Utente (`APP USER MANUAL OS v0.2.0`) e dizionari di interfaccia.
+- **STATO PUBBLICAZIONE:** `ready_for_publication: false` mantenuto categoricamente come prescritto (in attesa di deposito screenshot reali, sblocco del Design System Gate da HOLD ad APPROVED, collaudo impaginato A4 orizzontale e registrazione sessioni UI live).
 - **DA PUBBLICARE:** Commit atomico e push su `origin/windows-build`.
 
-### Dettaglio Verifiche e Azioni Operative:
-- [x] **Area 1 & 7 — Release, Provenienza e Integrità Metadati:** Censita la duplice tracciabilità (Release software 0.7.0 commit `677745c`, ispezione documentale commit `373e34e`). Corretti tutti i 12 percorsi Mermaid in `WORKFLOW_CATALOG.csv`. Risolto il bug delle 10 colonne su `SHOT-009` in `SCREENSHOT_MANIFEST.csv` tramite quoting RFC 4180. Riallineati univocamente tutti gli ID `SCR`, `ROU`, `NAV`, `CTL`, `ERR`, `EVD`.
-- [x] **Area 2 — Setup Wizard e Navigazione Reale:** Riconciliata la sequenza in 3 step: Cartella Vault -> Motore LLM (Locale vs Ibrido) -> Modello GGUF con hash check / OpenAI API key, con pulsante finale `ENTRA IN LIMEN VAULT`. Uniformata la UI: Header 52px (Logo, pulsante centrale `Verifica` RotateCw, `IT | EN`, badge `● PRONTO`), Sidebar sinistra 240px (pulsante `Carica Documenti` `#c8ff00`, sezioni 1-4, note recenti, pulsante `Apri in Obsidian`).
-- [x] **Area 3 — Topologia Cartelle, Memoria e Flusso di Governance:** Sostituito il vecchio schema `00_INBOX`/`10_KNOWLEDGE` con le 10 categorie reali del Vault (`01_CLIENTS` a `10_APPROVED_OUTPUTS`), `20_RAW_SOURCES/` per i file acquisiti e `90_PROPOSALS/` per le bozze. Eliminato il falso grafo concettuale in favore del `KnowledgePanel`. Documentata la differenza tra approvazione (promozione in 01-10 e audit log), rifiuto archiviato (decisione tracciata nell'audit trail senza cancellazione file) ed eliminazione fisica definitiva.
-- [x] **Area 4 — Compilatore Markdown Manuale da Fonti Grezze:** Sanata la discrepanza sostanziale del Capitolo 21 e `WF-010.mmd`: rimossi tutti i falsi riferimenti a `cargo build`, `cmake` o compilazione codice C++/Tauri dev. Documentata la funzione reale di backend (`batch_compile_sources`) per generare in blocco bozze Markdown in `90_PROPOSALS/` a partire da testi in `20_RAW_SOURCES/` con pulsante `COMPILA FONTI TESTO`.
-- [x] **Area 5 — Ripristino da Snapshot:** Eliminata dal diagramma `WF-007.mmd` e dal Capitolo 17 la falsa sovrascrittura del Vault attivo. Documentata l'estrazione sicura obbligatoria in directory separata `{vault}_RECUPERO_{snapshot_id}` con verifica dell'hash SHA-256 di ogni file rispetto al manifest crittografico dello snapshot.
-- [x] **Area 6 — Formati Supportati, Limiti e Matrice RAM:** Censito l'elenco completo verificato in `crates/ingestion/`: PDF, Word (.docx), PowerPoint (.pptx), OpenDocument (.odt), Excel (.xlsx, .xls), Fogli (.ods, .csv, .tsv), Testo e Note (.txt, .md, .json, .log, .html) e immagini con Apple Vision OCR nativo su macOS. Fissati i limiti di 32 MB per file e 16 MB max testo estratto. Distinti rigorosamente nei requisiti RAM: dimensione download del file GGUF, memoria minima di sistema e memoria raccomandata (Ministral 3B Q5_K_M 2.47 GB min 8 GB, Ministral 8B Q5_K_M 6.06 GB min 16 GB, Qwen 2.5 7B Q4_K_M 4.68 GB min 16 GB, Llama 3.1 8B Q4_K_M 4.92 GB min 16 GB, DeepSeek-R1 Distill 7B Q4_K_M 4.68 GB min 16 GB, DeepSeek-R1 Distill 14B Q4_K_M 8.99 GB min 24-32 GB).
-- [ ] **Area 8 — Screenshot Reali e Condizione di Blocco:** 16 screenshot pianificati (`SHOT-001` - `SHOT-016`) nello stato `NOT_CAPTURED` a causa dei permessi TCC macOS negati nell'ambiente automatico. Acquisizione manuale demandata all'operatore umano prima del rilascio definitivo.
-- [x] **Area 9 — Affermazioni Tecniche e Audit QA:** Espunti tutti gli overclaim e formule apodittiche ("ZERO DIFETTI", "garanzia probatoria", "privacy assoluta", "impedisce allucinazioni"). Inserito in `DOCUMENTATION_QA.md` un report di audit sobrio con riscontri verificati su codice e limiti espliciti.
-- [x] **Area 10 — Design System e Linee Guida Editoriali:** Allineato `DESIGN_TOKENS_EXTRACTED.yml` alla palette Light Slate (`#f8fafc`, `#ffffff`, `#f1f5f9`, `#0f172a`, `#77F117`, `#c8ff00`) e modali scure contrastate (`#0f172a`). Chiarito che il PDF LIMEN costituisce un riferimento editoriale per l'impaginazione orizzontale, mentre lo stile del manuale deriva dal Design System di Vault.
-- [x] **Deliverable Master:** Riscritto integralmente `MANUALE_UTENTE.txt` (25 capitoli, 3 appendici, doppio indice) e `MANUALE_UTENTE.md` con perfetta aderenza al codice verificato.
-- [ ] **Pubblicazione:** Esecuzione commit atomico e push su `origin/windows-build`.
+### Dettaglio Checkbox 8 Punti di Audit:
+- [x] **Punto 1 — Setup Wizard Reale (`SetupWizardModal.tsx`):**
+  - [x] Verificate etichette reali in `i18n.tsx`: Step 1 Cartella Vault, Step 2 Motore AI Locale, Step 3 Modalità & Chiave API; pulsante finale `ENTRA IN LIMEN VAULT`.
+  - [x] Verificata inesistenza di `packages/ui/src/SetupWizard.tsx` (il file reale è `apps/desktop/src/SetupWizardModal.tsx`).
+  - [x] Riconciliati `QUICK_START_USER.txt`, `WF-001-setup-wizard.md`, `WF-001.mmd`.
+  - [x] Riscritto Capitolo 5 in `MANUALE_UTENTE.txt` e `MANUALE_UTENTE.md`.
+  - [x] Allineato `DOCUMENTATION_QA.md` e metadati correlati.
+- [x] **Punto 2 — Ingestione Documenti (Nessun UploadDrawer):**
+  - [x] Verificato percorso reale: selettore nativo OS (`automationChooseFiles` -> `blocking_pick_files()`) o drag-and-drop su finestra; background ingestion immediata.
+  - [x] Aggiornati `QUICK_START_USER.txt`, `WF-004-carica-documenti.md`, `WF-004.mmd`.
+  - [x] Riscritto Capitolo 13 in `MANUALE_UTENTE.txt` e `MANUALE_UTENTE.md`.
+  - [x] Eliminato ogni residuo di UploadDrawer da `LIMITATIONS.md`, `GLOSSARY.md`, `TROUBLESHOOTING.md`, `COVERAGE_REPORT.md`.
+- [x] **Punto 3 — Vecchie Cartelle e Funzione Compilatore:**
+  - [x] Bonificati `USER_JOURNEYS.md`, `PIPELINES_AND_AUTOMATIONS.md`, `VALIDATION_REPORT.md`, `FIXTURE_MANIFEST.csv` rimuovendo `00_INBOX` e `10_KNOWLEDGE`.
+  - [x] Rettificato WF-010 in `WORKFLOW_COVERAGE.md` come "Compilatore Fonti Testo".
+- [x] **Punto 4 — Copertura Live in COVERAGE_MATRIX.csv:**
+  - [x] Riconciliata matrice: rimossi falsi 12/12 live, separate colonne ispezione codice, test automatici e live UI (0).
+- [x] **Punto 5 — Riconciliazione Identificatori:**
+  - [x] Allineati `WF-008.mmd` (SCR-009) e `WF-009.mmd` (SCR-008).
+  - [x] Allineati riferimenti `SCR-001` (Panoramica) vs `SCR-002` (Setup Wizard) e `SCR-013`/`SCR-014` in `MANUALE_UTENTE.txt`, `MANUALE_UTENTE.md`, `TRACEABILITY_REPORT.md`, `COVERAGE_REPORT.md`.
+- [x] **Punto 6 — Sincronizzazione Diagrammi Mermaid:**
+  - [x] Sincronizzati al 100% tutti i 18 file `.mmd` con `10_EXPORT/ALL_MERMAID_SOURCES.md` (parità esatta byte-per-byte).
+- [x] **Punto 7 — Gate Design System Bibbia Manuali:**
+  - [x] Creati `design-system-manifest.yml` (`VERIFIED`), `design-to-document-map.yml` (`HOLD`), `DESIGN_APPROVAL.md` (`HOLD`).
+- [x] **Punto 8 — Metadati 19 CSV e Blocco Pubblicazione:**
+  - [x] Censiti esattamente i 19 file CSV in `PACKAGE_MANIFEST.json` e `DOCUMENTATION_QA.md`.
+  - [x] Confermato e motivato `ready_for_publication: false`.
 
 ---
+
 
 ## Archivio chat Codex per Windows — 29 settembre 2026
 

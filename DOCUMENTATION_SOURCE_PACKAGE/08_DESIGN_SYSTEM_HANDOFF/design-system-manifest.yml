@@ -1,0 +1,23 @@
+app: "LIMEN Vault v7Mini"
+app_release: "0.7.0"
+design_system:
+  name: "LIMEN Vault Design System (Light Slate Theme)"
+  source_type: "repository"
+  source_uri_or_path: "packages/ui/src/styles.css & apps/desktop/src/App.tsx"
+  version_or_commit: "677745c367d64de7d21eb66d111cac7558300f84"
+  owner: "Arkitecna Dev Team / Cesare Negro"
+  status: "VERIFIED"
+sources:
+  brand_guidelines: "DOCUMENTATION_SOURCE_PACKAGE/08_DESIGN_SYSTEM_HANDOFF/EDITORIAL_MAPPING_REQUIRED.md"
+  design_tokens: "DOCUMENTATION_SOURCE_PACKAGE/08_DESIGN_SYSTEM_HANDOFF/DESIGN_TOKENS_EXTRACTED.yml"
+  component_library: "packages/ui/src/"
+  logo_assets: "apps/desktop/src-tauri/icons/"
+  typography_spec: "packages/ui/src/styles.css (--limen-font-sans, --limen-font-mono)"
+  ui_screenshots: "DOCUMENTATION_SOURCE_PACKAGE/05_SCREENSHOTS/ (Status: NOT_CAPTURED)"
+license_review:
+  fonts_embedding_authorized: true
+  images_and_icons_cleared: true
+review:
+  mapping_approved_by: "Cesare Negro"
+  mapping_approval_date: null
+  result: "HOLD"
