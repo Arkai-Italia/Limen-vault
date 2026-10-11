@@ -1,3 +1,5 @@
+import { organizeDocuments, type PendingDestination, type MoveSummary } from './organization';
+import { OrganizationReview } from './OrganizationReview';
 import { useCatalogDocuments } from './useCatalogDocuments';
 import { useNativeFileDrop } from './useNativeFileDrop';
 import { runIndexing } from './indexing';
@@ -194,6 +196,12 @@ export default function App() {
   const [showManualSearch, setShowManualSearch] = useState<boolean>(false);
   const [showIndexingPrompt, setShowIndexingPrompt] = useState<boolean>(false);
   const [importedFilesList, setImportedFilesList] = useState<string[]>([]);
+  const [organizationPending, setOrganizationPending] = useState<PendingDestination[]>([]);
+  const [organizationFolders, setOrganizationFolders] = useState<string[]>([]);
+  const [organizationChoices, setOrganizationChoices] = useState<Record<string, string>>({});
+  const [lastMove, setLastMove] = useState<MoveSummary | null>(null);
+  const [organizationMessage, setOrganizationMessage] = useState<string | null>(null);
+
   const [isAutoIndexing, setIsAutoIndexing] = useState<boolean>(false);
   const [autoIndexStep, setAutoIndexStep] = useState<string | null>(null);
   const [autoIndexPercent, setAutoIndexPercent] = useState<number>(0);
@@ -441,6 +449,13 @@ export default function App() {
     catalogFilterFormat, catalogFilterStatus, catalogSearchText,
   );
   useEffect(() => () => { generation.current++; }, []);
+  useEffect(() => {
+    let live = true;
+    setOrganizationPending([]); setOrganizationChoices({}); setLastMove(null); setOrganizationMessage(null);
+    if (vaultPath && isTauriEnv) void ipc.organizationPlan(vaultPath).then(plan => { if (live) setLastMove(plan.lastMove); }).catch(() => {});
+    return () => { live = false; };
+  }, [vaultPath, isTauriEnv, ipc]);
+
   const begin = () => { if (busy.current) return null; busy.current=true; setIsProcessing(true); return ++generation.current; };
   const finish = (ticket:number) => { if(ticket===generation.current) {busy.current=false;setIsProcessing(false);} };
 
@@ -558,7 +573,8 @@ export default function App() {
 
       try {
         const indexing = await ipc.getIndexingStatus(target);
-        if (ticket === generation.current) setHasPendingIndexing(!indexing.complete);
+        const organization = await ipc.organizationPlan(target);
+        if (ticket === generation.current) { setHasPendingIndexing(!indexing.complete || organization.documents.length > 0); setLastMove(organization.lastMove); }
       } catch {
         if (ticket === generation.current) setHasPendingIndexing(true);
       }
@@ -572,12 +588,25 @@ export default function App() {
     const ticket = begin();
     if (ticket === null) return;
     setIsAutoIndexing(true);
+    setOrganizationMessage(null);
     setShowIndexingPrompt(true);
     setActionError(null);
     setRestoreMessage(null);
     try {
+      let remaining = 0;
+      let movedCount = 0;
       const result = await runIndexing({
         extract: ipc.processPendingExtractions,
+        organize: async path => {
+          const report = await organizeDocuments({ plan: ipc.organizationPlan, classify: ipc.organizationClassify, move: ipc.organizationMove }, path, organizationChoices,
+            message => { if (ticket === generation.current) setAutoIndexStep(message); });
+          remaining = report.pending.length;
+          movedCount = report.moved.length;
+          if (ticket === generation.current) {
+            setOrganizationPending(report.pending); setOrganizationFolders(report.folders); setLastMove(report.lastMove);
+          }
+          if (remaining) throw new Error(`${remaining} destinazioni da confermare o documenti da controllare`);
+        },
         index: ipc.indexVaultSearch,
         vectors: aiIpc.embeddingsSyncVault,
         status: ipc.getIndexingStatus,
@@ -588,15 +617,17 @@ export default function App() {
       await refreshCompiler(vaultPath, ticket);
       if (ticket !== generation.current) return;
       setSearchRevision(r => r + 1);
-      setHasPendingIndexing(!result.complete);
-      if (result.complete) {
+      setHasPendingIndexing(!result.complete || remaining > 0);
+      if (result.complete && remaining === 0) {
         setShowIndexingPrompt(false);
-        setRestoreMessage(`Indicizzazione completata: ${result.documents} documenti elaborati. Ricerca testuale e semantica aggiornate.`);
+        setOrganizationMessage(`Operazione completata: ${movedCount} file spostati nelle cartelle, senza copie in RAW. Ricerca aggiornata.`);
+        setOrganizationChoices({});
       } else {
         const st = result.status;
-        setActionError([
-          'Indicizzazione incompleta.',
-          `${st.pendingDocuments} documenti in attesa; ${st.attentionDocuments} da controllare; ${st.missingPassages} passaggi semantici mancanti.`,
+        if (remaining > 0 && st.complete && result.errors.every(e => e.startsWith('Organizzazione:'))) setActionError(null);
+        else setActionError([
+          remaining ? `${remaining} documenti richiedono una destinazione o una verifica. ${movedCount} file già spostati.` : 'Indicizzazione incompleta.',
+          `${st.pendingDocuments} estrazioni in attesa; ${st.attentionDocuments} da controllare; ${st.missingPassages} passaggi semantici mancanti.`,
           !st.lexicalCurrent ? 'Indice testuale da aggiornare.' : '',
           ...result.errors,
         ].filter(Boolean).join(' '));
@@ -608,6 +639,22 @@ export default function App() {
       setAutoIndexStep(null);
       finish(ticket);
     }
+  };
+
+  const handleUndoOrganization = async () => {
+    if (!vaultPath || !lastMove) return;
+    const ticket = begin(); if (ticket === null) return;
+    try {
+      await ipc.organizationUndo(vaultPath, lastMove.id);
+      setLastMove(null); setHasPendingIndexing(true);
+      // Re-index only; do not automatically organize the document just restored.
+      const result = await runIndexing({ extract: ipc.processPendingExtractions, index: ipc.indexVaultSearch, vectors: aiIpc.embeddingsSyncVault, status: ipc.getIndexingStatus }, vaultPath, () => {});
+      await refreshCatalog(vaultPath, ticket);
+      setSearchRevision(v => v + 1);
+      setOrganizationMessage(result.complete ? 'Spostamento annullato e ricerca aggiornata.' : 'Spostamento annullato; aggiornamento della ricerca da completare.');
+      if (!result.complete) setActionError(result.errors.join(' · '));
+    } catch (e) { setActionError(`Ripristino: ${String(e)}`); }
+    finally { finish(ticket); }
   };
 
   const handleUploadDocuments = async () => {
@@ -672,7 +719,7 @@ export default function App() {
     }
   };
 
-  const handleNativeDrop = async (filePaths: string[]) => {
+  const handleNativeDrop = async (filePaths: string[], destination?: string) => {
     setIsDragging(false);
     if (!vaultPath) return;
     if (busy.current || showIndexingPrompt) {
@@ -685,6 +732,14 @@ export default function App() {
       if (ticket === null) return;
       try {
         const receipts = await ipc.automationImportFiles(vaultPath, filePaths);
+        let preferenceApplied = false;
+        if (destination && destination !== '20_RAW_SOURCES' && !destination.startsWith('20_RAW_SOURCES/')) {
+          const ids = receipts.filter(r => (r.status === 'imported' || r.status === 'duplicate') && r.documentId).map(r => r.documentId!);
+          if (ids.length) {
+            try { await ipc.organizationPrefer(vaultPath, ids, destination); preferenceApplied = true; }
+            catch (e) { setActionError(`File caricati in RAW, destinazione non impostata: ${String(e)}`); }
+          }
+        }
         await refreshCatalog(vaultPath, ticket);
         await refreshCompiler(vaultPath, ticket);
 
@@ -707,6 +762,8 @@ export default function App() {
             if (errors.length > 0) notes.push(`${errors.length} errori: ${errors.map((e) => e.error).join(', ')}`);
             setActionError(`Importati ${imported.length} file (${notes.join(', ')}).`);
           }
+        } else if (preferenceApplied) {
+          setImportedFilesList([]); setShowIndexingPrompt(true); setHasPendingIndexing(true);
         } else if (duplicates.length > 0 && errors.length === 0) {
           setActionError(`Tutti i ${duplicates.length} file rilasciati sono già presenti nel Vault (duplicati ignorati). Nessun nuovo file da indicizzare.`);
         } else if (errors.length > 0) {
@@ -1824,6 +1881,15 @@ export default function App() {
               obsidianAvailable={obsidianAvailable}
             />
 
+            {(currentTab === 'documents' || currentTab === 'sources' || currentTab === 'vault') && <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+              <button disabled={isProcessing} style={{ padding: '9px 14px', border: 0, borderRadius: 8, background: 'var(--limen-lime)', color: '#0f172a', fontWeight: 700, cursor: isProcessing ? 'wait' : 'pointer' }} onClick={() => { setImportedFilesList([]); setShowIndexingPrompt(true); }}>Indicizza e organizza</button>
+              {lastMove && !organizationMessage && <button disabled={isProcessing} onClick={() => void handleUndoOrganization()} title={`${lastMove.to} → ${lastMove.from}`}>Annulla ultimo spostamento</button>}
+            </div>}
+            {organizationMessage && <div role="status" style={{ display: 'flex', alignItems: 'center', gap: 12, background: '#f0fdf4', padding: '12px 16px', borderRadius: 8, marginBottom: 14 }}>
+              <span style={{ flex: 1 }}>{organizationMessage}</span>
+              {lastMove && <button disabled={isProcessing} onClick={() => void handleUndoOrganization()}>Annulla ultimo spostamento</button>}
+              <button aria-label="Chiudi riepilogo organizzazione" onClick={() => setOrganizationMessage(null)} style={{ border: 0, background: 'transparent', fontSize: 20 }}>×</button>
+            </div>}
             {/* SCREEN RENDERER */}
             {currentTab === 'home' && (
               <div>
@@ -2305,7 +2371,7 @@ export default function App() {
                     showManualSearch={showManualSearch}
                     onToggleManualSearch={() => setShowManualSearch(!showManualSearch)}
                     hasPendingIndexing={hasPendingIndexing}
-                    onTriggerAutoIndex={handleOneClickAutoIndex}
+                    onTriggerAutoIndex={() => { setImportedFilesList([]); setShowIndexingPrompt(true); }}
                     onNavigateToSettings={(section, guide) => {
                       setSettingsTargetSection(section || 'general');
                       setSettingsGuideMessage(guide || 'Configura le impostazioni per proseguire.');
@@ -2452,7 +2518,7 @@ export default function App() {
                   {catalogLoading ? <p role="status">Caricamento documenti…</p> : catalogError ? <p role="alert">{catalogError}</p> : catalogDocuments.length === 0 ? (
                     <EmptyState
                       title="Nessun documento trovato"
-                      description={catalogSearchText || catalogFilterFormat !== 'all' ? 'Nessun file corrisponde ai filtri selezionati.' : 'Nessun file presente in 20_RAW_SOURCES. Clicca su CARICA DOCUMENTI per iniziare.'}
+                      description={catalogSearchText || catalogFilterFormat !== 'all' ? 'Nessun file corrisponde ai filtri selezionati.' : 'Nessun documento presente nel Vault. Carica dei file per iniziare.'}
                       icon={<FolderArchive size={32} />}
                     />
                   ) : (
@@ -2586,6 +2652,7 @@ export default function App() {
             {currentTab === 'vault' && vaultPath && (
               <VaultPanel
                 vaultPath={vaultPath}
+                refreshToken={catalogRevision}
                 onOpenReader={(relPath) => openReader(relPath)}
                 onRevealInFinder={async (relPath) => {
                   try {
@@ -2959,16 +3026,20 @@ export default function App() {
 
       <IndexingPromptModal
         isOpen={showIndexingPrompt}
-        filesCount={importedFilesList.length || 1}
+        filesCount={importedFilesList.length}
         fileNames={importedFilesList}
         isProcessing={isAutoIndexing}
         progressStep={autoIndexStep}
         progressPercent={autoIndexPercent}
         error={actionError}
+        reviewing={organizationPending.length > 0}
         onProceed={handleOneClickAutoIndex}
         onPostpone={() => setShowIndexingPrompt(false)}
         onClose={() => setShowIndexingPrompt(false)}
-      />
+      >
+        <OrganizationReview items={organizationPending} folders={organizationFolders} choices={organizationChoices} disabled={isAutoIndexing}
+          onChange={(id, folder) => setOrganizationChoices(current => ({ ...current, [id]: folder }))} />
+      </IndexingPromptModal>
     </div>
   );
 }

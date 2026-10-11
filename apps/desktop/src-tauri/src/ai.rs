@@ -796,7 +796,7 @@ pub fn eligible(path:&str,category:&str,status:Option<&str>,drafts:bool)->bool{
  let parts:Vec<_>=path.split('/').collect();
  let valid_structure=parts.len()>1&&parts.iter().all(|s|!s.starts_with('.')&&!s.contains(['\\','\0']))&&!parts.iter().any(|s|{let s=s.to_lowercase();["secret","secrets","credentials","password","passwords"].iter().any(|p|s==*p||s.starts_with(&format!("{p}.")))});
  if !valid_structure { return false; }
- if parts[0] == "20_RAW_SOURCES" {
+ if parts[0] == "20_RAW_SOURCES" || (crate::organization::allowed_top(parts[0]) && status == Some("auto")) {
   return drafts || status==Some("approved") || status==Some("auto") || status.is_none();
  }
  let valid_md=path.to_lowercase().ends_with(".md");

@@ -22,6 +22,8 @@ export interface IndexingPromptModalProps {
   progressStep?: string | null;
   progressPercent?: number;
   error?: string | null;
+  children?: React.ReactNode;
+  reviewing?: boolean;
   onProceed: () => void;
   onPostpone: () => void;
   onClose?: () => void;
@@ -35,6 +37,8 @@ export const IndexingPromptModal: React.FC<IndexingPromptModalProps> = ({
   progressStep,
   progressPercent,
   error,
+  children,
+  reviewing = false,
   onProceed,
   onPostpone,
   onClose,
@@ -48,7 +52,7 @@ export const IndexingPromptModal: React.FC<IndexingPromptModalProps> = ({
     const keydown = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && !isProcessing) { event.preventDefault(); onPostpone(); }
       if (event.key !== 'Tab' || !dialog) return;
-      const buttons = Array.from(dialog.querySelectorAll<HTMLButtonElement>('button:not([disabled])'));
+      const buttons = Array.from(dialog.querySelectorAll<HTMLElement>('button:not([disabled]), select:not([disabled]), input:not([disabled])'));
       const first = buttons[0], last = buttons[buttons.length - 1];
       if (!first) { event.preventDefault(); return; }
       if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
@@ -102,7 +106,7 @@ export const IndexingPromptModal: React.FC<IndexingPromptModalProps> = ({
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <LimenAiIcon size={22} />
             <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#ffffff' }}>
-              {filesCount > 0 ? 'Documenti caricati: indicizzo?' : 'Aggiorno l’indice del vault?'}
+              {reviewing ? 'Scegli le destinazioni' : 'Indicizza e organizza i documenti'}
             </h3>
           </div>
 
@@ -131,7 +135,7 @@ export const IndexingPromptModal: React.FC<IndexingPromptModalProps> = ({
                 : `Sono stati importati ${filesCount} nuovi documenti in 20_RAW_SOURCES.`}
             </div>
             <p style={{ margin: 0, fontSize: 13, color: '#475569', lineHeight: 1.5 }}>
-              L'originale è conservato intatto. Per rendere il testo interrogabile da <strong>Chiedi a Limen</strong> e dalla ricerca passaggi, è necessario elaborare l'estrazione e aggiornare l'indice.
+              L’operazione comprende anche i documenti già in attesa in RAW. Limen estrae il testo, classifica con il modello locale e sposta gli originali nelle cartelle pertinenti, senza lasciare copie in RAW. Se la destinazione è incerta, ti chiede di sceglierla. Infine aggiorna la ricerca.
             </p>
           </div>
 
@@ -236,6 +240,7 @@ export const IndexingPromptModal: React.FC<IndexingPromptModalProps> = ({
             </div>
           )}
 
+          {children}
           {/* AZIONI */}
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
             <button
@@ -281,7 +286,7 @@ export const IndexingPromptModal: React.FC<IndexingPromptModalProps> = ({
               ) : (
                 <>
                   <CheckCircle2 size={15} />
-                  <span>Indicizza ora</span>
+                  <span>{reviewing ? 'Conferma destinazioni e aggiorna indice' : 'Indicizza e organizza'}</span>
                 </>
               )}
             </button>

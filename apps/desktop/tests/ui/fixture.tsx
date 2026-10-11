@@ -1,3 +1,6 @@
+import { OrganizationReview } from '../../src/OrganizationReview';
+import { organizeDocuments, type PendingDestination, type MoveSummary } from '../../src/organization';
+import { invoke } from './tauri-fixture';
 import { VaultStatusBanner } from '../../../../packages/ui/src/components/VaultStatusBanner';
 import React, { useState } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -32,8 +35,37 @@ function DropFixture() {
   const [paths, setPaths] = useState<string[]>([]);
   const [hover, setHover] = useState(false);
   const [error, setError] = useState('');
-  useNativeFileDrop(true, async p => { setPaths(p); }, setHover, setError);
-  return <output aria-label="Trascinamento">{hover ? 'Rilascia' : paths.join(',') || error}</output>;
+  useNativeFileDrop(true, async (p, destination) => { setPaths(destination ? [...p, destination] : p); }, setHover, setError);
+  return <><button data-vault-drop-folder="02_PROJECTS">Progetti destinazione</button><output aria-label="Trascinamento">{hover ? 'Rilascia' : paths.join(',') || error}</output></>;
+}
+function OrganizationFixture() {
+  const [revision, setRevision] = useState(0);
+  const [pending, setPending] = useState<PendingDestination[]>([]);
+  const [folders, setFolders] = useState<string[]>([]);
+  const [choices, setChoices] = useState<Record<string, string>>({});
+  const [move, setMove] = useState<MoveSummary | null>(null);
+  const [result, setResult] = useState('');
+  const [busy, setBusy] = useState(false);
+  const run = async () => {
+    setBusy(true);
+    try {
+      const report = await organizeDocuments({
+        plan: () => invoke('organization_plan'),
+        classify: async () => ({ category: 'uncertain', certainty: 'uncertain', evidence: '' }),
+        move: (_path, documentId, expectedHash, destination) => invoke('organization_move', { documentId, expectedHash, destination }),
+      }, '/fixture', choices, () => {});
+      setPending(report.pending); setFolders(report.folders); setMove(report.lastMove); setRevision(v => v + 1);
+      setResult(`spostati=${report.moved.length};in-attesa=${report.pending.length}`);
+    } catch (e) { setResult(String(e)); } finally { setBusy(false); }
+  };
+  return <>
+    <VaultPanel vaultPath="/fixture" refreshToken={revision} onOpenReader={() => {}} />
+    <IndexingPromptModal isOpen={!move} filesCount={1} isProcessing={busy} reviewing={pending.length > 0} onProceed={() => void run()} onPostpone={() => {}}>
+      <OrganizationReview items={pending} folders={folders} choices={choices} disabled={busy} onChange={(id, f) => setChoices(v => ({ ...v, [id]: f }))} />
+    </IndexingPromptModal>
+    {move && <button onClick={async () => { await invoke('organization_undo', { moveId: move.id }); setResult('ripristinato'); setRevision(v => v + 1); }}>Annulla ultimo spostamento</button>}
+    <output aria-label="Organizzazione">{result}</output>
+  </>;
 }
 function Fixture() {
   const panel = new URLSearchParams(location.search).get('panel');
@@ -41,7 +73,7 @@ function Fixture() {
   const [open, setOpen] = useState(true);
   const [manual, setManual] = useState(false);
   return <LanguageProvider><main style={{ height: '95vh', fontFamily: 'Arial', '--limen-lime': '#c8ff00' } as React.CSSProperties}>
-    {panel === 'banner' ? <VaultStatusBanner status="READY" vaultPath="/fixture" vaultName="Vault test" dismissible onOpenObsidian={() => {}} /> : panel === 'documents' ? <DocumentsFixture /> : panel === 'drop' ? <DropFixture /> : panel === 'vault' ? <VaultPanel vaultPath="/fixture" onOpenReader={p => setSection(p)} onRevealInFinder={async p => { setSection(`Finder: ${p}`); }} /> :
+    {panel === 'organization' ? <OrganizationFixture /> : panel === 'banner' ? <VaultStatusBanner status="READY" vaultPath="/fixture" vaultName="Vault test" dismissible onOpenObsidian={() => {}} /> : panel === 'documents' ? <DocumentsFixture /> : panel === 'drop' ? <DropFixture /> : panel === 'vault' ? <VaultPanel vaultPath="/fixture" onOpenReader={p => setSection(p)} onRevealInFinder={async p => { setSection(`Finder: ${p}`); }} /> :
       panel === 'import' ? <IndexingPromptModal isOpen={open} filesCount={2} fileNames={['Uno.txt', 'Due.txt']} isProcessing={false} onProceed={() => setSection('index-requested')} onPostpone={() => { setOpen(false); setSection('postponed'); }} /> :
       <AiPanel vaultPath="/fixture" showManualSearch={manual} onToggleManualSearch={() => setManual(v => !v)} onNavigateToSettings={s => setSection(s)} />}
     <output aria-label="Esito fixture">{section}</output>

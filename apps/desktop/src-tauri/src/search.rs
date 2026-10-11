@@ -129,7 +129,7 @@ fn id(p: &str) -> String {
 fn relative(p: &str) -> Result<(), String> {
     let parts: Vec<_> = p.split('/').collect();
     if parts.len() < 2
-        || (!spec().categories.contains_key(parts[0]) && parts[0] != "20_RAW_SOURCES")
+        || !crate::organization::allowed_top(parts[0]) && !spec().categories.contains_key(parts[0])
         || parts
             .iter()
             .any(|s| s.is_empty() || *s == "." || *s == ".." || s.contains(['\\', '\0']))
@@ -600,6 +600,7 @@ fn walk(
     depth: usize,
     old: Option<&SearchIndexData>,
     docs: &mut BTreeMap<String, SearchDocumentRecord>,
+    originals: &BTreeSet<String>,
 ) -> Result<(), String> {
     if depth > 64 {
         return Err("Directory depth exceeds 64".into());
@@ -614,7 +615,7 @@ fn walk(
             return Err(format!("{p}: Symlinks are not allowed"));
         }
         if m.is_dir() {
-            walk(&child(d, &n)?, &p, cat, depth + 1, old, docs)?;
+            walk(&child(d, &n)?, &p, cat, depth + 1, old, docs, originals)?;
         } else if !m.is_file() {
             return Err(format!("{p}: Not a regular file"));
         } else if ["md", "markdown"].contains(
@@ -625,6 +626,7 @@ fn walk(
                 .to_lowercase()
                 .as_str(),
         ) {
+            if originals.contains(&p) { continue; }
             let (bytes, mtime) = read_file(d, &n)?;
             let sha = compute_sha256(&bytes);
             let cached = old
@@ -662,20 +664,19 @@ pub fn index_vault_search(path: &Path) -> Result<IndexStatusReport, String> {
     let _lock = Lock { system: &s, opened: Some(lock_dir) };
     let old = load_with_vault_path(&s, Some(path))?;
     let mut docs = BTreeMap::new();
+    crate::catalog::sync_catalog(path)?;
+    let originals: BTreeSet<String> = crate::catalog::load_catalog(path)?.documents.values().filter(|d| crate::catalog::is_original(d)).map(|d| d.original_path.clone()).collect();
     let entries = names(&r)?;
     for (cat, kind) in &spec().categories {
         if entries.contains(cat) {
-            walk(&child(&r, cat)?, cat, kind, 0, old.as_ref().map(|v| &**v), &mut docs)?;
+            walk(&child(&r, cat)?, cat, kind, 0, old.as_ref().map(|v| &**v), &mut docs, &originals)?;
         }
     }
-
-    // Sync catalog so new, modified, or removed raw sources are updated
-    let _ = crate::catalog::sync_catalog(path);
 
     // Index catalog raw sources (20_RAW_SOURCES) if VAULT_CATALOG.json exists
     if let Ok(catalog) = crate::catalog::load_catalog_arc(path) {
         for doc in catalog.documents.values() {
-            if doc.original_path.starts_with("20_RAW_SOURCES/") && doc.extraction_status == crate::catalog::ExtractionStatus::Ready && !doc.passages.is_empty() {
+            if crate::catalog::is_original(doc) && doc.extraction_status == crate::catalog::ExtractionStatus::Ready && !doc.passages.is_empty() {
                 let p = doc.original_path.clone();
                 let cached = old
                     .as_ref()
@@ -1404,7 +1405,7 @@ pub fn read_indexed_document(path: &Path, document_id: &str, expected: &str) -> 
     let parts:Vec<_>=d.relative_path.split('/').collect();
 
     // SPECIAL HANDLING FOR 20_RAW_SOURCES (PDF, DOCX, binary sources)
-    if parts[0] == "20_RAW_SOURCES" {
+    if crate::catalog::get_document(path, document_id).is_ok_and(|doc| crate::catalog::is_original(&doc)) {
         let mut dir=r;
         for part in &parts[..parts.len()-1]{dir=child(&dir,part)?;}
         let (bytes,_)=read_file(&dir,parts[parts.len()-1])?;

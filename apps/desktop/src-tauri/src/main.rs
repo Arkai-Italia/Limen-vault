@@ -13,6 +13,28 @@ use tauri::Manager;
 use vault::*;
 
 #[tauri::command]
+async fn organization_prefer(vault_path: String, document_ids: Vec<String>, destination: String) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || limen_vault::organization::prefer(Path::new(&vault_path), &document_ids, &destination)).await.map_err(|e| e.to_string())?
+}
+#[tauri::command]
+async fn organization_plan(vault_path: String) -> Result<limen_vault::organization::Plan, String> {
+    tauri::async_runtime::spawn_blocking(move || limen_vault::organization::plan(Path::new(&vault_path))).await.map_err(|e| e.to_string())?
+}
+#[tauri::command]
+async fn organization_classify(vault_path: String, document_id: String, expected_hash: String,
+    state: tauri::State<'_, limen_vault::llama_llm::LlamaLlmServerState>) -> Result<limen_vault::organization::Decision, String> {
+    limen_vault::organization::classify(Path::new(&vault_path), &document_id, &expected_hash, &state).await
+}
+#[tauri::command]
+async fn organization_move(vault_path: String, document_id: String, expected_hash: String, destination: String) -> Result<limen_vault::organization::MoveSummary, String> {
+    tauri::async_runtime::spawn_blocking(move || limen_vault::organization::move_document(Path::new(&vault_path), &document_id, &expected_hash, &destination)).await.map_err(|e| e.to_string())?
+}
+#[tauri::command]
+async fn organization_undo(vault_path: String, move_id: String) -> Result<limen_vault::organization::MoveSummary, String> {
+    tauri::async_runtime::spawn_blocking(move || limen_vault::organization::undo(Path::new(&vault_path), &move_id)).await.map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
 async fn automation_status(vault_path:String)->Result<limen_vault::automation::Report,String>{tauri::async_runtime::spawn_blocking(move||limen_vault::automation::status(Path::new(&vault_path))).await.map_err(|e|e.to_string())?}
 #[tauri::command]
 async fn automation_configure(vault_path:String,config:limen_vault::automation::Config)->Result<limen_vault::automation::Report,String>{tauri::async_runtime::spawn_blocking(move||limen_vault::automation::configure(Path::new(&vault_path),config)).await.map_err(|e|e.to_string())?}
@@ -381,7 +403,7 @@ fn main() {
         .manage(llama_state)
         .manage(llama_llm_state)
         .manage(std::sync::Arc::new(limen_vault::automation::AutomationScheduler::default()))
-        .invoke_handler(tauri::generate_handler![automation_status,automation_configure,automation_run,automation_retry,automation_choose_files,automation_import_files,sync_revoke_publication,sync_select_notes,sync_list_releases,sync_get_status,sync_save_config,sync_save_key,sync_disconnect,sync_test_connection,sync_plan_transfer,sync_execute_transfer,sync_cancel_transfer,
+        .invoke_handler(tauri::generate_handler![organization_prefer,organization_plan,organization_classify,organization_move,organization_undo,automation_status,automation_configure,automation_run,automation_retry,automation_choose_files,automation_import_files,sync_revoke_publication,sync_select_notes,sync_list_releases,sync_get_status,sync_save_config,sync_save_key,sync_disconnect,sync_test_connection,sync_plan_transfer,sync_execute_transfer,sync_cancel_transfer,
             get_default_vault_path,
             create_vault,
             open_vault,

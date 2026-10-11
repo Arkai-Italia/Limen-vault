@@ -472,7 +472,7 @@ pub fn embeddings_status(vault_path: &Path) -> Result<EmbeddingsStatusReport, St
         for p in &doc.passages {
             total_passages += 1;
             if let Some(entry) = cache.entries.get(&p.passage_id) {
-                if entry.sha256 == p.sha256 {
+                if entry.sha256 == p.sha256 && entry.relative_path == doc.original_path {
                     cached_passages += 1;
                 }
             }
@@ -847,6 +847,7 @@ pub async fn sync_embeddings_with_progress(
             let needs_update = match working_cache.entries.get(&p.passage_id) {
                 Some(entry) => {
                     entry.sha256 != p.sha256
+                        || entry.relative_path != doc.original_path
                         || entry.model != target_model
                         || entry.dimensions != target_dimensions
                         || entry.embedded_text_sha256.as_deref() != Some(&embedded_sha)

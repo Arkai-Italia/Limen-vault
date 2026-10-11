@@ -339,6 +339,14 @@ pub fn import_selected_with_receipt(vault: &Path, source: &Path) -> ImportReceip
     let hash_prefix = format!("{}-", &hash[..16]);
 
     let existing_match = (|| -> Result<Option<String>, String> {
+        // Deduplicate also against originals already organized outside RAW.
+        if let Ok(cat) = crate::catalog::load_catalog(vault) {
+            let r = root(vault)?;
+            for doc in cat.documents.values().filter(|d| crate::catalog::is_original(d) && d.content_hash == hash) {
+                if read_path(&r, &doc.original_path).is_ok_and(|b| b == bytes) { return Ok(Some(doc.original_path.clone())); }
+            }
+        }
+
         let d = root(vault)?;
         let raw = child(&d, "20_RAW_SOURCES")?;
         for existing in names(&raw)? {
@@ -354,7 +362,7 @@ pub fn import_selected_with_receipt(vault: &Path, source: &Path) -> ImportReceip
     })().unwrap_or(None);
 
     if let Some(existing_rel) = existing_match {
-        let doc_id = crate::catalog::make_document_id(&existing_rel);
+        let doc_id = crate::catalog::get_document_by_path(vault, &existing_rel).map(|d| d.document_id).unwrap_or_else(|_| crate::catalog::make_document_id(&existing_rel));
         return ImportReceipt {
             name,
             path: Some(existing_rel),

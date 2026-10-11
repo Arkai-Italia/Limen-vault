@@ -74,7 +74,7 @@ export interface VaultFolderItem {
 }
 
 const STATIC_METADATA: Record<string, { label: string; description: string; kind: VaultFolderItem['kind'] }> = {
-  '20_RAW_SOURCES': { label: '20_RAW_SOURCES (Originali)', description: 'Documenti e file originali importati (PDF, Word, Excel, TXT, immagini)', kind: 'raw' },
+  '20_RAW_SOURCES': { label: '20_RAW_SOURCES (Da organizzare)', description: 'Documenti importati ancora in attesa di una destinazione', kind: 'raw' },
   '01_CLIENTS': { label: '01_CLIENTS (Clienti)', description: 'Note di conoscenza strutturata sui clienti e committenti', kind: 'knowledge' },
   '02_PROJECTS': { label: '02_PROJECTS (Progetti)', description: 'Schede dei progetti, roadmap e avanzamento', kind: 'knowledge' },
   '03_BRANDS': { label: '03_BRANDS (Brand)', description: 'Identità di marca, linee guida e posizionamento brand', kind: 'knowledge' },
@@ -93,6 +93,7 @@ const STATIC_METADATA: Record<string, { label: string; description: string; kind
 
 export interface VaultPanelProps {
   vaultPath: string;
+  refreshToken?: number;
   onOpenReader: (relativePath: string) => void;
   onRevealInFinder?: (relativePath: string) => Promise<void> | void;
   onNavigateToUpload?: () => void;
@@ -101,6 +102,7 @@ export interface VaultPanelProps {
 
 export const VaultPanel: React.FC<VaultPanelProps> = ({
   vaultPath,
+  refreshToken = 0,
   onOpenReader,
   onRevealInFinder,
   onNavigateToUpload,
@@ -211,7 +213,7 @@ export const VaultPanel: React.FC<VaultPanelProps> = ({
       void loadFolders();
     }
     return () => { folderRequest.current += 1; };
-  }, [vaultPath]);
+  }, [vaultPath, refreshToken]);
 
   // Caricamento file al cambio cartella
   useEffect(() => {
@@ -219,7 +221,7 @@ export const VaultPanel: React.FC<VaultPanelProps> = ({
       void loadFolderFiles(selectedFolder);
     }
     return () => { fileRequest.current += 1; };
-  }, [vaultPath, selectedFolder]);
+  }, [vaultPath, selectedFolder, refreshToken]);
 
   const activeFolderMeta = useMemo(() => {
     const found = folders.find((f) => f.id === selectedFolder);
@@ -323,7 +325,7 @@ export const VaultPanel: React.FC<VaultPanelProps> = ({
             </h2>
           </div>
           <p style={{ margin: 0, fontSize: 13, color: '#94a3b8', lineHeight: 1.5 }}>
-            Naviga nella struttura reale del Vault sul disco. Visualizza sia i documenti originali (RAW) sia le note Markdown categorizzate, le proposte e gli output dell’AI.
+            Consulta documenti originali e note nelle cartelle del Vault. RAW contiene i file ancora da organizzare; proposte e output AI restano nelle sezioni dedicate.
           </p>
         </div>
 
@@ -408,6 +410,8 @@ export const VaultPanel: React.FC<VaultPanelProps> = ({
               return (
                 <button
                   key={f.id}
+                  data-vault-drop-folder={f.id}
+                  title="Trascina qui per scegliere questa destinazione"
                   onClick={() => setSelectedFolder(f.id)}
                   style={{
                     display: 'flex',
@@ -503,7 +507,7 @@ export const VaultPanel: React.FC<VaultPanelProps> = ({
                     fontWeight: 600,
                   }}
                 >
-                  {activeFolderMeta.kind === 'raw' ? 'Originali RAW' : activeFolderMeta.kind === 'knowledge' ? 'Note Conoscenza' : activeFolderMeta.kind === 'proposals' ? 'Proposte' : activeFolderMeta.kind === 'outputs' ? 'Output AI' : 'Cartella'}
+                  {activeFolderMeta.kind === 'raw' ? 'Da organizzare' : activeFolderMeta.kind === 'knowledge' ? 'Documenti e note' : activeFolderMeta.kind === 'proposals' ? 'Proposte' : activeFolderMeta.kind === 'outputs' ? 'Output AI' : 'Cartella'}
                 </span>
                 {!folderExists && (
                   <span
@@ -677,7 +681,7 @@ export const VaultPanel: React.FC<VaultPanelProps> = ({
                 <p style={{ margin: 0, fontSize: 12.5, color: '#64748b', maxWidth: 420, marginInline: 'auto' }}>
                   {activeFolderMeta.kind === 'raw'
                     ? 'Trascina o carica qui i documenti (PDF, Word, Excel, TXT) per iniziare a costruire la conoscenza del Vault.'
-                    : 'Le note in questa cartella vengono prodotte dalla classificazione e compilazione delle fonti o scritte in formato Markdown.'}
+                    : 'Questa cartella può contenere documenti originali organizzati e note Markdown.'}
                 </p>
               </div>
             )}
@@ -687,6 +691,7 @@ export const VaultPanel: React.FC<VaultPanelProps> = ({
                 {filteredFiles.map((file) => (
                   <div
                     key={file.relativePath}
+                    data-vault-drop-folder={file.isDir ? file.relativePath : undefined}
                     style={{
                       display: 'flex',
                       alignItems: 'center',

@@ -1,6 +1,6 @@
 export async function invoke<T>(command: string, args: Record<string, unknown> = {}): Promise<T> {
   (window as any).__calls.push({ command, args });
-  if (['vault_list_folders', 'vault_list_folder_files', 'vault_read_text', 'ai_get_mode', 'ai_set_mode'].includes(command)) {
+  if (['organization_plan', 'organization_move', 'organization_undo', 'vault_list_folders', 'vault_list_folder_files', 'vault_read_text', 'ai_get_mode', 'ai_set_mode'].includes(command)) {
     if (command === 'ai_set_mode' && (window as any).__failSave) throw new Error('Salvataggio modalità non riuscito');
     const r = await fetch('/native', { method: 'POST', body: JSON.stringify({ command, args }) });
     const data = await r.json();

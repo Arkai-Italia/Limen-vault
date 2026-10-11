@@ -20,6 +20,8 @@ let server;
 try {
   native('create', vault, join(root, 'vault-template'));
   unbox(native('set-mode', vault, 'hybrid'));
+  writeFileSync(join(vault, '20_RAW_SOURCES/organize-me.txt'), 'Documento sintetico da organizzare.');
+  native('org-prepare', vault);
   mkdirSync(join(vault, 'CUSTOM/nested'), { recursive: true });
   writeFileSync(join(vault, 'CUSTOM/nested/nota.md'), '# Nota sintetica\nContenuto leggibile senza indicizzazione.');
   const built = await esbuild.build({ entryPoints: [join(root, 'apps/desktop/tests/ui/fixture.tsx')], bundle: true, write: false, format: 'iife', loader: { '.png': 'dataurl', '.svg': 'dataurl', '.css': 'empty' }, alias: { '@tauri-apps/api/webview': join(root, 'apps/desktop/tests/ui/tauri-fixture.ts'), '@tauri-apps/api/core': join(root, 'apps/desktop/tests/ui/tauri-fixture.ts'), '@tauri-apps/api/event': join(root, 'apps/desktop/tests/ui/tauri-fixture.ts') } });
@@ -29,7 +31,7 @@ try {
       let body = ''; for await (const chunk of req) body += chunk;
       try {
         const { command, args } = JSON.parse(body);
-        const commands = { vault_list_folders: ['folders', vault], vault_list_folder_files: ['folder-files', vault, args.folder || ''], vault_read_text: ['read-text', vault, args.relativePath || ''], ai_get_mode: ['mode', vault], ai_set_mode: ['set-mode', vault, args.mode || ''] };
+        const commands = { organization_plan: ['org-plan', vault], organization_move: ['org-move', vault, args.documentId, args.expectedHash, args.destination], organization_undo: ['org-undo', vault, args.moveId], vault_list_folders: ['folders', vault], vault_list_folder_files: ['folder-files', vault, args.folder || ''], vault_read_text: ['read-text', vault, args.relativePath || ''], ai_get_mode: ['mode', vault], ai_set_mode: ['set-mode', vault, args.mode || ''] };
         if (!commands[command]) throw new Error('Unsupported command');
         res.end(JSON.stringify(native(...commands[command])));
       } catch (e) { res.end(JSON.stringify({ ok: false, error: String(e) })); }
@@ -119,10 +121,26 @@ try {
   await page.waitForFunction(() => !!window.__nativeDrop);
   await page.evaluate(() => window.__nativeDrop({ payload: { type: 'enter', paths: ['/tmp/cartella'] } }));
   assert.equal(await page.getByLabel('Trascinamento').innerText(), 'Rilascia');
-  await page.evaluate(() => window.__nativeDrop({ payload: { type: 'drop', paths: ['/tmp/cartella', '/tmp/file.pdf'] } }));
+  await page.evaluate(() => window.__nativeDrop({ payload: { type: 'drop', paths: ['/tmp/cartella', '/tmp/file.pdf'], position: { x: 0, y: 0 } } }));
   await page.getByLabel('Trascinamento').filter({ hasText: '/tmp/cartella,/tmp/file.pdf' }).waitFor();
+  const targetBox = await page.getByRole('button', { name: 'Progetti destinazione' }).boundingBox();
+  await page.evaluate(box => window.__nativeDrop({ payload: { type: 'drop', paths: ['/tmp/target.txt'], position: { x: (box.x + 5) * devicePixelRatio, y: (box.y + 5) * devicePixelRatio } } }), targetBox);
+  await page.getByLabel('Trascinamento').filter({ hasText: '/tmp/target.txt,02_PROJECTS' }).waitFor();
+  await page.goto(`${url}/?panel=organization`);
+  await page.getByRole('button', { name: 'Indicizza e organizza', exact: true }).click();
+  await page.getByLabel('Destinazione per organize-me.txt').selectOption('02_PROJECTS');
+  await page.getByRole('button', { name: 'Conferma destinazioni e aggiorna indice' }).click();
+  await page.getByLabel('Organizzazione', { exact: true }).filter({ hasText: 'spostati=1;in-attesa=0' }).waitFor();
+  const planAfter = unbox(native('org-plan', vault));
+  assert.equal(planAfter.documents.length, 0);
+  assert.equal(planAfter.lastMove.to, '02_PROJECTS/organize-me.txt');
+  await page.getByRole('button', { name: /02_PROJECTS/ }).filter({ hasText: /1$/ }).waitFor();
+  await page.getByRole('button', { name: 'Annulla ultimo spostamento' }).click();
+  await page.getByLabel('Organizzazione', { exact: true }).filter({ hasText: 'ripristinato' }).waitFor();
+  assert.equal(unbox(native('org-plan', vault)).documents.length, 1);
+  await page.getByRole('button', { name: /20_RAW_SOURCES/ }).filter({ hasText: /1$/ }).waitFor();
   assert.deepEqual(errors, []);
-  console.log(`PASS browser: filter changes/empty/search/stale response, memory warning dismissal across reload, Ministral label, native drop handler contract, native JSON explorer, nested folder, unindexed text preview, Finder target, failed mode save, missing-model routing, retained draft, advanced toggle, postpone. Screenshots: ${temp}`);
+  console.log(`PASS browser: uncertain destination → selection → real Rust move → undo, folder drop target, filter changes/empty/search/stale response, memory warning dismissal across reload, Ministral label, native drop handler contract, native JSON explorer, nested folder, unindexed text preview, Finder target, failed mode save, missing-model routing, retained draft, advanced toggle, postpone. Screenshots: ${temp}`);
 } finally {
   if (browser) await browser.close();
   if (server) await new Promise(r => server.close(r));

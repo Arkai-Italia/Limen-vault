@@ -26,7 +26,7 @@ pub fn status(path: &Path) -> Result<IndexingStatus, String> {
     let mut ready = 0;
     let mut unauthorized = 0;
     let mut lexical = index.is_some();
-    for doc in catalog.documents.values().filter(|d| d.original_path.starts_with("20_RAW_SOURCES/")) {
+    for doc in catalog.documents.values().filter(|d| catalog::is_original(d)) {
         if doc.indexing_authorized_hash.as_deref() != Some(doc.content_hash.as_str()) { unauthorized += 1; }
         match doc.extraction_status {
             ExtractionStatus::Pending | ExtractionStatus::Processing => pending += 1,

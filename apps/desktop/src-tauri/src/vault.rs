@@ -197,6 +197,7 @@ fn walk(
     depth: usize,
     result: &mut ValidationResultResponse,
     system: &mut BTreeMap<String, String>,
+    originals: &std::collections::BTreeSet<String>,
 ) -> Result<(), String> {
     if depth > 64 {
         return Err("Directory depth exceeds 64".into());
@@ -225,7 +226,7 @@ fn walk(
                     && !name.to_string_lossy().starts_with('.')
                     && name != "node_modules"
                 {
-                    walk(root, &child_path, depth + 1, result, system)?;
+                    walk(root, &child_path, depth + 1, result, system, originals)?;
                 }
             } else if meta.is_file() {
                 let mut opts = OpenOptions::new();
@@ -249,7 +250,7 @@ fn walk(
                     }
                     if label.ends_with(".md") {
                         result.page_count += 1;
-                        if label.starts_with("20_RAW_SOURCES/") {
+                        if label.starts_with("20_RAW_SOURCES/") || originals.contains(&label) {
                             result.source_count += 1;
                             let _ = frontmatter_unvalidated(&content);
                         } else {
@@ -330,7 +331,10 @@ fn validate_dir(root: &Dir) -> ValidationResultResponse {
     }
     let mut system = BTreeMap::new();
     let previous = result.errors.len();
-    if let Err(e) = walk(root, Path::new("."), 0, &mut result, &mut system) {
+    let originals = crate::snapshots::read_path(root, "00_SYSTEM/VAULT_CATALOG.json").ok()
+        .and_then(|bytes| serde_json::from_slice::<crate::catalog::CatalogState>(&bytes).ok())
+        .map(|c| c.documents.into_values().filter(crate::catalog::is_original).map(|d| d.original_path).collect()).unwrap_or_default();
+    if let Err(e) = walk(root, Path::new("."), 0, &mut result, &mut system, &originals) {
         result.errors.push(e);
     }
     if result.errors.len() > previous {

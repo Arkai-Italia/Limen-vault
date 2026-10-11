@@ -3,6 +3,14 @@ use std::path::Path;
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     match args.get(1).map(String::as_str) {
+        Some("org-classify-synthetic") => {
+            let rt = tokio::runtime::Runtime::new().unwrap();
+            output(rt.block_on(limen_vault::organization::request_decision(args[2].parse().unwrap(), "Progetto Casa Aurora: consegna elaborati il 15 novembre. Attività di rilievo, progettazione e verifica preventivi.")));
+        },
+        Some("org-plan") => output(limen_vault::organization::plan(Path::new(&args[2]))),
+        Some("org-move") => output(limen_vault::organization::move_document(Path::new(&args[2]), &args[3], &args[4], &args[5])),
+        Some("org-undo") => output(limen_vault::organization::undo(Path::new(&args[2]), &args[3])),
+        Some("org-prepare") => { limen_vault::catalog::sync_catalog(Path::new(&args[2])).unwrap(); output(limen_vault::catalog::process_pending_extractions(Path::new(&args[2]))); },
         Some("folders") => output(vault::list_vault_folders(Path::new(&args[2]))),
         Some("folder-files") => output(vault::list_vault_folder_files(Path::new(&args[2]), &args[3])),
         Some("read-text") => output(vault::read_vault_text(Path::new(&args[2]), &args[3])),

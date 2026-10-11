@@ -63,3 +63,33 @@ function localApi(overrides: Record<string, unknown> = {}) {
   await assert.rejects(activateLocalMode(api, '/fixture'), /startup failed/);
 }
 console.log('PASS: production indexing flow (success, each failed stage, partial status, unreadable status); local activation (save ordering, downloaded model, missing prerequisites, startup failure).');
+
+
+// Production orchestration: uncertain destinations never move; chosen folders bypass AI.
+const { organizeDocuments } = await import('../src/organization');
+const docs = ['a', 'b', 'c'].map(id => ({ documentId: id, fileName: `${id}.txt`, contentHash: `hash-${id}`, extractionStatus: 'ready' })) as import('../src/vault-ipc').DocumentRecord[];
+{
+  const calls: string[] = [];
+  const api = {
+    plan: async () => ({ documents: docs, folders: ['02_PROJECTS', '01_CLIENTS'], lastMove: null }),
+    classify: async (_p: string, id: string) => { calls.push(`classify:${id}`); return { category: id === 'a' ? 'project' : 'uncertain', certainty: id === 'a' ? 'clear' : 'uncertain', evidence: 'text' }; },
+    move: async (_p: string, id: string, _h: string, destination: string) => { calls.push(`move:${id}:${destination}`); return { id, documentId: id, from: '20_RAW_SOURCES/file', to: destination }; },
+  };
+  const result = await organizeDocuments(api, '/fixture', { c: '01_CLIENTS' }, () => {});
+  assert.equal(result.pending.length, 1);
+  assert.equal(result.pending[0].document.documentId, 'b');
+  assert.equal(result.moved.length, 2);
+  assert.deepEqual(calls, ['classify:a', 'move:a:02_PROJECTS', 'classify:b', 'move:c:01_CLIENTS']);
+}
+{
+  let calls = 0;
+  const result = await organizeDocuments({
+    plan: async () => ({ documents: docs, folders: ['02_PROJECTS'], lastMove: null }),
+    classify: async () => { calls++; throw new Error('No local model'); },
+    move: async () => { throw new Error('Must not move'); },
+  }, '/fixture', {}, () => {});
+  assert.equal(calls, 1, 'Do not retry unavailable service for every file');
+  assert.equal(result.pending.length, 3);
+}
+assert.equal((await run({ organize: async () => { throw new Error('Destination needed'); } })).result.complete, false);
+console.log('PASS organization: clear vs uncertain, manual bypass, unavailable model stops repeated calls, incomplete status.');

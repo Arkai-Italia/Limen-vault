@@ -27,3 +27,5 @@ pub mod indexing;
 
 #[cfg(test)]
 mod release_regressions;
+
+pub mod organization;

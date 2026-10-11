@@ -16,6 +16,12 @@ use std::{
     time::SystemTime,
 };
 
+pub static CATALOG_WRITE: Mutex<()> = Mutex::new(());
+
+pub fn is_original(doc: &DocumentRecord) -> bool {
+    doc.original_path.starts_with("20_RAW_SOURCES/") || doc.tags.iter().any(|t| t == "limen-original")
+}
+
 pub const CATALOG_FILE: &str = "VAULT_CATALOG.json";
 pub const CATALOG_SCHEMA_VERSION: u32 = 1;
 
@@ -545,16 +551,22 @@ fn collect_entries_recursive(
 /// Scan RAW sources, migrate existing AUTO_KNOWLEDGE jobs if any, and reconcile the catalog.
 /// Does not delete original files or alter legacy proposal status.
 pub fn sync_catalog_from_vault(vault_path: &Path) -> Result<CatalogState, String> {
+    let _guard = CATALOG_WRITE.lock().map_err(err)?;
+    crate::organization::recover_locked(vault_path)?;
     let mut catalog = load_catalog(vault_path)?;
     let r = root(vault_path)?;
     let mut discovered_paths = std::collections::BTreeSet::new();
 
     // 1. Scan 20_RAW_SOURCES with content-hash deduplication and alias preservation
-    if let Ok(raw_dir) = child(&r, "20_RAW_SOURCES") {
+    for folder in crate::organization::source_folders(vault_path)? {
+      if let Ok(raw_dir) = child(&r, &folder) {
         let mut raw_entries = Vec::new();
         let _ = collect_entries_recursive(&raw_dir, "", 0, &mut raw_entries);
         for (sub_rel, name, bytes) in raw_entries {
-            let rel_path = format!("20_RAW_SOURCES/{}", sub_rel);
+            let rel_path = format!("{}/{}", folder, sub_rel);
+            let known_original = catalog.documents.values().any(|d| d.original_path == rel_path && is_original(d));
+            if folder != "20_RAW_SOURCES" && name.to_lowercase().ends_with(".md") && !known_original
+                && crate::organization::category_for(&folder).is_some() { continue; }
             let hash = compute_sha256(&bytes);
             discovered_paths.insert(rel_path.clone());
 
@@ -643,13 +655,14 @@ pub fn sync_catalog_from_vault(vault_path: &Path) -> Result<CatalogState, String
                 category: None,
                 client: None,
                 project: None,
-                tags: Vec::new(),
+                tags: vec!["limen-original".into()],
                 evidence_type: "source".into(),
                 editorial_status: "auto".into(),
             });
         }
     }
 
+    }
     // 2. Scan 90_PROPOSALS — preserves legacy proposals without fabricating approval
     if let Ok(prop_dir) = child(&r, "90_PROPOSALS") {
         for name in names(&prop_dir)? {
@@ -730,6 +743,10 @@ pub fn sync_catalog_from_vault(vault_path: &Path) -> Result<CatalogState, String
                     continue;
                 }
                 let rel_path = format!("{}/{}", folder, sub_rel);
+                if catalog.documents.values().any(|d| d.original_path == rel_path && is_original(d)) {
+                    discovered_paths.insert(rel_path);
+                    continue;
+                }
                 let hash = compute_sha256(&bytes);
                 discovered_paths.insert(rel_path.clone());
                 let doc_id = make_document_id(&rel_path);
@@ -808,7 +825,7 @@ pub fn sync_catalog_from_vault(vault_path: &Path) -> Result<CatalogState, String
 
     // Removal detection: prune documents whose original files were deleted on disk
     catalog.documents.retain(|_, doc| {
-        if doc.original_path.starts_with("20_RAW_SOURCES/")
+        if is_original(doc)
             || doc.original_path.starts_with("90_PROPOSALS/")
             || KNOWLEDGE_FOLDERS.iter().any(|f| doc.original_path.starts_with(f))
         {
@@ -990,13 +1007,15 @@ pub fn extract_document_content(bytes: &[u8], filename: &str) -> Result<String, 
 /// Extract and generate passages for any document in Pending status.
 /// Operates completely OFFLINE without any API key or network connection!
 pub fn process_pending_extractions(vault_path: &Path) -> Result<usize, String> {
+    let _guard = CATALOG_WRITE.lock().map_err(err)?;
+    crate::organization::recover_locked(vault_path)?;
     let mut catalog = load_catalog(vault_path)?;
     let mut processed = 0;
     let mut changed = false;
     let r = root(vault_path)?;
 
     for doc in catalog.documents.values_mut() {
-        if doc.original_path.starts_with("20_RAW_SOURCES/") && doc.indexing_authorized_hash.as_deref() != Some(&doc.content_hash) {
+        if is_original(doc) && doc.indexing_authorized_hash.as_deref() != Some(&doc.content_hash) {
             doc.indexing_authorized_hash = Some(doc.content_hash.clone());
             changed = true;
         }
