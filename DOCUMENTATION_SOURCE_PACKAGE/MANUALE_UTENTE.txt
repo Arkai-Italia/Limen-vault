@@ -1,0 +1,819 @@
+================================================================================
+                    MANUALE UTENTE UFFICIALE — LIMEN VAULT v7Mini
+                     Versione Applicazione: 0.7.0 (v7Mini)
+                     Data di Pubblicazione: 11 Ottobre 2026
+                   Identificativo: dev.arkai.limenvault (macOS / Windows)
+================================================================================
+
+Questo documento costituisce il manuale operativo ufficiale per LIMEN Vault v7Mini,
+l'ambiente desktop di knowledge management e intelligenza artificiale ad architettura
+"Local-First" e riservatezza "Zero-Network".
+Tutte le procedure descritte sono verificate direttamente sul codice sorgente della
+release 0.7.0.
+
+--------------------------------------------------------------------------------
+INDICE GENERALE DEI CONTENUTI
+--------------------------------------------------------------------------------
+
+PARTE I — GUIDA DI CONSULTAZIONE RAPIDA
+  1. INDICE PER MENU E STRUTTURA DELL'INTERFACCIA
+  2. INDICE OPERATIVO PER COMPITI: «COSA TI SERVE?»
+
+PARTE II — FONDAMENTI E AVVIO DEL SISTEMA
+  Capitolo 1: Introduzione a LIMEN Vault v7Mini (0.7.0)
+  Capitolo 2: Architettura e Privacy a Rete Zero (Zero-Network)
+  Capitolo 3: Requisiti di Sistema e Accelerazione Hardware (Metal / AVX2 / RAM)
+  Capitolo 4: Installazione e Primo Avvio
+  Capitolo 5: Il Setup Wizard Guidato (Configurazione in 3 Passaggi)
+
+PARTE III — INTERFACCIA UTENTE E WORKFLOW PRIMARI
+  Capitolo 6: Panoramica dell'Interfaccia e Navigazione a 4 Aree
+  Capitolo 7: L'Header Globale e le Funzioni di Stato
+  Capitolo 8: Area 1 — Chiedi al Vault: Ricerca Semantica RAG e Chat
+  Capitolo 9: Comprensione del Reasoning Trace (Modelli DeepSeek-R1)
+  Capitolo 10: Ispezione delle Fonti e Citazioni Verificate
+  Capitolo 11: Il Lettore Documenti Integrato (DocumentReaderModal)
+  Capitolo 12: Area 2 — Gestione Documenti e Indicizzazione
+  Capitolo 13: Caricamento File e Cartelle (UploadDrawer)
+  Capitolo 14: Area 3 — Esplorazione della Memoria e Grafo Concettuale
+
+PARTE IV — AMMINISTRAZIONE E SEZIONI AVANZATE
+  Capitolo 15: Area 4 — Sezioni Avanzate: Panoramica Generale
+  Capitolo 16: Sezione Avanzate A — Approvazione Note e Gestione Bozze (00_INBOX)
+  Capitolo 17: Sezione Avanzate B — Gestione Snapshot e Ripristino del Vault
+  Capitolo 18: Sezione Avanzate C — Catalogo Modelli LLM e Gestione llama.cpp
+  Capitolo 19: Dimensionamento RAM e Scelta del Modello (3B, 7B, 8B, 14B)
+  Capitolo 20: Sezione Avanzate D — Sincronizzazione Cloud S3/R2 (Opzionale)
+  Capitolo 21: Sezione Avanzate E — Compilazione Manuale Rete Zero da Sorgenti
+  Capitolo 22: Sezione Avanzate F — Configurazione e Preferenze del Sistema
+  Capitolo 23: Sezione Avanzate G — Diagnostica, Log di Sistema e Manutenzione
+
+PARTE V — INTEGRAZIONE E SICUREZZA
+  Capitolo 24: Integrazione Nativa con Obsidian (obsidian://open)
+  Capitolo 25: Sicurezza Crittografica, Integrità SHA-256 e Audit Trail
+
+APPENDICI
+  Appendice A: Indice Analitico delle Azioni Rapide («COSA TI SERVE?»)
+  Appendice B: Guida alla Risoluzione dei Problemi (Troubleshooting)
+  Appendice C: Glossario dei Termini Tecnici e Traduzioni IT/EN
+
+
+================================================================================
+PARTE I — GUIDA DI CONSULTAZIONE RAPIDA
+================================================================================
+
+--------------------------------------------------------------------------------
+1. INDICE PER MENU E STRUTTURA DELL'INTERFACCIA
+--------------------------------------------------------------------------------
+
+L'applicazione LIMEN Vault è strutturata in un Header Globale fisso e in 4 Aree di
+Navigazione principali, oltre a 7 Sezioni Avanzate secondarie e a Modali di contesto:
+
+BARRA SUPERIORE (GLOBAL HEADER)
+  - Identificatore di Versione: "LIMEN Vault v7Mini (0.7.0)" -> Cap. 7
+  - Indicatore Stato Rete: "100% Locale (Zero-Network)" o "Ibrida (Cloud)" -> Cap. 7
+  - Pulsante Rapido: "Apri in Obsidian" (NAV-004) -> Cap. 24
+  - Selettore Lingua: "IT | EN" (NAV-005) -> Cap. 7
+  - Pulsante Primario Globale: "Carica" (NAV-006) -> Cap. 13
+
+AREA 1 — CHIEDI AL VAULT (NAV-001)
+  - Storico Conversazioni e Messaggi Precedenti -> Cap. 8
+  - Pannello Collassabile di Ragionamento ("Reasoning Trace") -> Cap. 9
+  - Corpo della Risposta Generativa Markdown -> Cap. 8
+  - Pillole delle Fonti Verificate con Punteggio di Pertinenza -> Cap. 10
+  - Box di Input Domanda con Invio (INVIO o Clic) -> Cap. 8
+
+AREA 2 — DOCUMENTI (NAV-002)
+  - Barra di Ricerca Testuale e Filtro Tipologia File -> Cap. 12
+  - Tabella dei File Sorgente (Nome, Tipo, Data, Dimensione, Hash) -> Cap. 12
+  - Pulsante Azione per Riga: "Leggi" (Apre il Lettore Documenti) -> Cap. 11
+
+AREA 3 — MEMORIA (NAV-003)
+  - Filtro Categorie e Tag Cloud Semantico -> Cap. 14
+  - Grafo Visivo dei Concetti e Note Correlate -> Cap. 14
+  - Elenco Note Consolidate della Conoscenza (10_KNOWLEDGE) -> Cap. 14
+
+AREA 4 — AVANZATE (NAV-007 A NAV-013)
+  - Sezione A: Approvazione Note e Gestione Bozze (00_INBOX) -> Cap. 16
+  - Sezione B: Snapshot e Ripristino Vault -> Cap. 17
+  - Sezione C: Catalogo Modelli LLM e Controllo llama.cpp -> Cap. 18, 19
+  - Sezione D: Sincronizzazione Remota Cloud S3/R2 -> Cap. 20
+  - Sezione E: Compilazione Manuale Rete Zero da Sorgenti -> Cap. 21
+  - Sezione F: Configurazione e Impostazioni -> Cap. 22
+  - Sezione G: Diagnostica, Stato llama-server e Log -> Cap. 23
+
+MODALI E CASSETTI CONTESTUALI
+  - SetupWizardModal: Configurazione guidata a 3 passaggi -> Cap. 5
+  - DocumentReaderModal: Lettore interattivo con validazione SHA-256 -> Cap. 11
+  - UploadDrawer: Cassetto di caricamento file/cartelle -> Cap. 13
+
+
+--------------------------------------------------------------------------------
+2. INDICE OPERATIVO PER COMPITI: «COSA TI SERVE?»
+--------------------------------------------------------------------------------
+
+Consulta questa sezione per individuare immediatamente la procedura esatta in base
+all'obiettivo che intendi raggiungere nel tuo lavoro quotidiano:
+
+- «Devo configurare l'applicazione al primissimo avvio»
+  -> Vai al Capitolo 5 (Il Setup Wizard Guidato) e alla scheda WF-001.
+
+- «Voglio porre una domanda ai miei documenti senza che nulla esca dal computer»
+  -> Vai al Capitolo 8 (Chiedi al Vault) e alla scheda WF-002.
+
+- «Voglio verificare l'esatto paragrafo e l'integrità del documento citato dall'AI»
+  -> Vai al Capitolo 10 (Ispezione Fonti) e Capitolo 11 (Lettore Documenti) / WF-003.
+
+- «Devo caricare un nuovo fascicolo di file PDF o una cartella di note»
+  -> Vai al Capitolo 13 (Caricamento File e Cartelle) e alla scheda WF-004.
+
+- «Voglio esplorare visivamente i concetti collegati nella mia knowledge base»
+  -> Vai al Capitolo 14 (Esplorazione della Memoria) e alla scheda WF-005.
+
+- «Devo revisionare, correggere o promuovere le bozze di sintesi create dall'AI»
+  -> Vai al Capitolo 16 (Approvazione Note e Bozze) e alla scheda WF-006.
+
+- «Voglio creare una copia di backup certificata prima di una modifica massiva»
+  -> Vai al Capitolo 17 (Gestione Snapshot e Ripristino) e alla scheda WF-007.
+
+- «Voglio cambiare modello LLM locale o attivare un modello di ragionamento (DeepSeek-R1)»
+  -> Vai al Capitolo 18 e 19 (Catalogo Modelli e Dimensionamento RAM) / WF-008.
+
+- «Voglio passare l'interfaccia in lingua inglese per condividerla con un collega»
+  -> Vai al Capitolo 7 (Header Globale) e alla scheda WF-011.
+
+- «Voglio aprire le note del Vault direttamente dentro Obsidian»
+  -> Vai al Capitolo 24 (Integrazione Nativa con Obsidian) e alla scheda WF-012.
+
+- «Voglio sincronizzare il backup crittografato su un bucket cloud S3/Cloudflare R2»
+  -> Vai al Capitolo 20 (Sincronizzazione Cloud S3/R2) e alla scheda WF-009.
+
+- «Il motore locale non risponde o la generazione si è interrotta»
+  -> Vai all'Appendice B (Guida alla Risoluzione dei Problemi).
+
+
+================================================================================
+PARTE II — FONDAMENTI E AVVIO DEL SISTEMA
+================================================================================
+
+--------------------------------------------------------------------------------
+CAPITOLO 1: INTRODUZIONE A LIMEN VAULT v7Mini (0.7.0)
+--------------------------------------------------------------------------------
+
+1.1 CHE COS'È LIMEN VAULT
+LIMEN Vault v7Mini è una piattaforma professionale desktop concepita per la gestione
+della conoscenza personale e aziendale, con motori integrati di Ricerca Vettoriale
+Semantica (RAG — Retrieval-Augmented Generation) e Sintesi Conversazionale.
+A differenza dei consueti assistenti cloud (come ChatGPT o Claude via web), LIMEN
+Vault opera secondo il paradigma "Local-First": il database vettoriale, i documenti
+originali, gli indici semantici e i pesi del modello linguistico risiedono
+interamente sul disco fisso del dispositivo dell'utente.
+
+1.2 GLI OBIETTIVI CHIAVE DELLA VERSIONE 0.7.0 (v7Mini)
+La release 0.7.0 introduce innovazioni determinanti:
+a) Motore di Inferenza Locale Standalone: Esecuzione di modelli GGUF all'avanguardia
+   (famiglie Ministral, Qwen 2.5, Llama 3.1 e DeepSeek-R1 Distill) senza richiedere
+   runtime esterni complessi come Ollama o Docker.
+b) Accelerazione Hardware Dedicata: Pieno supporto Metal su processori Apple Silicon
+   (M1, M2, M3, M4) e supporto istruzioni vettoriali AVX2 su sistemi Windows x64.
+c) Setup Wizard Guidato a 3 Fasi: Configurazione rapida e infallibile del Vault e del
+   modello al primo avvio.
+d) Lettore Documenti Integrato con Validazione Crittografica: Visualizzatore nativo
+   per PDF, Markdown e TXT con verifica istantanea dell'impronta hash SHA-256.
+e) Interfaccia Bilingue Nativa (IT / EN): Commutazione a caldo della lingua senza
+   necessità di riavviare l'applicazione.
+f) Interoperabilità Totale con Obsidian: Architettura su filesystem trasparente
+   basata sulle cartelle standard di Obsidian (`00_INBOX`, `10_KNOWLEDGE`,
+   `20_RAW_SOURCES`).
+
+
+--------------------------------------------------------------------------------
+CAPITOLO 2: ARCHITETTURA E PRIVACY A RETE ZERO (ZERO-NETWORK)
+--------------------------------------------------------------------------------
+
+2.1 IL PRINCIPIO DELLA RETE ZERO
+Per i professionisti legali, finanziari, medici e aziendali, la riservatezza delle
+informazioni non è una preferenza, ma un vincolo normativo e deontologico. LIMEN
+Vault v7Mini garantisce che, in modalità "100% Locale":
+- Nessun dato testuale viene trasmesso all'esterno del computer.
+- Nessuna telemetria d'uso o metadato viene inviato a server terzi.
+- L'indicizzazione dei documenti e il calcolo degli embedding avvengono tramite il
+  modello locale multilingue `bge-m3`.
+- L'inferenza linguistica viene eseguita dal processo binario `llama-server` in
+  ascolto su socket di loopback locale (127.0.0.1:8080).
+- Il computer può lavorare con il cavo Ethernet scollegato e il Wi-Fi disattivato.
+
+2.2 ARCHITETTURA MODULARE DEL SISTEMA
+L'architettura poggia su 3 livelli coordinati:
+1. Livello Presentazione (Frontend): Scritto in TypeScript e React 18, compilato con
+   Vite. Offre un'interfaccia ardesia scura reattiva, ad alto contrasto, con
+   accenti visivi in tonalità Lime (#c8ff00 / #77f117).
+2. Livello Host Desktop (Tauri v2 Core): Scritto in Rust. Gestisce le chiamate sicure
+   al filesystem del sistema operativo, il controllo dei processi figlio e la
+   comunicazione IPC.
+3. Livello Motori Scientifici:
+   - Database Vettoriale e Relazionale: SQLite locale con estensione `sqlite-vec`.
+   - Modello di Embedding: `bge-m3` locale (vettori a 1024 dimensioni).
+   - Motore LLM: `llama-server` (compilato direttamente da llama.cpp).
+
+
+--------------------------------------------------------------------------------
+CAPITOLO 3: REQUISITI DI SISTEMA E ACCELERAZIONE HARDWARE
+--------------------------------------------------------------------------------
+
+3.1 REQUISITI MINIMI E RACCOMANDATI
+
+Piattaforma Apple macOS:
+- Processore: Apple Silicon M1, M2, M3 o M4 (architettura ARM64 a 64 bit).
+  (Supportati anche sistemi Intel Core i7/i9 con macOS Monterey 12.0 o superiore).
+- Sistema Operativo: macOS 13.0 (Ventura), 14.0 (Sonoma), 15.0 (Sequoia) o versioni
+  successive (incluso supporto macOS 26.0+).
+- Accelerazione Grafica: Motore Metal integrato di macOS (attivo di default).
+- Spazio su Disco: Almeno 15 GB liberi su unità SSD (per applicazione, indici e
+  modelli linguistici GGUF).
+
+Piattaforma Microsoft Windows:
+- Processore: Intel Core i5/i7/i9 (dalla 10a generazione in avanti) o AMD Ryzen 5/7/9
+  con supporto istruzioni AVX2.
+- Sistema Operativo: Microsoft Windows 10 (64-bit) o Windows 11 (64-bit).
+- Memoria RAM e Scheda Video: Vedere matrice di dimensionamento.
+- Spazio su Disco: Almeno 15 GB liberi su SSD NVMe.
+
+3.2 MATRICE DI DIMENSIONAMENTO DELLA MEMORIA RAM
+La tabella seguente specifica il modello LLM consigliato in funzione della RAM
+disponibile sul computer dell'utente:
+
+| RAM di Sistema | Modello LLM Consigliato | Nome File GGUF | Quantizzazione | RAM Modello |
+| :--- | :--- | :--- | :--- | :--- |
+| **8 GB RAM** | Ministral 3B Instruct | ministral-3b-instruct-q4_k_m.gguf | Q4_K_M | ~2.4 GB |
+| **16 GB RAM** | Ministral 8B Instruct | ministral-8b-instruct-q4_k_m.gguf | Q4_K_M | ~5.5 GB |
+| **16 GB RAM** | Qwen 2.5 7B Instruct | qwen2.5-7b-instruct-q4_k_m.gguf | Q4_K_M | ~4.9 GB |
+| **16 GB RAM** | Llama 3.1 8B Instruct | meta-llama-3.1-8b-instruct-q4_k_m.gguf| Q4_K_M | ~5.4 GB |
+| **16 GB RAM** | DeepSeek-R1 Distill 7B | deepseek-r1-distill-qwen-7b-q4_k_m.gguf| Q4_K_M | ~4.9 GB |
+| **24-32+ GB** | DeepSeek-R1 Distill 14B| deepseek-r1-distill-qwen-14b-q4_k_m.gguf| Q4_K_M | ~9.2 GB |
+
+
+--------------------------------------------------------------------------------
+CAPITOLO 4: INSTALLAZIONE E PRIMO AVVIO
+--------------------------------------------------------------------------------
+
+4.1 INSTALLAZIONE SU MACOS
+1. Scaricare il pacchetto di installazione `.dmg` ufficiale della release 0.7.0.
+2. Fare doppio clic sul file scaricato per aprire l'immagine disco.
+3. Trascinare l'icona "LIMEN Vault" nella cartella "Applicazioni" del proprio Mac.
+4. Al primo avvio, su macOS Sequoia o versioni protette da Gatekeeper, fare clic con
+   il tasto destro sull'icona dell'app in Applicazioni e selezionare "Apri",
+   confermando l'esecuzione.
+
+4.2 INSTALLAZIONE SU WINDOWS
+1. Scaricare l'eseguibile di installazione `LIMEN-Vault-Setup-0.7.0.exe`.
+2. Fare doppio clic sull'eseguibile. Se compare la schermata di protezione Windows
+   SmartScreen, fare clic su "Ulteriori informazioni" e poi su "Esegui comunque".
+3. Completare la procedura guidata e avviare l'applicazione.
+
+
+--------------------------------------------------------------------------------
+CAPITOLO 5: IL SETUP WIZARD GUIDATO (CONFIGURAZIONE IN 3 PASSAGGI)
+--------------------------------------------------------------------------------
+
+Al primo avvio dell'applicazione viene presentata automaticamente la finestra modale
+del **Setup Wizard** (`SetupWizardModal`). La procedura richiede meno di due minuti.
+
+STEP 1/3: MODALITÀ DI FUNZIONAMENTO (NETWORK MODE)
+- L'utente seleziona tra due opzioni:
+  a) "100% Locale (Zero-Network)": Privacy assoluta, nessun dato viaggia in rete.
+  b) "Ibrida (Cloud OpenAI + Locale)": Permette di interrogare anche modelli cloud
+     inserendo la propria chiave API OpenAI personale (`sk-...`).
+- Selezionare l'opzione desiderata e fare clic sul pulsante verde "Avanti".
+
+STEP 2/3: SELEZIONE O CREAZIONE DEL VAULT
+- Il Vault è la cartella su disco in cui vengono archiviati i documenti e gli indici.
+- Fare clic sul pulsante "Sfoglia cartella" (`CTL-004`) per selezionare una cartella
+  esistente di Obsidian o una nuova directory vuota sul proprio disco.
+- Il sistema genera o verifica istantaneamente la triade canonica di cartelle:
+  - `00_INBOX`: per le bozze provvisorie e i materiali in entrata.
+  - `10_KNOWLEDGE`: per le note strutturate e la conoscenza consolidata.
+  - `20_RAW_SOURCES`: per i documenti originali (PDF, contratti, dispense).
+- Fare clic su "Avanti".
+
+STEP 3/3: SELEZIONE DEL MODELLO LLM
+- Viene mostrato il catalogo dei modelli disponibili. Per gli utenti con 8 o 16 GB
+  di RAM viene preselezionato "Ministral 3B Instruct" o "Qwen 2.5 7B Instruct".
+- Fare clic su "Scarica e Configura". Una barra di avanzamento mostra la percentuale
+  di scaricamento del file GGUF da Hugging Face. Al termine viene calcolato l'hash
+  crittografico SHA-256 per verificare che il file non sia corrotto.
+- Fare clic sul pulsante "Completa Configurazione" (`CTL-006`). La schermata si chiude
+  e l'utente accede direttamente all'interfaccia principale.
+
+
+================================================================================
+PARTE III — INTERFACCIA UTENTE E WORKFLOW PRIMARI
+================================================================================
+
+--------------------------------------------------------------------------------
+CAPITOLO 6: PANORAMICA DELL'INTERFACCIA E NAVIGAZIONE A 4 AREE
+--------------------------------------------------------------------------------
+
+L'interfaccia di LIMEN Vault adotta un layout Dark Slate coerente, ergonomico per
+lunghe sessioni di lavoro, con caratteri ad alta leggibilità.
+
+STRUTTURA DELLO SCHERMO:
++------------------------------------------------------------------------------+
+| [LOGO] LIMEN Vault v7Mini (0.7.0) | Locale | [Obsidian] [IT|EN] | [ CARICA ] |
++------------------------------------------------------------------------------+
+| [ 1. Chiedi al Vault ]  [ 2. Documenti ]  [ 3. Memoria ]  [ 4. Avanzate ]    |
++------------------------------------------------------------------------------+
+|                                                                              |
+|                    AREA DI LAVORO PRINCIPALE (DINAMICA)                      |
+|                                                                              |
++------------------------------------------------------------------------------+
+
+I tasti di navigazione primari consentono di passare istantaneamente tra:
+1. Chiedi al Vault: La schermata di ricerca RAG e chat con l'intelligenza locale.
+2. Documenti: La tabella completa dei file indicizzati con dettagli e pulsante Leggi.
+3. Memoria: La mappa semantica e l'archivio delle note della conoscenza.
+4. Avanzate: Il centro di controllo per bozze, snapshot, modelli LLM e diagnostica.
+
+
+--------------------------------------------------------------------------------
+CAPITOLO 7: L'HEADER GLOBALE E LE FUNZIONI DI STATO
+--------------------------------------------------------------------------------
+
+La barra superiore rimane costantemente visibile in ogni schermata:
+1. Logo e Versione: Mostra il marchio LIMEN e l'indicatore `0.7.0 (v7Mini)`.
+2. Badge Stato Rete:
+   - "100% Locale (Zero-Network)" (Badge Verde): Conferma che la rete esterna è
+     completamente disattivata e tutti i modelli girano sul dispositivo.
+   - "Ibrido (Cloud Attivo)" (Badge Blu): Conferma che è abilitato il fallback su
+     OpenAI tramite chiave API dell'utente.
+3. Pulsante "Apri in Obsidian" (NAV-004): Invia un comando al sistema operativo per
+   aprire la cartella del Vault direttamente nell'editor Obsidian tramite URI scheme.
+4. Selettore Lingua "IT | EN" (NAV-005): Consente di commutare istantaneamente
+   l'intera interfaccia da Italiano a Inglese senza ricaricare l'applicazione.
+5. Pulsante "Carica" (NAV-006): Pulsante evidenziato in colore Lime (#c8ff00) che
+   apre immediatamente l'UploadDrawer da qualsiasi punto dell'applicazione.
+
+
+--------------------------------------------------------------------------------
+CAPITOLO 8: AREA 1 — CHIEDI AL VAULT: RICERCA SEMANTICA RAG E CHAT
+--------------------------------------------------------------------------------
+
+8.1 FUNZIONAMENTO DELLA SCHERMATA
+L'Area "1. Chiedi al Vault" è lo strumento primario di lavoro quotidiano.
+L'utente digita un quesito nel box di input in basso (`CTL-007`) e invia la domanda
+premendo il tasto INVIO o facendo clic sull'icona di invio (`CTL-008`).
+
+8.2 COSA ACCADE DIETRO LE QUINTE (RAG PIPELINE)
+1. Embedding della Domanda: La frase dell'utente viene convertita in un vettore a 1024
+   dimensioni dal modello locale `bge-m3`.
+2. Ricerca Semantica: Il motore interroga il database SQLite locale estraendo i 5
+   frammenti documentali (chunk) più pertinenti per somiglianza coseno.
+3. Generazione Risposta: Viene invocato il modello linguistico locale su `llama-server`.
+4. Streaming Token: La risposta compare progressivamente a video tramite eventi
+   asincroni Server-Sent Events (SSE).
+
+
+--------------------------------------------------------------------------------
+CAPITOLO 9: COMPRENSIONE DEL REASONING TRACE (MODELLI DEEPSEEK-R1)
+--------------------------------------------------------------------------------
+
+Quando è attivo un modello di ragionamento avanzato, come `DeepSeek-R1 Distill 7B`
+o `14B`, il modello formula una catena logica di pensiero prima di fornire la risposta.
+
+CARATTERISTICHE VISIVE DEL REASONING TRACE:
+1. Durante l'elaborazione, l'interfaccia mostra un pannello espanso intitolato
+   "Pensiero del modello (Reasoning Trace)" con badge ardesia scura e testo in corsivo.
+2. Questo pannello mostra in tempo reale i passaggi di deduzione, le verifiche
+   incrociate sulle fonti e la formulazione logica.
+3. Al termine della fase di pensiero, il pannello si contrae automaticamente in un
+   elemento a fisarmonica (accordion), lasciando spazio alla risposta finale pulita.
+4. L'utente può riaprire o richiudere il pannello del pensiero in qualsiasi momento
+   facendo clic sulla freccia dell'intestazione per verificare il filo logico.
+
+
+--------------------------------------------------------------------------------
+CAPITOLO 10: ISPEZIONE DELLE FONTI E CITAZIONI VERIFICATE
+--------------------------------------------------------------------------------
+
+LIMEN Vault impedisce le "allucinazioni" dell'intelligenza artificiale ancorando ogni
+affermazione ai documenti sorgente caricati nel Vault.
+
+COME LEGGERE LE CITAZIONI:
+- In calce a ogni risposta generata compaiono le pillole delle fonti citate (`CTL-010`).
+- Ogni pillola riporta:
+  - Il nome del file originale (es. `Verbale_CdA_2026.pdf`).
+  - Il riferimento di pagina o paragrafo (es. `p. 4` o `par. 12`).
+  - La percentuale di pertinenza semantica (es. `Score: 92%`).
+- Facendo clic sulla pillola, l'applicazione apre immediatamente il Lettore Documenti
+  focalizzandosi sul passaggio esatto.
+
+
+--------------------------------------------------------------------------------
+CAPITOLO 11: IL LETTORE DOCUMENTI INTEGRATO (DOCUMENTREADERMODAL)
+--------------------------------------------------------------------------------
+
+Il Lettore Documenti (`DocumentReaderModal`) è una finestra modale ad alta sicurezza
+che permette di visualizzare i file originali conservati in `20_RAW_SOURCES`.
+
+FUNZIONALITÀ DEL LETTORE:
+1. Supporto Formati:
+   - PDF: visualizzazione impaginata ad alta risoluzione con navigazione rapida.
+   - Markdown (.md): rendering formattato di titoli, elenchi, tabelle e grassetti.
+   - Testo (.txt): visualizzatore pulito monospazio.
+2. Verifica Crittografica SHA-256 a Caldo:
+   - All'apertura della finestra, il backend ricalcola l'impronta hash SHA-256 del
+     file presente sul disco.
+   - Se l'impronta coincide con quella registrata al momento dell'indicizzazione,
+     appare un badge verde: "Integrità SHA-256 Verificata: [hash]".
+   - Se il file su disco è stato manomesso o alterato all'insaputa del Vault, appare
+     un badge rosso di avviso che segnala l'incongruenza.
+3. Azioni Rapide:
+   - "Copia Hash": copia l'impronta esadecimale negli appunti per verbali o perizie.
+   - "Chiudi": chiude la modale e riporta alla chat o alla tabella documenti.
+
+
+--------------------------------------------------------------------------------
+CAPITOLO 12: AREA 2 — GESTIONE DOCUMENTI E INDICIZZAZIONE
+--------------------------------------------------------------------------------
+
+L'Area "2. Documenti" visualizza l'archivio completo dei materiali depositati nella
+cartella `20_RAW_SOURCES` del proprio Vault.
+
+ELEMENTI DELLA SCHERMATA:
+- Barra di Ricerca Testuale (`CTL-011`): Permette di filtrare i documenti digitando
+  parte del nome del file o dell'estensione.
+- Tabella Dettagliata (`SCR-002`):
+  - Colonna File: Nome e icona del formato (PDF, Markdown, Testo).
+  - Colonna Dimensione: Peso del file in KB o MB.
+  - Colonna Data di Indicizzazione: Timestamp di acquisizione nel sistema.
+  - Colonna Impronta SHA-256: Primi caratteri dell'hash con opzione di copia rapida.
+  - Colonna Azioni: Pulsante "Leggi" per aprire il Lettore Documenti.
+
+
+--------------------------------------------------------------------------------
+CAPITOLO 13: CARICAMENTO FILE E CARTELLE (UPLOADDRAWER)
+--------------------------------------------------------------------------------
+
+Facendo clic sul pulsante verde "Carica" nell'header globale si apre il cassetto
+laterale di caricamento (`UploadDrawer`).
+
+MODALITÀ DI CARICAMENTO:
+1. Selezione File Singoli: Apre la finestra di dialogo del sistema operativo per
+   selezionare uno o più documenti PDF, MD o TXT.
+2. Selezione Cartella Intera: Permette di selezionare una cartella sul disco; il
+   sistema scansiona ricorsivamente tutti i file supportati al suo interno.
+3. Trascinamento (Drag and Drop): È possibile trascinare direttamente i file dal
+   Finder di macOS o da Esplora File di Windows nell'area tratteggiata del cassetto.
+
+AVVIO E FEEDBACK DELL'INDICIZZAZIONE:
+- I documenti selezionati compaiono nella lista di attesa con dimensione in KB.
+- Facendo clic su "Avvia Indicizzazione", il sistema avvia la pipeline `PIPE-001`.
+- Una barra di avanzamento mostra la percentuale di completamento.
+- Al termine, un messaggio di successo conferma il numero di documenti indicizzati e
+  la vista dell'archivio si aggiorna istantaneamente.
+
+
+--------------------------------------------------------------------------------
+CAPITOLO 14: AREA 3 — ESPLORAZIONE DELLA MEMORIA E GRAFO CONCETTUALE
+--------------------------------------------------------------------------------
+
+L'Area "3. Memoria" visualizza le note consolidate presenti in `10_KNOWLEDGE` e le
+relazioni concettuali individuate dall'algoritmo semantico.
+
+VISTE DISPONIBILI:
+1. Mappa a Tag e Categorie: Elenco delle etichette tematiche individuate nei testi;
+   facendo clic su un tag si isolano immediatamente tutte le note attinenti.
+2. Grafo Concettuale Interattivo: Rappresentazione nodale delle note e delle fonti; i
+   nodi più vicini rappresentano documenti con elevata affinità semantica.
+3. Archivio Note Consolidate: Visualizzazione tabellare delle schede di conoscenza
+   approvate, con autore, data e collegamenti Obsidian.
+
+
+================================================================================
+PARTE IV — AMMINISTRAZIONE E SEZIONI AVANZATE
+================================================================================
+
+--------------------------------------------------------------------------------
+CAPITOLO 15: AREA 4 — SEZIONI AVANZATE: PANORAMICA GENERALE
+--------------------------------------------------------------------------------
+
+L'Area "4. Avanzate" raccoglie le funzionalità di governo del sistema, suddivise
+in 7 sezioni accessibili dal menu laterale:
+- Sezione A: Approvazione Note (Bozze in `00_INBOX`)
+- Sezione B: Snapshot e Ripristino Vault
+- Sezione C: Modelli LLM & llama.cpp
+- Sezione D: Sincronizzazione Cloud S3/R2
+- Sezione E: Compilazione Manuale Rete Zero
+- Sezione F: Configurazione
+- Sezione G: Diagnostica e Log
+
+
+--------------------------------------------------------------------------------
+CAPITOLO 16: SEZIONE AVANZATE A — APPROVAZIONE NOTE E BOZZE (00_INBOX)
+--------------------------------------------------------------------------------
+
+16.1 IL CONCETTO DI BOZZA (INBOX)
+Quando LIMEN Vault genera sintesi strutturate o estrae schede concettuali da nuovi
+documenti, non modifica mai direttamente la conoscenza consolidata. I file vengono
+depositati come bozze provvisorie nella cartella `00_INBOX`.
+
+16.2 PROCEDURA DI REVISIONE E APPROVAZIONE:
+1. Accedere ad "Avanzate > Approvazione Note".
+2. Selezionare una bozza dalla lista a sinistra.
+3. Nel pannello centrale vengono mostrati: il titolo, il testo proposto, le fonti
+   da cui deriva e i tag suggeriti.
+4. L'utente può:
+   - Modificare il testo o il titolo direttamente nel riquadro di anteprima.
+   - Fare clic su "Approva e Promuovi": il file viene spostato fisicamente in
+     `10_KNOWLEDGE`, contrassegnato con stato NOTA_CONSOLIDATA e reso definitivo.
+   - Fare clic su "Scarta": il file bozza viene rimosso definitivamente da `00_INBOX`.
+
+
+--------------------------------------------------------------------------------
+CAPITOLO 17: SEZIONE AVANZATE B — GESTIONE SNAPSHOT E RIPRISTINO
+--------------------------------------------------------------------------------
+
+17.1 CREAZIONE DI UNO SNAPSHOT CERTIFICATO
+Gli snapshot rappresentano fotografie crittografiche complete dell'intero Vault in un
+determinato istante.
+1. Accedere ad "Avanzate > Snapshot e Ripristino".
+2. Digitare un'etichetta identificativa nel campo "Nome Snapshot" (es. `pre_audit_q4`).
+3. Fare clic su "Crea Nuovo Snapshot".
+4. Il sistema comprime le cartelle `00_INBOX`, `10_KNOWLEDGE` e `20_RAW_SOURCES` in
+   un unico archivio protetto e genera un manifesto con tutti gli hash SHA-256.
+
+17.2 RIPRISTINO DA UNO SNAPSHOT
+In caso di cancellazioni involontarie o corruzione di file:
+1. Selezionare lo snapshot desiderato dalla tabella cronologica.
+2. Fare clic su "Ripristina da Snapshot".
+3. Confermare la finestra di dialogo di sicurezza. Il Vault viene riportato
+   esattamente allo stato registrato nello snapshot e gli indici vengono ricalcolati.
+
+
+--------------------------------------------------------------------------------
+CAPITOLO 18: SEZIONE AVANZATE C — CATALOGO MODELLI LLM E LLAMA.CPP
+--------------------------------------------------------------------------------
+
+Questa schermata consente di governare il motore locale di intelligenza artificiale
+senza aprire il terminale di comando.
+
+SCHEDE DEI 6 MODELLI DISPONIBILI:
+1. Ministral 3B Instruct (file: `ministral-3b-instruct-q4_k_m.gguf`, ~2.4 GB)
+   - Ideale per macchine portatili con 8 GB di RAM. Estremamente veloce nei riassunti.
+2. Ministral 8B Instruct (file: `ministral-8b-instruct-q4_k_m.gguf`, ~5.5 GB)
+   - Eccellente equilibrio di capacità analitica e velocità su macchine da 16 GB RAM.
+3. Qwen 2.5 7B Instruct (file: `qwen2.5-7b-instruct-q4_k_m.gguf`, ~4.9 GB)
+   - Modello multilingue di straordinaria precisione logica e sintattica.
+4. Llama 3.1 8B Instruct (file: `meta-llama-3.1-8b-instruct-q4_k_m.gguf`, ~5.4 GB)
+   - Piena aderenza allo standard industriale open-source di Meta.
+5. DeepSeek-R1 Distill Qwen 7B (file: `deepseek-r1-distill-qwen-7b-q4_k_m.gguf`, ~4.9 GB)
+   - Modello con reasoning trace visibile. Risolve problemi di logica complessa.
+6. DeepSeek-R1 Distill Qwen 14B (file: `deepseek-r1-distill-qwen-14b-q4_k_m.gguf`, ~9.2 GB)
+   - Massima potenza di ragionamento analitico. Richiede 24-32 GB di RAM.
+
+AZIONI SU OGNI SCHEDA:
+- "Scarica Modello": avvia il download asincrono con barra di avanzamento e verifica
+  hash SHA-256 al termine.
+- "Attiva Modello": avvia o riavvia `llama-server` sulla porta 8080 caricando il
+  modello selezionato nella memoria RAM/VRAM del computer.
+- Badge Verde "Attivo": indica quale modello sta attualmente servendo le richieste.
+
+
+--------------------------------------------------------------------------------
+CAPITOLO 19: DIMENSIONAMENTO RAM E SCELTA DEL MODELLO
+--------------------------------------------------------------------------------
+
+Per garantire che il sistema non subisca rallentamenti o problemi di memoria
+(Out-Of-Memory / OOM), applicare queste semplici regole pratiche:
+
+1. Se possiedi un MacBook Air o PC con 8 GB di RAM:
+   - Scegli SEMPRE e SOLO **Ministral 3B Instruct**.
+   - Non tentare di caricare modelli da 7B o 14B: il computer entrerebbe in swap
+     su disco, riducendo drasticamente le prestazioni.
+
+2. Se possiedi un MacBook Pro o PC con 16 GB o 18 GB di RAM:
+   - Puoi scegliere liberamente qualsiasi modello tra **Ministral 8B**, **Qwen 2.5 7B**,
+     **Llama 3.1 8B** e **DeepSeek-R1 Distill 7B**.
+   - DeepSeek-R1 Distill 7B è la scelta raccomandata per perizie e analisi complesse.
+
+3. Se possiedi una workstation o Mac con 24, 32, 64 o 128 GB di RAM:
+   - Puoi attivare **DeepSeek-R1 Distill 14B** per ottenere il massimo livello
+     di accuratezza, comparabile a modelli cloud di classe superiore.
+
+
+--------------------------------------------------------------------------------
+CAPITOLO 20: SEZIONE AVANZATE D — SINCRONIZZAZIONE CLOUD S3/R2 (OPZIONALE)
+--------------------------------------------------------------------------------
+
+Questa sezione opzionale è destinata agli utenti che desiderano mantenere una copia
+di backup remota del proprio Vault su un bucket compatibile con lo standard AWS S3
+(come Cloudflare R2, MinIO aziendale o Amazon Web Services).
+
+CONFIGURAZIONE DEI PARAMETRI:
+- S3 Endpoint URL (es. `https://<account-id>.r2.cloudflarestorage.com`)
+- Bucket Name (es. `my-vault-backups`)
+- Access Key ID e Secret Access Key
+- Crittografia Lato Client: I file possono essere cifrati con chiave privata prima
+  dell'invio, rendendo impossibile la lettura al fornitore cloud.
+
+AZIONI:
+- "Carica su Cloud (Push)": invia gli snapshot e le note consolidate al bucket.
+- "Scarica da Cloud (Pull)": recupera l'archivio remoto e lo integra nel Vault.
+
+
+--------------------------------------------------------------------------------
+CAPITOLO 21: SEZIONE AVANZATE E — COMPILAZIONE MANUALE RETE ZERO
+--------------------------------------------------------------------------------
+
+Per enti governativi, laboratori e sistemisti che intendono ricompilare il codice
+sorgente in ambienti isolati ("air-gapped"), la schermata visualizza le istruzioni
+ufficiali di compilazione:
+
+1. COMPILAZIONE DESKTOP TAURI (CACHE-OPTIMIZED):
+   cd "E:\Projects\vault_memai_obsi" (o percorso macOS corrispondente)
+   npx pnpm --filter @limen-vault/desktop tauri dev --release
+
+2. COMPILAZIONE LLAMA-SERVER METAL (MACOS APPLE SILICON):
+   cmake -B build -DGGML_METAL=ON -DLLAMA_BUILD_SERVER=ON
+   cmake --build build --config Release -j$(sysctl -n hw.ncpu)
+
+3. COMPILAZIONE LLAMA-SERVER AVX2 (WINDOWS):
+   cmake -B build -DGGML_AVX2=ON -DLLAMA_BUILD_SERVER=ON
+   cmake --build build --config Release
+
+
+--------------------------------------------------------------------------------
+CAPITOLO 22: SEZIONE AVANZATE F — CONFIGURAZIONE E PREFERENZE
+--------------------------------------------------------------------------------
+
+In questa sezione è possibile verificare e modificare i parametri globali:
+- Percorso Attivo del Vault su Filesystem: visualizza la cartella attualmente in uso.
+- Modalità Operativa: commutazione tra "100% Locale" e "Ibrida (Cloud)".
+- Chiave API OpenAI: campo protetto per inserire o rimuovere la chiave API personale.
+- Dimensione Finestra di Contesto: parametro Top-K per la ricerca vettoriale (default: 5).
+- Reset della Configurazione: pulsante protetto per azzerare le impostazioni e
+  riavviare il Setup Wizard al successivo avvio.
+
+
+--------------------------------------------------------------------------------
+CAPITOLO 23: SEZIONE AVANZATE G — DIAGNOSTICA, LOG E MANUTENZIONE
+--------------------------------------------------------------------------------
+
+La sezione di diagnostica fornisce visibilità immediata sulla salute del sistema:
+- Stato Processo llama-server: Mostra il PID del processo in esecuzione e la porta
+  di ascolto (127.0.0.1:8080).
+- Utilizzo Risorse: Consumo di memoria RAM e utilizzo stimato VRAM/Metal.
+- Database Status: Numero di chunk indicizzati nella tabella `sqlite-vec` e
+  dimensione totale del file di database.
+- Console dei Log: Flusso di log in tempo reale per verificare l'elaborazione dei
+  documenti ed eventuali codici di errore IPC.
+
+
+================================================================================
+PARTE V — INTEGRAZIONE E SICUREZZA
+================================================================================
+
+--------------------------------------------------------------------------------
+CAPITOLO 24: INTEGRAZIONE NATIVA CON OBSIDIAN (OBSIDIAN://OPEN)
+--------------------------------------------------------------------------------
+
+LIMEN Vault e Obsidian sono complementari:
+- LIMEN Vault eccelle nella ricerca vettoriale, nell'ingestione di file binari e
+  nell'interrogazione tramite modelli LLM locali.
+- Obsidian eccelle nell'editing visuale di note Markdown, nei collegamenti wiki
+  (`[[Nota]]`), nei canvas e nei plugin della community.
+
+COME INTERAGISCONO:
+1. Poiché LIMEN Vault salva tutte le note consolidate in formato Markdown UTF-8
+   standard dentro la cartella `10_KNOWLEDGE`, Obsidian può aprire la cartella
+   come un qualsiasi Vault nativo.
+2. Facendo clic sul pulsante "Apri in Obsidian" nell'header globale di LIMEN Vault,
+   l'applicazione invia l'URI scheme:
+   `obsidian://open?path=<percorso_vault_url_encoded>`
+3. Obsidian si apre istantaneamente caricando tutte le note. Non esistono formati
+   proprietari o database opachi: i tuoi file rimangono file Markdown aperti e tuoi
+   per sempre.
+
+
+--------------------------------------------------------------------------------
+CAPITOLO 25: SICUREZZA CRITTOGRAFICA, INTEGRITÀ SHA-256 E AUDIT TRAIL
+--------------------------------------------------------------------------------
+
+25.1 IL RUOLO DELL'HASHING CRITTOGRAFICO SHA-256
+Nel mondo dell'informazione digitale, poter dimostrare che un file non è stato
+manomesso o alterato è fondamentale per produrre perizie, report e audit di conformità.
+
+25.2 IMPLEMENTAZIONE IN LIMEN VAULT:
+1. Ingestione Documentale: Ogni documento immesso nel Vault riceve immediatamente
+   il proprio calcolo di impronta `SHA-256`. L'impronta esadecimale (lunga 64
+   caratteri) viene registrata stabilmente nel database.
+2. Ispezione Dinamica: All'apertura del Lettore Documenti, l'impronta viene ricalcolata
+   istantaneamente sui byte fisici del file su disco. Se anche un singolo spazio o
+   carattere è stato mutato, l'applicazione segnala immediatamente la discordanza.
+3. Download Modelli GGUF: Tutti i file di modello scaricati da Hugging Face vengono
+   confrontati con la firma crittografica inserita nel codice sorgente (`LLM_CATALOG`).
+   Qualsiasi file alterato viene distrutto immediatamente prima dell'esecuzione.
+
+
+================================================================================
+APPENDICI
+================================================================================
+
+--------------------------------------------------------------------------------
+APPENDICE A: INDICE ANALITICO DELLE AZIONI RAPIDE («COSA TI SERVE?»)
+--------------------------------------------------------------------------------
+
+| Cosa intendi fare? | Dove andare nell'interfaccia | Pulsante o Azione da attivare |
+| :--- | :--- | :--- |
+| **Configurare il Vault da zero** | Avvio dell'app | Seguire i 3 passaggi del Setup Wizard |
+| **Porre una domanda sui documenti** | 1. Chiedi al Vault | Digitare nel box in basso e premere Invio |
+| **Consultare la fonte di una risposta**| Sotto la risposta | Cliccare sulla pillola con il nome del file |
+| **Caricare nuovi documenti o note** | In alto a destra (Header) | Cliccare sul pulsante verde "Carica" |
+| **Vedere l'elenco dei file archiviati**| 2. Documenti | Scorrere la tabella o usare la barra di ricerca |
+| **Leggere un documento originale** | 2. Documenti | Cliccare su "Leggi" nella riga del file |
+| **Esplorare la mappa concettuale** | 3. Memoria | Navigare tra i tag o la vista a grafo |
+| **Approvare una bozza generata dall'AI**| 4. Avanzate > Approvazione Note | Selezionare la bozza e cliccare "Approva" |
+| **Creare una copia di backup** | 4. Avanzate > Snapshot | Inserire un nome e cliccare "Crea Snapshot"|
+| **Ripristinare un backup precedente** | 4. Avanzate > Snapshot | Cliccare "Ripristina" sullo snapshot scelto |
+| **Cambiare il modello di intelligenza**| 4. Avanzate > Modelli LLM | Cliccare "Attiva" sulla scheda del modello |
+| **Scaricare un nuovo modello LLM** | 4. Avanzate > Modelli LLM | Cliccare "Scarica" sulla scheda corrispondente |
+| **Passare l'interfaccia in Inglese** | In alto a destra (Header) | Cliccare sul pulsante "EN" |
+| **Passare l'interfaccia in Italiano**| In alto a destra (Header) | Cliccare sul pulsante "IT" |
+| **Aprire le note dentro Obsidian** | In alto a destra (Header) | Cliccare sul pulsante "Apri in Obsidian" |
+
+
+--------------------------------------------------------------------------------
+APPENDICE B: GUIDA ALLA RISOLUZIONE DEI PROBLEMI (TROUBLESHOOTING)
+--------------------------------------------------------------------------------
+
+PROBLEMA 1: "llama-server offline" o errore di connessione locale (ERR-001)
+- Causa: Il processo locale non è attivo o è stato interrotto da un risparmio energetico.
+- Soluzione: Accedere ad "Avanzate > Modelli LLM", verificare che il modello sia
+  scaricato e fare clic su "Attiva Modello". Attendere che il badge diventi verde.
+
+PROBLEMA 2: Errore durante il caricamento di un file PDF (ERR-002)
+- Causa: Il PDF è protetto da password o è composto unicamente da immagini scansionate
+  prive di testo selezionabile (OCR assente).
+- Soluzione: Verificare di poter selezionare il testo nel lettore PDF predefinito del
+  sistema operativo. Rimuovere eventuali password di cifratura prima di caricare il file.
+
+PROBLEMA 3: Lentezza estrema nella generazione delle risposte
+- Causa: Il modello selezionato richiede più memoria RAM di quella fisicamente
+  disponibile sul computer, costringendo il sistema a utilizzare la memoria swap su disco.
+- Soluzione: Accedere ad "Avanzate > Modelli LLM" e passare a un modello più leggero:
+  se hai 8 GB di RAM, usa esclusivamente Ministral 3B Instruct.
+
+PROBLEMA 4: "Download Integrità Non Valida" durante lo scaricamento di un modello (ERR-007)
+- Causa: La connessione internet si è interrotta durante il download da Hugging Face,
+  causando la ricezione di un file parziale o corrotto.
+- Soluzione: Verificare la stabilità della connessione internet e fare nuovamente clic
+  su "Scarica Modello". Il sistema cancellerà il file parziale e ripeterà il download.
+
+PROBLEMA 5: Pulsante "Apri in Obsidian" non avvia l'applicazione (ERR-004)
+- Causa: Obsidian non è installato sul computer oppure il protocollo URL `obsidian://`
+  non è registrato nel sistema operativo.
+- Soluzione: Scaricare e installare Obsidian dal sito ufficiale obsidian.md. In
+  alternativa, aprire manualmente la cartella del Vault con il file manager.
+
+
+--------------------------------------------------------------------------------
+APPENDICE C: GLOSSARIO DEI TERMINI TECNICI E TRADUZIONI IT/EN
+--------------------------------------------------------------------------------
+
+- Vault (Cassaforte di Conoscenza): La directory su disco strutturata nelle cartelle
+  `00_INBOX`, `10_KNOWLEDGE` e `20_RAW_SOURCES`.
+- RAG (Retrieval-Augmented Generation): Tecnologia che interroga prima i documenti
+  dell'utente e poi fornisce al modello linguistico solo i passaggi rilevanti per
+  formulare la risposta, azzerando le invenzioni.
+- Chunk (Frammento Semantico): Porzione di testo di circa 512 token estratta da un
+  documento più lungo per consentire il calcolo dell'affinità semantica.
+- Embedding Vettoriale: Rappresentazione matematica ad alta dimensionalità (1024 numeri)
+  del significato di una frase o di un paragrafo.
+- GGUF: Formato binario ottimizzato per eseguire modelli linguistici quantizzati su CPU
+  e GPU consumer mediante llama.cpp.
+- Reasoning Trace: La sequenza visibile di riflessione logica formulata dai modelli
+  della famiglia DeepSeek-R1 all'interno dei tag `<think>...</think>`.
+- SHA-256 (Secure Hash Algorithm): Funzione crittografica che genera un'impronta
+  univoca di 64 caratteri esadecimali per garantire l'integrità assoluta dei file.
+- Local-First: Filosofia di sviluppo software in cui i dati risiedono primariamente
+  sul dispositivo dell'utente e il funzionamento è garantito anche senza internet.
+- Zero-Network (Rete Zero): Garanzia architetturale che nessun pacchetto dati lascia
+  il computer durante l'elaborazione della conoscenza.
+
+Traduzioni Chiave Interfaccia:
+- "Chiedi al Vault" -> "Ask Vault"
+- "Documenti" -> "Documents"
+- "Memoria" -> "Memory"
+- "Avanzate" -> "Advanced"
+- "Carica" -> "Upload"
+- "Leggi" -> "Read"
+- "Integrità Verificata" -> "Integrity Verified"
+- "Bozze" -> "Drafts"
+- "Approva e Promuovi" -> "Approve & Promote"
+- "Snapshot e Ripristino" -> "Snapshot & Restore"
+- "Modelli LLM" -> "LLM Models"
+
+================================================================================
+                    FINE DEL MANUALE UTENTE UFFICIALE
+               LIMEN Vault v7Mini (0.7.0) — Arkitecna HK / Cesare Negro
+================================================================================
