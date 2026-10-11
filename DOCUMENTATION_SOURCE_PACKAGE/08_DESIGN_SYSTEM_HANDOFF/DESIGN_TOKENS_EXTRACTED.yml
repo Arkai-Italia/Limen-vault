@@ -1,0 +1,70 @@
+app: "LIMEN Vault v7Mini"
+release: "0.7.0 (commit 677745c)"
+authoritative_source: "apps/desktop/src/index.css & apps/desktop/src/App.tsx"
+colors:
+  primary_accent: "#c8ff00"       # Lime chiaro ad alta visibilità per CTA globali
+  secondary_lime: "#77f117"       # Verde lime di sistema LIMEN
+  lime_transparent_30: "rgba(119, 241, 23, 0.30)"
+  lime_transparent_60: "rgba(119, 241, 23, 0.60)"
+  background_slate_dark: "#0f172a" # Sfondo principale ardesia profonda
+  surface_card: "#1e293b"         # Sfondo card e riquadri contenuti
+  surface_secondary: "#182234"    # Sidebar e aree secondarie
+  border_subtle: "#334155"        # Bordi semitrasparenti high-definition
+  text_primary: "#f8fafc"         # Testo primario bianco-ghiaccio
+  text_secondary: "#94a3b8"       # Testo secondario e metadati
+  text_muted: "#64748b"           # Placeholder e stati disabilitati
+  success_green: "#22c55e"        # Badge approvato e stato pronto
+  warning_amber: "#f59e0b"        # Badge in attesa e avviso memoria
+  error_red: "#ef4444"            # Errori e stato critico
+typography:
+  families:
+    - "-apple-system"
+    - "BlinkMacSystemFont"
+    - "SF Pro Display"
+    - "Segoe UI"
+    - "Inter"
+    - "sans-serif"
+  monospace_family: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
+  weights:
+    regular: 400
+    medium: 500
+    semibold: 600
+    bold: 700
+    extrabold: 800
+  sizing_tokens:
+    xs: "11px"
+    sm: "12px"
+    base: "13px"
+    md: "14px"
+    lg: "16px"
+    xl: "20px"
+    xxl: "24px"
+  embedding_licensing_status: "SYSTEM_FONTS_LICENSED (Nessun font protetto da distribuire; utilizza font nativi del sistema operativo host)"
+logo:
+  approved_variants:
+    - "LIMEN Vault Brand Icon (Scudo Crittografico con Scintille AI)"
+  source_paths:
+    - "apps/desktop/src-tauri/icons/icon.icns"
+    - "apps/desktop/src-tauri/icons/icon.ico"
+    - "apps/desktop/src-tauri/icons/128x128@2x.png"
+icon_set:
+  name: "Lucide React"
+  package: "lucide-react@0.469.0"
+  licensing: "ISC License (Open-Source autorizzata per uso commerciale e manuali)"
+layout:
+  spacing_tokens:
+    gap_sm: "8px"
+    gap_md: "12px"
+    gap_lg: "16px"
+    gap_xl: "24px"
+  radius_tokens:
+    sm: "6px"
+    md: "8px"
+    lg: "12px"
+    full: "9999px"
+  blur_filter: "blur(16px)"
+  minimum_window_size: "1280x840"
+source_evidence_ids:
+  - "EVD-001"
+  - "EVD-002"
+  - "EVD-011"
