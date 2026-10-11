@@ -1,5 +1,6 @@
 import {AutomationPanel,useAutomation} from './AutomationPanel';
 import {labelIt, MessageIt} from './locale';
+import {LanguageToggle, useTranslation} from './i18n';
 import {KnowledgePanel} from './KnowledgePanel';
 import {ProposalPanel} from './ProposalPanel';
 import {SyncPanel} from './SyncPanel';
@@ -91,6 +92,7 @@ type NavTab =
   | 'settings';
 
 export default function App() {
+  const { t, language } = useTranslation();
   const [currentTab, setCurrentTab] = useState<NavTab>('home');
   const [vaultLoaded, setVaultLoaded] = useState<boolean>(false);
   const [vaultState, setVaultState] = useState<'READY' | 'INITIALIZING' | 'INVALID' | 'NO_VAULT' | 'NOT_ACCESSIBLE' | 'INCOMPLETE'>('NO_VAULT');
@@ -1441,8 +1443,9 @@ export default function App() {
             </button>
           </div>
 
-          {/* RIGHT: Status Badge */}
+          {/* RIGHT: Language Toggle + Status Badge */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <LanguageToggle />
             {vaultLoaded ? (
               <span
                 style={{
@@ -1456,10 +1459,10 @@ export default function App() {
                   borderColor: vaultState === 'READY' ? '#bbf7d0' : '#fecaca',
                 }}
               >
-                ● {labelIt(vaultState)}
+                ● {labelIt(vaultState, language)}
               </span>
             ) : (
-              <span style={{ fontSize: 11, color: '#94a3b8' }}>Nessun Vault</span>
+              <span style={{ fontSize: 11, color: '#94a3b8' }}>{t.nav.noVault}</span>
             )}
           </div>
         </header>
