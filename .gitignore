@@ -2,24 +2,132 @@
 node_modules
 .pnpm-store
 
-# Builds
+# Builds & Outputs
 dist
 .next
 out
 target
 build
 
-# Environment & Secrets
+# Environment & Credentials
 .env
+.env.*
 .env.local
 .env.production
+.env.development
+.env.test
+*.env
 SECRETS.TXT
 UTENTI PASSWORD.TXT
+SECRETS_NO_GIT/
+*.key
+*.pem
+*.p12
+*.pfx
+*.keystore
+*.cer
+*.crt
 
-# System / OS
+# Agent Configurations & Rules
+.agents/
+AGENT.md
+AGENTS.md
+GEMINI.md
+CLAUDE.md
+CLAUDE.local.md
+.cursor/
+.cursorrules
+.windsurf/
+.windsurfrules
+.cline/
+.claude/
+
+# Agent Instructions, Prompts, Transcripts & Chats
+CHAT_CODEX/
+Claude outputs/
+ISTRUZIONI_CODER_*.md
+MESSAGGIO AG - *.md
+MESSAGGIO AG - CHIUSURA A05 A15.md
+MESSAGGIO AG - CORREZIONE C8 FUSIONE IBRIDA.md
+MESSAGGIO AG - CORREZIONI AUDIT LIMEN VAULT.md
+MESSAGGIO AG - INTERVENTO 1 TESTO INDICIZZATO.md
+MESSAGGIO AG - MISURA DIAGNOSTICA SEMANTICA A05.md
+RISPOSTE_MODELLO_LOCALE_IN_SOSPESO.md
+
+# Task Lists & Todo Backlogs
+TASK_LIST.md
+TASK_LIST*.md
+*TASK_LIST*
+TODO/
+todo/
+TODO LIST.TXT
+TODO*.md
+*TODO*
+
+# Session Handover Files & Session Notes
+SESSION HANDOVER*
+SESSION_HANDOVER*
+SESSION HANDOVER.MD
+SESSION HANDOVER.txt
+LAST SESSION/
+last session/
+LAST_SESSION/
+last_session/
+
+# Internal Audits, Evidence & Temporary Plans
+CLAUDE AUDIT - *.md
+CLAUDE AUDIT - LIMEN CRM MEMAI.md
+CLAUDE AUDIT - LIMEN VAULT.md
+IMPLEMENTATION/
+implementation/
+IPLEMNENTATION/
+iplemnentation/
+IMPL_PLANS/
+impl_plans/
+IMPL PLAN/
+impl plan/
+IMPL_PLAN/
+impl_plan/
+
+# Help & Internal Documentation Packages
+HELP/
+help/
+DOCS/*
+!DOCS/assets/
+docs/*
+!docs/assets/
+DOCUMENTATION_SOURCE_PACKAGE/
+
+# Scratch Tests & Experimental Folders
+TEST/
+test/
+tests/scratch/
+
+# Loose Working Drafts, User Manuals & Scratch Notes
+manuale UI utente.txt
+MANUALE UTENTE.MD
+MANUALE_UTENTE.*
+README INSTALLER MAC.txt
+
+# Delivery & Installers
+*.dmg
+*.pkg
+*.exe
+*.msi
+USER INSTALL/*
+!USER INSTALL/LIMEN-Vault-v7Mini.dmg
+USER INSTALL WINDOWS/
+
+# System & OS
 .DS_Store
+._*
+Thumbs.db
 *.log
-!IMPLEMENTATION/V3_AUDIT_CLOSURE_EVIDENCE/**/*.log
+
+# IDEs
+.idea/
+*.swp
+*.swo
 
 # Local M2 build tools, baselines and QA artifacts
 .local/
@@ -31,6 +139,9 @@ apps/desktop/src-tauri/gen/
 apps/desktop/src-tauri/resources/mcp/tunnel-client
 apps/desktop/src-tauri/resources/mcp/cloudflared
 scripts/__pycache__/
-apps/desktop/src-tauri/resources/native/limen-extract
-tests/scratch/
-USER INSTALL/
+apps/desktop/src-tauri/resources/native/*
+!apps/desktop/src-tauri/resources/native/.gitkeep
+!apps/desktop/src-tauri/resources/native/README-native.md
+
+# Local GitHub promotion package (untracked draft materials)
+/PROMO_GITHUB_LOCAL/
