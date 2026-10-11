@@ -199,7 +199,7 @@ macOS Apple Silicon (v7Mini 0.7.0, ~49 MB) è ospitato su GitHub ed è scaricabi
 direttamente al seguente link verificato:
 
 Download installer DMG:
-https://github.com/cesarenegro/Limen-vault/raw/windows-build/USER%20INSTALL/LIMEN-Vault-v7Mini.dmg
+https://github.com/Arkai-Italia/Limen-vault/raw/windows-build/USER%20INSTALL/LIMEN-Vault-v7Mini.dmg
 
 Installazione e primo avvio:
 1. Scarica e apri LIMEN-Vault-v7Mini.dmg, quindi trascina LIMEN Vault nella
@@ -223,7 +223,7 @@ Prerequisiti:
 
 Comandi da terminale:
   # 1. Clona il repository
-  git clone https://github.com/cesarenegro/Limen-vault.git
+  git clone https://github.com/Arkai-Italia/Limen-vault.git
   cd Limen-vault
 
   # 2. Installa le dipendenze del monorepo

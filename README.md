@@ -139,7 +139,7 @@ flowchart TD
 
 Heavy release binaries are intentionally omitted from the `main` source branch to keep the repository lightweight. A pre-compiled, Apple-notarized build for macOS Apple Silicon (`v7Mini 0.7.0`, ~49 MB) is hosted on GitHub and available via the direct verified link below:
 
-📥 **[Download LIMEN-Vault-v7Mini.dmg (macOS Apple Silicon)](https://github.com/cesarenegro/Limen-vault/raw/windows-build/USER%20INSTALL/LIMEN-Vault-v7Mini.dmg)**
+📥 **[Download LIMEN-Vault-v7Mini.dmg (macOS Apple Silicon)](https://github.com/Arkai-Italia/Limen-vault/raw/windows-build/USER%20INSTALL/LIMEN-Vault-v7Mini.dmg)**
 
 *Note: Future stable release tags will attach standalone binary packages directly to GitHub Releases.*
 
@@ -162,7 +162,7 @@ Heavy release binaries are intentionally omitted from the `main` source branch t
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/cesarenegro/Limen-vault.git
+git clone https://github.com/Arkai-Italia/Limen-vault.git
 cd Limen-vault
 
 # 2. Install monorepo dependencies
