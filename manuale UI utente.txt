@@ -39,6 +39,11 @@ Applicazione desktop per macOS (Apple Silicon / Intel, macOS 26.0+) e Windows pe
    Percorso: `apps/desktop/src/App.tsx`
    Descrizione: Struttura a 3 aree funzionali, controllo automatico dei requisiti al boot, storico conversazioni persistente sul Mac e pulsante globale "CARICA DOCUMENTI".
 
+9. **i18n.tsx**
+   Percorso: `apps/desktop/src/i18n.tsx`
+   Descrizione: Motore di internazionalizzazione nativo bilingue (Italiano / Inglese), context reattivo `LanguageProvider`, hook `useTranslation()`, componente compatto `LanguageToggle` (`IT | EN`) integrato nell'header, rilevamento automatico della lingua di sistema macOS/Windows e persistenza in localStorage.
+
+
 ---
 
 ## INDICE GENERALE
@@ -186,7 +191,12 @@ graph TD
 - **Storico Conversazioni Persistente**: Sezione scorrevole nella parte inferiore della barra laterale che mostra tutte le conversazioni archiviate in `00_SYSTEM/` ordinate per data e ora locale. Cliccando su qualsiasi thread precedente, la chat viene ripristinata istantaneamente con tutte le sue fonti e citazioni originali.
 - **Pulsante "Apri in Obsidian"**: Collegamento rapido per aprire la cartella del Vault nell'applicazione Obsidian nativa.
 
-### B. Sezioni del Pannello "Avanzate" (Barra Secondaria Superiore):
+### B. Barra di Intestazione Superiore (Header) & Selettore Lingua IT | EN:
+- **Breadcrumb Sintetico**: Mostra il percorso e la schermata attiva in formato minimal (*Overview / Ask / Documents / Memory / Advanced*).
+- **Pulsante 'Aggiorna / Refresh'**: Ricarica e sincronizza in tempo reale le statistiche del Vault, i documenti e l'indice semantico.
+- **Selettore Bilingue 'IT | EN'**: Posizionato in alto a destra, commuta istantaneamente l'intera interfaccia dell'applicazione tra Italiano e Inglese senza ricaricare la finestra. La selezione viene salvata in locale e memorizzata tra i riavvii dell'app. Al primo avvio, l'applicazione rileva automaticamente la lingua di sistema macOS / Windows.
+
+### C. Sezioni del Pannello "Avanzate" (Barra Secondaria Superiore):
 - **Bozze e Proposte**: Revisione e approvazione formale delle note generate dall'AI (`90_PROPOSALS/`).
 - **Copie locali e Ripristino**: Creazione snapshot crittografici SHA-256 e ripristino sicuro in cartella separata senza rischio di sovrascrittura.
 - **Trasferimenti**: Sincronizzazione crittografata con storage cloud S3/R2 o canali CRM.

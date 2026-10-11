@@ -9,6 +9,12 @@ LIMEN Vault è articolato attorno a **3 aree funzionali principali** sempre acce
 
 ```mermaid
 graph TD
+    subgraph Header["Barra Superiore (Header & Lingua)"]
+        Breadcrumb["Breadcrumb di Navigazione (Ask / Documents / Memory / Advanced)"]
+        RefreshBtn["🔄 'Aggiorna / Refresh'"]
+        LangToggle["🌐 SELETTORE 'IT | EN' (Cambio Lingua Istantaneo)"]
+    end
+
     subgraph Sidebar["Barra Laterale Sinistra (Sempre Presente)"]
         UploadGlobal["🟢 PULSANTE 'CARICA DOCUMENTI' (Verde Lime)"]
         NavAsk["✦ 1. CHIEDI (Chat Continua & Ricerca Semantica)"]
@@ -99,6 +105,7 @@ sequenceDiagram
 3. **Cassetto Fonti e Lettore Integrato**: Cliccando su *"N fonti citate"* in calce a una risposta, la colonna destra mostra i documenti di provenienza. Cliccando su una fonte si apre il dettaglio con il testo del passaggio; cliccando su *"Apri documento"* si accede al file originale con evidenziazione del paragrafo e verifica SHA-256.
 4. **Storico Conversazioni Persistente**: In fondo alla barra sinistra compare l'elenco dei thread passati. Cliccando su un titolo, l'intera conversazione viene ricaricata con tutte le sue fonti e citazioni originali.
 5. **Caricamento Globale dei Documenti**: Il pulsante verde lime **"CARICA DOCUMENTI"** in alto a sinistra è sempre visibile. Permette di selezionare file da Finder/Explorer e avviare in tempo reale l'estrazione e l'indicizzazione semantica.
+6. **Commutazione Lingua Istantanea (IT | EN)**: Il selettore compatto nell'Header superiore permette di alternare in tempo reale l'applicazione tra Italiano e Inglese senza riavvii, salvando la preferenza dell'utente. All'avvio, l'applicazione si adatta automaticamente alla lingua del sistema operativo.
 
 ---
 
