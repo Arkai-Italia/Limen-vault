@@ -1,28 +1,31 @@
 graph TD
-    Start(["Avvio Setup Wizard (SCR-001)"]) --> Step1["Step 1: Scelta Modalità Operativa"]
-    Step1 -->|Opzione A| ModeLocal["Modalità 100% Locale (Zero-Rete)"]
-    Step1 -->|Opzione B| ModeHybrid["Modalità Ibrida (Cloud OpenAI + Locale)"]
-    
-    ModeHybrid --> InputKey["Inserimento Chiave OPENAI_API_KEY"]
-    InputKey --> Step2["Step 2: Configurazione Percorso Vault"]
-    ModeLocal --> Step2
+    Start(["Avvio Setup Wizard (SCR-002)"]) --> Step1["Step 1: Cartella del Vault"]
+    Step1 --> ChoosePath{"Azione Cartella Vault"}
+    ChoosePath -->|Sfoglia Cartella| BrowseFolder["Selezione Cartella da File Dialog Nativo"]
+    ChoosePath -->|Apri Esistente| OpenExisting["Validazione Struttura Directory Esistente"]
+    ChoosePath -->|Crea Nuovo| CreateDirs["Creazione Struttura (00_SYSTEM, 20_RAW_SOURCES, 90_PROPOSALS, 01-10)"]
 
-    Step2 --> ChoosePath{"Scelta Percorso Cartella"}
-    ChoosePath -->|Nuovo Vault| CreateDirs["Creazione Struttura (00_INBOX, 10_KNOWLEDGE, 20_RAW_SOURCES)"]
-    ChoosePath -->|Vault Esistente| ValidateDirs["Validazione Struttura Directory Esistente"]
+    BrowseFolder --> Step1Ready["Spunta Verde Step 1 (Cartella Pronta)"]
+    OpenExisting --> Step1Ready
+    CreateDirs --> Step1Ready
 
-    CreateDirs --> Step3["Step 3: Selezione Modello LLM Predefinito"]
-    ValidateDirs --> Step3
+    Step1Ready --> Step2["Step 2: Motore AI Locale (Catalogo LLM GGUF)"]
+    Step2 --> SelectModel{"Selezione Modello"}
+    SelectModel -->|Ministral 3B (8 GB RAM)| CheckModel{"File GGUF Presente & SHA-256 Valido?"}
+    SelectModel -->|Ministral 8B / Qwen / Llama / DeepSeek| CheckModel
 
-    Step3 --> SelectModel{"Modello Selezionato"}
-    SelectModel -->|Ministral 3B / Qwen 7B| CheckModel{"File GGUF Presente?"}
-    SelectModel -->|OpenAI Cloud (Se Ibrido)| SkipDownload["Verifica Connessione API"]
-
-    CheckModel -->|Sì| Ready["Stato Pronto"]
-    CheckModel -->|No| TriggerDownload["Download Asincrono con Barra Avanzamento"]
+    CheckModel -->|Sì| Step2Ready["Spunta Verde Step 2 (Modello Attivo)"]
+    CheckModel -->|No| TriggerDownload["Download Streaming da Hugging Face con Barra Avanzamento"]
     TriggerDownload --> VerifyHash["Verifica Hash SHA-256 Integrità"]
-    VerifyHash --> Ready
+    VerifyHash --> Step2Ready
 
-    SkipDownload --> Ready
-    Ready --> Finish["Clicca 'Completa Configurazione'"]
-    Finish --> MainUI(["Apertura Interfaccia Principale (SCR-002)"])
+    Step2Ready --> Step3["Step 3: Modalità Operativa e Chiave API"]
+    Step3 --> SelectMode{"Scelta Modalità"}
+    SelectMode -->|100% Solo Locale (Rete Zero)| LocalMode["Nessuna Chiave Richiesta - Calcolo On-Device"]
+    SelectMode -->|Ibrida OpenAI| HybridMode["Inserimento Chiave sk-... Salvata nel Portachiavi"]
+
+    LocalMode --> Step3Ready["Spunta Verde Step 3 (Modalità Configurate)"]
+    HybridMode --> Step3Ready
+
+    Step3Ready --> Finish["Clicca 'ENTRA IN LIMEN VAULT'"]
+    Finish --> MainUI(["Apertura Interfaccia Principale (Badge ● PRONTO)"])

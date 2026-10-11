@@ -1,36 +1,62 @@
 app: "LIMEN Vault v7Mini"
 release: "0.7.0 (commit 677745c)"
-authoritative_source: "apps/desktop/src/index.css & apps/desktop/src/App.tsx"
+authoritative_source: "packages/ui/src/styles.css & apps/desktop/src/App.tsx"
 colors:
-  primary_accent: "#c8ff00"       # Lime chiaro ad alta visibilità per CTA globali
-  secondary_lime: "#77f117"       # Verde lime di sistema LIMEN
-  lime_transparent_30: "rgba(119, 241, 23, 0.30)"
-  lime_transparent_60: "rgba(119, 241, 23, 0.60)"
-  background_slate_dark: "#0f172a" # Sfondo principale ardesia profonda
-  surface_card: "#1e293b"         # Sfondo card e riquadri contenuti
-  surface_secondary: "#182234"    # Sidebar e aree secondarie
-  border_subtle: "#334155"        # Bordi semitrasparenti high-definition
-  text_primary: "#f8fafc"         # Testo primario bianco-ghiaccio
-  text_secondary: "#94a3b8"       # Testo secondario e metadati
-  text_muted: "#64748b"           # Placeholder e stati disabilitati
-  success_green: "#22c55e"        # Badge approvato e stato pronto
-  warning_amber: "#f59e0b"        # Badge in attesa e avviso memoria
-  error_red: "#ef4444"            # Errori e stato critico
+  # Palette Primaria Applicazione (Tema Light Slate verificato in packages/ui/src/styles.css)
+  bg_app: "#f8fafc"               # Sfondo applicazione principale (--limen-bg-app)
+  bg_surface: "#ffffff"           # Sfondo card e superfici primarie (--limen-bg-surface)
+  bg_sidebar: "#f1f5f9"           # Sfondo barra laterale sinistra 240px (--limen-bg-sidebar)
+  bg_subtle: "#f8fafc"            # Sfondo elementi secondari (--limen-bg-subtle)
+
+  # Tipografia e Contrasto
+  text_primary: "#0f172a"         # Testo principale Slate 900 (--limen-text-primary)
+  text_secondary: "#475569"       # Testo secondario Slate 600 (--limen-text-secondary)
+  text_muted: "#94a3b8"           # Testo disabilitato/placeholder Slate 400 (--limen-text-muted)
+
+  # Bordi e Separatori
+  border_light: "#e2e8f0"         # Bordi card e tabelle (--limen-border-light)
+  border_subtle: "#cbd5e1"        # Separatori secondari (--limen-border-subtle)
+
+  # Accenti e Brand
+  brand_lime: "#77F117"           # Lime LIMEN ufficiale (--limen-lime)
+  brand_lime_30: "rgba(119, 241, 23, 0.30)"
+  brand_lime_60: "rgba(119, 241, 23, 0.60)"
+  cta_upload_lime: "#c8ff00"      # Pulsante d'azione Carica Documenti in Sidebar
+  accent_primary: "#0f172a"       # Accento scuro bottoni primari (--limen-accent-primary)
+  accent_hover: "#1e293b"         # Hover bottoni scuri (--limen-accent-hover)
+
+  # Modali, Overlay e Setup Wizard (Superfici Scure Contrastate)
+  overlay_backdrop: "rgba(15, 23, 42, 0.70)" # Backdrop oscuramento modali
+  modal_dark_bg: "#0f172a"        # Card interna Setup Wizard e visualizzatore terminale
+  modal_dark_text: "#f8fafc"      # Testo chiaro per superfici scure modali
+  modal_dark_surface: "#1e293b"   # Card secondaria in wizard
+
+  # Stati di Sistema e Indicatori
+  status_ready_bg: "#ecfdf5"      # Sfondo badge verde pronto (--limen-status-ready-bg)
+  status_ready_text: "#047857"    # Testo badge verde pronto (--limen-status-ready-text)
+  status_ready_border: "#a7f3d0"  # Bordo badge pronto (--limen-status-ready-border)
+  status_warn_bg: "#fffbeb"
+  status_warn_text: "#b45309"
+  status_warn_border: "#fde68a"
+  status_error_text: "#ef4444"
+
 typography:
   families:
     - "-apple-system"
     - "BlinkMacSystemFont"
     - "SF Pro Display"
+    - "SF Pro Text"
     - "Segoe UI"
-    - "Inter"
+    - "Roboto"
+    - "Helvetica"
+    - "Arial"
     - "sans-serif"
-  monospace_family: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
+  monospace_family: '"SF Mono", SFMono-Regular, ui-monospace, Menlo, Monaco, Consolas, monospace'
   weights:
     regular: 400
     medium: 500
     semibold: 600
     bold: 700
-    extrabold: 800
   sizing_tokens:
     xs: "11px"
     sm: "12px"
@@ -39,7 +65,8 @@ typography:
     lg: "16px"
     xl: "20px"
     xxl: "24px"
-  embedding_licensing_status: "SYSTEM_FONTS_LICENSED (Nessun font protetto da distribuire; utilizza font nativi del sistema operativo host)"
+  embedding_licensing_status: "SYSTEM_FONTS_LICENSED (Utilizzo font nativi del sistema operativo host, nessuna ridistribuzione di font terzi protetti)"
+
 logo:
   approved_variants:
     - "LIMEN Vault Brand Icon (Scudo Crittografico con Scintille AI)"
@@ -47,11 +74,15 @@ logo:
     - "apps/desktop/src-tauri/icons/icon.icns"
     - "apps/desktop/src-tauri/icons/icon.ico"
     - "apps/desktop/src-tauri/icons/128x128@2x.png"
+
 icon_set:
   name: "Lucide React"
   package: "lucide-react@0.469.0"
   licensing: "ISC License (Open-Source autorizzata per uso commerciale e manuali)"
+
 layout:
+  sidebar_width: "240px"
+  header_height: "52px"
   spacing_tokens:
     gap_sm: "8px"
     gap_md: "12px"
@@ -62,8 +93,11 @@ layout:
     md: "8px"
     lg: "12px"
     full: "9999px"
-  blur_filter: "blur(16px)"
+  blur_filter: "blur(12px)"
   minimum_window_size: "1280x840"
+
+editorial_guideline: "Il layout del manuale deve adottare la griglia del PDF LIMEN come riferimento editoriale di impaginazione, ma applicare integralmente la palette e i token cromatici estratti dal Design System di LIMEN Vault (Light Slate/Lime/Slate 900)."
+
 source_evidence_ids:
   - "EVD-001"
   - "EVD-002"

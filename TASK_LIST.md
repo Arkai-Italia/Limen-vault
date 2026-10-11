@@ -1,5 +1,28 @@
 # TASK LIST — LIMEN Vault: archivio chat Codex, installatori e rilascio v6Mini
 
+## Correzione e Allineamento Pacchetto Documentale LIMEN Vault v7Mini (0.7.0) — 11 Ottobre 2026
+
+Stato operativo:
+- **COMPLETATO IN LOCALE:** Testi, matrici CSV, schede operative, diagrammi Mermaid, design tokens e manuali master riscritti e sanitizzati da contraddizioni.
+- **VERIFICATO SU CODICE:** Sequenza Setup Wizard (3 step fino a ENTRA IN LIMEN VAULT), layout UI reale (Header 52px con RotateCw, Sidebar 240px con Carica Documenti #c8ff00 e Apri in Obsidian), topologia Vault (Memoria su cartelle 01-10, Bozze in 90_PROPOSALS, archivio in 20_RAW_SOURCES), Compilatore Markdown Manuale da 20_RAW_SOURCES a 90_PROPOSALS, Ripristino sicuro in directory RECUPERO (zero sovrascrittura Vault), formati Office/Excel/OCR Vision macOS (32MB/16MB), modelli GGUF Q4/Q5 e matrice RAM.
+- **BLOCCATO:** I 16 screenshot nativi risultano `NOT_CAPTURED` a causa dei permessi di sicurezza TCC dello schermo su macOS (AppleScript -25211). Il pacchetto **NON È PRONTO PER L'IMPAGINAZIONE / PUBBLICAZIONE DEFINITIVA** fino all'acquisizione delle immagini reali da parte dell'operatore umano.
+- **DA PUBBLICARE:** Commit atomico e push su `origin/windows-build`.
+
+### Dettaglio Verifiche e Azioni Operative:
+- [x] **Area 1 & 7 — Release, Provenienza e Integrità Metadati:** Censita la duplice tracciabilità (Release software 0.7.0 commit `677745c`, ispezione documentale commit `373e34e`). Corretti tutti i 12 percorsi Mermaid in `WORKFLOW_CATALOG.csv`. Risolto il bug delle 10 colonne su `SHOT-009` in `SCREENSHOT_MANIFEST.csv` tramite quoting RFC 4180. Riallineati univocamente tutti gli ID `SCR`, `ROU`, `NAV`, `CTL`, `ERR`, `EVD`.
+- [x] **Area 2 — Setup Wizard e Navigazione Reale:** Riconciliata la sequenza in 3 step: Cartella Vault -> Motore LLM (Locale vs Ibrido) -> Modello GGUF con hash check / OpenAI API key, con pulsante finale `ENTRA IN LIMEN VAULT`. Uniformata la UI: Header 52px (Logo, pulsante centrale `Verifica` RotateCw, `IT | EN`, badge `● PRONTO`), Sidebar sinistra 240px (pulsante `Carica Documenti` `#c8ff00`, sezioni 1-4, note recenti, pulsante `Apri in Obsidian`).
+- [x] **Area 3 — Topologia Cartelle, Memoria e Flusso di Governance:** Sostituito il vecchio schema `00_INBOX`/`10_KNOWLEDGE` con le 10 categorie reali del Vault (`01_CLIENTS` a `10_APPROVED_OUTPUTS`), `20_RAW_SOURCES/` per i file acquisiti e `90_PROPOSALS/` per le bozze. Eliminato il falso grafo concettuale in favore del `KnowledgePanel`. Documentata la differenza tra approvazione (promozione in 01-10 e audit log), rifiuto archiviato (decisione tracciata nell'audit trail senza cancellazione file) ed eliminazione fisica definitiva.
+- [x] **Area 4 — Compilatore Markdown Manuale da Fonti Grezze:** Sanata la discrepanza sostanziale del Capitolo 21 e `WF-010.mmd`: rimossi tutti i falsi riferimenti a `cargo build`, `cmake` o compilazione codice C++/Tauri dev. Documentata la funzione reale di backend (`batch_compile_sources`) per generare in blocco bozze Markdown in `90_PROPOSALS/` a partire da testi in `20_RAW_SOURCES/` con pulsante `COMPILA FONTI TESTO`.
+- [x] **Area 5 — Ripristino da Snapshot:** Eliminata dal diagramma `WF-007.mmd` e dal Capitolo 17 la falsa sovrascrittura del Vault attivo. Documentata l'estrazione sicura obbligatoria in directory separata `{vault}_RECUPERO_{snapshot_id}` con verifica dell'hash SHA-256 di ogni file rispetto al manifest crittografico dello snapshot.
+- [x] **Area 6 — Formati Supportati, Limiti e Matrice RAM:** Censito l'elenco completo verificato in `crates/ingestion/`: PDF, Word (.docx), PowerPoint (.pptx), OpenDocument (.odt), Excel (.xlsx, .xls), Fogli (.ods, .csv, .tsv), Testo e Note (.txt, .md, .json, .log, .html) e immagini con Apple Vision OCR nativo su macOS. Fissati i limiti di 32 MB per file e 16 MB max testo estratto. Distinti rigorosamente nei requisiti RAM: dimensione download del file GGUF, memoria minima di sistema e memoria raccomandata (Ministral 3B Q5_K_M 2.47 GB min 8 GB, Ministral 8B Q5_K_M 6.06 GB min 16 GB, Qwen 2.5 7B Q4_K_M 4.68 GB min 16 GB, Llama 3.1 8B Q4_K_M 4.92 GB min 16 GB, DeepSeek-R1 Distill 7B Q4_K_M 4.68 GB min 16 GB, DeepSeek-R1 Distill 14B Q4_K_M 8.99 GB min 24-32 GB).
+- [ ] **Area 8 — Screenshot Reali e Condizione di Blocco:** 16 screenshot pianificati (`SHOT-001` - `SHOT-016`) nello stato `NOT_CAPTURED` a causa dei permessi TCC macOS negati nell'ambiente automatico. Acquisizione manuale demandata all'operatore umano prima del rilascio definitivo.
+- [x] **Area 9 — Affermazioni Tecniche e Audit QA:** Espunti tutti gli overclaim e formule apodittiche ("ZERO DIFETTI", "garanzia probatoria", "privacy assoluta", "impedisce allucinazioni"). Inserito in `DOCUMENTATION_QA.md` un report di audit sobrio con riscontri verificati su codice e limiti espliciti.
+- [x] **Area 10 — Design System e Linee Guida Editoriali:** Allineato `DESIGN_TOKENS_EXTRACTED.yml` alla palette Light Slate (`#f8fafc`, `#ffffff`, `#f1f5f9`, `#0f172a`, `#77F117`, `#c8ff00`) e modali scure contrastate (`#0f172a`). Chiarito che il PDF LIMEN costituisce un riferimento editoriale per l'impaginazione orizzontale, mentre lo stile del manuale deriva dal Design System di Vault.
+- [x] **Deliverable Master:** Riscritto integralmente `MANUALE_UTENTE.txt` (25 capitoli, 3 appendici, doppio indice) e `MANUALE_UTENTE.md` con perfetta aderenza al codice verificato.
+- [ ] **Pubblicazione:** Esecuzione commit atomico e push su `origin/windows-build`.
+
+---
+
 ## Archivio chat Codex per Windows — 29 settembre 2026
 
 Stato: completato, verificato e pubblicato su `origin/windows-build`; commit archivio `30d97ca`, push riuscito il 29 settembre 2026.

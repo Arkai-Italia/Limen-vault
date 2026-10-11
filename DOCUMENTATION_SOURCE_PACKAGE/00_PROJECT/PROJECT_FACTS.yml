@@ -3,7 +3,8 @@ app_name: "LIMEN Vault v7Mini"
 owner: "Arkitecna Hong Kong Limited / Cesare Negro"
 repo: "https://github.com/cesarenegro/vault_memai_obsi.git"
 branch: "windows-build"
-commit_sha: "677745c367d64de7d21eb66d111cac7558300f84"
+release_commit_sha: "677745c367d64de7d21eb66d111cac7558300f84"
+docs_inspection_commit_sha: "373e34e7ae3a7a9f41acf2c8eecdaa8131c5d90a"
 release_version: "0.7.0 (v7Mini)"
 release_date: "2026-10-11"
 architecture: "Monorepo (pnpm workspaces), Rust Tauri v2 Backend, React 18 + Vite 6 Frontend"
@@ -17,31 +18,45 @@ runtime_dependencies:
   local_llm_catalog:
     - id: "ministral-3b"
       name: "Ministral 3 3B Instruct"
-      format: "Q4_K_M.gguf"
-      size_bytes: 2212389600
+      format: "Q5_K_M.gguf"
+      size_bytes: 2474178720
+      sha256: "e23dd88b0e0951d3f5784d6d4092210cda2b006b251f33b226b283a6c9d1f6bb"
+      min_ram_gb: 8
     - id: "ministral-8b"
       name: "Ministral 3 8B Instruct"
-      format: "Q4_K_M.gguf"
-      size_bytes: 5283457728
+      format: "Q5_K_M.gguf"
+      size_bytes: 6059268512
+      sha256: "7a5454127ec772e2389f0e71a77fedb88b83d4366d8a69facd0cfd0898f04d35"
+      min_ram_gb: 16
     - id: "qwen-2.5-7b"
       name: "Qwen 2.5 7B Instruct"
       format: "Q4_K_M.gguf"
-      size_bytes: 5026939520
+      size_bytes: 4683074240
+      sha256: "65b8fcd92af6b4fefa935c625d1ac27ea29dcb6ee14589c55a8f115ceaaa1423"
+      min_ram_gb: 16
     - id: "llama-3.1-8b"
       name: "Meta Llama 3.1 8B Instruct"
       format: "Q4_K_M.gguf"
-      size_bytes: 5283457728
+      size_bytes: 4920739232
+      sha256: "7b064f5842bf9532c91456deda288a1b672397a54fa729aa665952863033557c"
+      min_ram_gb: 16
     - id: "deepseek-r1-7b"
       name: "DeepSeek-R1-Distill-Qwen-7B"
       format: "Q4_K_M.gguf"
-      size_bytes: 5026939520
+      size_bytes: 4683073248
+      sha256: "78272d8d32084548bd450394a560eb2d70de8232ab96a725769b1f9171235c1c"
+      min_ram_gb: 16
+      is_reasoning: true
     - id: "deepseek-r1-14b"
       name: "DeepSeek-R1-Distill-Qwen-14B"
       format: "Q4_K_M.gguf"
-      size_bytes: 9651582272
+      size_bytes: 8988109984
+      sha256: "67a7933cf2ad596a393c8e13b30bc4da2d50b283e250b78554aed18817eca31c"
+      min_ram_gb: 24
+      is_reasoning: true
 environments:
   - id: "macos-silicon"
-    os: "macOS 26.0+ (Apple Silicon M1/M2/M3/M4)"
+    os: "macOS 13.0+ (Ventura, Sonoma, Sequoia - Apple Silicon M1/M2/M3/M4)"
     hardware_accel: "Metal GPU"
     status: "VERIFIED_ACTIVE"
   - id: "windows-x64"
@@ -53,7 +68,7 @@ authenticated_url: "NOT_APPLICABLE"
 target_audiences:
   - "Professionisti della consulenza, legali, direttori d'azienda"
   - "Knowledge manager aziendali"
-  - "Team di ricerca con vincoli di riservatezza e confidenzialità assoluta"
+  - "Team di ricerca con vincoli di riservatezza e confidenzialità sui documenti"
 locales:
   - "it-IT (Predefinito)"
   - "en-US (Localizzazione nativa con commutatore istantaneo IT | EN)"
@@ -72,12 +87,12 @@ plans:
   - id: "hybrid-openai"
     name: "Modalità Ibrida OpenAI"
     cost: "Consumo API OpenAI a carico dell'utente tramite propria chiave"
-    network: "Trasmissione esclusiva dei passaggi rilevanti estratti localmente, previa autorizzazione esplicita"
+    network: "Trasmissione dei passaggi rilevanti estratti localmente, previa autorizzazione esplicita"
 feature_flags: []
 visual_audit_authorized: true
 non_destructive_testing_authorized: true
 demo_account_source: "FIXTURE (Cartella 'vault-template/')"
-design_system_source: "apps/desktop/src/ (Dark Slate #0f172a, Lime Accent #c8ff00, Success #77f117, Text #f8fafc)"
+design_system_source: "packages/ui/src/styles.css (Light Slate: App #f8fafc, Surface #ffffff, Sidebar #f1f5f9, Text #0f172a, Accent Lime #77f117 / #c8ff00, Modal Backdrop Dark Slate #0f172a)"
 output_language: "it-IT"
 output_directory: "DOCUMENTATION_SOURCE_PACKAGE"
 requested_scope: "ALL_USER_VISIBLE_FUNCTIONALITY"

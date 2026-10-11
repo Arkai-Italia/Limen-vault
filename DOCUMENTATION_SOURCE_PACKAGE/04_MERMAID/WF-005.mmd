@@ -1,20 +1,14 @@
 graph TD
-    Trigger(["Accesso a '3. Memoria' (SCR-005)"]) --> LoadIndex["Caricamento indice concetti e note del Vault"]
-    LoadIndex --> ViewLayout{"Selezione Modalità di Visualizzazione"}
-    
-    ViewLayout -->|Tag e Categorie| TagView["Pannello Tag Cloud e Categorie Semantiche"]
-    ViewLayout -->|Grafo Relazionale| GraphView["Mappa concettuale interattiva dei collegamenti"]
-    ViewLayout -->|Elenco Note| ListView["Tabella note consolidate in 10_KNOWLEDGE"]
+    Trigger(["Accesso a '3. Memoria' (SCR-005)"]) --> LoadCategories["Caricamento categorie del Vault"]
+    LoadCategories --> PillBar["Barra orizzontale 10 Categorie Aziendali: 01_CLIENTS ... 10_APPROVED_OUTPUTS"]
 
-    TagView --> SelectTag["Filtro note per tag selezionato"]
-    GraphView --> ClickNode["Clic su nodo concettuale e apertura note correlate"]
-    ListView --> SearchNotes["Digitazione parole chiave nella barra di filtro"]
+    PillBar --> SelectCategory["Selezione Categoria Desiderata (es. 02_PROJECTS)"]
+    SelectCategory --> FilterNotes["Filtro note della cartella selezionata"]
+    FilterNotes --> ListCards["Elenco schede note con titolo, percorso e stato YAML"]
 
-    SelectTag --> DetailCard["Apertura scheda anteprima nota di memoria"]
-    ClickNode --> DetailCard
-    SearchNotes --> DetailCard
+    ListCards --> SelectNote["Selezione di una nota dalla lista"]
+    SelectNote --> KnowledgePreview["Anteprima formattata nel KnowledgePanel con link wiki"]
 
-    DetailCard --> NoteActions{"Azioni sulla Nota"}
-    NoteActions -->|Leggi| FullReader["Apertura visualizzatore completo"]
-    NoteActions -->|Apri Esterno| ObsidianLink["Apertura della nota in Obsidian Markdown"]
-    NoteActions -->|Rigenera| ReEmbed["Ricalcolo embedding semantico per la nota"]
+    KnowledgePreview --> NoteActions{"Azioni sulla Nota"}
+    NoteActions -->|Leggi| FullReader["Visualizzazione a schermo intero"]
+    NoteActions -->|Apri Esterno| ObsidianLink["Apertura diretta del Vault in Obsidian (WF-012)"]

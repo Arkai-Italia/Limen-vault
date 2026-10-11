@@ -2,41 +2,60 @@
            GUIDA RAPIDA DI AVVIO — LIMEN VAULT v7Mini (0.7.0)
 ================================================================================
 
-1. CONFIGURAZIONE AL PRIMO AVVIO (2 MINUTI)
-   - Avvia l'applicazione: comparira' automaticamente il Setup Wizard.
-   - Step 1: Seleziona "100% Locale" per lavorare a zero-rete in totale privacy.
-   - Step 2: Clicca su "Sfoglia cartella" e seleziona la cartella del tuo Vault.
-   - Step 3: Seleziona il modello consigliato per il tuo computer:
-     * Se hai 8 GB di RAM: scegli "Ministral 3B Instruct".
-     * Se hai 16 GB o piu': scegli "Qwen 2.5 7B" o "DeepSeek-R1 Distill 7B".
-   - Clicca su "Completa Configurazione".
+1. CONFIGURAZIONE AL PRIMO AVVIO (SETUP WIZARD — 3 PASSAGGI)
+   All'avvio dell'applicazione compare automaticamente il Setup Wizard in 3 step:
+   - Step 1 (Cartella Vault): Clicca su "Sfoglia" e seleziona o crea la cartella
+     destinata a ospitare il tuo Vault (crea la struttura 01-10, 20_RAW_SOURCES, 90_PROPOSALS).
+   - Step 2 (Scelta Motore LLM): Seleziona "100% Locale" per lavorare a zero-rete
+     in isolamento completo, oppure "Modalità Ibrida" per collegare OpenAI GPT-4o.
+   - Step 3 (Modello Locale o Chiave API):
+     * Se hai 8 GB di RAM: scarica Ministral 3B Instruct (file GGUF da 2.47 GB).
+     * Se hai 16 GB o più: scarica Ministral 8B (6.06 GB), Qwen 2.5 7B (4.68 GB)
+       o DeepSeek-R1 Distill 7B (4.68 GB con reasoning trace).
+     * Se hai scelto Ibrido: inserisci la tua chiave API personale (sk-...).
+   - Conferma finale: Fai clic sul pulsante "ENTRA IN LIMEN VAULT" per sbloccare l'app.
 
-2. CARICARE I TUOI DOCUMENTI
-   - In qualsiasi schermata, clicca sul pulsante verde "+ Carica" in alto a destra.
-   - Trascina i tuoi file PDF, Markdown (.md) o TXT oppure clicca su "Sfoglia".
-   - Clicca su "Avvia Indicizzazione". I tuoi documenti vengono archiviati nella
-     cartella 20_RAW_SOURCES e indicizzati localmente in pochi secondi.
+2. CARICARE I DOCUMENTI (SIDEBAR SINISTRA)
+   - Nella barra laterale sinistra (240px), clicca sul pulsante in evidenza lime
+     "Carica Documenti" (#c8ff00) per aprire l'UploadDrawer.
+   - Formati supportati: PDF (.pdf), Word (.docx), PowerPoint (.pptx), OpenDocument
+     (.odt), Excel (.xlsx, .xls), Fogli (.ods, .csv, .tsv), Testo e Note (.txt, .md,
+     .json, .log, .html) e immagini (.png, .jpg, .webp con OCR Apple Vision su macOS).
+   - Limite: massimo 32 MB per singolo file.
+   - Clicca su "Avvia Ingestione": i documenti originali vengono archiviati in
+     20_RAW_SOURCES, segmentati in chunk ed elaborati localmente.
 
 3. PORRE UNA DOMANDA (RICERCA RAG)
-   - Clicca sulla scheda "1. Chiedi al Vault" nel menu di navigazione.
-   - Scrivi la tua domanda nel box in basso e premi INVIO.
-   - Il motore locale trovera' i passaggi piu' pertinenti e generera' la risposta.
-   - Se utilizzi DeepSeek-R1, potrai vedere il pensiero logico del modello espandendo
-     il pannello "Pensiero del modello (Reasoning Trace)".
+   - Clicca su "Chiedi al Vault" nella barra laterale sinistra.
+   - Digita il tuo quesito nella casella di input in basso e premi INVIO.
+   - Il motore locale recupera i frammenti semantici pertinenti dal Vault ed esegue
+     l'inferenza in streaming.
+   - Se utilizzi DeepSeek-R1, puoi espandere il pannello "Pensiero del modello"
+     per verificare i passaggi logici intermedi generati nei tag <think>.
 
 4. VERIFICARE LE FONTI CON IL LETTORE DOCUMENTI
-   - Sotto a ogni risposta troverai le pillole con i nomi dei file citati e la pagina.
-   - Clicca sulla pillola della fonte: si aprira' il Lettore Documenti integrato,
-     che evidenziera' il passaggio e verifichera' l'impronta crittografica SHA-256.
+   - Sotto ogni risposta generata compaiono le pillole interattive delle fonti citate.
+   - Fai clic sulla pillola: si apre il Lettore Documenti integrato che evidenzia
+     il paragrafo esatto e calcola a caldo l'impronta crittografica SHA-256.
+   - Il badge verde "Integrità Verificata" conferma che il file su disco non ha subito
+     modifiche o alterazioni rispetto all'ingestione.
 
-5. APRIRE LE NOTE IN OBSIDIAN
-   - Fai clic sul pulsante "Apri in Obsidian" nella barra in alto.
-   - Tutte le tue note e i tuoi documenti si apriranno direttamente in Obsidian.
+5. NAVIGARE LA MEMORIA E APPROVARE LE BOZZE
+   - Clicca su "Memoria" nella sidebar per esplorare le note archiviate nelle 10 categorie
+     standard del Vault (01_CLIENTS - 10_APPROVED_OUTPUTS).
+   - Accedi ad "Avanzate > Approvazione Note" per revisionare le proposte in 90_PROPOSALS/:
+     puoi approvare promuovendo la nota nelle cartelle definitive, salvarla o rifiutarla
+     (il rifiuto archiviato traccia la decisione nell'audit log senza cancellare il file).
 
-6. CAMBIARE LINGUA (IT / EN)
-   - Fai clic sul selettore "IT | EN" in alto a destra per passare istantaneamente
-     all'interfaccia in inglese o tornare in italiano.
+6. APRIRE LE NOTE IN OBSIDIAN
+   - Nella parte inferiore della barra laterale sinistra, clicca su "Apri in Obsidian".
+   - Il sistema invia il comando obsidian://open per aprire la cartella attiva in Obsidian.
+
+7. COMANDI HEADER SUPERIORE
+   - Pulsante centrale "Verifica" (icona RotateCw): avvia il controllo di integrità.
+   - Selettore lingua "IT | EN": commuta istantaneamente tutti i testi dell'interfaccia.
+   - Badge di stato "● PRONTO": indica la piena disponibilità del motore LLM locale.
 
 ================================================================================
-Per la guida completa a 25 capitoli, consulta il file MANUALE_UTENTE.txt
+Per la documentazione completa a 25 capitoli, consulta MANUALE_UTENTE.txt / .md
 ================================================================================

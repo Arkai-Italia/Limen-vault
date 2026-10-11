@@ -1,16 +1,15 @@
 graph TD
-    Trigger(["Accesso ad 'Avanzate > Compilazione Manuale' (SCR-010)"]) --> CheckEnv["Rilevamento toolchain di sistema (Node.js, Rust/Cargo, CMake)"]
-    CheckEnv --> CheckMetal["Rilevamento supporto accelerazione hardware (Metal / AVX2)"]
-    CheckMetal --> RenderCommands["Visualizzazione comandi ufficiali di compilazione offline"]
+    Trigger(["Accesso ad 'Avanzate > Compilatore manuale' (SCR-010)"]) --> CheckVault["Verifica Vault Aperto e Percorso Attivo"]
+    CheckVault --> RenderUI["Visualizzazione Scheda 'Compilatore Markdown Manuale'"]
+    RenderUI --> Subtitle["Visualizza: 'Compila file di testo e Markdown in bozze 90_PROPOSALS/'"]
 
-    RenderCommands --> CopyCommand{"Azione dell'Utente"}
+    Subtitle --> UserAction{"Azione dell'Utente"}
+    UserAction -->|Clicca su| BtnCompile["Pulsante: 'COMPILA FONTI TESTO'"]
 
-    CopyCommand -->|Copia Comando Desktop| CopyDesktop["Copia negli appunti: pnpm --filter @limen-vault/desktop tauri dev --release"]
-    CopyCommand -->|Copia Comando llama.cpp| CopyLlama["Copia flag di build: cmake -B build -DGGML_METAL=ON"]
-    CopyCommand -->|Verifica Cache| ViewCacheStatus["Ispezione stato cache compilatore cargo/pnpm"]
+    BtnCompile --> TriggerBatch["Invocazione IPC: batch_compile_sources(vaultPath)"]
+    TriggerBatch --> ScanRaw["Scansione file di testo in 20_RAW_SOURCES/"]
+    ScanRaw --> ExtractStructure["Estrazione metadati, intestazioni e normalizzazione Markdown"]
+    ExtractStructure --> WriteProposals["Scrittura bozze con frontmatter YAML in 90_PROPOSALS/"]
 
-    CopyDesktop --> PasteTerminal["Incolla ed esecuzione nel terminale di sistema"]
-    CopyLlama --> PasteTerminal
-    ViewCacheStatus --> PasteTerminal
-
-    PasteTerminal --> BinaryOutput["Generazione binario nativo standalone privo di dipendenze esterne"]
+    WriteProposals --> UpdateCount["Aggiornamento contatore bozze e stato UI"]
+    UpdateCount --> SuccessNotice["Bozze create pronte per revisione in WF-006 (Bozze e Proposte)"]

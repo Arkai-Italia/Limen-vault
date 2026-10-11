@@ -24,13 +24,13 @@ Schermata automatica di boot OPPURE Schermata di Benvenuto $\rightarrow$ Clic su
 5. Cliccare sul pulsante verde in basso **"ENTRA IN LIMEN VAULT"**.
 
 ### SE L'INTERFACCIA MOSTRA UN AVVISO DI RAM SOTTO I 16 GB
-Il sistema mostra una pillola ambra di attenzione. Selezionare il modello compatto **Ministral 3 3B Instruct** (~2,06 GB) anziché modelli più pesanti per evitare rallentamenti o crash per memoria insufficiente.
+Il sistema mostra una pillola ambra di attenzione. Selezionare il modello compatto **Ministral 3 3B Instruct** (2,47 GB, Q5_K_M) anziché modelli più pesanti per evitare rallentamenti o crash per memoria insufficiente.
 
 ### RISULTATO ATTESO
-La finestra modale scompare con una transizione fluida e compare la schermata principale **Panoramica** con lo stato **Pronto** e il percorso del Vault attivo.
+La finestra modale scompare con una transizione fluida e compare l'interfaccia principale di LIMEN Vault con badge **● PRONTO** nell'Header e il percorso del Vault attivo.
 
 ### CONTROLLO FINALE
-Controllare che nel riquadro centrale la card "Stato Motore Semantico" indichi `Attivo` e che la sidebar permetta di cliccare su `Chiedi`.
+Controllare che nell'Header compaia il badge verde **● PRONTO** e che la sidebar permetta di cliccare su `Chiedi`.
 
 ### ERRORI E RECUPERO
 - **Errore Cartella non scrivibile:** La cartella selezionata ha permessi di sola lettura.  
@@ -51,10 +51,10 @@ Non cancellare la cartella del Vault dal Finder/Explorer mentre l'app è aperta.
 `SCR-001`, `SCR-002`.
 
 ### SCREENSHOT
-`SHOT-002` (in `05_SCREENSHOTS/desktop/`).
+`SHOT-001`, `SHOT-002`, `SHOT-003` (in `05_SCREENSHOTS/desktop/`).
 
 ### DIAGRAMMA MERMAID
-`04_MERMAID/WF-001-setup-wizard.mmd`.
+`04_MERMAID/WF-001.mmd`.
 
 ### RELEASE / VARIANTI
 Valido per v7Mini (0.7.0) su macOS Apple Silicon / Intel e Windows x64.

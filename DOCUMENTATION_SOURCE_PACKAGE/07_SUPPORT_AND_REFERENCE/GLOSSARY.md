@@ -1,6 +1,6 @@
 # Glossario Terminologico Ufficiale — LIMEN Vault v7Mini
 
-Il presente glossario definisce i termini tecnici, architetturali e di interfaccia utilizzati in LIMEN Vault (0.7.0), con la relativa corrispondenza bilingue Italiano / Inglese.
+Il presente glossario definisce i termini tecnici, architetturali e di interfaccia utilizzati in LIMEN Vault (0.7.0), con la relativa corrispondenza bilingue Italiano / Inglese verificata nel codice sorgente.
 
 ---
 
@@ -8,17 +8,17 @@ Il presente glossario definisce i termini tecnici, architetturali e di interfacc
 
 | Termine Italiano | Termine Inglese | Definizione Operativa |
 | :--- | :--- | :--- |
-| **Local-First** | Local-First | Paradigma di sviluppo in cui i dati risiedono primariamente e permanentemente sul dispositivo locale dell'utente, garantendo piena operatività anche senza rete. |
-| **Rete Zero** | Zero-Network | Vincolo architetturale che garantisce l'assenza totale di trasmissione di dati, query o telemetria verso server cloud esterni. |
-| **RAG (Generazione con Recupero)** | RAG (Retrieval-Augmented Generation) | Architettura AI che interroga preliminarmente la knowledge base locale estraendo fonti pertinenti prima di generare la risposta con il modello linguistico. |
-| **Embedding Vettoriale** | Vector Embedding | Vettore matematico a 1024 dimensioni calcolato dal modello `bge-m3` locale per rappresentare il significato semantico di un testo. |
+| **Local-First** | Local-First | Paradigma architetturale in cui tutti i dati risiedono primariamente e permanentemente sul dispositivo locale dell'utente, consentendo piena operatività anche in assenza di rete. |
+| **Rete Zero (100% Locale)** | Zero-Network (100% Local) | Vincolo di sicurezza che esclude ogni connessione, telemetria o invio di documenti verso server cloud esterni. |
+| **RAG (Generazione con Recupero)** | RAG (Retrieval-Augmented Generation) | Architettura AI che esegue una ricerca semantica preliminare nel vault locale prima di generare la risposta con il modello linguistico. |
+| **Embedding Vettoriale** | Vector Embedding | Vettore numerico a 1024 dimensioni calcolato localmente tramite modello `bge-m3` per rappresentare il significato semantico di un frammento di testo. |
 | **Frammento Semantico (Chunk)** | Semantic Chunk | Blocco di testo di circa 512 token (~1.500 caratteri) estratto da un documento con sovrapposizione contestuale di 50-100 token. |
-| **Formato GGUF** | GGUF Format | Formato binario moderno sviluppato per `llama.cpp` che consente il caricamento rapido e l'esecuzione ottimizzata di modelli quantizzati su CPU e GPU. |
-| **Quantizzazione (Q4_K_M)** | Quantization (Q4_K_M) | Tecnica di compressione dei pesi del modello a 4 bit con schema K-quants medium per minimizzare l'uso di memoria senza perdita percepibile di intelligenza. |
-| **Reasoning Trace** | Reasoning Trace | La sequenza esplicita di passaggi logici intermedi generata dai modelli DeepSeek-R1 all'interno dei tag `<think>...</think>`, visibile all'utente. |
-| **Impronta SHA-256** | SHA-256 Hash | Algoritmo crittografico a senso unico che genera una stringa esadecimale di 64 caratteri, utilizzata per certificare l'integrità anti-manomissione dei file. |
-| **Metal** | Metal | API grafica e di calcolo a basso livello sviluppata da Apple per sfruttare al massimo l'accelerazione della GPU integrata su chip Apple Silicon M1-M4. |
-| **AVX2** | AVX2 (Advanced Vector Extensions) | Set di istruzioni vettoriali x86 per accelerare il calcolo parallelo delle operazioni matriciali dell'AI su CPU Intel e AMD su sistemi Windows. |
+| **Formato GGUF** | GGUF Format | Formato binario moderno utilizzato da `llama.cpp` per caricare ed eseguire modelli linguistici quantizzati su CPU e GPU. |
+| **Quantizzazione (Q4_K_M / Q5_K_M)** | Quantization (Q4_K_M / Q5_K_M) | Tecnica di compressione dei pesi del modello a 4 o 5 bit che riduce l'impronta di memoria RAM preservando l'accuratezza linguistica. |
+| **Reasoning Trace** | Reasoning Trace | Sequenza esplicita di passaggi logici intermedi generata dai modelli della famiglia DeepSeek all'interno dei tag `<think>...</think>`, consultabile dall'utente. |
+| **Impronta SHA-256** | SHA-256 Hash | Valore crittografico esadecimale a 64 caratteri calcolato a caldo per rilevare modifiche, discrepanze o corruzioni accidentali del file rispetto al momento dell'ingestione. |
+| **Apple Vision OCR** | Apple Vision OCR | Framework di riconoscimento ottico nativo eseguito su macOS per estrarre testo da immagini (.png, .jpg, .webp) o scansioni prive di testo vettoriale. |
+| **Accelerazione Hardware (Metal / AVX2)** | Hardware Acceleration (Metal / AVX2) | Ottimizzazioni di calcolo vettoriale a basso livello per GPU Apple Silicon (Metal) e CPU compatibili x86 (AVX2). |
 
 ---
 
@@ -26,14 +26,15 @@ Il presente glossario definisce i termini tecnici, architetturali e di interfacc
 
 | Elemento IT | Elemento EN | Descrizione e Collocazione |
 | :--- | :--- | :--- |
-| **Chiedi al Vault** | Ask Vault | Schermata principale di conversazione e ricerca semantica (Area 1). |
-| **Documenti** | Documents | Archivio tabellare dei file caricati e delle evidenze (Area 2). |
-| **Memoria** | Memory | Mappa concettuale a grafo e catalogo delle note consolidate (Area 3). |
-| **Avanzate** | Advanced | Pannello di amministrazione per bozze, modelli e snapshot (Area 4). |
-| **Carica** | Upload | Pulsante globale nell'header per l'apertura del cassetto di acquisizione. |
-| **Leggi** | Read | Pulsante azione nella tabella documenti per aprire il visualizzatore modale. |
-| **Integrità Verificata** | Integrity Verified | Badge verde visualizzato quando l'hash ricalcolato su disco coincide con il record. |
-| **Allarme Manomissione**| Tampering Detected | Badge rosso visualizzato quando il file locale differisce dall'impronta originale. |
-| **Bozze (Inbox)** | Drafts (Inbox) | Sezione dedicata alla revisione dei testi generati prima della promozione. |
-| **Snapshot e Ripristino**| Snapshot & Restore | Strumento per creare e recuperare copie di sicurezza integrali del Vault. |
-| **Apri in Obsidian** | Open in Obsidian | Collegamento diretto per lanciare la cartella attiva nell'editor Obsidian. |
+| **Chiedi al Vault** | Ask Vault | Schermata principale di conversazione interattiva e ricerca semantica (Sidebar). |
+| **Documenti** | Documents | Archivio tabellare dei documenti importati con visualizzazione metadati e stato integrità (Sidebar). |
+| **Memoria** | Memory | Navigatore gerarchico strutturato sulle 10 categorie standard del Vault (`01_CLIENTS` a `10_APPROVED_OUTPUTS`) con anteprima note (Sidebar). |
+| **Avanzate** | Advanced | Pannello impostazioni, gestione modelli LLM, snapshot e diagnostica (Sidebar). |
+| **Carica Documenti** | Upload Documents | Pulsante d'azione primario evidenziato in colore lime (`#c8ff00`) nella barra laterale sinistra per aprire l'UploadDrawer. |
+| **Verifica** | Verify | Pulsante centrale nell'header globale con icona RotateCw per avviare il controllo di integrità di sistema. |
+| **Apri in Obsidian** | Open in Obsidian | Pulsante nella parte inferiore della sidebar che invia il protocollo `obsidian://open?path=...` per aprire la directory attiva nell'editor Obsidian. |
+| **Bozze (90_PROPOSALS)** | Drafts (Proposals) | Sezione di revisione per note e bozze generate; consente l'approvazione con promozione nelle cartelle 01-10 o il rifiuto tracciato nell'audit log. |
+| **Compilatore Fonti Testo** | Compile Text Sources | Funzionalità avanzata per trasformare in blocco documenti grezzi in `20_RAW_SOURCES/` in bozze strutturate Markdown in `90_PROPOSALS/`. |
+| **Snapshot e Ripristino** | Snapshot & Restore | Modulo per creare archivi integrali del Vault e recuperare file in una directory separata sicura `{vault}_RECUPERO_{snapshot_id}`. |
+| **Integrità Verificata** | Integrity Verified | Badge visivo verde indicante che l'hash ricalcolato a caldo su disco coincide con quello registrato all'ingestione. |
+| **Discrepanza Hash** | Hash Mismatch | Badge visivo rosso di allarme mostrato nel Lettore Documenti quando il file su disco risulta modificato rispetto all'impronta memorizzata. |

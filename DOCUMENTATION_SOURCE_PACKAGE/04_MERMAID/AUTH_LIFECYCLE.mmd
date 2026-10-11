@@ -8,31 +8,31 @@ sequenceDiagram
 
     Utente->>App: Avvio Applicazione LIMEN Vault
     App->>Core: get_app_version() & check_system_requirements()
-    Core-->>App: Versione 0.7.0, Architettura rilevata (Metal/AVX2), RAM disponibile
-    App->>Core: check_vault_exists()
-    Core->>FS: Verifica cartella Vault e file di configurazione
+    Core-->>App: Versione 0.7.0, Architettura (Metal/AVX2), RAM rilevata
+    App->>Core: check_boot_requirements(vault, llm, key)
 
-    alt Vault NON configurato (Primo Avvio)
-        Core-->>App: Vault non trovato (isConfigured: false)
-        App->>Utente: Apertura automatica Setup Wizard (Step 1/3: Modalità Rete)
-        Utente->>App: Selezione "100% Locale" o "Ibrida (Cloud + Locale)"
-        Utente->>App: Clicca "Avanti" (Step 2/3: Selezione/Creazione Vault)
-        Utente->>App: Clicca "Sfoglia cartella" o inserisce percorso
+    alt Requisiti Incompleti (Primo Avvio o Reset)
+        Core-->>App: Requisiti mancanti (openWizard: true)
+        App->>Utente: Apertura SetupWizardModal (Step 1/3: Cartella del Vault)
+        Utente->>App: "Sfoglia cartella", "Apri Vault Esistente" o "Crea Nuovo Vault"
         App->>Core: init_or_validate_vault_path(path)
-        Core->>FS: Creazione struttura cartelle (00_INBOX, 10_KNOWLEDGE, 20_RAW_SOURCES)
-        Core-->>App: Percorso Vault validato con successo
-        Utente->>App: Clicca "Avanti" (Step 3/3: Selezione Modello LLM)
-        Utente->>App: Sceglie modello (es. Ministral 3B) e clicca "Scarica / Configura"
-        App->>Core: download_or_verify_model(model_id)
-        Core->>Model: Controllo presenza GGUF e verifica SHA-256
-        Core-->>App: Modello pronto
-        Utente->>App: Clicca "Completa Configurazione"
-        App->>Core: save_configuration(vault_path, mode, model_id)
-        Core-->>App: Configurazione salvata
-    else Vault GIÀ configurato
-        Core-->>App: Vault valido rilevato (isConfigured: true)
+        Core->>FS: Verifica / Creazione struttura (00_SYSTEM, 20_RAW_SOURCES, 90_PROPOSALS, 01-10)
+        Core-->>App: Spunta verde Step 1 (Cartella Pronta)
+        Utente->>App: Clicca "Avanti" (Step 2/3: Motore AI Locale)
+        Utente->>App: Sceglie modello GGUF (es. Ministral 3B - 8 GB RAM)
+        App->>Core: local_llm_download_or_activate(model_id)
+        Core->>Model: Controllo presenza GGUF e verifica hash SHA-256
+        Core-->>App: Spunta verde Step 2 (Modello Attivo)
+        Utente->>App: Clicca "Avanti" (Step 3/3: Modalità Operativa & Chiave API)
+        Utente->>App: Sceglie "100% Solo Locale" oppure "Ibrido OpenAI" con chiave sk-...
+        Core-->>App: Spunta verde Step 3 (Modalità Pronta)
+        Utente->>App: Clicca sul pulsante verde "ENTRA IN LIMEN VAULT"
+        App->>Core: finalize_setup(vault_path, model_id, mode)
+        Core-->>App: Setup completato con successo
+    else Requisiti Soddisfatti
+        Core-->>App: Vault e configurazione validi (openWizard: false)
     end
 
     App->>Core: start_llama_server_if_needed()
-    Core-->>App: llama-server attivo su porta locale 8080
-    App->>Utente: Visualizzazione Schermata Principale (1. Chiedi al Vault)
+    Core-->>App: llama-server attivo su loopback 127.0.0.1
+    App->>Utente: Visualizzazione Interfaccia Principale (Badge ● PRONTO)

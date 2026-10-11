@@ -44,19 +44,25 @@ Andare in **Chiedi** e porre una domanda specifica su una frase contenuta nel do
 Consultare il file nella tabella **Documenti** o porre domande in **Chiedi**.
 
 ### ATTENZIONE
-I file originali copiati in `20_RAW_SOURCES/` non vengono mai alterati dal sistema; le note elaborate dall'AI vengono salvate separatamente in `80_AI_OUTPUTS/` o `90_PROPOSALS/`.
+Il limite massimo di dimensione per ciascun file sorgente è **32 MB**. File eccedenti vengono rifiutati per garantire stabilità della memoria locale. I file originali copiati in `20_RAW_SOURCES/` non vengono mai alterati dal sistema; le note elaborate dall'AI vengono salvate separatamente in `90_PROPOSALS/` e promosse su approvazione nelle 10 categorie di conoscenza consolidata `01_CLIENTS` ... `10_APPROVED_OUTPUTS`.
+
+### FORMATI SUPPORTATI
+- **Documenti Office:** DOCX, PPTX, ODT
+- **Fogli di calcolo e dati:** XLSX, XLS, XLSB, ODS, CSV, TSV
+- **Testo e codice strutturato:** TXT, MD, JSON, XML, YAML, LOG, EML, HTML
+- **PDF e Immagini:** PDF, PNG, JPG, JPEG, WEBP, GIF, TIF, TIFF, HEIC (con OCR nativo Apple Vision su macOS; testo vettoriale su Windows)
 
 ### EVIDENZE
 `EVD-006` (`CODE_VERIFIED`).
 
 ### SCHERMATE
-`SCR-004`.
+`SCR-001`, `SCR-004`.
 
 ### SCREENSHOT
-`SHOT-004`.
+`SHOT-008`, `SHOT-009` (in `05_SCREENSHOTS/desktop/`).
 
 ### DIAGRAMMA MERMAID
-`04_MERMAID/WF-004-carica-documenti.mmd`.
+`04_MERMAID/WF-004.mmd`.
 
 ### RELEASE / VARIANTI
 Valido per v7Mini (0.7.0).

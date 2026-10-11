@@ -1,13 +1,14 @@
 {
-  "manifest_version": "1.0.0",
+  "manifest_version": "1.1.0",
   "app_id": "dev.arkai.limenvault",
   "app_name": "LIMEN Vault v7Mini",
   "release_version": "0.7.0",
-  "commit_sha": "677745c",
+  "release_commit_sha": "677745c367d64de7d21eb66d111cac7558300f84",
+  "inspection_commit_sha": "373e34e7ae3a7a9f41acf2c8eecdaa8131c5d90a",
   "branch": "windows-build",
-  "generated_at": "2026-10-11T15:30:00Z",
+  "updated_at": "2026-10-11T16:05:00Z",
   "protocol": "CODER DOCUMENTATION EXTRACTION OS (v1.0.0)",
-  "author": "Arkitecna Hong Kong Limited / Cesare Negro",
+  "standard": "APP USER MANUAL OS v0.2.0 (Bibbia Manuali Utente)",
   "primary_deliverables": {
     "text_master": "DOCUMENTATION_SOURCE_PACKAGE/MANUALE_UTENTE.txt",
     "markdown_master": "DOCUMENTATION_SOURCE_PACKAGE/MANUALE_UTENTE.md",
@@ -16,8 +17,8 @@
     "design_tokens": "DOCUMENTATION_SOURCE_PACKAGE/08_DESIGN_SYSTEM_HANDOFF/DESIGN_TOKENS_EXTRACTED.yml"
   },
   "metrics": {
-    "total_files": 85,
-    "total_folders": 11,
+    "total_files": 86,
+    "total_folders": 16,
     "screens_documented": 14,
     "routes_documented": 14,
     "navigation_items_documented": 16,
@@ -29,22 +30,61 @@
     "mermaid_diagrams_created": 18,
     "manual_chapters": 25,
     "manual_appendices": 3,
-    "coverage_percentage": 100.0,
-    "source_truth_verified": true
+    "screenshots_planned": 16,
+    "screenshots_captured": 0,
+    "code_verification_coverage_percentage": 100.0,
+    "ready_for_publication": false,
+    "publication_blocking_reason": "Screenshots are NOT_CAPTURED due to macOS TCC Screen Recording permissions in dev environment"
   },
   "supported_architectures": [
     "macOS Apple Silicon (aarch64 Metal GPU)",
     "macOS Intel (x86_64)",
-    "Windows 10/11 x64 (AVX2 CPU / CUDA)"
+    "Windows 10/11 x64 (AVX2 CPU)"
   ],
   "llm_catalog_models_supported": [
-    "Ministral 3B Instruct (Q4_K_M)",
-    "Ministral 8B Instruct (Q4_K_M)",
-    "Qwen 2.5 7B Instruct (Q4_K_M)",
-    "Llama 3.1 8B Instruct (Q4_K_M)",
-    "DeepSeek-R1 Distill Qwen 7B (Q4_K_M)",
-    "DeepSeek-R1 Distill Qwen 14B (Q4_K_M)"
+    {
+      "model": "Ministral 3B Instruct",
+      "quantization": "Q5_K_M",
+      "size_gb": 2.47,
+      "ram_min_gb": 8,
+      "ram_recommended_gb": 8
+    },
+    {
+      "model": "Ministral 8B Instruct",
+      "quantization": "Q5_K_M",
+      "size_gb": 6.06,
+      "ram_min_gb": 12,
+      "ram_recommended_gb": 16
+    },
+    {
+      "model": "Qwen 2.5 7B Instruct",
+      "quantization": "Q4_K_M",
+      "size_gb": 4.68,
+      "ram_min_gb": 12,
+      "ram_recommended_gb": 16
+    },
+    {
+      "model": "Llama 3.1 8B Instruct",
+      "quantization": "Q4_K_M",
+      "size_gb": 4.92,
+      "ram_min_gb": 12,
+      "ram_recommended_gb": 16
+    },
+    {
+      "model": "DeepSeek-R1 Distill Qwen 7B",
+      "quantization": "Q4_K_M",
+      "size_gb": 4.68,
+      "ram_min_gb": 12,
+      "ram_recommended_gb": 16
+    },
+    {
+      "model": "DeepSeek-R1 Distill Qwen 14B",
+      "quantization": "Q4_K_M",
+      "size_gb": 8.99,
+      "ram_min_gb": 20,
+      "ram_recommended_gb": 24
+    }
   ],
   "checksum_algorithm": "SHA-256",
-  "zero_network_certified": true
+  "zero_network_default_mode": true
 }

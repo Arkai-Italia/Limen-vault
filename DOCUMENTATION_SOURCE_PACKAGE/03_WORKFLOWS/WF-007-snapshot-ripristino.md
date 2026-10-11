@@ -16,38 +16,42 @@ Barra Laterale Sinistra $\rightarrow$ Clic su **"⚙️ Avanzate"** $\rightarrow
 Verificare di avere almeno 2 GB di spazio disco libero sul computer.
 
 ### COME FARE
-1. Cliccare su **"Avanzate"** e poi su **"Copie Locali & Ripristino"**.
-2. **Creazione Snapshot:**
-   - Cliccare sul pulsante verde **"CREA COPIA LOCALE"**;
-   - Il motore calcola l'hash crittografico SHA-256 di ciascun file del Vault, crea il file `manifest.json` e comprime l'archivio;
-   - Al termine, compare una nuova riga nella tabella con identificativo data/ora, numero di file e impronta crittografica.
-3. **Ripristino Snapshot:**
-   - Selezionare una copia dalla tabella;
+1. Cliccare su **"Avanzate"** e poi su **"Copie Locali & Ripristino"** (`advancedTab === 'snapshots'`).
+2. **Creazione Copia Locale (Snapshot):**
+   - Cliccare sul pulsante **"CREA COPIA LOCALE"**;
+   - Il motore interno calcola l'hash crittografico SHA-256 di ciascun file del Vault e genera il manifesto crittografico `snapshot_manifest.json` in `00_SYSTEM/SNAPSHOTS/{snapshot_id}/`;
+   - Al termine, compare una nuova riga nella tabella con identificativo data/ora, numero di file inclusi e dimensione complessiva.
+3. **Ripristino Sicuro (Non-Distruttivo):**
+   - Individuare la copia desiderata nella tabella storica;
    - Cliccare sul pulsante **"RIPRISTINA"**;
-   - Selezionare o confermare la cartella di destinazione del ripristino;
-   - Il sistema decomprime i file ed esegue la verifica uno ad uno rispetto al manifesto originale.
+   - **Destinazione del ripristino:** Il motore Rust applica una regola di sicurezza tassativa: **il ripristino diretto sopra la cartella del Vault attivo è espressamente vietato** (`target_dest == vault_path` genera errore bloccante) per scongiurare qualsiasi perdita di dati;
+   - I file vengono estratti in una directory separata creata automaticamente accanto al Vault con nome `{vault_name}_RECUPERO_{snapshot_id}`;
+   - Durante l'estrazione, ogni singolo file viene ri-verificato crittograficamente con SHA-256 rispetto a `snapshot_manifest.json`; in caso di difformità il recupero viene interrotto per corruzione rilevata;
+   - All'interno della cartella di recupero viene rigenerato un nuovo `00_SYSTEM/VAULT_MANIFEST.json` con data e stato aggiornati.
 
 ### RISULTATO ATTESO
-Copia di sicurezza creata e registrata nell'archivio storico, ripristinabile in qualsiasi momento.
+Creazione di una cartella gemella integra `{vault_name}_RECUPERO_{snapshot_id}` contenente la ricostruzione fedele dello stato del Vault alla data dello snapshot, senza mai alterare né sovrascrivere il Vault di lavoro corrente.
 
 ### CONTROLLO FINALE
-Verificare la presenza del file di backup con estensione `.tar.gz` nella directory di sistema del Vault.
+Aprire il Finder / Explorer, verificare la cartella `{vault_name}_RECUPERO_{snapshot_id}` e ispezionare i file recuperati prima di decidere se sostituire manualmente l'archivio o consultarlo separatamente.
 
 ### ERRORI E RECUPERO
-- **Errore "Spazio disco insufficiente":** Il disco non ha spazio sufficiente per completare la compressione.  
+- **Errore "Spazio disco insufficiente":** Il disco non ha spazio sufficiente per completare la copia o l'estrazione.  
   *Recupero:* Liberare spazio sul disco e rieseguire la procedura.
+- **Errore "Copia locale corrotta o incompleta":** Uno dei file dello snapshot non corrisponde all'hash SHA-256 registrato nel manifesto.  
+  *Recupero:* Utilizzare uno snapshot precedente temporalmente integro.
 
 ### EVIDENZE
-`EVD-013` (`TEST_VERIFIED`).
+`EVD-013` (`CODE_VERIFIED`).
 
 ### SCHERMATE
 `SCR-007`.
 
 ### SCREENSHOT
-`SHOT-007`.
+`SHOT-012` (in `05_SCREENSHOTS/desktop/`).
 
 ### DIAGRAMMA MERMAID
-`04_MERMAID/WF-007-snapshot-ripristino.mmd`.
+`04_MERMAID/WF-007.mmd`.
 
 ### RELEASE / VARIANTI
 Valido per v7Mini (0.7.0).

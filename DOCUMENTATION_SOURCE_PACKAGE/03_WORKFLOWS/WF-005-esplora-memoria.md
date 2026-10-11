@@ -17,23 +17,30 @@ Vault aperto con note presenti nelle cartelle da `01_CLIENTS` a `10_APPROVED_OUT
 
 ### COME FARE
 1. Cliccare sulla voce **"Memoria"** nella barra laterale sinistra.
-2. In alto nella schermata, osservare la barra delle pillole orizzontali corrispondenti alle 10 categorie standard del Vault:
-   - `01_CLIENTS`, `02_PARTNERS`, `03_SUPPLIERS`, `04_PROJECTS`, `05_PRODUCTS`, `06_RESEARCH`, `07_MEETINGS`, `08_TEMPLATES`, `09_INTERNAL`, `10_APPROVED_OUTPUTS`.
-3. Cliccare sulla pillola desiderata (es. `04_PROJECTS`) per filtrare l'elenco.
-4. Nella colonna sinistra della vista comparirà l'elenco delle schede delle note con titolo, data di modifica e badge di validità Frontmatter:
-   - Badge verde **`YAML Valido`**: la nota possiede tutti i metadati obbligatori conformi a Obsidian.
-   - Badge giallo **`YAML Incompleto`**: uno o più campi raccomandati non sono presenti.
-5. Cliccare su una nota per visualizzarne l'anteprima formattata nel riquadro destro.
+2. In alto nella schermata, osservare la barra delle pillole orizzontali corrispondenti alle 10 categorie aziendali standard di LIMEN Vault:
+   - `01_CLIENTS` (Schede e profili clienti)
+   - `02_PROJECTS` (Documenti e avanzamento progetti)
+   - `03_BRANDS` (Linee guida e identità di marca)
+   - `04_POSITIONING` (Strategie di posizionamento)
+   - `05_PACKAGING_KNOWLEDGE` (Competenze e specifiche packaging)
+   - `06_METHODS` (Metodologie operative e framework)
+   - `07_CASE_STUDIES` (Casi studio e applicazioni reali)
+   - `08_MARKET_RESEARCH` (Ricerche di mercato e trend)
+   - `09_COMPETITORS` (Analisi della concorrenza)
+   - `10_APPROVED_OUTPUTS` (Deliverable finali approvati)
+3. Cliccare sulla pillola desiderata (es. `02_PROJECTS`) per filtrare l'elenco delle note.
+4. Nella colonna sinistra della vista comparirà l'elenco delle schede delle note con titolo, percorso relativo e stato.
+5. Cliccare su una nota per visualizzarne l'anteprima formattata nel riquadro destro con `KnowledgePanel`.
 
 ### RISULTATO ATTESO
 Visualizzazione immediata della nota formattata con tabelle, elenchi puntati e link wiki `[[Titolo Nota]]` interattivi.
 
 ### CONTROLLO FINALE
-Controllare che cliccando su un link wiki interno, il visualizzatore apra la nota collegata.
+Controllare che cliccando su una categoria la griglia filtri istantaneamente le note pertinenti.
 
 ### ERRORI E RECUPERO
 - **Nessuna nota visualizzata:** La cartella selezionata è vuota.  
-  *Recupero:* Selezionare un'altra categoria o importare/creare note in quella categoria.
+  *Recupero:* Selezionare un'altra categoria o approvare una bozza destinandola a quella cartella.
 
 ### PASSO SUCCESSIVO
 Utilizzare le informazioni per le proprie attività o aprire il Vault in Obsidian tramite **WF-012**.
@@ -45,10 +52,10 @@ Utilizzare le informazioni per le proprie attività o aprire il Vault in Obsidia
 `SCR-005`.
 
 ### SCREENSHOT
-`SHOT-005`.
+`SHOT-010` (in `05_SCREENSHOTS/desktop/`).
 
 ### DIAGRAMMA MERMAID
-`04_MERMAID/WF-005-esplora-memoria.mmd`.
+`04_MERMAID/WF-005.mmd`.
 
 ### RELEASE / VARIANTI
 Valido per v7Mini (0.7.0).

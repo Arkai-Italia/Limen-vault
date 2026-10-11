@@ -1,23 +1,25 @@
 graph TD
-    Trigger(["Accesso ad 'Avanzate > Approvazione Note (Bozze)' (SCR-006)"]) --> ScanInbox["Scansione cartella 00_INBOX del Vault"]
-    ScanInbox --> CheckCount{"Ci sono note in bozza?"}
-    
-    CheckCount -->|Zero note| EmptyInbox["Stato vuoto: 'Nessuna bozza in attesa'"]
-    CheckCount -->|Almeno 1 nota| ListDrafts["Visualizzazione elenco bozze con titolo e anteprima"]
+    Trigger(["Accesso ad 'Avanzate > Bozze e Proposte' (SCR-006)"]) --> ScanProposals["Scansione bozze e proposte in 90_PROPOSALS/"]
+    ScanProposals --> CheckCount{"Ci sono bozze in attesa?"}
 
-    ListDrafts --> SelectDraft["Selezione di una bozza specifica"]
-    SelectDraft --> InspectDraft["Pannello di revisione: testo proposto, fonti, tag"]
-    
-    InspectDraft --> Decision{"Decisione dell'Utente"}
-    
-    Decision -->|Modifica| EditMode["Editing inline di titolo, tag o corpo testo"]
-    EditMode --> Decision
+    CheckCount -->|Zero bozze| EmptyList["Stato vuoto: 'Nessuna proposta in attesa di revisione'"]
+    CheckCount -->|Almeno 1 bozza| ListProposals["Visualizzazione elenco bozze con stato, revisione e categoria"]
 
-    Decision -->|Approva e Promuovi| ApproveAction["Spostamento file da 00_INBOX a 10_KNOWLEDGE"]
-    ApproveAction --> UpdateDB["Aggiornamento indice: stato NOTA_CONSOLIDATA"]
-    UpdateDB --> ToastSuccess["Notifica verde: 'Nota approvata e consolidata'"]
-    ToastSuccess --> ListDrafts
+    ListProposals --> SelectProposal["Selezione di una proposta specifica"]
+    SelectProposal --> InspectProposal["Pannello di revisione: testo proposto, hash SHA-256 e fonti"]
 
-    Decision -->|Scarta / Elimina| RejectAction["Rimozione file dalla cartella 00_INBOX"]
-    RejectAction --> ToastDeleted["Notifica: 'Bozza scartata definitivamente'"]
-    ToastDeleted --> ListDrafts
+    InspectProposal --> Decision{"Decisione dell'Utente"}
+
+    Decision -->|Modifica Testo| EditRevision["Creazione nuova revisione (conserva lo storico precedente)"]
+    EditRevision --> InspectProposal
+
+    Decision -->|Approva Revisione| ApproveFlow["Indicazione percorso destinazione in categoria 01-10 & Spunta di verifica"]
+    ApproveFlow --> ApproveAction["Pulsante 'APPROVA REVISIONE MOSTRATA': Scrittura nota consolidata"]
+    ApproveAction --> UpdateStatus["Transizione stato: approved nel Vault"]
+    UpdateStatus --> ToastSuccess["Notifica: 'Proposta approvata e archiviata'"]
+    ToastSuccess --> ListProposals
+
+    Decision -->|Rifiuta Revisione| RejectFlow["Compilazione obbligatoria 'Motivo del rifiuto'"]
+    RejectFlow --> RejectAction["Pulsante 'RIFIUTA REVISIONE MOSTRATA': Registrazione decision {reject, reason}"]
+    RejectAction --> AuditTrail["Conservazione bozza con decisione tracciata nell'audit log (Nessuna cancellazione distruttiva)"]
+    AuditTrail --> ListProposals

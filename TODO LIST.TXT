@@ -1,3 +1,10 @@
+CORREZIONE PACCHETTO DOCUMENTALE LIMEN VAULT v7Mini (0.7.0) — 11 Ottobre 2026
+Stato operativo principale:
+- COMPLETATO IN LOCALE: pacchetto DOCUMENTATION_SOURCE_PACKAGE bonificato e allineato allo standard Bibbia dei Manuali (APP USER MANUAL OS v0.2.0). Riscritte le matrici CSV, i diagrammi Mermaid (04_MERMAID/ e 10_EXPORT/), le schede operative WF-001..WF-012, il supporto/FAQ/limiti, i design tokens Light Slate/Lime/Slate 900, e i master MANUALE_UTENTE.txt e MANUALE_UTENTE.md (25 capitoli, 3 appendici, doppio indice).
+- VERIFICATO SU CODICE: Setup Wizard a 3 step (Cartella -> Motore -> Modello Locale/API Key fino a ENTRA IN LIMEN VAULT); UI con Sidebar 240px (Carica Documenti #c8ff00, Apri in Obsidian) e Header 52px (Verifica RotateCw, IT|EN, ● PRONTO); Memoria sulle 10 categorie (01_CLIENTS - 10_APPROVED_OUTPUTS); Bozze in 90_PROPOSALS; Compilatore Markdown Manuale da 20_RAW_SOURCES a 90_PROPOSALS; Ripristino sicuro in directory RECUPERO (zero sovrascrittura Vault); formati Office/Excel/OCR Vision macOS (32MB/16MB); modelli GGUF Q4/Q5 e matrice RAM.
+- BLOCCATO: i 16 screenshot dell'app (SHOT-001..SHOT-016) risultano NOT_CAPTURED per restrizioni di sicurezza TCC macOS (AppleScript -25211). Il pacchetto NON È PRONTO PER LA STAMPA / PUBBLICAZIONE DEFINITIVA finché l'operatore umano non acquisisce le immagini native e le deposita in 05_SCREENSHOTS/.
+- DA PUBBLICARE: commit atomico e push su origin/windows-build.
+
 ARCHIVIO CHAT CODEX — 29 settembre 2026
 Stato: completato e pubblicato su origin/windows-build; commit archivio 30d97ca, push confermato dal remoto. CHAT_CODEX contiene 7 chat e 565 messaggi verificati, indice, manifest e script di aggiornamento.
 Nessun residuo di pubblicazione dell’archivio. Su Windows recuperare il branch e usare CHAT_CODEX/README.md come contesto; nessuna importazione automatica nella sidebar. Chat non presenti sui database locali, allegati binari e log strumenti non inclusi. Le conversazioni successive richiedono una nuova esportazione.

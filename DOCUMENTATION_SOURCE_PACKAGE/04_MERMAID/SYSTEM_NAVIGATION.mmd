@@ -1,68 +1,69 @@
 graph TD
-    classDef headerStyle fill:#1e293b,stroke:#3b82f6,stroke-width:2px,color:#f8fafc;
-    classDef navStyle fill:#1e293b,stroke:#64748b,stroke-width:1px,color:#f8fafc;
-    classDef areaStyle fill:#0f172a,stroke:#334155,stroke-width:1px,color:#94a3b8;
-    classDef modalStyle fill:#1e293b,stroke:#c8ff00,stroke-width:2px,color:#f8fafc;
-    classDef drawerStyle fill:#1e293b,stroke:#eab308,stroke-width:1px,color:#f8fafc;
+    classDef headerStyle fill:#ffffff,stroke:#cbd5e1,stroke-width:1.5px,color:#0f172a;
+    classDef sidebarStyle fill:#f1f5f9,stroke:#cbd5e1,stroke-width:1px,color:#0f172a;
+    classDef navStyle fill:#ffffff,stroke:#94a3b8,stroke-width:1px,color:#0f172a;
+    classDef areaStyle fill:#f8fafc,stroke:#cbd5e1,stroke-width:1px,color:#0f172a;
+    classDef modalStyle fill:#0f172a,stroke:#77f117,stroke-width:2px,color:#ffffff;
+    classDef limeBtn fill:#c8ff00,stroke:#0f172a,stroke-width:1.5px,color:#0a0c10;
 
-    subgraph Header ["BARRA SUPERIORE (GLOBAL HEADER)"]
-        H1["Logo LIMEN Vault & Badge 0.7.0"]:::headerStyle
-        H2["Stato Rete: 100% Locale / Ibrido"]:::headerStyle
-        H3["Pulsante Apri in Obsidian"]:::headerStyle
-        H4["Selettore Lingua: IT / EN"]:::headerStyle
-        H5["Pulsante Globale: Carica Documenti"]:::headerStyle
+    subgraph TopHeader ["TOP HEADER BAR (52px)"]
+        H1["Breadcrumb Sezione & Nome Vault"]:::headerStyle
+        H2["Pulsante Centrale: Verifica (RotateCw)"]:::headerStyle
+        H3["Commutatore Lingua: IT | EN"]:::headerStyle
+        H4["Badge Stato: ● PRONTO"]:::headerStyle
     end
 
-    subgraph NavArea ["BARRA DI NAVIGAZIONE PRINCIPALE"]
-        N1["1. Chiedi al Vault"]:::navStyle
-        N2["2. Documenti"]:::navStyle
-        N3["3. Memoria"]:::navStyle
-        N4["4. Avanzate"]:::navStyle
+    subgraph Sidebar ["SIDEBAR SINISTRA (240px)"]
+        S1["Logo Limen & Vault Name"]:::sidebarStyle
+        S2["Pulsante Globale: CARICA DOCUMENTI"]:::limeBtn
+        S3["Navigazione Principale: Chiedi / Documenti / Memoria / Avanzate"]:::sidebarStyle
+        S4["Storico Conversazioni & Nuova Chat"]:::sidebarStyle
+        S5["Fonti Citate (Collassabile)"]:::sidebarStyle
+        S6["Pulsante: Apri in Obsidian"]:::sidebarStyle
     end
 
-    subgraph Area1 ["1. CHIEDI AL VAULT (Chat RAG)"]
-        A1_1["Thread Storico Conversazioni"]:::areaStyle
-        A1_2["Pannello Reasoning Trace (DeepSeek-R1)"]:::areaStyle
-        A1_3["Output Risposta con Fonti Verificate"]:::areaStyle
-        A1_4["Input Prompt con Invio e Modello"]:::areaStyle
+    subgraph Area1 ["1. CHIEDI (AiPanel - Chat RAG)"]
+        A1_1["Toggle: Solo Locale (Mac) vs Ibrido OpenAI"]:::areaStyle
+        A1_2["Reasoning Trace Espandibile (<think>)"]:::areaStyle
+        A1_3["Risposta Streaming con Fonti Citate"]:::areaStyle
+        A1_4["Input Prompt & Invio Domanda"]:::areaStyle
     end
 
-    subgraph Area2 ["2. DOCUMENTI"]
-        A2_1["Filtro Ricerca Testuale & Ordinamento"]:::areaStyle
-        A2_2["Tabella File: Nome, Tipo, Data, Hash"]:::areaStyle
-        A2_3["Pulsante Leggi (Apre Lettore)"]:::areaStyle
+    subgraph Area2 ["2. DOCUMENTI (20_RAW_SOURCES)"]
+        A2_1["Tabella Documenti Sorgente (PDF, DOCX, XLSX, TXT)"]:::areaStyle
+        A2_2["Stato Elaborazione & Passaggi Estratti"]:::areaStyle
+        A2_3["Pulsante Apri Lettore Verificato"]:::areaStyle
     end
 
-    subgraph Area3 ["3. MEMORIA"]
-        A3_1["Tag Cloud & Categorie Semantiche"]:::areaStyle
-        A3_2["Mappa Concettuale / Grafo di Memoria"]:::areaStyle
-        A3_3["Elenco Note Consolidate del Vault"]:::areaStyle
+    subgraph Area3 ["3. MEMORIA (KnowledgePanel - 10 Categorie)"]
+        A3_1["Pillole 10 Categorie: 01_CLIENTS ... 10_APPROVED_OUTPUTS"]:::areaStyle
+        A3_2["Elenco Schede Note con Validazione Frontmatter YAML"]:::areaStyle
+        A3_3["Anteprima Markdown con Link Wiki [[Nota]]"]:::areaStyle
     end
 
-    subgraph Area4 ["4. SEZIONI AVANZATE"]
-        A4_1["A. Approvazione Note (Bozze 00_INBOX)"]:::areaStyle
-        A4_2["B. Snapshot e Ripristino"]:::areaStyle
-        A4_3["C. Catalogo Modelli LLM & llama.cpp"]:::areaStyle
-        A4_4["D. Sincronizzazione Cloud S3/R2"]:::areaStyle
-        A4_5["E. Compilazione Manuale Rete Zero"]:::areaStyle
-        A4_6["F. Configurazione e Impostazioni"]:::areaStyle
-        A4_7["G. Diagnostica e Log di Sistema"]:::areaStyle
+    subgraph Area4 ["4. AVANZATE (Subtab Operative)"]
+        A4_1["Bozze e Proposte: 90_PROPOSALS (Approva / Modifica / Rifiuta)"]:::areaStyle
+        A4_2["Copie Locali & Ripristino (Recupero in cartella separata)"]:::areaStyle
+        A4_3["Collegamenti AI & Catalogo 6 Modelli LLM Locali GGUF"]:::areaStyle
+        A4_4["Compilatore Markdown Manuale (COMPILA FONTI TESTO)"]:::areaStyle
+        A4_5["Trasferimenti Cloud S3/R2"]:::areaStyle
+        A4_6["Stato Sistema Locale & Diagnostica"]:::areaStyle
+        A4_7["Guida Vault Integrata"]:::areaStyle
     end
 
-    subgraph Overlays ["MODALI E CASSETTI CONTESTUALI"]
-        M1["SetupWizardModal: Configurazione Vault e LLM"]:::modalStyle
-        M2["DocumentReaderModal: Viewer TXT/MD/PDF con Hash SHA-256"]:::modalStyle
-        D1["UploadDrawer: Caricamento File e Directory"]:::drawerStyle
-        D2["ModelDownloadDrawer: Avanzamento Download GGUF"]:::drawerStyle
+    subgraph Overlays ["MODALI & VISTE SOVRAPPOSTE"]
+        M1["SetupWizardModal: 3 Step (Cartella -> LLM -> Modalita) -> ENTRA IN LIMEN VAULT"]:::modalStyle
+        M2["DocumentReaderModal: Lettore Verificato SHA-256 ed Evidenziazione"]:::modalStyle
+        M3["NativeFileDialog: Selettore File di Sistema (Finder / Explorer)"]:::modalStyle
     end
 
-    H5 -->|Clicca| D1
-    N1 --> Area1
-    N2 --> Area2
-    N3 --> Area3
-    N4 --> Area4
+    S2 -->|Clicca| M3
+    M3 -->|File Selezionati| Area2
+    S3 --> Area1
+    S3 --> Area2
+    S3 --> Area3
+    S3 --> Area4
 
-    A2_3 -->|Clicca| M2
-    A1_3 -->|Clicca Fonte| M2
-    A4_3 -->|Download Modello| D2
-    H1 -->|Primo Avvio o Reset| M1
+    A2_3 -->|Clicca Leggi| M2
+    A1_3 -->|Clicca Fonte Citata| M2
+    S1 -->|Mancano Requisiti di Boot| M1

@@ -33,73 +33,74 @@ Ogni diagramma è racchiuso in un blocco di codice fenced (` ```mermaid `) ed è
 
 ```mermaid
 graph TD
-    classDef headerStyle fill:#1e293b,stroke:#3b82f6,stroke-width:2px,color:#f8fafc;
-    classDef navStyle fill:#1e293b,stroke:#64748b,stroke-width:1px,color:#f8fafc;
-    classDef areaStyle fill:#0f172a,stroke:#334155,stroke-width:1px,color:#94a3b8;
-    classDef modalStyle fill:#1e293b,stroke:#c8ff00,stroke-width:2px,color:#f8fafc;
-    classDef drawerStyle fill:#1e293b,stroke:#eab308,stroke-width:1px,color:#f8fafc;
+    classDef headerStyle fill:#ffffff,stroke:#cbd5e1,stroke-width:1.5px,color:#0f172a;
+    classDef sidebarStyle fill:#f1f5f9,stroke:#cbd5e1,stroke-width:1px,color:#0f172a;
+    classDef navStyle fill:#ffffff,stroke:#94a3b8,stroke-width:1px,color:#0f172a;
+    classDef areaStyle fill:#f8fafc,stroke:#cbd5e1,stroke-width:1px,color:#0f172a;
+    classDef modalStyle fill:#0f172a,stroke:#77f117,stroke-width:2px,color:#ffffff;
+    classDef limeBtn fill:#c8ff00,stroke:#0f172a,stroke-width:1.5px,color:#0a0c10;
 
-    subgraph Header ["BARRA SUPERIORE (GLOBAL HEADER)"]
-        H1["Logo LIMEN Vault & Badge 0.7.0"]:::headerStyle
-        H2["Stato Rete: 100% Locale / Ibrido"]:::headerStyle
-        H3["Pulsante Apri in Obsidian"]:::headerStyle
-        H4["Selettore Lingua: IT / EN"]:::headerStyle
-        H5["Pulsante Globale: Carica Documenti"]:::headerStyle
+    subgraph TopHeader ["TOP HEADER BAR (52px)"]
+        H1["Breadcrumb Sezione & Nome Vault"]:::headerStyle
+        H2["Pulsante Centrale: Verifica (RotateCw)"]:::headerStyle
+        H3["Commutatore Lingua: IT | EN"]:::headerStyle
+        H4["Badge Stato: ● PRONTO"]:::headerStyle
     end
 
-    subgraph NavArea ["BARRA DI NAVIGAZIONE PRINCIPALE"]
-        N1["1. Chiedi al Vault"]:::navStyle
-        N2["2. Documenti"]:::navStyle
-        N3["3. Memoria"]:::navStyle
-        N4["4. Avanzate"]:::navStyle
+    subgraph Sidebar ["SIDEBAR SINISTRA (240px)"]
+        S1["Logo Limen & Vault Name"]:::sidebarStyle
+        S2["Pulsante Globale: CARICA DOCUMENTI"]:::limeBtn
+        S3["Navigazione Principale: Chiedi / Documenti / Memoria / Avanzate"]:::sidebarStyle
+        S4["Storico Conversazioni & Nuova Chat"]:::sidebarStyle
+        S5["Fonti Citate (Collassabile)"]:::sidebarStyle
+        S6["Pulsante: Apri in Obsidian"]:::sidebarStyle
     end
 
-    subgraph Area1 ["1. CHIEDI AL VAULT (Chat RAG)"]
-        A1_1["Thread Storico Conversazioni"]:::areaStyle
-        A1_2["Pannello Reasoning Trace (DeepSeek-R1)"]:::areaStyle
-        A1_3["Output Risposta con Fonti Verificate"]:::areaStyle
-        A1_4["Input Prompt con Invio e Modello"]:::areaStyle
+    subgraph Area1 ["1. CHIEDI (AiPanel - Chat RAG)"]
+        A1_1["Toggle: Solo Locale (Mac) vs Ibrido OpenAI"]:::areaStyle
+        A1_2["Reasoning Trace Espandibile (<think>)"]:::areaStyle
+        A1_3["Risposta Streaming con Fonti Citate"]:::areaStyle
+        A1_4["Input Prompt & Invio Domanda"]:::areaStyle
     end
 
-    subgraph Area2 ["2. DOCUMENTI"]
-        A2_1["Filtro Ricerca Testuale & Ordinamento"]:::areaStyle
-        A2_2["Tabella File: Nome, Tipo, Data, Hash"]:::areaStyle
-        A2_3["Pulsante Leggi (Apre Lettore)"]:::areaStyle
+    subgraph Area2 ["2. DOCUMENTI (20_RAW_SOURCES)"]
+        A2_1["Tabella Documenti Sorgente (PDF, DOCX, XLSX, TXT)"]:::areaStyle
+        A2_2["Stato Elaborazione & Passaggi Estratti"]:::areaStyle
+        A2_3["Pulsante Apri Lettore Verificato"]:::areaStyle
     end
 
-    subgraph Area3 ["3. MEMORIA"]
-        A3_1["Tag Cloud & Categorie Semantiche"]:::areaStyle
-        A3_2["Mappa Concettuale / Grafo di Memoria"]:::areaStyle
-        A3_3["Elenco Note Consolidate del Vault"]:::areaStyle
+    subgraph Area3 ["3. MEMORIA (KnowledgePanel - 10 Categorie)"]
+        A3_1["Pillole 10 Categorie: 01_CLIENTS ... 10_APPROVED_OUTPUTS"]:::areaStyle
+        A3_2["Elenco Schede Note con Validazione Frontmatter YAML"]:::areaStyle
+        A3_3["Anteprima Markdown con Link Wiki [[Nota]]"]:::areaStyle
     end
 
-    subgraph Area4 ["4. SEZIONI AVANZATE"]
-        A4_1["A. Approvazione Note (Bozze 00_INBOX)"]:::areaStyle
-        A4_2["B. Snapshot e Ripristino"]:::areaStyle
-        A4_3["C. Catalogo Modelli LLM & llama.cpp"]:::areaStyle
-        A4_4["D. Sincronizzazione Cloud S3/R2"]:::areaStyle
-        A4_5["E. Compilazione Manuale Rete Zero"]:::areaStyle
-        A4_6["F. Configurazione e Impostazioni"]:::areaStyle
-        A4_7["G. Diagnostica e Log di Sistema"]:::areaStyle
+    subgraph Area4 ["4. AVANZATE (Subtab Operative)"]
+        A4_1["Bozze e Proposte: 90_PROPOSALS (Approva / Modifica / Rifiuta)"]:::areaStyle
+        A4_2["Copie Locali & Ripristino (Recupero in cartella separata)"]:::areaStyle
+        A4_3["Collegamenti AI & Catalogo 6 Modelli LLM Locali GGUF"]:::areaStyle
+        A4_4["Compilatore Markdown Manuale (COMPILA FONTI TESTO)"]:::areaStyle
+        A4_5["Trasferimenti Cloud S3/R2"]:::areaStyle
+        A4_6["Stato Sistema Locale & Diagnostica"]:::areaStyle
+        A4_7["Guida Vault Integrata"]:::areaStyle
     end
 
-    subgraph Overlays ["MODALI E CASSETTI CONTESTUALI"]
-        M1["SetupWizardModal: Configurazione Vault e LLM"]:::modalStyle
-        M2["DocumentReaderModal: Viewer TXT/MD/PDF con Hash SHA-256"]:::modalStyle
-        D1["UploadDrawer: Caricamento File e Directory"]:::drawerStyle
-        D2["ModelDownloadDrawer: Avanzamento Download GGUF"]:::drawerStyle
+    subgraph Overlays ["MODALI & VISTE SOVRAPPOSTE"]
+        M1["SetupWizardModal: 3 Step (Cartella -> LLM -> Modalita) -> ENTRA IN LIMEN VAULT"]:::modalStyle
+        M2["DocumentReaderModal: Lettore Verificato SHA-256 ed Evidenziazione"]:::modalStyle
+        M3["NativeFileDialog: Selettore File di Sistema (Finder / Explorer)"]:::modalStyle
     end
 
-    H5 -->|Clicca| D1
-    N1 --> Area1
-    N2 --> Area2
-    N3 --> Area3
-    N4 --> Area4
+    S2 -->|Clicca| M3
+    M3 -->|File Selezionati| Area2
+    S3 --> Area1
+    S3 --> Area2
+    S3 --> Area3
+    S3 --> Area4
 
-    A2_3 -->|Clicca| M2
-    A1_3 -->|Clicca Fonte| M2
-    A4_3 -->|Download Modello| D2
-    H1 -->|Primo Avvio o Reset| M1
+    A2_3 -->|Clicca Leggi| M2
+    A1_3 -->|Clicca Fonte Citata| M2
+    S1 -->|Mancano Requisiti di Boot| M1
 ```
 
 ---
@@ -118,34 +119,34 @@ sequenceDiagram
 
     Utente->>App: Avvio Applicazione LIMEN Vault
     App->>Core: get_app_version() & check_system_requirements()
-    Core-->>App: Versione 0.7.0, Architettura rilevata (Metal/AVX2), RAM disponibile
-    App->>Core: check_vault_exists()
-    Core->>FS: Verifica cartella Vault e file di configurazione
+    Core-->>App: Versione 0.7.0, Architettura (Metal/AVX2), RAM rilevata
+    App->>Core: check_boot_requirements(vault, llm, key)
 
-    alt Vault NON configurato (Primo Avvio)
-        Core-->>App: Vault non trovato (isConfigured: false)
-        App->>Utente: Apertura automatica Setup Wizard (Step 1/3: Modalità Rete)
-        Utente->>App: Selezione "100% Locale" o "Ibrida (Cloud + Locale)"
-        Utente->>App: Clicca "Avanti" (Step 2/3: Selezione/Creazione Vault)
-        Utente->>App: Clicca "Sfoglia cartella" o inserisce percorso
+    alt Requisiti Incompleti (Primo Avvio o Reset)
+        Core-->>App: Requisiti mancanti (openWizard: true)
+        App->>Utente: Apertura SetupWizardModal (Step 1/3: Cartella del Vault)
+        Utente->>App: "Sfoglia cartella", "Apri Vault Esistente" o "Crea Nuovo Vault"
         App->>Core: init_or_validate_vault_path(path)
-        Core->>FS: Creazione struttura cartelle (00_INBOX, 10_KNOWLEDGE, 20_RAW_SOURCES)
-        Core-->>App: Percorso Vault validato con successo
-        Utente->>App: Clicca "Avanti" (Step 3/3: Selezione Modello LLM)
-        Utente->>App: Sceglie modello (es. Ministral 3B) e clicca "Scarica / Configura"
-        App->>Core: download_or_verify_model(model_id)
-        Core->>Model: Controllo presenza GGUF e verifica SHA-256
-        Core-->>App: Modello pronto
-        Utente->>App: Clicca "Completa Configurazione"
-        App->>Core: save_configuration(vault_path, mode, model_id)
-        Core-->>App: Configurazione salvata
-    else Vault GIÀ configurato
-        Core-->>App: Vault valido rilevato (isConfigured: true)
+        Core->>FS: Verifica / Creazione struttura (00_SYSTEM, 20_RAW_SOURCES, 90_PROPOSALS, 01-10)
+        Core-->>App: Spunta verde Step 1 (Cartella Pronta)
+        Utente->>App: Clicca "Avanti" (Step 2/3: Motore AI Locale)
+        Utente->>App: Sceglie modello GGUF (es. Ministral 3B - 8 GB RAM)
+        App->>Core: local_llm_download_or_activate(model_id)
+        Core->>Model: Controllo presenza GGUF e verifica hash SHA-256
+        Core-->>App: Spunta verde Step 2 (Modello Attivo)
+        Utente->>App: Clicca "Avanti" (Step 3/3: Modalità Operativa & Chiave API)
+        Utente->>App: Sceglie "100% Solo Locale" oppure "Ibrido OpenAI" con chiave sk-...
+        Core-->>App: Spunta verde Step 3 (Modalità Pronta)
+        Utente->>App: Clicca sul pulsante verde "ENTRA IN LIMEN VAULT"
+        App->>Core: finalize_setup(vault_path, model_id, mode)
+        Core-->>App: Setup completato con successo
+    else Requisiti Soddisfatti
+        Core-->>App: Vault e configurazione validi (openWizard: false)
     end
 
     App->>Core: start_llama_server_if_needed()
-    Core-->>App: llama-server attivo su porta locale 8080
-    App->>Utente: Visualizzazione Schermata Principale (1. Chiedi al Vault)
+    Core-->>App: llama-server attivo su loopback 127.0.0.1
+    App->>Utente: Visualizzazione Interfaccia Principale (Badge ● PRONTO)
 ```
 
 ---
@@ -155,33 +156,36 @@ sequenceDiagram
 
 ```mermaid
 graph TD
-    Start(["Avvio Setup Wizard (SCR-001)"]) --> Step1["Step 1: Scelta Modalità Operativa"]
-    Step1 -->|Opzione A| ModeLocal["Modalità 100% Locale (Zero-Rete)"]
-    Step1 -->|Opzione B| ModeHybrid["Modalità Ibrida (Cloud OpenAI + Locale)"]
-    
-    ModeHybrid --> InputKey["Inserimento Chiave OPENAI_API_KEY"]
-    InputKey --> Step2["Step 2: Configurazione Percorso Vault"]
-    ModeLocal --> Step2
+    Start(["Avvio Setup Wizard (SCR-002)"]) --> Step1["Step 1: Cartella del Vault"]
+    Step1 --> ChoosePath{"Azione Cartella Vault"}
+    ChoosePath -->|Sfoglia Cartella| BrowseFolder["Selezione Cartella da File Dialog Nativo"]
+    ChoosePath -->|Apri Esistente| OpenExisting["Validazione Struttura Directory Esistente"]
+    ChoosePath -->|Crea Nuovo| CreateDirs["Creazione Struttura (00_SYSTEM, 20_RAW_SOURCES, 90_PROPOSALS, 01-10)"]
 
-    Step2 --> ChoosePath{"Scelta Percorso Cartella"}
-    ChoosePath -->|Nuovo Vault| CreateDirs["Creazione Struttura (00_INBOX, 10_KNOWLEDGE, 20_RAW_SOURCES)"]
-    ChoosePath -->|Vault Esistente| ValidateDirs["Validazione Struttura Directory Esistente"]
+    BrowseFolder --> Step1Ready["Spunta Verde Step 1 (Cartella Pronta)"]
+    OpenExisting --> Step1Ready
+    CreateDirs --> Step1Ready
 
-    CreateDirs --> Step3["Step 3: Selezione Modello LLM Predefinito"]
-    ValidateDirs --> Step3
+    Step1Ready --> Step2["Step 2: Motore AI Locale (Catalogo LLM GGUF)"]
+    Step2 --> SelectModel{"Selezione Modello"}
+    SelectModel -->|Ministral 3B (8 GB RAM)| CheckModel{"File GGUF Presente & SHA-256 Valido?"}
+    SelectModel -->|Ministral 8B / Qwen / Llama / DeepSeek| CheckModel
 
-    Step3 --> SelectModel{"Modello Selezionato"}
-    SelectModel -->|Ministral 3B / Qwen 7B| CheckModel{"File GGUF Presente?"}
-    SelectModel -->|OpenAI Cloud (Se Ibrido)| SkipDownload["Verifica Connessione API"]
-
-    CheckModel -->|Sì| Ready["Stato Pronto"]
-    CheckModel -->|No| TriggerDownload["Download Asincrono con Barra Avanzamento"]
+    CheckModel -->|Sì| Step2Ready["Spunta Verde Step 2 (Modello Attivo)"]
+    CheckModel -->|No| TriggerDownload["Download Streaming da Hugging Face con Barra Avanzamento"]
     TriggerDownload --> VerifyHash["Verifica Hash SHA-256 Integrità"]
-    VerifyHash --> Ready
+    VerifyHash --> Step2Ready
 
-    SkipDownload --> Ready
-    Ready --> Finish["Clicca 'Completa Configurazione'"]
-    Finish --> MainUI(["Apertura Interfaccia Principale (SCR-002)"])
+    Step2Ready --> Step3["Step 3: Modalità Operativa e Chiave API"]
+    Step3 --> SelectMode{"Scelta Modalità"}
+    SelectMode -->|100% Solo Locale (Rete Zero)| LocalMode["Nessuna Chiave Richiesta - Calcolo On-Device"]
+    SelectMode -->|Ibrida OpenAI| HybridMode["Inserimento Chiave sk-... Salvata nel Portachiavi"]
+
+    LocalMode --> Step3Ready["Spunta Verde Step 3 (Modalità Configurate)"]
+    HybridMode --> Step3Ready
+
+    Step3Ready --> Finish["Clicca 'ENTRA IN LIMEN VAULT'"]
+    Finish --> MainUI(["Apertura Interfaccia Principale (Badge ● PRONTO)"])
 ```
 
 ---
@@ -288,25 +292,19 @@ graph TD
 
 ```mermaid
 graph TD
-    Trigger(["Accesso a '3. Memoria' (SCR-005)"]) --> LoadIndex["Caricamento indice concetti e note del Vault"]
-    LoadIndex --> ViewLayout{"Selezione Modalità di Visualizzazione"}
-    
-    ViewLayout -->|Tag e Categorie| TagView["Pannello Tag Cloud e Categorie Semantiche"]
-    ViewLayout -->|Grafo Relazionale| GraphView["Mappa concettuale interattiva dei collegamenti"]
-    ViewLayout -->|Elenco Note| ListView["Tabella note consolidate in 10_KNOWLEDGE"]
+    Trigger(["Accesso a '3. Memoria' (SCR-005)"]) --> LoadCategories["Caricamento categorie del Vault"]
+    LoadCategories --> PillBar["Barra orizzontale 10 Categorie Aziendali: 01_CLIENTS ... 10_APPROVED_OUTPUTS"]
 
-    TagView --> SelectTag["Filtro note per tag selezionato"]
-    GraphView --> ClickNode["Clic su nodo concettuale e apertura note correlate"]
-    ListView --> SearchNotes["Digitazione parole chiave nella barra di filtro"]
+    PillBar --> SelectCategory["Selezione Categoria Desiderata (es. 02_PROJECTS)"]
+    SelectCategory --> FilterNotes["Filtro note della cartella selezionata"]
+    FilterNotes --> ListCards["Elenco schede note con titolo, percorso e stato YAML"]
 
-    SelectTag --> DetailCard["Apertura scheda anteprima nota di memoria"]
-    ClickNode --> DetailCard
-    SearchNotes --> DetailCard
+    ListCards --> SelectNote["Selezione di una nota dalla lista"]
+    SelectNote --> KnowledgePreview["Anteprima formattata nel KnowledgePanel con link wiki"]
 
-    DetailCard --> NoteActions{"Azioni sulla Nota"}
-    NoteActions -->|Leggi| FullReader["Apertura visualizzatore completo"]
-    NoteActions -->|Apri Esterno| ObsidianLink["Apertura della nota in Obsidian Markdown"]
-    NoteActions -->|Rigenera| ReEmbed["Ricalcolo embedding semantico per la nota"]
+    KnowledgePreview --> NoteActions{"Azioni sulla Nota"}
+    NoteActions -->|Leggi| FullReader["Visualizzazione a schermo intero"]
+    NoteActions -->|Apri Esterno| ObsidianLink["Apertura diretta del Vault in Obsidian (WF-012)"]
 ```
 
 ---
@@ -316,28 +314,30 @@ graph TD
 
 ```mermaid
 graph TD
-    Trigger(["Accesso ad 'Avanzate > Approvazione Note (Bozze)' (SCR-006)"]) --> ScanInbox["Scansione cartella 00_INBOX del Vault"]
-    ScanInbox --> CheckCount{"Ci sono note in bozza?"}
-    
-    CheckCount -->|Zero note| EmptyInbox["Stato vuoto: 'Nessuna bozza in attesa'"]
-    CheckCount -->|Almeno 1 nota| ListDrafts["Visualizzazione elenco bozze con titolo e anteprima"]
+    Trigger(["Accesso ad 'Avanzate > Bozze e Proposte' (SCR-006)"]) --> ScanProposals["Scansione bozze e proposte in 90_PROPOSALS/"]
+    ScanProposals --> CheckCount{"Ci sono bozze in attesa?"}
 
-    ListDrafts --> SelectDraft["Selezione di una bozza specifica"]
-    SelectDraft --> InspectDraft["Pannello di revisione: testo proposto, fonti, tag"]
-    
-    InspectDraft --> Decision{"Decisione dell'Utente"}
-    
-    Decision -->|Modifica| EditMode["Editing inline di titolo, tag o corpo testo"]
-    EditMode --> Decision
+    CheckCount -->|Zero bozze| EmptyList["Stato vuoto: 'Nessuna proposta in attesa di revisione'"]
+    CheckCount -->|Almeno 1 bozza| ListProposals["Visualizzazione elenco bozze con stato, revisione e categoria"]
 
-    Decision -->|Approva e Promuovi| ApproveAction["Spostamento file da 00_INBOX a 10_KNOWLEDGE"]
-    ApproveAction --> UpdateDB["Aggiornamento indice: stato NOTA_CONSOLIDATA"]
-    UpdateDB --> ToastSuccess["Notifica verde: 'Nota approvata e consolidata'"]
-    ToastSuccess --> ListDrafts
+    ListProposals --> SelectProposal["Selezione di una proposta specifica"]
+    SelectProposal --> InspectProposal["Pannello di revisione: testo proposto, hash SHA-256 e fonti"]
 
-    Decision -->|Scarta / Elimina| RejectAction["Rimozione file dalla cartella 00_INBOX"]
-    RejectAction --> ToastDeleted["Notifica: 'Bozza scartata definitivamente'"]
-    ToastDeleted --> ListDrafts
+    InspectProposal --> Decision{"Decisione dell'Utente"}
+
+    Decision -->|Modifica Testo| EditRevision["Creazione nuova revisione (conserva lo storico precedente)"]
+    EditRevision --> InspectProposal
+
+    Decision -->|Approva Revisione| ApproveFlow["Indicazione percorso destinazione in categoria 01-10 & Spunta di verifica"]
+    ApproveFlow --> ApproveAction["Pulsante 'APPROVA REVISIONE MOSTRATA': Scrittura nota consolidata"]
+    ApproveAction --> UpdateStatus["Transizione stato: approved nel Vault"]
+    UpdateStatus --> ToastSuccess["Notifica: 'Proposta approvata e archiviata'"]
+    ToastSuccess --> ListProposals
+
+    Decision -->|Rifiuta Revisione| RejectFlow["Compilazione obbligatoria 'Motivo del rifiuto'"]
+    RejectFlow --> RejectAction["Pulsante 'RIFIUTA REVISIONE MOSTRATA': Registrazione decision {reject, reason}"]
+    RejectAction --> AuditTrail["Conservazione bozza con decisione tracciata nell'audit log (Nessuna cancellazione distruttiva)"]
+    AuditTrail --> ListProposals
 ```
 
 ---
@@ -353,18 +353,19 @@ graph TD
     DisplaySnapshots --> Choice{"Azione da Eseguire"}
 
     Choice -->|Crea Nuovo Snapshot| InputName["Inserimento etichetta descrittiva dello snapshot"]
-    InputName --> PackVault["Compressione directory Vault (00, 10, 20) in archivio"]
+    InputName --> PackVault["Compressione directory Vault in archivio"]
     PackVault --> GenManifest["Generazione manifesto crittografico SHA-256 (PIPE-004)"]
     GenManifest --> SaveArchive["Salvataggio in archivio snapshots locale"]
     SaveArchive --> RefreshList["Aggiornamento tabella con nuovo snapshot"]
 
-    Choice -->|Ripristina da Snapshot| SelectSnapshot["Selezione snapshot desiderato dalla lista"]
-    SelectSnapshot --> WarningModal["Modale di conferma con avviso di sovrascrittura"]
-    WarningModal --> Confirm{"Conferma ripristino?"}
-    Confirm -->|Annulla| DisplaySnapshots
-    Confirm -->|Procedi| ExtractArchive["Estrazione sicura e sovrascrittura cartelle Vault"]
-    ExtractArchive --> Reindex["Ricalcolo automatico indici vettoriali"]
-    Reindex --> SuccessToast["Notifica: 'Vault ripristinato con successo'"]
+    Choice -->|Ripristina da Snapshot| SelectSnapshot["Selezione snapshot desiderato dalla tabella"]
+    SelectSnapshot --> SafetyCheck["Verifica di Sicurezza Rust: Divieto Sovrascrittura Vault Attivo"]
+    SafetyCheck --> CreateDestDir["Creazione Automatica Cartella Separata: {vault}_RECUPERO_{snapshot_id}"]
+    CreateDestDir --> ExtractFiles["Estrazione File con Verifica SHA-256 su Ciascun File"]
+    ExtractFiles --> VerifyHashes{"Tutti gli Hash Corrispondono a snapshot_manifest.json?"}
+    VerifyHashes -->|Errore / Corruzione| AbortRestore["Blocco Ripristino per Corruzione Rilevata"]
+    VerifyHashes -->|Integrità Verificata| GenManifest["Generazione Nuovo VAULT_MANIFEST.json nella Cartella RECUPERO"]
+    GenManifest --> SuccessToast["Notifica: Snapshot recuperato in cartella separata senza toccare il Vault attivo"]
 ```
 
 ---
@@ -432,26 +433,25 @@ graph TD
 
 ---
 
-### 12. MMD-012: WF-010 — Compilazione Manuale Rete Zero
+### 12. MMD-012: WF-010 — Compilazione Markdown Manuale di Fonti di Testo
 *File sorgente: `04_MERMAID/WF-010.mmd`*
 
 ```mermaid
 graph TD
-    Trigger(["Accesso ad 'Avanzate > Compilazione Manuale' (SCR-010)"]) --> CheckEnv["Rilevamento toolchain di sistema (Node.js, Rust/Cargo, CMake)"]
-    CheckEnv --> CheckMetal["Rilevamento supporto accelerazione hardware (Metal / AVX2)"]
-    CheckMetal --> RenderCommands["Visualizzazione comandi ufficiali di compilazione offline"]
+    Trigger(["Accesso ad 'Avanzate > Compilatore manuale' (SCR-010)"]) --> CheckVault["Verifica Vault Aperto e Percorso Attivo"]
+    CheckVault --> RenderUI["Visualizzazione Scheda 'Compilatore Markdown Manuale'"]
+    RenderUI --> Subtitle["Visualizza: 'Compila file di testo e Markdown in bozze 90_PROPOSALS/'"]
 
-    RenderCommands --> CopyCommand{"Azione dell'Utente"}
+    Subtitle --> UserAction{"Azione dell'Utente"}
+    UserAction -->|Clicca su| BtnCompile["Pulsante: 'COMPILA FONTI TESTO'"]
 
-    CopyCommand -->|Copia Comando Desktop| CopyDesktop["Copia negli appunti: pnpm --filter @limen-vault/desktop tauri dev --release"]
-    CopyCommand -->|Copia Comando llama.cpp| CopyLlama["Copia flag di build: cmake -B build -DGGML_METAL=ON"]
-    CopyCommand -->|Verifica Cache| ViewCacheStatus["Ispezione stato cache compilatore cargo/pnpm"]
+    BtnCompile --> TriggerBatch["Invocazione IPC: batch_compile_sources(vaultPath)"]
+    TriggerBatch --> ScanRaw["Scansione file di testo in 20_RAW_SOURCES/"]
+    ScanRaw --> ExtractStructure["Estrazione metadati, intestazioni e normalizzazione Markdown"]
+    ExtractStructure --> WriteProposals["Scrittura bozze con frontmatter YAML in 90_PROPOSALS/"]
 
-    CopyDesktop --> PasteTerminal["Incolla ed esecuzione nel terminale di sistema"]
-    CopyLlama --> PasteTerminal
-    ViewCacheStatus --> PasteTerminal
-
-    PasteTerminal --> BinaryOutput["Generazione binario nativo standalone privo di dipendenze esterne"]
+    WriteProposals --> UpdateCount["Aggiornamento contatore bozze e stato UI"]
+    UpdateCount --> SuccessNotice["Bozze create pronte per revisione in WF-006 (Bozze e Proposte)"]
 ```
 
 ---

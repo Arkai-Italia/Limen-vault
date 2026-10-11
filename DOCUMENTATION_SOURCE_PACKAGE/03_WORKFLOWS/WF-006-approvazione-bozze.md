@@ -16,29 +16,38 @@ Barra Laterale Sinistra $\rightarrow$ Clic su **"⚙️ Avanzate"** $\rightarrow
 Avere almeno una proposta generata dalla chat (con casella *"Genera bozza"* attiva) o importata in `90_PROPOSALS/`.
 
 ### COME FARE
-1. Cliccare su **"Avanzate"** e selezionare la scheda **"Bozze e Proposte"**.
-2. Nella colonna sinistra, selezionare la proposta da revisionare dall'elenco (stato contrassegnato con badge giallo *"In attesa"*).
-3. Nel riquadro centrale, leggere il testo proposto, i tag suggeriti e la provenienza delle fonti.
-4. **Opzione A — Approva:**
-   - Selezionare dal menu a tendina la categoria di destinazione (es. `04_PROJECTS`);
-   - Cliccare sul pulsante verde **"Approva"**;
-   - La nota viene automaticamente spostata nella cartella definitiva, il Frontmatter viene normalizzato con lo stato `status: approved` e scompare dalla coda di revisione.
+1. Cliccare su **"Avanzate"** nella sidebar e selezionare la scheda **"Bozze e Proposte"** (`advancedTab === 'proposals'`).
+2. Nella colonna sinistra, selezionare la proposta da revisionare dall'elenco (stato contrassegnato con badge *"In attesa"*).
+3. Nel riquadro centrale, leggere il testo proposto, l'hash SHA-256 della revisione e la provenienza.
+4. **Opzione A — Approva Revisione:**
+   - Nel riquadro verde di approvazione, specificare il percorso relativo in **"Nuova destinazione (.md)"** all'interno di una delle 10 categorie (es. `02_PROJECTS/specifiche-progetto.md`). Le note esistenti non vengono mai sovrascritte;
+   - Selezionare la casella di spunta obbligatoria: *"Ho verificato questa revisione e la destinazione indicata"*;
+   - Cliccare sul pulsante verde **"APPROVA REVISIONE MOSTRATA"**;
+   - La nota viene scritta nella categoria prescelta e la proposta transita a stato `approved`.
 5. **Opzione B — Modifica prima dell'approvazione:**
-   - Cliccare sul pulsante **"Modifica"**;
-   - Modificare il testo o i metadati nell'editor integrato;
-   - Cliccare su **"Salva modifiche"** e procedere all'approvazione.
-6. **Opzione C — Rifiuta:**
-   - Cliccare su **"Rifiuta"** e confermare; la proposta viene archiviata con stato `status: rejected` senza inquinare la memoria attiva.
+   - Espandere l'accordion **"Modifica testo (Crea nuova revisione)"**;
+   - Modificare il testo Markdown nella textarea ed eventualmente esaminare il confronto affiancato (*"Confronta testo attuale con la revisione proposta"*);
+   - Cliccare su **"SALVA NUOVA REVISIONE (CONSERVA LA PRECEDENTE)"**. La cronologia delle revisioni viene incrementata senza perdere il testo storico.
+6. **Opzione C — Rifiuta Revisione:**
+   - Espandere l'accordion **"Rifiuta questa revisione"**;
+   - Compilare obbligatoriamente il campo **"Motivo del rifiuto"**;
+   - Cliccare sul pulsante rosso **"RIFIUTA REVISIONE MOSTRATA"**.
+
+### RIFIUTO ARCHIVIATO VS CANCELLAZIONE DEFINITIVA
+- **Rifiuto archiviato (Decisione di Governance):** Il rifiuto NON cancella fisicamente il file da disco. Registra una transizione formale `action: 'reject'` con motivazione esplicita e timestamp nell'audit trail della proposta (`decision`), preservando la memoria storica e la tracciabilità delle motivazioni per cui una sintesi AI non è stata promossa.
+- **Cancellazione definitiva (Eliminazione File):** La rimozione fisica distrugge il file dal file system azzerando l'audit log. Il workflow di governance di LIMEN Vault adotta il principio di non-ripudio e conservazione delle decisioni, escludendo cancellazioni distruttive automatiche durante la revisione.
 
 ### RISULTATO ATTESO
-La proposta esaminata viene rimossa dalla lista di attesa e integrata in modo permanente nella cartella ufficiale prescelta del Vault.
+La proposta approvata viene inserita nella cartella di categoria ufficiale del Vault con stato consolidato. La proposta rifiutata rimane tracciata con motivazione registrata.
 
 ### CONTROLLO FINALE
-Andare nella schermata **Memoria**, selezionare la categoria di destinazione e verificare che la nuova nota sia presente e contrassegnata con badge `YAML Valido`.
+Andare nella schermata **Memoria**, selezionare la categoria di destinazione e verificare la presenza della nuova nota con anteprima e testo formattato.
 
 ### ERRORI E RECUPERO
-- **Errore "Categoria non selezionata":** Si è cliccato su Approva senza indicare dove archiviare la nota.  
-  *Recupero:* Scegliere una cartella dal selettore (es. `01_CLIENTS`) e cliccare nuovamente su Approva.
+- **Pulsante Approva disabilitato:** Manca la casella di spunta di conferma o il percorso di destinazione è vuoto.  
+  *Recupero:* Inserire il percorso relativo della nota e selezionare la spunta di verifica.
+- **Pulsante Rifiuta disabilitato:** Il campo "Motivo del rifiuto" è vuoto.  
+  *Recupero:* Indicare la motivazione del rifiuto per sbloccare l'azione.
 
 ### PASSO SUCCESSIVO
 Ritorno alla schermata di lavoro ordinaria.
@@ -53,10 +62,10 @@ L'approvazione è un atto di governance formale che rende il contenuto ricercabi
 `SCR-006`.
 
 ### SCREENSHOT
-`SHOT-006`.
+`SHOT-011` (in `05_SCREENSHOTS/desktop/`).
 
 ### DIAGRAMMA MERMAID
-`04_MERMAID/WF-006-approvazione-bozze.mmd`.
+`04_MERMAID/WF-006.mmd`.
 
 ### RELEASE / VARIANTI
 Valido per v7Mini (0.7.0).
