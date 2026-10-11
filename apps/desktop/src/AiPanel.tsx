@@ -3,6 +3,7 @@ import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { aiIpc, type AiAnswer, type AiPreview, type AiSource, type AiStreamChunkPayload, type AiStreamEndPayload, type LocalModelReport, type LocalServerReport } from './ai-ipc';
 import type { CitationOpenRequest } from './vault-ipc';
 import { labelIt, MessageIt } from './locale';
+import { useTranslation } from './i18n';
 import { SemanticEngineSettings } from './SemanticEngineSettings';
 import { TunnelPanel } from './TunnelPanel';
 import { getPlatformTerms } from './platform';
@@ -78,6 +79,7 @@ export function AiPanel({
   onOpenSourcesSidebar,
   newConversationTrigger,
 }: AiPanelProps) {
+  const { t, language } = useTranslation();
   const terms = getPlatformTerms();
   const [prompt, setPrompt] = useState('');
   const [activePrompt, setActivePrompt] = useState('');
@@ -1132,7 +1134,7 @@ export function AiPanel({
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#475569', fontSize: 13 }}>
               <Lock size={16} color="#64748b" />
-              <span><strong>Conversazione archiviata:</strong> consultazione in sola lettura. Non è possibile proseguire.</span>
+              <span><strong>{language === 'en' ? 'Archived conversation:' : 'Conversazione archiviata:'}</strong> {language === 'en' ? 'read-only.' : 'sola lettura.'}</span>
             </div>
             <button
               onClick={onNewConversation}
@@ -1143,7 +1145,7 @@ export function AiPanel({
               }}
             >
               <PlusCircle size={14} />
-              <span>Nuova conversazione</span>
+              <span>{t.nav.newChat}</span>
             </button>
           </div>
         ) : (
@@ -1162,9 +1164,7 @@ export function AiPanel({
                   }}
                 />
                 <span style={{ fontSize: 11, fontWeight: 600, color: isLocalMode ? '#1e293b' : '#64748b' }}>
-                  {isLocalMode
-                    ? '100% Solo Locale: Ministral 3 8B Instruct · Rete zero & Riservatezza assoluta sul Mac'
-                    : `Modalità Ibrida: Ricerca semantica bge-m3 sul Mac + OpenAI (${model})`}
+                  {isLocalMode ? t.ask.localMode : t.ask.hybridMode}
                 </span>
               </div>
               <button
@@ -1181,7 +1181,9 @@ export function AiPanel({
                   textDecoration: 'underline',
                 }}
               >
-                {isLocalMode ? 'Passa a Ibrido (OpenAI)' : 'Passa a Solo Locale (Ministral 8B)'}
+                {isLocalMode
+                  ? (language === 'en' ? 'Switch to Hybrid' : 'Passa a Ibrido')
+                  : (language === 'en' ? 'Switch to Local' : 'Passa a Solo Locale')}
               </button>
             </div>
 
@@ -1211,10 +1213,10 @@ export function AiPanel({
                 aria-label="Domanda al Vault"
                 placeholder={
                   !isLocalMode && !model
-                    ? 'Seleziona prima un modello per fare una domanda...'
+                    ? (language === 'en' ? 'Select a model to ask a question…' : 'Seleziona prima un modello per fare una domanda…')
                     : effectiveTurns.length === 0
-                    ? 'Es. Cosa è il progetto BNXT e quali requisiti prevede?'
-                    : 'Fai una domanda di seguito sulla conversazione...'
+                    ? t.ask.placeholder
+                    : (language === 'en' ? 'Ask a follow-up question…' : 'Fai una domanda di seguito…')
                 }
                 maxLength={2000}
                 value={prompt}
@@ -1246,9 +1248,9 @@ export function AiPanel({
                 }}
                 disabled={isBusy || !prompt.trim() || (!isLocalMode && !model)}
                 onClick={() => !isBusy && prompt.trim() && (isLocalMode || model) && void executeAsk(prompt.trim())}
-                title={(!isLocalMode && !model) ? "Seleziona un modello per abilitare l'invio" : isBusy ? "Generazione in corso..." : undefined}
+                title={(!isLocalMode && !model) ? (language === 'en' ? 'Select a model to send' : "Seleziona un modello per abilitare l'invio") : isBusy ? (language === 'en' ? 'Generating…' : "Generazione in corso...") : undefined}
               >
-                Chiedi
+                {t.nav.ask}
               </button>
             </div>
 
@@ -1259,9 +1261,9 @@ export function AiPanel({
                   checked={drafts}
                   onChange={e => setDrafts(e.target.checked)}
                 />
-                Includi bozze e note non approvate
+                {language === 'en' ? 'Include drafts and unapproved notes' : 'Includi bozze e note non approvate'}
               </label>
-              <span>Premere Invio per inviare</span>
+              <span>{language === 'en' ? 'Press Enter to send' : 'Premi Invio per inviare'}</span>
             </div>
           </div>
         )}

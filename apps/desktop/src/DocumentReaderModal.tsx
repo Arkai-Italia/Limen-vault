@@ -18,6 +18,7 @@ import {
 import type { createVaultIpc, DocumentRecord, DocumentPassage, DocumentVerificationReport } from './vault-ipc';
 
 import { getPlatformTerms } from './platform';
+import { useTranslation } from './i18n';
 
 export interface DocumentReaderModalProps {
   isOpen: boolean;
@@ -88,6 +89,7 @@ export const DocumentReaderModal: React.FC<DocumentReaderModalProps> = ({
   highlightQuery,
   ipc,
 }) => {
+  const { t, language } = useTranslation();
   const [doc, setDoc] = useState<DocumentRecord | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -410,7 +412,7 @@ export const DocumentReaderModal: React.FC<DocumentReaderModalProps> = ({
                 }`}
               >
                 <Layers className="w-3.5 h-3.5" />
-                <span>Passaggi ({doc.passages.length})</span>
+                <span>{language === 'en' ? `Passages (${doc.passages.length})` : `Passaggi (${doc.passages.length})`}</span>
               </button>
               <button
                 onClick={() => setActiveTab('fulltext')}
@@ -421,7 +423,7 @@ export const DocumentReaderModal: React.FC<DocumentReaderModalProps> = ({
                 }`}
               >
                 <FileText className="w-3.5 h-3.5" />
-                <span>Testo Integrale</span>
+                <span>{language === 'en' ? 'Full Text' : 'Testo Integrale'}</span>
               </button>
               <button
                 onClick={() => setActiveTab('metadata')}
@@ -432,7 +434,7 @@ export const DocumentReaderModal: React.FC<DocumentReaderModalProps> = ({
                 }`}
               >
                 <Hash className="w-3.5 h-3.5" />
-                <span>Metadati e Provenienza</span>
+                <span>{language === 'en' ? 'Metadata' : 'Metadati'}</span>
               </button>
             </div>
 

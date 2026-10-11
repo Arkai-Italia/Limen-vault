@@ -10,6 +10,7 @@ import {
   type LocalModelCatalogEntry,
 } from './ai-ipc';
 import { getPlatformTerms, normalizeVaultPath } from './platform';
+import { useTranslation } from './i18n';
 
 const fieldStyle: React.CSSProperties = {
   padding: '8px 12px',
@@ -43,6 +44,7 @@ function formatBytes(bytes: number): string {
 }
 
 export function SemanticEngineSettings({ vaultPath }: { vaultPath: string }) {
+  const { t, language } = useTranslation();
   const terms = getPlatformTerms();
   const [providerReport, setProviderReport] = useState<EmbeddingsProviderReport | null>(null);
   const [modelReport, setModelReport] = useState<LocalModelReport | null>(null);
@@ -454,7 +456,7 @@ export function SemanticEngineSettings({ vaultPath }: { vaultPath: string }) {
   return (
     <div className="limen-card" style={{ padding: 24, marginTop: 20 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-        <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Motore semantico</h3>
+        <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>{t.settings.semanticEngine}</h3>
         <span
           style={{
             fontSize: 11,
@@ -466,14 +468,9 @@ export function SemanticEngineSettings({ vaultPath }: { vaultPath: string }) {
             border: `1px solid ${isLocal ? 'rgba(34, 197, 94, 0.3)' : 'rgba(59, 130, 246, 0.3)'}`,
           }}
         >
-          {isLocal ? 'RAG 100% LOCALE' : 'OPENAI (RETE)'}
+          {isLocal ? (language === 'en' ? 'LOCAL RAG' : 'RAG 100% LOCALE') : 'OPENAI'}
         </span>
       </div>
-
-      <p style={{ fontSize: 13, color: '#475569', margin: '0 0 16px 0' }}>
-        Configura il fornitore per il calcolo dei vettori semantici e la ricerca ibrida. Con il motore locale, nessun
-        dato esce dal computer e il funzionamento è a rete zero.
-      </p>
 
       {/* 1. SCELTA DEL FORNITORE */}
       <div
@@ -987,7 +984,7 @@ export function SemanticEngineSettings({ vaultPath }: { vaultPath: string }) {
               }}
             />
             <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#0f172a' }}>
-              4. Motore Generativo Locale (Catalogo Multi-Modello 100% Offline)
+              {t.settings.localLlmCatalog}
             </h4>
           </div>
           <span
@@ -1001,38 +998,33 @@ export function SemanticEngineSettings({ vaultPath }: { vaultPath: string }) {
             }}
           >
             {catalog?.models.some((m) => m.installed && m.sha256Ok)
-              ? `PRONTO (${catalog.models.filter((m) => m.installed && m.sha256Ok).length} MODELLI SU DISCO)`
-              : 'NESSUN MODELLO INSTALLATO'}
+              ? (language === 'en' ? `READY (${catalog.models.filter((m) => m.installed && m.sha256Ok).length} ON DISK)` : `PRONTO (${catalog.models.filter((m) => m.installed && m.sha256Ok).length} SU DISCO)`)
+              : (language === 'en' ? 'NO MODEL INSTALLED' : 'NESSUN MODELLO INSTALLATO')}
           </span>
         </div>
-
-        <p style={{ margin: 0, fontSize: 13, color: '#475569', lineHeight: 1.5 }}>
-          Genera risposte interamente sul computer a rete zero scegliendo tra 6 modelli open-source (Ministral, Qwen, Llama 3.1, DeepSeek-R1).
-          Nessun dato esce dal dispositivo e nessuna chiave API esterna è richiesta.
-        </p>
 
         {/* Server & System Monitor */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10, fontSize: 12 }}>
           <div style={{ padding: 10, backgroundColor: '#f8fafc', borderRadius: 6, border: '1px solid #e2e8f0' }}>
-            <span style={{ color: '#64748b', display: 'block', marginBottom: 2 }}>RAM Fisica Rilevata</span>
+            <span style={{ color: '#64748b', display: 'block', marginBottom: 2 }}>{t.settings.systemRam}</span>
             <span style={{ fontWeight: 700, color: '#0f172a' }}>
-              {catalog?.physicalRamBytes ? `${Math.round(catalog.physicalRamBytes / (1024 * 1024 * 1024))} GB` : 'Rilevamento in corso…'}
+              {catalog?.physicalRamBytes ? `${Math.round(catalog.physicalRamBytes / (1024 * 1024 * 1024))} GB` : (language === 'en' ? 'Detecting…' : 'Rilevamento in corso…')}
             </span>
           </div>
           <div style={{ padding: 10, backgroundColor: '#f8fafc', borderRadius: 6, border: '1px solid #e2e8f0' }}>
-            <span style={{ color: '#64748b', display: 'block', marginBottom: 2 }}>Modello Attivo</span>
+            <span style={{ color: '#64748b', display: 'block', marginBottom: 2 }}>{t.settings.activeModel}</span>
             <span style={{ fontWeight: 700, color: '#0f172a' }}>
-              {catalog?.models.find((m) => m.isActive)?.displayName || 'Nessuno selezionato'}
+              {catalog?.models.find((m) => m.isActive)?.displayName || (language === 'en' ? 'None selected' : 'Nessuno selezionato')}
             </span>
           </div>
           <div style={{ padding: 10, backgroundColor: '#f8fafc', borderRadius: 6, border: '1px solid #e2e8f0' }}>
-            <span style={{ color: '#64748b', display: 'block', marginBottom: 2 }}>Stato Servizio LLM</span>
+            <span style={{ color: '#64748b', display: 'block', marginBottom: 2 }}>{language === 'en' ? 'Service Status' : 'Stato Servizio LLM'}</span>
             <span style={{ fontWeight: 700, color: llmServerReport?.running && llmServerReport?.healthy ? '#16a34a' : llmStartingServer ? '#d97706' : '#64748b' }}>
               {llmServerReport?.running && llmServerReport?.healthy
-                ? `ATTIVO (Porta: ${llmServerReport.port}${llmServerReport.pid ? `, PID: ${llmServerReport.pid}` : ''})`
+                ? `${t.settings.statusHealthy} (${llmServerReport.port})`
                 : llmStartingServer
-                ? 'IN AVVIO...'
-                : 'INATTIVO'}
+                ? (language === 'en' ? 'STARTING…' : 'IN AVVIO...')
+                : t.settings.statusOffline}
             </span>
           </div>
         </div>
@@ -1108,16 +1100,18 @@ export function SemanticEngineSettings({ vaultPath }: { vaultPath: string }) {
 
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
                       <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4, backgroundColor: '#f1f5f9', color: '#475569', fontWeight: 600 }}>
-                        RAM Min: {m.minRamGb} GB
+                        {t.settings.minRam}: {m.minRamGb} GB
                       </span>
                       <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4, backgroundColor: '#f1f5f9', color: '#0f172a', fontWeight: 600 }}>
-                        Hardware: {m.recommendedHardware}
+                        {t.settings.recRam}: {m.recommendedHardware}
                       </span>
                     </div>
 
                     {hasWarning && (
                       <div style={{ fontSize: 11, color: '#b45309', backgroundColor: '#fef3c7', padding: '4px 8px', borderRadius: 4, marginBottom: 8, lineHeight: 1.3 }}>
-                        Attenzione: la RAM di sistema ({ramGb} GB) è inferiore al minimo raccomandato ({m.minRamGb} GB).
+                        {language === 'en'
+                          ? `Warning: System RAM (${ramGb} GB) is below minimum (${m.minRamGb} GB).`
+                          : `Attenzione: la RAM di sistema (${ramGb} GB) è inferiore al minimo raccomandato (${m.minRamGb} GB).`}
                       </div>
                     )}
                   </div>
@@ -1126,7 +1120,7 @@ export function SemanticEngineSettings({ vaultPath }: { vaultPath: string }) {
                     {m.installed && m.sha256Ok ? (
                       m.isActive ? (
                         <span style={{ fontSize: 12, fontWeight: 600, color: '#15803d' }}>
-                          In uso
+                          {language === 'en' ? 'Active' : 'In uso'}
                         </span>
                       ) : (
                         <button
@@ -1143,7 +1137,7 @@ export function SemanticEngineSettings({ vaultPath }: { vaultPath: string }) {
                             cursor: 'pointer',
                           }}
                         >
-                          Imposta come Attivo
+                          {t.settings.setActive}
                         </button>
                       )
                     ) : (

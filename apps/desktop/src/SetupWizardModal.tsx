@@ -23,6 +23,7 @@ import {
   type LocalModelProgress,
 } from './ai-ipc';
 import { listen } from '@tauri-apps/api/event';
+import { useTranslation } from './i18n';
 
 interface SetupWizardModalProps {
   isOpen: boolean;
@@ -55,6 +56,7 @@ export function SetupWizardModal({
   onBrowseFolder,
   isTauriEnv,
 }: SetupWizardModalProps) {
+  const { t, language } = useTranslation();
   const [activeStep, setActiveStep] = useState<1 | 2 | 3>(1);
   const [vaultPathInput, setVaultPathInput] = useState<string>(currentVaultPath || '');
   const [vaultActionLoading, setVaultActionLoading] = useState<boolean>(false);
@@ -302,17 +304,19 @@ export function SetupWizardModal({
                 <Sparkles size={16} color="#0f172a" />
               </div>
               <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, letterSpacing: '-0.02em', color: '#ffffff' }}>
-                Configurazione Guidata — LIMEN Vault
+                {t.wizard.title} — LIMEN Vault
               </h2>
             </div>
             <p style={{ margin: 0, fontSize: 13, color: '#94a3b8' }}>
-              Verifica e preparazione dei 3 requisiti operativi essenziali per iniziare a usare il tuo vault.
+              {language === 'en'
+                ? 'Configure the 3 essential requirements to start working with your private Vault.'
+                : 'Verifica e configurazione dei 3 requisiti essenziali per iniziare a usare il tuo vault.'}
             </p>
           </div>
 
           <button
             onClick={onClose}
-            title="Chiudi procedura guidata"
+            title={t.common.close}
             style={{
               background: 'transparent',
               border: 'none',
@@ -378,10 +382,10 @@ export function SetupWizardModal({
             </div>
             <div style={{ flex: 1, overflow: 'hidden' }}>
               <div style={{ fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
-                1. Vault Locale
+                1. {t.wizard.step1Title}
               </div>
               <div style={{ fontSize: 10, color: isStep1Ready ? '#4ade80' : '#64748b' }}>
-                {isStep1Ready ? 'Collegato ✓' : 'Da selezionare'}
+                {isStep1Ready ? '✓' : (language === 'en' ? 'Select' : 'Da selezionare')}
               </div>
             </div>
           </button>
@@ -421,10 +425,10 @@ export function SetupWizardModal({
             </div>
             <div style={{ flex: 1, overflow: 'hidden' }}>
               <div style={{ fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
-                2. AI Locale Offline
+                2. {t.wizard.step2Title}
               </div>
               <div style={{ fontSize: 10, color: isStep2Ready ? '#4ade80' : '#64748b' }}>
-                {isStep2Ready ? 'Installato ✓' : 'Da scaricare'}
+                {isStep2Ready ? '✓' : (language === 'en' ? 'Download' : 'Da scaricare')}
               </div>
             </div>
           </button>
@@ -464,10 +468,10 @@ export function SetupWizardModal({
             </div>
             <div style={{ flex: 1, overflow: 'hidden' }}>
               <div style={{ fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
-                3. Chiave API / Modalità
+                3. {t.wizard.step3Title}
               </div>
               <div style={{ fontSize: 10, color: isStep3Ready ? '#4ade80' : '#64748b' }}>
-                {isStep3Ready ? 'Configurato ✓' : 'Opzionale'}
+                {isStep3Ready ? '✓' : (language === 'en' ? 'Optional' : 'Opzionale')}
               </div>
             </div>
           </button>

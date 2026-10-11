@@ -3,6 +3,7 @@ import { X, FileText, ExternalLink, Sparkles, AlertCircle } from 'lucide-react';
 import type { AiSource } from './ai-ipc';
 import type { CitationOpenRequest } from './vault-ipc';
 import { formatSourceLabel, cleanTitle } from './source-utils';
+import { useTranslation } from './i18n';
 
 export interface TechnicalDetails {
   durationMs?: number;
@@ -40,6 +41,7 @@ export function SourceDetailsModal({
   technicalDetails,
   onOpenDocument,
 }: SourceDetailsModalProps) {
+  const { t, language } = useTranslation();
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -81,7 +83,7 @@ export function SourceDetailsModal({
   const displayList = singleSource ? [singleSource] : sources;
   const modalTitle = singleSource
     ? cleanTitle(singleSource.title, singleSource.relativePath)
-    : `Tutte le fonti consultate (${sources.length})`;
+    : (language === 'en' ? `Consulted Sources (${sources.length})` : `Tutte le fonti consultate (${sources.length})`);
 
   return (
     <div

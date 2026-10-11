@@ -2162,24 +2162,21 @@ export default function App() {
                   }}
                 >
                   <div>
-                    <h2 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 4px 0', color: '#ffffff' }}>Documenti Aziendali</h2>
-                    <p style={{ fontSize: 12, color: '#94a3b8', margin: 0 }}>
-                      Tutti i file originali acquisiti in <code>20_RAW_SOURCES</code> con testo estratto e indicizzato per la ricerca.
-                    </p>
-                    <div style={{ display: 'flex', gap: 14, marginTop: 10, fontSize: 12 }}>
+                    <h2 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 4px 0', color: '#ffffff' }}>{t.documents.title}</h2>
+                    <div style={{ display: 'flex', gap: 14, marginTop: 8, fontSize: 12 }}>
                       <span style={{ color: '#c8ff00', fontWeight: 600 }}>
-                        {catalogSummary?.totalRawSources ?? catalogDocuments.length} originali acquisiti
+                        {catalogSummary?.totalRawSources ?? catalogDocuments.length} {language === 'en' ? 'raw sources' : 'originali'}
                       </span>
                       <span style={{ color: '#86efac' }}>
-                        {catalogSummary?.readyDocuments ?? 0} pronti per la consultazione
+                        {catalogSummary?.readyDocuments ?? 0} {language === 'en' ? 'ready' : 'pronti'}
                       </span>
                       {catalogSummary && catalogSummary.processingDocuments > 0 && (
                         <span style={{ color: '#fde047' }}>
-                          {catalogSummary.processingDocuments} in estrazione
+                          {catalogSummary.processingDocuments} {language === 'en' ? 'extracting' : 'in estrazione'}
                         </span>
                       )}
                       <span style={{ color: '#cbd5e1' }}>
-                        {catalogSummary?.totalPassages ?? 0} passaggi estratti
+                        {catalogSummary?.totalPassages ?? 0} {language === 'en' ? 'passages' : 'passaggi'}
                       </span>
                     </div>
                   </div>
@@ -2203,7 +2200,7 @@ export default function App() {
                     }}
                   >
                     <Upload size={16} />
-                    <span>{isProcessing ? 'CARICAMENTO…' : 'CARICA DOCUMENTI'}</span>
+                    <span>{isProcessing ? t.nav.uploading : t.nav.upload}</span>
                   </button>
                 </div>
 
@@ -2236,11 +2233,11 @@ export default function App() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                     {[
-                      { id: 'all', label: 'Tutti i formati' },
+                      { id: 'all', label: t.documents.allFormats },
                       { id: 'pdf', label: 'PDF' },
                       { id: 'docx', label: 'Word (DOCX)' },
-                      { id: 'xlsx', label: 'Excel / Fogli' },
-                      { id: 'txt', label: 'Testo e Note' },
+                      { id: 'xlsx', label: 'Excel' },
+                      { id: 'txt', label: language === 'en' ? 'Text' : 'Testo' },
                     ].map((f) => (
                       <button
                         key={f.id}
@@ -2264,7 +2261,7 @@ export default function App() {
 
                   <input
                     type="text"
-                    placeholder="Filtra per nome file..."
+                    placeholder={language === 'en' ? 'Filter by name…' : 'Filtra per nome file...'}
                     value={catalogSearchText}
                     onChange={(e) => setCatalogSearchText(e.target.value)}
                     style={{
@@ -2289,11 +2286,11 @@ export default function App() {
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                       <thead>
                         <tr style={{ borderBottom: '2px solid #e2e8f0', textAlign: 'left' }}>
-                          <th style={{ padding: '8px 12px', color: '#475569' }}>Documento</th>
-                          <th style={{ padding: '8px 12px', color: '#475569' }}>Formato</th>
-                          <th style={{ padding: '8px 12px', color: '#475569' }}>Dimensione</th>
-                          <th style={{ padding: '8px 12px', color: '#475569' }}>Stato estrazione</th>
-                          <th style={{ padding: '8px 12px', color: '#475569', textAlign: 'right' }}>Azioni</th>
+                          <th style={{ padding: '8px 12px', color: '#475569' }}>{language === 'en' ? 'Document' : 'Documento'}</th>
+                          <th style={{ padding: '8px 12px', color: '#475569' }}>{language === 'en' ? 'Format' : 'Formato'}</th>
+                          <th style={{ padding: '8px 12px', color: '#475569' }}>{language === 'en' ? 'Size' : 'Dimensione'}</th>
+                          <th style={{ padding: '8px 12px', color: '#475569' }}>{language === 'en' ? 'Status' : 'Stato'}</th>
+                          <th style={{ padding: '8px 12px', color: '#475569', textAlign: 'right' }}>{language === 'en' ? 'Actions' : 'Azioni'}</th>
                         </tr>
                       </thead>
                       <tbody>
