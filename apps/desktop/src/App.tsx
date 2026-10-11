@@ -16,6 +16,9 @@ import { cleanTitle } from './source-utils';
 import icLimenVault from './assets/ic-limenvault.png';
 import limenWordmark from './assets/limenvault-logo.png';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { LimenAiIcon } from './LimenAiIcon';
+import { VaultPanel } from './VaultPanel';
+import { IndexingPromptModal } from './IndexingPromptModal';
 import { SetupWizardModal } from './SetupWizardModal';
 import { createLatestRequest } from './latest-request';
 import { invoke } from '@tauri-apps/api/core';
@@ -72,11 +75,15 @@ import {
   Trash2,
   Lock,
   Compass,
+  SlidersHorizontal,
+  FolderTree,
+  Info,
 } from 'lucide-react';
 
 type NavTab =
   | 'ask'
   | 'documents'
+  | 'vault'
   | 'memory'
   | 'advanced'
   | 'home'
@@ -178,6 +185,16 @@ export default function App() {
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const [modalSingleSource, setModalSingleSource] = useState<AiSource | null>(null);
   const [newConversationTrigger, setNewConversationTrigger] = useState<number>(0);
+
+  // Richieste UI/UX per AG: Chat pulita, auto-indicizzazione e navigazione contestuale
+  const [showManualSearch, setShowManualSearch] = useState<boolean>(false);
+  const [showIndexingPrompt, setShowIndexingPrompt] = useState<boolean>(false);
+  const [importedFilesList, setImportedFilesList] = useState<string[]>([]);
+  const [isAutoIndexing, setIsAutoIndexing] = useState<boolean>(false);
+  const [autoIndexStep, setAutoIndexStep] = useState<string | null>(null);
+  const [autoIndexPercent, setAutoIndexPercent] = useState<number>(0);
+  const [hasPendingIndexing, setHasPendingIndexing] = useState<boolean>(false);
+  const [settingsGuideMessage, setSettingsGuideMessage] = useState<string | null>(null);
 
   const refreshHistory = async () => {
     if (!vaultPath) {
@@ -352,18 +369,33 @@ export default function App() {
   }, [selectedTurnItem]);
 
   useEffect(() => {
-    let unlisten: (() => void) | undefined;
+    let unlistenStatus: (() => void) | undefined;
+    let unlistenNav: (() => void) | undefined;
+
     void listen<{ provider: 'local' | 'openai'; degraded: boolean; is_local: boolean }>('search_mode_status', (e) => {
       setSearchDegraded(e.payload.degraded);
       setSearchProvider(e.payload.provider);
     }).then((u) => {
-      unlisten = u;
+      unlistenStatus = u;
     }).catch((err) => {
       // Errore visibile: un listener negato dal sistema di permessi lascerebbe il banner muto.
       console.error('[LIMEN] listen(search_mode_status) non registrato:', err);
     });
+
+    void listen<string>('navigate_to_tab', (e) => {
+      if (e.payload === 'help') {
+        setCurrentTab('advanced');
+        setAdvancedTab('help');
+      }
+    }).then((u) => {
+      unlistenNav = u;
+    }).catch((err) => {
+      console.error('[LIMEN] listen(navigate_to_tab) non registrato:', err);
+    });
+
     return () => {
-      if (unlisten) unlisten();
+      if (unlistenStatus) unlistenStatus();
+      if (unlistenNav) unlistenNav();
     };
   }, []);
 
@@ -525,6 +557,38 @@ export default function App() {
     }
   };
 
+  const handleOneClickAutoIndex = async () => {
+    if (!vaultPath) return;
+    const ticket = begin();
+    if (ticket === null) return;
+    setIsAutoIndexing(true);
+    setAutoIndexPercent(15);
+    setAutoIndexStep('1/3 Estrazione passaggi da documenti RAW...');
+    setActionError(null);
+    try {
+      await ipc.processPendingExtractions(vaultPath);
+      setAutoIndexPercent(50);
+      setAutoIndexStep('2/3 Aggiornamento indice lessicale BM25...');
+      await ipc.indexVaultSearch(vaultPath).catch(() => {});
+      setAutoIndexPercent(80);
+      setAutoIndexStep('3/3 Sincronizzazione vettoriale semantica...');
+      await aiIpc.embeddingsSyncVault(vaultPath).catch(() => {});
+      setAutoIndexPercent(100);
+      await refreshCatalog(vaultPath, ticket);
+      await refreshCompiler(vaultPath, ticket);
+      setSearchRevision((r) => r + 1);
+      setHasPendingIndexing(false);
+      setShowIndexingPrompt(false);
+      setRestoreMessage('Indicizzazione completata con successo! I contenuti sono pronti per Chiedi a Limen.');
+    } catch (err) {
+      setActionError(`Indicizzazione non riuscita: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setIsAutoIndexing(false);
+      setAutoIndexStep(null);
+      finish(ticket);
+    }
+  };
+
   const handleUploadDocuments = async () => {
     if (!vaultPath) return;
     const ticket = begin();
@@ -532,10 +596,11 @@ export default function App() {
     setActionError(null);
     try {
       await ipc.automationChooseFiles(vaultPath);
-      await ipc.processPendingExtractions(vaultPath);
       await refreshCatalog(vaultPath, ticket);
       await refreshCompiler(vaultPath, ticket);
-      setSearchRevision((r) => r + 1);
+      setImportedFilesList(['Nuovo file selezionato']);
+      setShowIndexingPrompt(true);
+      setHasPendingIndexing(true);
     } catch (err) {
       setActionError(`Caricamento non riuscito: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
@@ -587,10 +652,11 @@ export default function App() {
       if (ticket === null) return;
       try {
         await ipc.automationImportFiles(vaultPath, filePaths);
-        await ipc.processPendingExtractions(vaultPath);
         await refreshCatalog(vaultPath, ticket);
         await refreshCompiler(vaultPath, ticket);
-        setSearchRevision((r) => r + 1);
+        setImportedFilesList(filePaths.map((p) => p.split(/[/\\]/).pop() || p));
+        setShowIndexingPrompt(true);
+        setHasPendingIndexing(true);
       } catch (err) {
         setActionError(`Errore durante il caricamento: ${err instanceof Error ? err.message : String(err)}`);
       } finally {
@@ -999,13 +1065,13 @@ export default function App() {
             </div>
           )}
 
-          {/* MAIN 3-AREA NAV LIST */}
+          {/* MAIN 4-AREA NAV LIST */}
           <nav style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             {[
               {
                 id: 'ask',
                 label: t.nav.ask,
-                icon: <Sparkles size={16} color={currentTab === 'ask' || currentTab === 'search' ? '#0f172a' : '#64748b'} />,
+                icon: <LimenAiIcon size={16} />,
                 active: currentTab === 'ask' || currentTab === 'search',
                 badge: undefined,
               },
@@ -1015,6 +1081,13 @@ export default function App() {
                 icon: <FolderArchive size={16} color={currentTab === 'documents' || currentTab === 'sources' ? '#0f172a' : '#64748b'} />,
                 active: currentTab === 'documents' || currentTab === 'sources',
                 badge: String(catalogSummary?.totalRawSources ?? sourceCount),
+              },
+              {
+                id: 'vault',
+                label: 'Vault',
+                icon: <FolderTree size={16} color={currentTab === 'vault' ? '#0f172a' : '#64748b'} />,
+                active: currentTab === 'vault',
+                badge: undefined,
               },
               {
                 id: 'memory',
@@ -1394,6 +1467,7 @@ export default function App() {
               {currentTab === 'home' && t.nav.overview}
               {(currentTab === 'ask' || currentTab === 'search') && t.nav.ask}
               {(currentTab === 'documents' || currentTab === 'sources') && t.nav.documents}
+              {currentTab === 'vault' && 'Vault'}
               {(currentTab === 'memory' || currentTab === 'knowledge') && t.nav.memory}
               {(currentTab === 'advanced' || ['proposals', 'outputs', 'snapshots', 'transfers', 'system', 'help', 'settings'].includes(currentTab)) && t.nav.advanced}
             </span>
@@ -1911,219 +1985,242 @@ export default function App() {
             {/* 1. CHIEDI (CHAT CONTINUA TIPO CHATGPT CON STORICO E FONTI NELLA SIDEBAR) */}
             {(currentTab === 'ask' || currentTab === 'search') && (
               <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', overflow: 'hidden' }}>
-                {/* RICERCA MANUALE OPZIONALE (COLLAPSIBLE PER NON INTRALCIARE LA CHAT) */}
-                <div style={{ flexShrink: 0, borderBottom: '1px solid var(--limen-border-light)', backgroundColor: '#f8fafc' }}>
-                  <details style={{ padding: '8px 24px', fontSize: 12 }}>
-                    <summary style={{ cursor: 'pointer', fontWeight: 600, color: '#475569', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                      <Search size={14} />
-                      <span>Cerca passaggi nei documenti (ricerca ibrida manuale)</span>
-                    </summary>
-                    <div style={{ marginTop: 12 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                        <div style={{ fontSize: 12, color: '#64748b' }}>
-                          Cerca nei passaggi estratti dei documenti e nelle note aziendali con ricerca ibrida locale, oppure invia la domanda a OpenAI con citazioni verificate.
-                        </div>
+                {/* RICERCA MANUALE OPZIONALE (A SCOMPARSA SU RICHIESTA PER NON INTRALCIARE LA CHAT) */}
+                {showManualSearch && (
+                  <div style={{ flexShrink: 0, borderBottom: '1px solid var(--limen-border-light)', backgroundColor: '#f8fafc', padding: '12px 24px', maxHeight: '45vh', overflowY: 'auto' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, fontSize: 13, color: '#0f172a' }}>
+                        <Search size={15} color="#0f172a" />
+                        <span>Cerca passaggi nei documenti (ricerca ibrida manuale)</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <button
                           onClick={handleReindexSearch}
                           disabled={isProcessing || !vaultPath}
+                          title="Ricalcola cache e indicizza tutti i passaggi"
                           style={{
                             display: 'flex',
+                            flexDirection: 'column',
                             alignItems: 'center',
-                            gap: 6,
+                            justifyContent: 'center',
                             backgroundColor: isProcessing || !vaultPath ? '#94a3b8' : '#0f172a',
                             color: '#ffffff',
                             border: 'none',
                             borderRadius: 6,
-                            padding: '6px 12px',
-                            fontSize: 12,
-                            fontWeight: 600,
+                            padding: '4px 14px',
                             cursor: isProcessing || !vaultPath ? 'not-allowed' : 'pointer',
+                            lineHeight: 1.2,
                           }}
                         >
-                          {isProcessing ? <Loader2 size={13} className="spin" /> : <RotateCw size={13} />}
-                          <span>Aggiorna indice</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, fontSize: 12 }}>
+                            {isProcessing ? <Loader2 size={12} className="spin" /> : <RotateCw size={12} />}
+                            <span>Indicizza</span>
+                          </div>
+                          <span style={{ fontSize: 9, opacity: 0.7, fontWeight: 400 }}>ricalcola cache</span>
+                        </button>
+                        <button
+                          onClick={() => setShowManualSearch(false)}
+                          aria-label="Chiudi ricerca manuale"
+                          style={{
+                            background: 'transparent',
+                            border: '1px solid #cbd5e1',
+                            borderRadius: 6,
+                            cursor: 'pointer',
+                            color: '#475569',
+                            padding: '6px 10px',
+                            fontSize: 12,
+                            fontWeight: 600,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 4,
+                          }}
+                        >
+                          ✕ Chiudi
                         </button>
                       </div>
+                    </div>
+                    <div style={{ fontSize: 12, color: '#64748b', marginBottom: 12 }}>
+                      Cerca nei passaggi estratti dei documenti e nelle note aziendali con ricerca ibrida locale, oppure invia la domanda a OpenAI con citazioni verificate.
+                    </div>
 
-                      <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
-                        <div style={{ position: 'relative', flex: 1 }}>
-                          <Search size={16} color="#94a3b8" style={{ position: 'absolute', left: 12, top: 12 }} />
-                          <input
-                            type="text"
-                            placeholder="Cerca parole chiave, contratti, clienti, passaggi di documenti..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            style={{
-                              width: '100%',
-                              padding: '10px 14px 10px 38px',
-                              borderRadius: 8,
-                              border: '1px solid #cbd5e1',
-                              fontSize: 13,
-                              outline: 'none',
-                              boxSizing: 'border-box',
-                            }}
-                          />
-                        </div>
-                        <select
-                          value={searchCategory}
-                          onChange={(e) => setSearchCategory(e.target.value)}
+                    <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+                      <div style={{ position: 'relative', flex: 1 }}>
+                        <Search size={16} color="#94a3b8" style={{ position: 'absolute', left: 12, top: 12 }} />
+                        <input
+                          type="text"
+                          placeholder="Cerca parole chiave, contratti, clienti, passaggi di documenti..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
                           style={{
-                            padding: '10px 14px',
+                            width: '100%',
+                            padding: '10px 14px 10px 38px',
                             borderRadius: 8,
                             border: '1px solid #cbd5e1',
                             fontSize: 13,
-                            backgroundColor: '#ffffff',
-                            color: '#0f172a',
+                            outline: 'none',
+                            boxSizing: 'border-box',
                           }}
-                        >
-                          <option value="">Tutte le categorie</option>
-                          <option value="client">Clienti (01_CLIENTS)</option>
-                          <option value="project">Progetti (02_PROJECTS)</option>
-                          <option value="brand">Marchi (03_BRANDS)</option>
-                          <option value="source">Originali (20_RAW_SOURCES)</option>
-                          <option value="approved_output">Approvati (10_APPROVED_OUTPUTS)</option>
-                          <option value="proposal">Proposte (90_PROPOSALS)</option>
-                        </select>
+                        />
                       </div>
+                      <select
+                        value={searchCategory}
+                        onChange={(e) => setSearchCategory(e.target.value)}
+                        style={{
+                          padding: '10px 14px',
+                          borderRadius: 8,
+                          border: '1px solid #cbd5e1',
+                          fontSize: 13,
+                          backgroundColor: '#ffffff',
+                          color: '#0f172a',
+                        }}
+                      >
+                        <option value="">Tutte le categorie</option>
+                        <option value="client">Clienti (01_CLIENTS)</option>
+                        <option value="project">Progetti (02_PROJECTS)</option>
+                        <option value="brand">Marchi (03_BRANDS)</option>
+                        <option value="source">Originali (20_RAW_SOURCES)</option>
+                        <option value="approved_output">Approvati (10_APPROVED_OUTPUTS)</option>
+                        <option value="proposal">Proposte (90_PROPOSALS)</option>
+                      </select>
+                    </div>
 
-                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+                      <input
+                        aria-label="Filtra per cliente"
+                        placeholder="Filtro cliente..."
+                        value={searchClient}
+                        onChange={(e) => setSearchClient(e.target.value)}
+                        style={{ padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 12 }}
+                      />
+                      <input
+                        aria-label="Filtra per progetto"
+                        placeholder="Filtro progetto..."
+                        value={searchProject}
+                        onChange={(e) => setSearchProject(e.target.value)}
+                        style={{ padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 12 }}
+                      />
+                      {searchTerm && (
+                        <button
+                          onClick={() => setSearchTerm('')}
+                          style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #e2e8f0', background: '#f1f5f9', fontSize: 11, cursor: 'pointer' }}
+                        >
+                          Cancella ricerca
+                        </button>
+                      )}
+                      <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#475569', cursor: 'pointer', marginLeft: 'auto' }}>
                         <input
-                          aria-label="Filtra per cliente"
-                          placeholder="Filtro cliente..."
-                          value={searchClient}
-                          onChange={(e) => setSearchClient(e.target.value)}
-                          style={{ padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 12 }}
+                          type="checkbox"
+                          checked={useSemanticSearch}
+                          onChange={(e) => setUseSemanticSearch(e.target.checked)}
                         />
-                        <input
-                          aria-label="Filtra per progetto"
-                          placeholder="Filtro progetto..."
-                          value={searchProject}
-                          onChange={(e) => setSearchProject(e.target.value)}
-                          style={{ padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 12 }}
-                        />
-                        {searchTerm && (
-                          <button
-                            onClick={() => setSearchTerm('')}
-                            style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #e2e8f0', background: '#f1f5f9', fontSize: 11, cursor: 'pointer' }}
+                        <span>Ricerca Ibrida (Semantica + Lessicale)</span>
+                        {useSemanticSearch && (
+                          <span
+                            style={{
+                              fontSize: 10,
+                              fontWeight: 700,
+                              padding: '2px 6px',
+                              borderRadius: 4,
+                              backgroundColor:
+                                searchProvider === 'local'
+                                  ? searchDegraded || localServerHealthy === false
+                                    ? '#fee2e2'
+                                    : '#dcfce7'
+                                  : '#e0e7ff',
+                              color:
+                                searchProvider === 'local'
+                                  ? searchDegraded || localServerHealthy === false
+                                    ? '#991b1b'
+                                    : '#166534'
+                                  : '#3730a3',
+                            }}
                           >
-                            Cancella ricerca
-                          </button>
+                            {searchProvider === 'local'
+                              ? searchDegraded || localServerHealthy === false
+                                ? '⚠️ RAG LOCALE SPENTO (SOLO LESSICALE)'
+                                : '🟢 RAG 100% LOCALE'
+                              : '🌐 OPENAI (IN RETE)'}
+                          </span>
                         )}
-                        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#475569', cursor: 'pointer', marginLeft: 'auto' }}>
-                          <input
-                            type="checkbox"
-                            checked={useSemanticSearch}
-                            onChange={(e) => setUseSemanticSearch(e.target.checked)}
-                          />
-                          <span>Ricerca Ibrida (Semantica + Lessicale)</span>
-                          {useSemanticSearch && (
-                            <span
+                      </label>
+                    </div>
+
+                    {searchLoading && <p style={{ fontSize: 12, color: '#64748b', margin: '10px 0 0 0' }}>Ricerca in corso…</p>}
+
+                    {/* DEGRADED MODE WARNING BANNER IF LOCAL SERVICE DOWN */}
+                    {useSemanticSearch && searchDegraded && (
+                      <div
+                        role="alert"
+                        style={{
+                          padding: '12px 16px',
+                          borderRadius: 8,
+                          backgroundColor: '#fffbeb',
+                          border: '1px solid #fef3c7',
+                          color: '#92400e',
+                          fontSize: 12,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 10,
+                          marginBottom: 16,
+                        }}
+                      >
+                        <span style={{ fontSize: 18 }}>⚠️</span>
+                        <div>
+                          <strong>Modalità degradata (solo ricerca lessicale):</strong> il servizio semantico locale non è
+                          attivo o non ha risposto. I risultati sono calcolati esclusivamente tramite indice lessicale. Nessun
+                          dato è uscito {terms.fromDeviceTerm}.
+                        </div>
+                      </div>
+                    )}
+
+                    {/* SEARCH RESULTS PREVIEW IF QUERY PRESENT */}
+                    {searchTerm.trim() && searchResults.length > 0 && (
+                      <div className="limen-card" style={{ padding: 20, marginTop: 12 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', marginBottom: 12 }}>
+                          {searchResults.length} risultati trovati per "{searchTerm}":
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                          {searchResults.slice(0, 5).map((item) => (
+                            <div
+                              key={item.relative_path}
+                              onClick={() => openReader(item.id || item.relative_path, undefined, searchTerm, undefined, item.sha256)}
                               style={{
-                                fontSize: 10,
-                                fontWeight: 700,
-                                padding: '2px 6px',
-                                borderRadius: 4,
-                                backgroundColor:
-                                  searchProvider === 'local'
-                                    ? searchDegraded || localServerHealthy === false
-                                      ? '#fee2e2'
-                                      : '#dcfce7'
-                                    : '#e0e7ff',
-                                color:
-                                  searchProvider === 'local'
-                                    ? searchDegraded || localServerHealthy === false
-                                      ? '#991b1b'
-                                      : '#166534'
-                                    : '#3730a3',
+                                padding: 12,
+                                borderRadius: 8,
+                                border: '1px solid #e2e8f0',
+                                backgroundColor: '#f8fafc',
+                                cursor: 'pointer',
                               }}
                             >
-                              {searchProvider === 'local'
-                                ? searchDegraded || localServerHealthy === false
-                                  ? '⚠️ RAG LOCALE SPENTO (SOLO LESSICALE)'
-                                  : '🟢 RAG 100% LOCALE'
-                                : '🌐 OPENAI (IN RETE)'}
-                            </span>
-                          )}
-                        </label>
-                      </div>
-
-                      {searchLoading && <p style={{ fontSize: 12, color: '#64748b', margin: '10px 0 0 0' }}>Ricerca in corso…</p>}
-
-                      {/* DEGRADED MODE WARNING BANNER IF LOCAL SERVICE DOWN */}
-                      {useSemanticSearch && searchDegraded && (
-                        <div
-                          role="alert"
-                          style={{
-                            padding: '12px 16px',
-                            borderRadius: 8,
-                            backgroundColor: '#fffbeb',
-                            border: '1px solid #fef3c7',
-                            color: '#92400e',
-                            fontSize: 12,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 10,
-                            marginBottom: 16,
-                          }}
-                        >
-                          <span style={{ fontSize: 18 }}>⚠️</span>
-                          <div>
-                            <strong>Modalità degradata (solo ricerca lessicale):</strong> il servizio semantico locale non è
-                            attivo o non ha risposto. I risultati sono calcolati esclusivamente tramite indice lessicale. Nessun
-                            dato è uscito {terms.fromDeviceTerm}.
-                          </div>
-                        </div>
-                      )}
-
-                      {/* SEARCH RESULTS PREVIEW IF QUERY PRESENT */}
-                      {searchTerm.trim() && searchResults.length > 0 && (
-                        <div className="limen-card" style={{ padding: 20, marginTop: 12 }}>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', marginBottom: 12 }}>
-                            {searchResults.length} risultati trovati per "{searchTerm}":
-                          </div>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                            {searchResults.slice(0, 5).map((item) => (
-                              <div
-                                key={item.relative_path}
-                                onClick={() => openReader(item.id || item.relative_path, undefined, searchTerm, undefined, item.sha256)}
-                                style={{
-                                  padding: 12,
-                                  borderRadius: 8,
-                                  border: '1px solid #e2e8f0',
-                                  backgroundColor: '#f8fafc',
-                                  cursor: 'pointer',
-                                }}
-                              >
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                                  <span style={{ fontWeight: 600, fontSize: 13, color: '#0f172a' }}>{item.title}</span>
-                                  <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                                    {item.matching_locator && (
-                                      <span style={{ fontSize: 11, fontWeight: 600, padding: '1px 6px', borderRadius: 4, backgroundColor: 'rgba(200,255,0,0.2)', color: '#4d7c0f', border: '1px solid rgba(200,255,0,0.4)' }}>
-                                        {item.matching_locator}
-                                      </span>
-                                    )}
-                                    <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 5px', borderRadius: 4, backgroundColor: '#e2e8f0', color: '#334155' }}>
-                                      {labelIt(item.category)}
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                                <span style={{ fontWeight: 600, fontSize: 13, color: '#0f172a' }}>{item.title}</span>
+                                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                                  {item.matching_locator && (
+                                    <span style={{ fontSize: 11, fontWeight: 600, padding: '1px 6px', borderRadius: 4, backgroundColor: 'rgba(200,255,0,0.2)', color: '#4d7c0f', border: '1px solid rgba(200,255,0,0.4)' }}>
+                                      {item.matching_locator}
                                     </span>
-                                  </div>
-                                </div>
-                                {item.snippet && (
-                                  <div style={{ fontSize: 12, color: '#475569', fontStyle: 'italic', margin: '4px 0' }}>
-                                    "{item.snippet}"
-                                  </div>
-                                )}
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
-                                  <span style={{ fontSize: 11, color: '#64748b', fontFamily: 'monospace' }}>{item.relative_path}</span>
-                                  <span style={{ fontSize: 11, fontWeight: 600, color: '#0284c7' }}>Apri nel lettore →</span>
+                                  )}
+                                  <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 5px', borderRadius: 4, backgroundColor: '#e2e8f0', color: '#334155' }}>
+                                    {labelIt(item.category)}
+                                  </span>
                                 </div>
                               </div>
-                            ))}
-                          </div>
+                              {item.snippet && (
+                                <div style={{ fontSize: 12, color: '#475569', fontStyle: 'italic', margin: '4px 0' }}>
+                                  "{item.snippet}"
+                                </div>
+                              )}
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
+                                <span style={{ fontSize: 11, color: '#64748b', fontFamily: 'monospace' }}>{item.relative_path}</span>
+                                <span style={{ fontSize: 11, fontWeight: 600, color: '#0284c7' }}>Apri nel lettore →</span>
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                      )}
-                    </div>
-                  </details>
-                </div>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* AI Q&A CHAT COMPONENT A TUTTA ALTEZZA */}
                 <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
@@ -2139,6 +2236,15 @@ export default function App() {
                     onOpenSourcesSidebar={() => setSourcesSidebarOpen(true)}
                     newConversationTrigger={newConversationTrigger}
                     onOpenDocument={(req) => openReader(req.documentId, req.passageId, undefined, req.revision, req.sha256)}
+                    showManualSearch={showManualSearch}
+                    onToggleManualSearch={() => setShowManualSearch(!showManualSearch)}
+                    hasPendingIndexing={hasPendingIndexing}
+                    onTriggerAutoIndex={handleOneClickAutoIndex}
+                    onNavigateToSettings={(section, guide) => {
+                      setSettingsGuideMessage(guide || 'Configura le impostazioni per proseguire.');
+                      setCurrentTab('advanced');
+                      setAdvancedTab('settings');
+                    }}
                   />
                 </div>
               </div>
@@ -2409,6 +2515,17 @@ export default function App() {
               </div>
             )}
 
+            {/* 2b. VAULT (ESPLORATORE REALE FILESYSTEM CON CARTELLE E ANTEPRIME) */}
+            {currentTab === 'vault' && vaultPath && (
+              <VaultPanel
+                vaultPath={vaultPath}
+                onOpenReader={(relPath) => openReader(relPath)}
+                onRevealInFinder={(relPath) => void ipc.revealInFinder(vaultPath, relPath)}
+                onNavigateToUpload={() => void handleUploadDocuments()}
+                onNavigateToAsk={() => setCurrentTab('ask')}
+              />
+            )}
+
             {/* 3. MEMORIA (CATEGORIE AZIENDALI 01-10 + NOTE CONDIVISE) */}
             {(currentTab === 'memory' || currentTab === 'knowledge') && (
               <div>
@@ -2611,6 +2728,45 @@ export default function App() {
                 {/* SUBTAB: SETTINGS */}
                 {(advancedTab === 'settings' || currentTab === 'settings') && (
                   <>
+                    {settingsGuideMessage && (
+                      <div
+                        style={{
+                          backgroundColor: '#eff6ff',
+                          border: '1px solid #bfdbfe',
+                          borderRadius: 8,
+                          padding: '12px 18px',
+                          marginBottom: 16,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: 12,
+                          flexWrap: 'wrap',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#1e40af', fontSize: 13 }}>
+                          <Info size={16} />
+                          <span>{settingsGuideMessage}</span>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setSettingsGuideMessage(null);
+                            setCurrentTab('ask');
+                          }}
+                          style={{
+                            padding: '6px 14px',
+                            borderRadius: 6,
+                            backgroundColor: '#0f172a',
+                            color: '#ffffff',
+                            border: 'none',
+                            fontSize: 12,
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          ← Torna a Chiedi a Limen
+                        </button>
+                      </div>
+                    )}
                     <AiSettings key={vaultPath} vaultPath={vaultPath!} />
                     <div className="limen-card" style={{ padding: 24, maxWidth: 640 }}>
                       <h3 style={{ fontSize: 16, fontWeight: 600, margin: '0 0 16px 0' }}>Impostazioni del Vault</h3>
@@ -2725,6 +2881,19 @@ export default function App() {
         onCreateVault={handleCreateVaultPath}
         onBrowseFolder={handleBrowseFolder}
         isTauriEnv={isTauriEnv}
+      />
+
+      <IndexingPromptModal
+        isOpen={showIndexingPrompt}
+        filesCount={importedFilesList.length || 1}
+        fileNames={importedFilesList}
+        isProcessing={isAutoIndexing}
+        progressStep={autoIndexStep}
+        progressPercent={autoIndexPercent}
+        error={actionError}
+        onProceed={handleOneClickAutoIndex}
+        onPostpone={() => setShowIndexingPrompt(false)}
+        onClose={() => setShowIndexingPrompt(false)}
       />
     </div>
   );

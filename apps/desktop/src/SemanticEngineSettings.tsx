@@ -881,11 +881,27 @@ export function SemanticEngineSettings({ vaultPath }: { vaultPath: string }) {
                 </div>
               ) : (
                 <button
-                  style={{ ...buttonPrimary, backgroundColor: '#d97706' }}
+                  style={{
+                    ...buttonPrimary,
+                    backgroundColor: '#0f172a',
+                    color: '#ffffff',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '8px 24px',
+                    gap: 1,
+                  }}
                   disabled={loading || reindexing || (isLocal && !modelReport?.installed)}
                   onClick={handleReindexCache}
+                  title="Avvia l'indicizzazione e ricalcolo della cache semantica del vault"
                 >
-                  RICALCOLA CACHE SEMANTICA ({providerReport.dimensions} DIM)
+                  <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.02em', color: '#ffffff' }}>
+                    Indicizza
+                  </span>
+                  <span style={{ fontSize: 10, fontWeight: 400, opacity: 0.85, color: '#94a3b8' }}>
+                    ricalcola cache ({providerReport.dimensions} dim)
+                  </span>
                 </button>
               )}
             </div>

@@ -182,7 +182,7 @@ export const translations: Record<Language, Translations> = {
       rawSourcesDesc: 'Note originali, brief e file sorgente',
       knowledgeTitle: 'Vault / Memoria',
       knowledgeDesc: 'Note strutturate e compilate',
-      askVaultButton: 'Chiedi al Vault',
+      askVaultButton: 'Chiedi a Limen',
     },
     ask: {
       placeholder: 'Fai una domanda sulla tua conoscenza…',
@@ -314,7 +314,7 @@ export const translations: Record<Language, Translations> = {
       rawSourcesDesc: 'Raw notes, briefs, and source files',
       knowledgeTitle: 'Vault / Memory',
       knowledgeDesc: 'Structured and compiled knowledge',
-      askVaultButton: 'Ask the Vault',
+      askVaultButton: 'Ask Limen',
     },
     ask: {
       placeholder: 'Ask a question about your knowledge…',

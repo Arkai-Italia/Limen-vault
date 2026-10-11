@@ -186,7 +186,7 @@ export function HelpPanel({
                     <td style={{ padding: '8px 12px' }}>Gratuito, illimitato</td>
                   </tr>
                   <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
-                    <td style={{ padding: '8px 12px', fontWeight: 600 }}>Chiedi al Vault (AI)</td>
+                    <td style={{ padding: '8px 12px', fontWeight: 600 }}>Chiedi a Limen (AI)</td>
                     <td style={{ padding: '8px 12px' }}>Modello OpenAI (es. gpt-4o) con chiave in {terms.keychainTerm}</td>
                     <td style={{ padding: '8px 12px', color: '#854d0e' }}>Solo le fonti mostrate in Anteprima Locale</td>
                     <td style={{ padding: '8px 12px' }}>A consumo API OpenAI</td>
@@ -480,7 +480,7 @@ Richiede soluzioni di packaging compostabile.`}
       },
       {
         id: 'ai',
-        title: '7. Chiedi al Vault (Conversazione & AI)',
+        title: '7. Chiedi a Limen (Conversazione & AI)',
         badge: 'Chat & RAG',
         icon: <MessageSquare size={16} />,
         summary: 'Conversazione a più turni con contesto, stile messaggistica, fonti verificate sotto la risposta e storico.',
@@ -488,7 +488,7 @@ Richiede soluzioni di packaging compostabile.`}
           <div>
             <h3>Conversazione a messaggistica e intelligenza aumentata</h3>
             <p>
-              La scheda <strong>Chiedi al Vault</strong> ti consente di dialogare direttamente con la conoscenza aziendale accumulata nel Vault attraverso un'interfaccia a messaggistica fluida e trasparente:
+              La scheda <strong>Chiedi a Limen</strong> ti consente di dialogare direttamente con la conoscenza aziendale accumulata nel Vault attraverso un'interfaccia a messaggistica fluida e trasparente:
             </p>
 
             <h4>Caratteristiche e Funzionalità Principali</h4>

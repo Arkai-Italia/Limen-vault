@@ -8,10 +8,11 @@ import { SemanticEngineSettings } from './SemanticEngineSettings';
 import { TunnelPanel } from './TunnelPanel';
 import { getPlatformTerms } from './platform';
 import { m7, operationId } from './proposal-ipc';
-import { ChevronDown, ChevronRight, ShieldAlert, Sparkles, FileText, Check, AlertCircle, Key, Lock, Clock, PlusCircle, AlertTriangle } from 'lucide-react';
+import { ChevronDown, ChevronRight, ShieldAlert, Sparkles, FileText, Check, AlertCircle, Key, Lock, Clock, PlusCircle, AlertTriangle, Loader2, SlidersHorizontal, Info } from 'lucide-react';
 import { AiHistoryDrawer } from './AiHistoryDrawer';
 import { historyIpc } from './history-ipc';
 import { cleanTitle, formatSourceCategory, formatLocator, formatSourceLabel } from './source-utils';
+import { LimenAiIcon } from './LimenAiIcon';
 
 const fieldStyle: React.CSSProperties = {
   padding: '10px 14px',
@@ -65,6 +66,11 @@ export interface AiPanelProps {
   onSelectTurnIndex?: (index: number) => void;
   onOpenSourcesSidebar?: () => void;
   newConversationTrigger?: number;
+  showManualSearch?: boolean;
+  onToggleManualSearch?: () => void;
+  hasPendingIndexing?: boolean;
+  onTriggerAutoIndex?: () => void;
+  onNavigateToSettings?: (section: 'semantic' | 'llm' | 'api', guideText?: string) => void;
 }
 
 export function AiPanel({
@@ -78,6 +84,11 @@ export function AiPanel({
   onSelectTurnIndex,
   onOpenSourcesSidebar,
   newConversationTrigger,
+  showManualSearch,
+  onToggleManualSearch,
+  hasPendingIndexing,
+  onTriggerAutoIndex,
+  onNavigateToSettings,
 }: AiPanelProps) {
   const { t, language } = useTranslation();
   const terms = getPlatformTerms();
@@ -97,6 +108,8 @@ export function AiPanel({
   const [previewData, setPreviewData] = useState<AiPreview | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [techError, setTechError] = useState<string | null>(null);
+  const [isStartingLocal, setIsStartingLocal] = useState<boolean>(false);
+  const [localStatusMessage, setLocalStatusMessage] = useState<string | null>(null);
 
   // Modalità 100% Solo Locale con Ministral 3 8B Instruct (FASE 8)
   const [isLocalMode, setIsLocalMode] = useState<boolean>(() => {
@@ -130,21 +143,85 @@ export function AiPanel({
   }, []);
 
   const handleToggleLocalMode = async () => {
+    if (isStartingLocal) return;
+
     if (!isLocalMode) {
-      const semReport = await aiIpc.embeddingsGetProvider(vaultPath).catch(() => null);
-      if (semReport && semReport.provider !== 'local') {
-        setError("La modalità Solo Locale richiede il motore di ricerca Locale. Impostalo in Impostazioni > Motore semantico.");
-        return;
+      setIsStartingLocal(true);
+      setLocalStatusMessage('Verifica componenti locali in corso...');
+      setError(null);
+
+      try {
+        // 1. Verifica modello LLM locale
+        const rep = await aiIpc.localLlmStatus().catch(() => null);
+        if (rep) setLocalLlmReport(rep);
+        if (!rep?.installed || !rep?.sha256Ok) {
+          setIsStartingLocal(false);
+          setLocalStatusMessage(null);
+          if (onNavigateToSettings) {
+            onNavigateToSettings(
+              'llm',
+              'Per attivare la modalità Solo Locale con un click, completa prima il download del modello linguistico locale Ministral 3B.'
+            );
+          } else {
+            setShowLlmDownloadModal(true);
+          }
+          return;
+        }
+
+        // 2. Configura automaticamente il motore semantico su Locale in un solo click
+        setLocalStatusMessage('Allineamento motore semantico su Locale...');
+        const semReport = await aiIpc.embeddingsGetProvider(vaultPath).catch(() => null);
+        if (!semReport || semReport.provider !== 'local') {
+          const setRep = await aiIpc.embeddingsSetProvider(vaultPath, 'local').catch(() => null);
+          if (!setRep || setRep.provider !== 'local') {
+            setIsStartingLocal(false);
+            setLocalStatusMessage(null);
+            if (onNavigateToSettings) {
+              onNavigateToSettings(
+                'semantic',
+                'Imposta il motore semantico su Locale nelle impostazioni per abilitare la ricerca 100% offline.'
+              );
+            } else {
+              setError('Configura il motore semantico Locale nelle Impostazioni per proseguire.');
+            }
+            return;
+          }
+        }
+
+        // 3. Avvio del server LLM con verifica salute (Non dichiarare attivo prima di healthy!)
+        setLocalStatusMessage('Avvio del motore linguistico locale (Ministral 3B)...');
+        const startRep = await aiIpc.localLlmServerStart().catch((err) => {
+          throw new Error(err?.message || String(err));
+        });
+
+        // Verifica disponibilità effettiva su 127.0.0.1
+        let healthy = Boolean(startRep?.healthy);
+        if (!healthy) {
+          for (let attempt = 0; attempt < 6; attempt++) {
+            await new Promise((resolve) => setTimeout(resolve, 800));
+            const check = await aiIpc.localLlmServerStatus().catch(() => null);
+            if (check?.healthy) {
+              healthy = true;
+              break;
+            }
+          }
+        }
+
+        if (healthy) {
+          setIsLocalMode(true);
+          localStorage.setItem('limen_ai_mode', 'local_only');
+          setLocalStatusMessage(null);
+        } else {
+          setIsLocalMode(false);
+          setError(`Avvio modello locale non riuscito: ${startRep?.lastError || 'Il server locale non risponde su 127.0.0.1.'}`);
+        }
+      } catch (err: any) {
+        setIsLocalMode(false);
+        setError(`Errore durante l'attivazione automatica di Solo Locale: ${err?.message || String(err)}`);
+      } finally {
+        setIsStartingLocal(false);
+        setLocalStatusMessage(null);
       }
-      const rep = await aiIpc.localLlmStatus().catch(() => null);
-      if (rep) setLocalLlmReport(rep);
-      if (!rep?.installed || !rep?.sha256Ok) {
-        setShowLlmDownloadModal(true);
-        return;
-      }
-      setIsLocalMode(true);
-      localStorage.setItem('limen_ai_mode', 'local_only');
-      void aiIpc.localLlmServerStart().catch(() => {});
     } else {
       setIsLocalMode(false);
       localStorage.setItem('limen_ai_mode', 'hybrid');
@@ -557,8 +634,8 @@ export function AiPanel({
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Sparkles size={18} color="#0f172a" />
-            <span style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>Chiedi al Vault</span>
+            <LimenAiIcon size={18} />
+            <span style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>Chiedi a Limen</span>
           </div>
 
           {isArchived ? (
@@ -580,10 +657,11 @@ export function AiPanel({
             </span>
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              {/* Toggle Verde Lime: SOLO LOCALE (Ministral 8B) vs IBRIDO (OpenAI) */}
+              {/* Toggle Verde Lime: SOLO LOCALE (Ministral 3B) vs IBRIDO (OpenAI) */}
               <button
                 type="button"
                 onClick={handleToggleLocalMode}
+                disabled={isStartingLocal}
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -592,18 +670,33 @@ export function AiPanel({
                   borderRadius: 20,
                   fontSize: 12,
                   fontWeight: 700,
-                  cursor: 'pointer',
+                  cursor: isStartingLocal ? 'wait' : 'pointer',
                   transition: 'all 0.2s ease',
-                  backgroundColor: isLocalMode ? 'var(--limen-lime)' : '#f8fafc',
-                  color: isLocalMode ? '#0f172a' : '#475569',
-                  border: isLocalMode ? '1px solid #52c41a' : '1px solid #cbd5e1',
+                  backgroundColor: isLocalMode ? 'var(--limen-lime)' : isStartingLocal ? '#fef3c7' : '#f8fafc',
+                  color: isLocalMode ? '#0f172a' : isStartingLocal ? '#92400e' : '#475569',
+                  border: isLocalMode ? '1px solid #52c41a' : isStartingLocal ? '1px solid #f59e0b' : '1px solid #cbd5e1',
                   boxShadow: isLocalMode ? '0 0 10px rgba(119, 241, 23, 0.45)' : 'none',
                 }}
-                title={isLocalMode ? 'Modalità 100% Locale attiva (Ministral 8B + bge-m3). Clicca per passare a Ibrido (OpenAI).' : 'Passa alla modalità 100% Solo Locale (Ministral 8B su Mac a rete zero).'}
+                title={isLocalMode ? 'Modalità 100% Locale attiva (Ministral 3B + bge-m3 su 127.0.0.1). Clicca per passare a Ibrido.' : 'Attiva la modalità 100% Solo Locale con 1 click (avvio automatico e zero cloud).'}
               >
-                <Sparkles size={13} color={isLocalMode ? '#0f172a' : '#64748b'} />
-                <span>{isLocalMode ? 'SOLO LOCALE (Mac)' : 'SOLO LOCALE'}</span>
+                {isStartingLocal ? (
+                  <>
+                    <Loader2 size={13} className="spin" />
+                    <span>Avvio in corso...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles size={13} color={isLocalMode ? '#0f172a' : '#64748b'} />
+                    <span>{isLocalMode ? 'SOLO LOCALE ATTIVO' : 'SOLO LOCALE'}</span>
+                  </>
+                )}
               </button>
+
+              {localStatusMessage && (
+                <span style={{ fontSize: 11, color: '#64748b', fontStyle: 'italic' }}>
+                  {localStatusMessage}
+                </span>
+              )}
 
               {isLocalMode ? (
                 <span
@@ -657,7 +750,31 @@ export function AiPanel({
           )}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {onToggleManualSearch && (
+            <button
+              type="button"
+              onClick={onToggleManualSearch}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+                padding: '5px 11px',
+                borderRadius: 6,
+                border: '1px solid #cbd5e1',
+                backgroundColor: showManualSearch ? '#f1f5f9' : '#ffffff',
+                color: '#475569',
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+              title="Apri o chiudi gli strumenti avanzati di ricerca passaggi"
+            >
+              <SlidersHorizontal size={13} />
+              <span>{showManualSearch ? 'Nascondi Ricerca' : 'Strumenti Ricerca'}</span>
+            </button>
+          )}
+
           {isArchived ? (
             <button
               onClick={onNewConversation}
@@ -704,6 +821,47 @@ export function AiPanel({
         </div>
       </div>
 
+      {/* BANNER DI AVVISO RAPIDO: DOCUMENTI IN ATTESA DI INDICIZZAZIONE (ONE-CLICK AUTO INDEX) */}
+      {hasPendingIndexing && (
+        <div
+          style={{
+            margin: '10px 24px 0',
+            backgroundColor: '#fef3c7',
+            border: '1px solid #fde68a',
+            borderRadius: 8,
+            padding: '8px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
+            flexWrap: 'wrap',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: '#92400e' }}>
+            <Info size={15} />
+            <span>Nuovi documenti importati in attesa di indicizzazione per la ricerca locale.</span>
+          </div>
+          <button
+            onClick={onTriggerAutoIndex}
+            style={{
+              display: 'inline-flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '4px 14px',
+              backgroundColor: '#0f172a',
+              color: '#ffffff',
+              borderRadius: 6,
+              border: 'none',
+              cursor: 'pointer',
+            }}
+          >
+            <span style={{ fontSize: 11.5, fontWeight: 700 }}>⚡ Indicizza automaticamente</span>
+            <span style={{ fontSize: 9, opacity: 0.8, color: '#94a3b8' }}>ricalcola cache</span>
+          </button>
+        </div>
+      )}
+
       {/* Area Messaggi a Scorrimento Continuo */}
       <div
         style={{
@@ -717,9 +875,9 @@ export function AiPanel({
       >
         {effectiveTurns.length === 0 && !isBusy && (
           <div style={{ margin: 'auto', textAlign: 'center', color: '#64748b', maxWidth: 460 }}>
-            <Sparkles size={36} color="#0f172a" style={{ marginBottom: 12 }} />
+            <LimenAiIcon size={40} style={{ marginBottom: 12 }} />
             <h3 style={{ margin: '0 0 6px 0', fontSize: 16, fontWeight: 700, color: '#0f172a' }}>
-              Chiedi al Vault
+              Chiedi a Limen
             </h3>
             <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5, color: '#475569' }}>
               Fai una domanda per ottenere una risposta in prosa sintetizzata direttamente dai tuoi documenti. Per domande di seguito, la conversazione mantiene il contesto precedente.

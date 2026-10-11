@@ -329,9 +329,9 @@ fn main() {
         })
         .plugin(tauri_plugin_dialog::init())
         .menu(|app| {
-            use tauri::menu::{Menu, MenuItemKind};
+            use tauri::menu::{Menu, MenuItem, MenuItemKind};
             // Keep native menu roles and keyboard shortcuts; localize labels only.
-            fn translate(item: MenuItemKind<tauri::Wry>) -> tauri::Result<()> {
+            fn translate(app: &tauri::AppHandle, item: MenuItemKind<tauri::Wry>) -> tauri::Result<()> {
                 fn label(text: &str) -> &str {
                     match text {
                         "File" => "File", "Edit" => "Modifica", "View" => "Vista",
@@ -351,8 +351,14 @@ fn main() {
                 }
                 match item {
                     MenuItemKind::Submenu(menu) => {
-                        menu.set_text(label(&menu.text()?))?;
-                        for child in menu.items()? { translate(child)?; }
+                        let original_text = menu.text()?;
+                        let is_help = original_text == "Help" || original_text == "Aiuto";
+                        menu.set_text(label(&original_text))?;
+                        for child in menu.items()? { translate(app, child)?; }
+                        if is_help {
+                            let guide_item = MenuItem::with_id(app, "open_guide", "Guida di LIMEN", true, None::<&str>)?;
+                            let _ = menu.prepend(&guide_item);
+                        }
                     }
                     MenuItemKind::Predefined(item) => item.set_text(label(&item.text()?))?,
                     _ => {}
@@ -360,8 +366,14 @@ fn main() {
                 Ok(())
             }
             let menu = Menu::default(app)?;
-            for item in menu.items()? { translate(item)?; }
+            for item in menu.items()? { translate(app, item)?; }
             Ok(menu)
+        })
+        .on_menu_event(|app, event| {
+            if event.id().as_ref() == "open_guide" {
+                use tauri::Emitter;
+                let _ = app.emit("navigate_to_tab", "help");
+            }
         })
         .manage(std::sync::Arc::new(limen_vault::ai::AiState::default()))
         .manage(std::sync::Arc::new(limen_vault::sync::State::default()))
