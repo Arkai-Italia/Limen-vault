@@ -1,7 +1,7 @@
 # LIMEN Vault
 
 <p align="center">
-  <strong>Local-First AI Knowledge Engine & Hybrid Search for Markdown & Obsidian Vaults</strong>
+  <strong>Turn Your Documents into Searchable Knowledge — RAG Search & Automatic Wikis</strong>
 </p>
 
 <p align="center">
@@ -15,15 +15,36 @@
 
 ## What is LIMEN Vault?
 
-**LIMEN Vault** is a standalone, local-first desktop application designed to connect to Markdown knowledge bases (compatible with **Obsidian**) to provide localized AI search and document ingestion.
+**LIMEN Vault** is a standalone, local-first desktop application that turns your documents into a searchable knowledge base. Import documents in supported formats: LIMEN extracts their text, converts it into Markdown, and indexes the resulting content for **RAG search**. With knowledge automation enabled and configured, it also generates **thematic wikis** from your sources.
 
-By utilizing an embedded `llama-server` background process, LIMEN Vault performs dense semantic vector embedding (`bge-m3`, 1024 dimensions) and combines it with length-normalized lexical search (**BM25**).
+You do not need to prepare Markdown files or use Obsidian. Markdown is the open storage format LIMEN produces from your documents; compatibility with Obsidian is optional.
+
+## From Documents to Knowledge
+
+1. **Import your documents.** Add supported text files, PDFs, office documents, spreadsheets, or images. Original files are preserved in the vault.
+2. **Extract and convert.** LIMEN extracts readable text and creates Markdown source notes, retaining references to the originals. Supported scans and images use local OCR on macOS.
+3. **Index and search.** The generated content becomes searchable through lexical BM25 and, when configured, semantic embeddings. RAG uses retrieved passages to ground AI answers in your documents.
+4. **Generate wikis automatically.** The knowledge automation pipeline groups sources into thematic wiki pages with source references. Review generated content against its sources.
+
+**Automation requirements:** The current automatic classification and wiki pipeline uses the OpenAI API and requires automation to be enabled, a configured model, an API key, and internet access. It sends source content to that provider. This is separate from local search and local generative answers; the complete automation pipeline is not an offline-only feature.
+
+### Supported Input Formats
+
+| Input | Formats handled by the import pipeline |
+|---|---|
+| Text and structured text | TXT, MD, Markdown, HTML/HTM, CSV, TSV, JSON, XML, YAML/YML, LOG, EML |
+| Office documents | DOCX, PPTX, ODT; DOC and RTF conversion on macOS |
+| Spreadsheets | XLS, XLSX, XLSB, ODS |
+| PDF and images | PDF, PNG, JPG/JPEG, WEBP, GIF, TIF/TIFF, HEIC — native extraction/OCR on macOS |
+
+Extraction depends on readable content, supported encodings, platform capabilities, and processing limits. Unsupported or unreadable files are not guaranteed to produce indexed text. Text extraction does not preserve every aspect of the original document layout.
 
 ---
 
 ## Who is it for?
 
-- **Obsidian & Markdown Users**: Anyone managing personal notes, research papers, or documentation in standard `.md` files who wants conceptual retrieval without cloud lock-in.
+- **People Working with Documents**: Researchers, consultants, and teams who want to search reports, notes, spreadsheets, and reference material without manually converting each file.
+- **Knowledge Builders**: Anyone who wants to turn a collection of sources into linked, automatically generated thematic wikis.
 - **Privacy-Sensitive Professionals**: Researchers, legal teams, and engineers whose data cannot leave the local workstation.
 - **Developers & Systems Builders**: Anyone seeking a lightweight, auditable Tauri v2 application built in Rust and React instead of heavy containerized stacks.
 
@@ -47,8 +68,10 @@ LIMEN Vault provides distinct architectural boundaries between local and cloud o
 - 🔒 **Local Loopback Communication**: In Local Mode, embedding generation and vector scoring communicate over loopback `127.0.0.1`.
 - ⚡ **Hybrid Search**: Fuses length-normalized BM25 lexical ranking (for exact terms, codes, and acronyms) with dense semantic vectors (`bge-m3`).
 - 🛡️ **Automatic Degraded Fallback**: If the local AI inference process is unavailable or stopped, search automatically switches to lexical BM25 matching, displaying an advisory warning banner so queries can proceed against the lexical index.
-- 📄 **Native Document Ingestion**: Ingests PDFs, Word documents (`.docx`), Excel spreadsheets (`.xlsx`), and plain text into the vault's `20_RAW_SOURCES` directory with native text extraction.
-- 📂 **Native Obsidian Compatibility**: Uses standard Markdown files (`.md`), YAML frontmatter, and wiki-link conventions (`[[Note]]`). No proprietary database lock-in.
+- 📄 **Document-to-Knowledge Pipeline**: Preserves original documents, extracts their text, converts it into Markdown source notes, and makes the generated content available for indexing and retrieval.
+- 📚 **Automatic Wiki Generation**: With knowledge automation configured, synthesizes thematic pages from multiple documents with references to supporting sources.
+- 💬 **RAG Answers**: Uses retrieved document passages as context for answers from the configured local or cloud language model.
+- 📂 **Open Storage & Optional Obsidian Compatibility**: Uses standard Markdown files (`.md`), YAML frontmatter, and wiki-link conventions (`[[Note]]`). No proprietary database lock-in.
 - 🖥️ **Desktop Shell**: Built with **Tauri v2** (Rust backend and React webview) to avoid bundling a separate Chromium runtime as required by Electron architectures.
 - 🧙 **3-Step Setup Wizard**: First-run onboarding to select your vault directory, configure the local AI engine, and select operational mode.
 
@@ -80,7 +103,7 @@ flowchart TD
             Model["bge-m3 GGUF (1024-dim dense vectors)"]
         end
         
-        subgraph Vault ["Obsidian / Markdown Vault"]
+        subgraph Vault ["LIMEN Knowledge Vault"]
             Raw["20_RAW_SOURCES (Originals)"]
             Notes["01-10 Approved & Review Notes"]
             System["00_SYSTEM (Manifests & SHA-256 Cache)"]
@@ -91,7 +114,11 @@ flowchart TD
     Engine --> BM25
     Engine --> Server
     Server --> Model
+    User --> Extractor
     Extractor --> Raw
+    Raw --> Convert["Extract text and create Markdown source notes"]
+    Convert --> Notes
+    Notes --> Wiki["Automatic thematic wikis — configured cloud automation"]
     BM25 --> Notes
     Engine --> System
 ```
@@ -120,7 +147,7 @@ Heavy release binaries are intentionally omitted from the `main` source branch t
 1. Download and open `LIMEN-Vault-v7Mini.dmg`, then drag **LIMEN Vault** into your `/Applications` folder.
 2. The application bundle is signed and notarized with an Apple Developer ID (`Arkitecna Hong Kong Limited`). If prompted by macOS Gatekeeper on first open, confirm to allow.
 3. Complete the 3-step **Setup Wizard**:
-   - **Step 1: Vault Folder**: Select your existing Obsidian vault root directory.
+   - **Step 1: Vault Folder**: Select the folder for your LIMEN knowledge vault; Obsidian is not required.
    - **Step 2: Local AI Engine**: Verify local loopback embedding engine (`bge-m3`) status and initialization on `127.0.0.1`.
    - **Step 3: Mode & Optional API Key**: Choose **100% Local** mode (offline) or **Hybrid** mode (cloud LLM).
 
@@ -171,7 +198,7 @@ pnpm --filter @limen-vault/desktop tauri dev
 │   ├── vault-schema/     # Zod schemas & TypeScript domain contracts
 │   ├── search-engine/    # BM25 and hybrid retrieval engine
 │   └── snapshot-engine/  # Versioned snapshots & SHA-256 integrity verification
-├── vault-template/       # Standard Obsidian-compatible knowledge structure
+├── vault-template/       # Knowledge structure for imported sources and generated notes
 ├── docs/assets/          # Public documentation previews and screenshots
 └── scripts/              # Monorepo build and packaging tooling
 ```
@@ -179,6 +206,9 @@ pnpm --filter @limen-vault/desktop tauri dev
 ---
 
 ## Known Limitations
+
+- **Automatic Wikis**: The current knowledge automation pipeline requires OpenAI configuration and internet access; local search availability does not imply offline wiki generation.
+- **Document Extraction**: Support depends on format and platform. PDF/image extraction and legacy DOC/RTF conversion currently require macOS.
 
 - **Model Download Prerequisite**: Semantic vector search requires placing the `bge-m3` GGUF model file into your local model cache before dense vector scoring is available.
 - **Windows Platform**: The Windows build is currently in preview and under active testing.
