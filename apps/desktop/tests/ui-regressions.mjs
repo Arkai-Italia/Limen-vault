@@ -22,6 +22,8 @@ try {
   unbox(native('set-mode', vault, 'hybrid'));
   writeFileSync(join(vault, '20_RAW_SOURCES/organize-me.txt'), 'Documento sintetico da organizzare.');
   native('org-prepare', vault);
+  writeFileSync(join(vault, '01_CLIENTS/invalid-memory.md'), '---\ntitle: Foreign metadata\n---\nMemory content available');
+  writeFileSync(join(vault, '01_CLIENTS/plain-memory.md'), 'Valid plain memory note');
   mkdirSync(join(vault, 'CUSTOM/nested'), { recursive: true });
   writeFileSync(join(vault, 'CUSTOM/nested/nota.md'), '# Nota sintetica\nContenuto leggibile senza indicizzazione.');
   const built = await esbuild.build({ entryPoints: [join(root, 'apps/desktop/tests/ui/fixture.tsx')], bundle: true, write: false, format: 'iife', loader: { '.png': 'dataurl', '.svg': 'dataurl', '.css': 'empty' }, alias: { '@tauri-apps/api/webview': join(root, 'apps/desktop/tests/ui/tauri-fixture.ts'), '@tauri-apps/api/core': join(root, 'apps/desktop/tests/ui/tauri-fixture.ts'), '@tauri-apps/api/event': join(root, 'apps/desktop/tests/ui/tauri-fixture.ts') } });
@@ -31,7 +33,7 @@ try {
       let body = ''; for await (const chunk of req) body += chunk;
       try {
         const { command, args } = JSON.parse(body);
-        const commands = { organization_plan: ['org-plan', vault], organization_move: ['org-move', vault, args.documentId, args.expectedHash, args.destination], organization_undo: ['org-undo', vault, args.moveId], vault_list_folders: ['folders', vault], vault_list_folder_files: ['folder-files', vault, args.folder || ''], vault_read_text: ['read-text', vault, args.relativePath || ''], ai_get_mode: ['mode', vault], ai_set_mode: ['set-mode', vault, args.mode || ''] };
+        const commands = { list_knowledge: ['knowledge', vault, args.folder], organization_plan: ['org-plan', vault], organization_move: ['org-move', vault, args.documentId, args.expectedHash, args.destination], organization_undo: ['org-undo', vault, args.moveId], vault_list_folders: ['folders', vault], vault_list_folder_files: ['folder-files', vault, args.folder || ''], vault_read_text: ['read-text', vault, args.relativePath || ''], ai_get_mode: ['mode', vault], ai_set_mode: ['set-mode', vault, args.mode || ''] };
         if (!commands[command]) throw new Error('Unsupported command');
         res.end(JSON.stringify(native(...commands[command])));
       } catch (e) { res.end(JSON.stringify({ ok: false, error: String(e) })); }
@@ -47,6 +49,14 @@ try {
   const errors = [];
   page.on('pageerror', e => errors.push(String(e)));
   await page.route('**/*', route => route.request().url().startsWith(url) ? route.continue() : route.abort());
+  await page.goto(`${url}/?panel=memory`);
+  await page.getByText('invalid-memory.md', { exact: false }).first().waitFor();
+  await page.locator('summary').filter({ hasText: 'invalid-memory.md' }).click();
+  await page.getByText('Memory content available', { exact: false }).waitFor();
+  assert.equal(await page.getByRole('alert').count(), 0);
+  assert.ok(await page.locator('summary').filter({ hasText: 'plain-memory.md' }).count());
+  await page.getByRole('button', { name: /Refresh memory|Aggiorna memoria/ }).click();
+  await page.locator('summary').filter({ hasText: 'plain-memory.md' }).waitFor();
   await page.goto(`${url}/?panel=plain-chat`);
   await page.getByText('Riepilogo', { exact: false }).waitFor();
   const cleanAnswer = await page.getByText('Riepilogo', { exact: false }).innerText();

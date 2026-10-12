@@ -18,6 +18,7 @@ const folders: Record<string, string> = {
 };
 
 interface Note {
+  metadataWarning?: string | null;
   automationKind?: string;
   relativePath: string;
   title: string;
@@ -103,6 +104,10 @@ export function KnowledgePanel({ vaultPath, category }: { vaultPath: string; cat
               <summary style={{ cursor: 'pointer', fontWeight: 600, fontSize: 13, color: '#0f172a' }}>
                 {n.title} · {labelIt(n.status, language)} · <span style={{ fontFamily: 'monospace', fontSize: 11, color: '#64748b' }}>{n.relativePath}</span>
               </summary>
+              {n.metadataWarning && <p role="status" style={{ fontSize: 12, color: '#92400e' }}>
+                {language === 'it' ? 'Metadati della nota non validi. Il contenuto è disponibile e non è stato modificato.' : 'Invalid note metadata. The content is available and has not been changed.'}
+                <br /><span>{n.metadataWarning}</span>
+              </p>}
               <div style={{ marginTop: 10, fontSize: 11, color: '#64748b', wordBreak: 'break-all' }}>
                 SHA-256: <code>{n.sha256}</code>
               </div>
