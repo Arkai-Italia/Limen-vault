@@ -1916,8 +1916,9 @@ Regole fondamentali:\n\
 
     user_text.push_str(&format!("DOMANDA DELL'UTENTE:\n{}\n\nRisposta:", o.prompt));
 
+    let active_model = crate::llama_llm::get_active_model_file_name();
     json!({
-        "model": "Ministral-3-8B-Instruct-2512-Q5_K_M.gguf",
+        "model": active_model,
         "messages": [
             {"role": "system", "content": system_instruction},
             {"role": "user", "content": user_text}
@@ -3047,7 +3048,11 @@ pub async fn ask_stream_with_target(
             r
         }
         Err(e) => {
-            let err_msg = format!("OpenAI network error or timeout: {e}");
+            let err_msg = if local_llm_port.is_some() {
+                format!("Errore di rete o timeout del modello locale: {e}")
+            } else {
+                format!("OpenAI network error or timeout: {e}")
+            };
             let t_openai_ms = t_openai_start.elapsed().as_millis() as u64;
             log_stream_failure("errore (rete)", &err_msg, t_verify_pre_ms, t_payload_ms, t_openai_ms, 0, 0, None);
             if let Some(ref w) = window {

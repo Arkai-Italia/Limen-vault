@@ -516,11 +516,11 @@ export function AiPanel({
       if (currentSeq !== seq.current) return;
       setIsStreaming(false);
       const errStr = String(e?.message || e);
-      if (errStr.includes('Un documento è cambiato durante la generazione')) {
+      if (errStr.includes('Un documento è cambiato durante la generazione') || errStr.includes('Source changed since preview')) {
         const docErrAns: AiAnswer = {
           answer: 'Un documento è cambiato durante la generazione: la risposta è stata annullata, riprova',
-          provider: 'OpenAI',
-          model: currentModel,
+          provider: isLocalMode ? 'Locale' : 'OpenAI',
+          model: answerModel,
           citations: [],
           status: 'error',
           warning: 'Un documento è cambiato durante la generazione: la risposta è stata annullata, riprova',
@@ -545,7 +545,11 @@ export function AiPanel({
         setError('Errore interno durante la generazione della risposta, riprova.');
         setTechError(null);
       } else {
-        setError('Impossibile completare la risposta. Verifica la connessione o la chiave API.');
+        setError(
+          isLocalMode
+            ? 'Impossibile completare la risposta con il modello locale.'
+            : 'Impossibile completare la risposta. Verifica la connessione o la chiave API.'
+        );
         setTechError(errStr);
       }
     } finally {
@@ -1169,7 +1173,7 @@ export function AiPanel({
               <span>{error}</span>
             </div>
             {techError && (
-              <details style={{ marginTop: 8, fontSize: 12, color: '#7f1d1d' }}>
+              <details open style={{ marginTop: 8, fontSize: 12, color: '#7f1d1d' }}>
                 <summary style={{ cursor: 'pointer', fontWeight: 500 }}>Dettaglio tecnico errore</summary>
                 <pre style={{ margin: '6px 0 0 0', padding: 8, background: '#fee2e2', borderRadius: 4, whiteSpace: 'pre-wrap' }}>
                   {techError}
