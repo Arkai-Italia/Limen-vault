@@ -1127,7 +1127,7 @@ export default function App() {
                   }}
                 />
                 <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '-0.01em', color: 'var(--limen-text-primary)' }}>
-                  Vault V5
+                  Vault V8
                 </span>
               </div>
               <div

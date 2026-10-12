@@ -10,7 +10,7 @@ const require = createRequire(import.meta.url);
 const root = resolve(import.meta.dirname, '../../..');
 const esbuild = createRequire(require.resolve('vite/package.json'))('esbuild');
 const { chromium } = require(process.env.LIMEN_PLAYWRIGHT_MODULE || 'playwright');
-const binary = join(root, 'apps/desktop/src-tauri/target/debug/vault-check');
+const binary = process.env.LIMEN_VAULT_CHECK || join(root, 'apps/desktop/src-tauri/target/release/vault-check');
 const temp = mkdtempSync(join(tmpdir(), 'limen-ui-fixture-'));
 const vault = join(temp, 'vault');
 const native = (...args) => ({ ok: true, value: JSON.parse(execFileSync(binary, args, { encoding: 'utf8' })) });
