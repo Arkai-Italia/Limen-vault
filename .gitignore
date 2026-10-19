@@ -51,7 +51,9 @@ ISOLATED_TEST_ENV/
 *.dmp
 *.gguf
 
-# Large composite release DMGs
+# Large composite release DMGs & Zips
 USER INSTALL/LIMEN-Vault-BNXT-Edition.dmg
 !USER INSTALL/LIMEN-Vault-BNXT-Edition.dmg.sha256.txt
+USER INSTALL/LIMEN-Vault-BNXT-Edition-macOS.zip
+!USER INSTALL/LIMEN-Vault-BNXT-Edition-macOS.zip.sha256.txt
 
