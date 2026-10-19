@@ -258,11 +258,14 @@ pub fn load_catalog_arc(vault_path: &Path) -> Result<Arc<CatalogState>, String> 
     }
 
     increment_catalog_disk_read_count(vault_path);
-    let bytes = read(&sys, CATALOG_FILE)?;
-    if bytes.len() > 32 * 1024 * 1024 {
-        return Err("Catalog file exceeds 32 MB".into());
+    const MAX_CATALOG_FILE_SIZE_BYTES: u64 = 1024 * 1024 * 1024;
+    let meta = std::fs::metadata(&cat_file).map_err(err)?;
+    if meta.len() > MAX_CATALOG_FILE_SIZE_BYTES {
+        return Err("Catalog file exceeds 1 GB limit".into());
     }
-    let catalog: CatalogState = serde_json::from_slice(&bytes).map_err(err)?;
+    let cat_f = std::fs::File::open(&cat_file).map_err(err)?;
+    let reader = std::io::BufReader::with_capacity(256 * 1024, cat_f);
+    let catalog: CatalogState = serde_json::from_reader(reader).map_err(err)?;
     let data_arc = Arc::new(catalog);
 
     if let Ok(meta) = std::fs::metadata(&cat_file) {

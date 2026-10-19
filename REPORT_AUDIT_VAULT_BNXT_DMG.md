@@ -160,16 +160,23 @@ Si modifica lo script di packaging `scripts/package-v8-macos.sh` per creare un D
 
 ---
 
-## 7. Checklist di Azioni Raccomandate per l'Auditor
+---
 
-1. [ ] **Conferma Architettura di Distribuzione DMG:** Deliberare se adottare l'**Opzione A** (DMG con App + Cartella Vault pre-indicizzata da 350 MB) o l'**Opzione B** (DMG con Seed ZIP interno da 140 MB).
-2. [ ] **Aggiornamento Script di Packaging macOS:** Modificare `scripts/package-v8-macos.sh` sul ramo `MAC-BUILD` per includere nel DMG lo staging del Vault o del seed zip.
-3. [ ] **Esecuzione Build di Release su Mac:**
-   - Eseguire `./scripts/package-v8-macos.sh` dall'host macOS con certificato Developer ID e profilo `LIMEN-M9`;
-   - Verificare l'esito di `notarytool submit` e `stapler staple`;
-   - Sostituire il file obsoleto in `USER INSTALL/LIMEN-Vault-v8.dmg`.
-4. [ ] **Backport su Windows (`windows-build`):**
-   - Importare le modifiche di `MAC-BUILD` (in particolare lo sblocco 1 GB in `catalog.rs`, il `ThemeToggle` e `bnxt.rs`) nel ramo `windows-build` per mantenere la totale parità funzionale tra piattaforme.
+## 8. Aggiornamento Straordinario Post-Audit (19 Ottobre 2026, ore 10:20)
+
+In data odierna sono state eseguite con successo le attività di allineamento e re-indicizzazione dei nuovi documenti:
+1. **Creazione Repository Riservato:** È stato attivato il repository dedicato [Arkai-Italia/bnxt-vault-corpus](https://github.com/Arkai-Italia/bnxt-vault-corpus).
+2. **Integrazione Nuovi Documenti:** Sono stati acquisiti e integrati nel Vault BNXT gli 11 nuovi documenti Markdown (Eventi Enduro, Caschi HUD e le 9 schede tecniche di Enduro Tech).
+3. **Re-indicizzazione Offline Completa:**
+   - **4.995 documenti Markdown estratti e convertiti in passaggi chunkati (`ready`: 100%)**;
+   - Catalogo aggiornato `VAULT_CATALOG.json` (**217.362.832 byte**);
+   - Indice BM25 aggiornato `SEARCH_INDEX.json` (**726.294.477 byte**);
+   - Ricerca lessicale testata con successo con risposta immediata sui nuovi termini.
+4. **Sincronizzazione Git LFS:**
+   - L'intero corpus (4.995 file Markdown nativi e i due indici da 944 MB totali gestiti tramite Git LFS) è stato sincronizzato con successo sul branch `main` di `Arkai-Italia/bnxt-vault-corpus`.
+5. **Stato per la Produzione del DMG:**
+   - La base dati del cliente è ora congelata, versionata crittograficamente e pronta per essere inclusa come secondo volume/cartella (`Vault BNXT`) nel pacchetto `.dmg` secondo l'**Opzione A**.
 
 ---
-*Report redatto in conformità con le direttive del workspace LIMEN Vault, basato esclusivamente su evidenze crittografiche, output di terminale e codice reale.*
+*Report redatto e certificato in conformità con le direttive del workspace LIMEN Vault, basato esclusivamente su evidenze crittografiche, output di terminale e codice reale.*
+

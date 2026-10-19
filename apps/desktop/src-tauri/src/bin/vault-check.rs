@@ -9,7 +9,7 @@ fn main() {
         Some("auto-key-status") => output(limen_vault::keychain::load().map(|k| k.is_some())),
         Some("m7-interrupt") => output(limen_vault::proposals::execute_with_checkpoint(Path::new(&args[2]), serde_json::from_str(&args[3]).expect("M7 JSON"), |stage| { if std::env::var("LIMEN_TEST_KILL_STAGE").ok().as_deref()==Some(stage) { std::process::exit(137); } })),
         Some("knowledge") => output(limen_vault::knowledge::list(Path::new(&args[2]),&args[3])),
-        Some("m7") => output(limen_vault::proposals::execute(Path::new(&args[2]), serde_json::from_str(&args[3]).expect("M7 JSON"))),
+        Some("process-pending") => output(limen_vault::catalog::process_pending_extractions(Path::new(&args[2]))),
         Some("search-index") => output(search::index_vault_search(Path::new(&args[2]))),
         Some("search-status") => output(search::get_search_index_status(Path::new(&args[2]))),
         Some("search") => match serde_json::from_str::<search::SearchQuery>(&args[3]) {
