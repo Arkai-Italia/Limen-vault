@@ -50,3 +50,8 @@ ISOLATED_TEST_ENV/
 # Crash dumps and raw models
 *.dmp
 *.gguf
+
+# Large composite release DMGs
+USER INSTALL/LIMEN-Vault-BNXT-Edition.dmg
+!USER INSTALL/LIMEN-Vault-BNXT-Edition.dmg.sha256.txt
+
