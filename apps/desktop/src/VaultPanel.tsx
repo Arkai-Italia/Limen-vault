@@ -21,6 +21,7 @@ import {
   Database,
   ArrowRight,
   FolderTree,
+  Sparkles,
 } from 'lucide-react';
 
 export interface VaultFileItem {
@@ -98,6 +99,7 @@ export interface VaultPanelProps {
   onRevealInFinder?: (relativePath: string) => Promise<void> | void;
   onNavigateToUpload?: () => void;
   onNavigateToAsk?: () => void;
+  onAutoIndex?: () => void;
 }
 
 export const VaultPanel: React.FC<VaultPanelProps> = ({
@@ -107,6 +109,7 @@ export const VaultPanel: React.FC<VaultPanelProps> = ({
   onRevealInFinder,
   onNavigateToUpload,
   onNavigateToAsk,
+  onAutoIndex,
 }) => {
   const fileRequest = useRef(0);
   const folderRequest = useRef(0);
@@ -191,10 +194,15 @@ export const VaultPanel: React.FC<VaultPanelProps> = ({
       }));
 
       setFiles(formatted);
-      // Aggiorna anche il conteggio nella lista cartelle se a livello radice
+      // Aggiorna anche il conteggio nella lista cartelle se a livello radice (senza sovrascrivere il conteggio ricorsivo se ci sono sottocartelle)
       if (!folderName.includes('/')) {
         setFolders((prev) =>
-          prev.map((f) => (f.id === folderName ? { ...f, fileCount: formatted.length, exists: rep.exists } : f))
+          prev.map((f) => {
+            if (f.id !== folderName) return f;
+            const hasSubDirs = formatted.some((it) => it.isDir);
+            const count = hasSubDirs ? Math.max(f.fileCount, formatted.length) : formatted.length;
+            return { ...f, fileCount: count, exists: rep.exists };
+          })
         );
       }
     } catch (e: any) {
@@ -527,6 +535,38 @@ export const VaultPanel: React.FC<VaultPanelProps> = ({
               <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
                 {activeFolderMeta.description}
               </div>
+
+              {/* Tasto Organizza / Indicizza per RAW_SOURCES */}
+              {activeFolderMeta.kind === 'raw' && onAutoIndex && (
+                <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <button
+                    type="button"
+                    onClick={onAutoIndex}
+                    style={{
+                      backgroundColor: 'var(--limen-lime, #a3e635)',
+                      color: '#0f172a',
+                      border: 'none',
+                      padding: '8px 16px',
+                      borderRadius: 8,
+                      fontSize: 12.5,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 7,
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
+                      transition: 'all 0.15s ease',
+                    }}
+                    title="Avvia revisione per organizzare i file e rigenerare gli indici di ricerca"
+                  >
+                    <Sparkles size={15} />
+                    Organizza e indicizza automaticamente
+                  </button>
+                  <span style={{ fontSize: 11.5, color: '#64748b' }}>
+                    Sposta i documenti nelle cartelle del Vault e aggiorna gli indici di ricerca.
+                  </span>
+                </div>
+              )}
 
               {/* Breadcrumb navigazione sottocartelle */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, marginTop: 8, color: '#64748b', flexWrap: 'wrap' }}>

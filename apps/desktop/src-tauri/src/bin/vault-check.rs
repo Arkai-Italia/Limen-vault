@@ -3,6 +3,18 @@ use std::path::Path;
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     match args.get(1).map(String::as_str) {
+        Some("inspect-import") => output(limen_vault::document_import::inspect(Path::new(&args[2]), &args[3..].iter().map(std::path::PathBuf::from).collect::<Vec<_>>())),
+        Some("import-selected") => {
+            limen_vault::automation::reset_import_cancelled();
+            output(limen_vault::document_import::execute(Path::new(&args[2]), &serde_json::from_str::<Vec<limen_vault::document_import::ImportChoice>>(&args[3]).unwrap(), &|_, _, _| {}));
+        },
+        Some("cancel-import-test") => {
+            limen_vault::automation::reset_import_cancelled();
+            let result = limen_vault::automation::import_selected_with_progress(Path::new(&args[2]), Path::new(&args[3]), Some(&|_| limen_vault::automation::cancel_import()));
+            limen_vault::automation::reset_import_cancelled();
+            output(Ok::<_,String>(result));
+        },
+        Some("read-verified") => output(limen_vault::catalog::read_verified_document_text(Path::new(&args[2]), &args[3], None)),
         Some("org-classify-synthetic") => {
             let rt = tokio::runtime::Runtime::new().unwrap();
             output(rt.block_on(limen_vault::organization::request_decision(args[2].parse().unwrap(), "Progetto Casa Aurora: consegna elaborati il 15 novembre. Attività di rilievo, progettazione e verifica preventivi.")));
@@ -20,6 +32,11 @@ fn main() {
         Some("auto-run") => output(limen_vault::automation::run(Path::new(&args[2]))),
         Some("auto-status") => output(limen_vault::automation::status(Path::new(&args[2]))),
         Some("auto-key-status") => output(limen_vault::keychain::load().map(|k| k.is_some())),
+        Some("import-receipt") => output(Ok::<_, String>(limen_vault::automation::import_selected_with_receipt(Path::new(&args[2]), Path::new(&args[3])))),
+        Some("import-zip") => output(Ok::<_, String>(limen_vault::zip_import::import_zip_archive(Path::new(&args[2]), Path::new(&args[3])))),
+        Some("inspect-zip") => output(limen_vault::zip_import::inspect_zip(Path::new(&args[2]), Path::new(&args[3]))),
+        Some("catalog-sync") => output(limen_vault::catalog::sync_catalog(Path::new(&args[2]))),
+        Some("catalog-load") => output(limen_vault::catalog::load_catalog(Path::new(&args[2]))),
         Some("m7-interrupt") => output(limen_vault::proposals::execute_with_checkpoint(Path::new(&args[2]), serde_json::from_str(&args[3]).expect("M7 JSON"), |stage| { if std::env::var("LIMEN_TEST_KILL_STAGE").ok().as_deref()==Some(stage) { std::process::exit(137); } })),
         Some("knowledge") => output(limen_vault::knowledge::list(Path::new(&args[2]),&args[3])),
         Some("m7") => output(limen_vault::proposals::execute(Path::new(&args[2]), serde_json::from_str(&args[3]).expect("M7 JSON"))),

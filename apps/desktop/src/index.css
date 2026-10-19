@@ -2,4 +2,96 @@
   --limen-lime: #77F117;
   --limen-lime-30: rgba(119, 241, 23, 0.30);
   --limen-lime-60: rgba(119, 241, 23, 0.60);
+
+  --limen-bg-app: #f8fafc;
+  --limen-bg-surface: #ffffff;
+  --limen-bg-sidebar: #f1f5f9;
+  --limen-bg-subtle: #f8fafc;
+  --limen-bg-navbar: #ffffff;
+
+  --limen-text-primary: #0f172a;
+  --limen-text-secondary: #475569;
+  --limen-text-muted: #94a3b8;
+
+  --limen-border-light: #e2e8f0;
+  --limen-border-subtle: #cbd5e1;
+
+  --limen-accent-primary: #0f172a;
+  --limen-accent-hover: #1e293b;
+  --limen-accent-subtle: #e2e8f0;
+
+  --limen-chat-box-bg: rgba(119, 241, 23, 0.30);
+  --limen-chat-box-text: #0f172a;
+  --limen-chat-box-border: #cbd5e1;
+
+  --limen-upload-btn-bg: #c8ff00;
+  --limen-upload-btn-text: #0a0c10;
+  --limen-ai-star-1: #84cc16;
+  --limen-ai-star-2: #bef264;
+  --limen-logo-filter: none;
 }
+
+:root[data-theme="dark"], body[data-theme="dark"] {
+  /* Richiesta Cesare: Colore primario = rgb 0.055, 0.055, 0.055 -> #0e0e0e */
+  --limen-bg-app: #0e0e0e;
+  --limen-bg-surface: #141414;
+  --limen-bg-sidebar: #121212;
+  --limen-bg-subtle: #181818;
+  --limen-bg-navbar: #0e0e0e;
+
+  /* Richiesta Cesare: Accent dove necessario (lime/giallo) = rgb 0.553, 0.388, 0.177 -> #8d632d */
+  --limen-lime: #8d632d;
+  --limen-lime-30: rgba(141, 99, 45, 0.30);
+  --limen-lime-60: rgba(141, 99, 45, 0.60);
+  --limen-accent-primary: #8d632d;
+  --limen-accent-hover: #a37335;
+  --limen-accent-subtle: rgba(141, 99, 45, 0.15);
+
+  /* Richiesta Cesare: Casella della chat = rgb 0.129, 0.129, 0.129 -> #212121 */
+  --limen-chat-box-bg: #212121;
+  --limen-chat-box-text: #f8fafc;
+  --limen-chat-box-border: rgba(141, 99, 45, 0.45);
+
+  --limen-upload-btn-bg: #8d632d;
+  --limen-upload-btn-text: #ffffff;
+  --limen-ai-star-1: #8d632d;
+  --limen-ai-star-2: #b8863f;
+  --limen-logo-filter: invert(0.9) brightness(1.2);
+
+  --limen-text-primary: #f8fafc;
+  --limen-text-secondary: #cbd5e1;
+  --limen-text-muted: #94a3b8;
+
+  --limen-border-light: #242424;
+  --limen-border-subtle: #333333;
+
+  --limen-status-ready-bg: rgba(141, 99, 45, 0.15);
+  --limen-status-ready-text: #e2a053;
+  --limen-status-ready-border: rgba(141, 99, 45, 0.35);
+
+  --limen-status-warn-bg: #2a1b0a;
+  --limen-status-warn-text: #f59e0b;
+  --limen-status-warn-border: #78350f;
+
+  --limen-status-off-bg: #1c1917;
+  --limen-status-off-text: #a8a29e;
+  --limen-status-off-border: #292524;
+
+  --limen-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.5);
+  --limen-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.5);
+  --limen-shadow-glass: 0 10px 30px -10px rgba(0, 0, 0, 0.6);
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--limen-bg-app);
+  color: var(--limen-text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* Transizione globale fluida al cambio tema */
+body, header, aside, main, div, button, textarea, input {
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.15s ease;
+}
+

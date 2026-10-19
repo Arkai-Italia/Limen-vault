@@ -22,6 +22,8 @@ try {
   unbox(native('set-mode', vault, 'hybrid'));
   writeFileSync(join(vault, '20_RAW_SOURCES/organize-me.txt'), 'Documento sintetico da organizzare.');
   native('org-prepare', vault);
+  const importZip = join(temp, 'example.zip');
+  execFileSync('python3', ['-c', 'import zipfile,sys,json;z=zipfile.ZipFile(sys.argv[1],"w");z.writestr("note.txt","note body");z.writestr("manifest.json",json.dumps(dict(title="chosen document")));z.writestr("skip.txt","must not import");z.close()', importZip]);
   writeFileSync(join(vault, '01_CLIENTS/invalid-memory.md'), '---\ntitle: Foreign metadata\n---\nMemory content available');
   writeFileSync(join(vault, '01_CLIENTS/plain-memory.md'), 'Valid plain memory note');
   mkdirSync(join(vault, 'CUSTOM/nested'), { recursive: true });
@@ -33,7 +35,10 @@ try {
       let body = ''; for await (const chunk of req) body += chunk;
       try {
         const { command, args } = JSON.parse(body);
-        const commands = { list_knowledge: ['knowledge', vault, args.folder], organization_plan: ['org-plan', vault], organization_move: ['org-move', vault, args.documentId, args.expectedHash, args.destination], organization_undo: ['org-undo', vault, args.moveId], vault_list_folders: ['folders', vault], vault_list_folder_files: ['folder-files', vault, args.folder || ''], vault_read_text: ['read-text', vault, args.relativePath || ''], ai_get_mode: ['mode', vault], ai_set_mode: ['set-mode', vault, args.mode || ''] };
+        if (command === 'automation_cancel_import') { res.end(JSON.stringify({ ok: true, value: null })); return; }
+        if (command === 'import_execute') await new Promise(resolve => setTimeout(resolve, 300));
+        const importArgs = command === 'import_execute' ? args.choices.map(c => ({ ...c, sourcePath: importZip })) : null;
+        const commands = { import_inspect: ['inspect-import', vault, importZip], import_execute: ['import-selected', vault, JSON.stringify(importArgs)], list_knowledge: ['knowledge', vault, args.folder], organization_plan: ['org-plan', vault], organization_move: ['org-move', vault, args.documentId, args.expectedHash, args.destination], organization_undo: ['org-undo', vault, args.moveId], vault_list_folders: ['folders', vault], vault_list_folder_files: ['folder-files', vault, args.folder || ''], vault_read_text: ['read-text', vault, args.relativePath || ''], ai_get_mode: ['mode', vault], ai_set_mode: ['set-mode', vault, args.mode || ''] };
         if (!commands[command]) throw new Error('Unsupported command');
         res.end(JSON.stringify(native(...commands[command])));
       } catch (e) { res.end(JSON.stringify({ ok: false, error: String(e) })); }
@@ -155,6 +160,24 @@ try {
   await page.getByLabel('Organizzazione', { exact: true }).filter({ hasText: 'ripristinato' }).waitFor();
   assert.equal(unbox(native('org-plan', vault)).documents.length, 1);
   await page.getByRole('button', { name: /20_RAW_SOURCES/ }).filter({ hasText: /1$/ }).waitFor();
+  await page.goto(`${url}/?panel=import-review`);
+  await page.getByRole('dialog', { name: 'Controlla i file da importare' }).waitFor();
+  await page.getByLabel('Indicizza note.txt', { exact: true }).uncheck();
+  await page.getByLabel('Indicizza manifest.json', { exact: true }).check();
+  await page.getByLabel('Conserva skip.txt', { exact: true }).uncheck();
+  await page.getByRole('button', { name: 'Importa 2 file', exact: true }).click();
+  await page.getByRole('progressbar', { name: 'Avanzamento importazione' }).waitFor();
+  await page.getByRole('button', { name: 'Annulla importazione', exact: true }).waitFor();
+  await page.getByLabel('Esito importazione').filter({ hasText: 'imported' }).waitFor();
+  native('org-prepare', vault);
+  const importCatalog = unbox(native('catalog-load', vault));
+  const note = Object.values(importCatalog.documents).find(d => d.originalPath === '20_RAW_SOURCES/example/note.txt');
+  const manifest = Object.values(importCatalog.documents).find(d => d.originalPath === '20_RAW_SOURCES/example/manifest.json');
+  assert.equal(note.extractionStatus, 'unsupported');
+  assert.equal(note.passages.length, 0);
+  assert.equal(manifest.extractionStatus, 'ready');
+  assert(manifest.passages.some(p => p.text.includes('chosen document')));
+  assert(!Object.values(importCatalog.documents).some(d => d.originalPath === '20_RAW_SOURCES/example/skip.txt'));
   assert.deepEqual(errors, []);
   console.log(`PASS browser: uncertain destination → selection → real Rust move → undo, folder drop target, filter changes/empty/search/stale response, memory warning dismissal across reload, Ministral label, native drop handler contract, native JSON explorer, nested folder, unindexed text preview, Finder target, failed mode save, missing-model routing, retained draft, advanced toggle, postpone. Screenshots: ${temp}`);
 } finally {

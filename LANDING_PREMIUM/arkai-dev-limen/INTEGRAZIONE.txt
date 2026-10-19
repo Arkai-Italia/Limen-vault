@@ -1,0 +1,26 @@
+LIMEN Vault — Codice landing per arkai.dev
+
+Pagina statica autonoma: HTML, CSS e JavaScript, senza framework o CDN.
+Aprire index.html per l’anteprima. Conservare styles.css, script.js e assets/ nelle
+posizioni relative indicate. Il pacchetto può essere servito da una sottocartella
+come /limen/ se la configurazione del sito lo permette.
+
+Per integrarla come componente nel sito esistente, adattare il documento HTML al
+framework del sito e isolare il CSS: styles.css include selettori globali per body,
+header, footer, nav, button e altri elementi. Non importarlo globalmente nel sito
+senza adattamento. Il framework e le route di arkai.dev non sono stati ispezionati.
+
+Contenuti e verifiche
+- Layout chiaro, hero con schermata reale, menu mobile, FAQ, modale immagine.
+- Link download e repository GitHub inclusi; nessun form o backend.
+- Nessun tracciamento o servizio esterno caricato dalla pagina.
+- Verificati anteprima desktop/mobile e interazioni nella sessione corrente.
+
+Prima della pubblicazione
+La schermata assets/limen-live-import.png mostra la libreria vuota dell’app reale
+con percorso locale visibile e dicitura interna Vault V5. Sostituirla con una
+cattura dimostrativa pronta per il pubblico, senza percorsi personali. Aggiornare
+anche didascalia, alt e FAQ se cambia la schermata. Le illustrazioni RAG/wiki sono
+esplicitamente concettuali. Verificare download e stato release al momento del lancio.
+
+Questo pacchetto è salvato in locale. Nessun deploy su arkai.dev eseguito.

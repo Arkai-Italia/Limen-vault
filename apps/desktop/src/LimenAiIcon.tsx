@@ -49,16 +49,16 @@ export const LimenAiIcon: React.FC<LimenAiIconProps> = ({
         L
       </text>
 
-      {/* Micro-stellina AI 1 (principale, verde lime #84cc16 / #a3e635) */}
+      {/* Micro-stellina AI 1 (principale, tema chiaro #84cc16 / tema scuro #8d632d) */}
       <path
         d="M 21.5 1 C 21.5 3.2 21.5 3.2 23.8 3.5 C 21.5 3.8 21.5 3.8 21.5 6 C 21.5 3.8 21.5 3.8 19.2 3.5 C 21.5 3.2 21.5 3.2 21.5 1 Z"
-        fill="#84cc16"
+        fill="var(--limen-ai-star-1, #84cc16)"
       />
 
-      {/* Micro-stellina AI 2 (secondaria più piccola, tonalità lime brillante #bef264) */}
+      {/* Micro-stellina AI 2 (secondaria, tema chiaro #bef264 / tema scuro #b8863f) */}
       <path
         d="M 24.5 7.5 C 24.5 8.8 24.5 8.8 25.8 9 C 24.5 9.2 24.5 9.2 24.5 10.5 C 24.5 9.2 24.5 9.2 23.2 9 C 24.5 8.8 24.5 8.8 24.5 7.5 Z"
-        fill="#bef264"
+        fill="var(--limen-ai-star-2, #bef264)"
       />
     </svg>
   );

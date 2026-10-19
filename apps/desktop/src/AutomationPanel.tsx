@@ -17,15 +17,47 @@ export function useAutomation(vaultPath:string|null){
 }
 export function AutomationPanel({vaultPath,automation}:{vaultPath:string;automation:ReturnType<typeof useAutomation>}){
  const {report,error,running,refresh}=automation;const [model,setModel]=useState(''),[message,setMessage]=useState(''),[busy,setBusy]=useState(false);
+ const [importProgress, setImportProgress] = useState<{ status: string; current: number; total: number; name?: string } | null>(null);
+
+ useEffect(() => {
+   let unlisten: (() => void) | undefined;
+   import('@tauri-apps/api/event').then(({ listen }) => {
+     listen<{ status: string; current: number; total: number; name?: string }>('import_progress', (e) => {
+       setImportProgress(e.payload);
+       if (e.payload.status === 'completed' || e.payload.status === 'cancelled') {
+         setTimeout(() => setImportProgress(null), 3000);
+       }
+     }).then(u => { unlisten = u; });
+   }).catch(() => {});
+   return () => { if (unlisten) unlisten(); };
+ }, []);
+
  useEffect(()=>{if(report)setModel(report.config.model);},[report?.config.model]);
  async function action(command:string,args:Record<string,unknown>={}){setBusy(true);setMessage('');try{await invoke(command,{vaultPath,...args});refresh();}catch(e){setMessage(String(e));}finally{setBusy(false);}}
  async function upload(){setBusy(true);setMessage('');try{const results=await invoke<{name:string;path?:string;error?:string}[]>('automation_choose_files',{vaultPath});const n=results.filter(r=>r.path).length;setMessage(results.length?`${n} file caricati. ${results.filter(r=>r.error).map(r=>`${r.name}: ${r.error}`).join(' · ')}`:'Selezione annullata.');refresh();}catch(e){setMessage(String(e));}finally{setBusy(false);}}
+ async function cancelUpload(){try{await invoke('automation_cancel_import');}catch(e){setMessage(String(e));}}
 
  const jobs=Object.entries(report?.state.jobs??{});
  return <section className="limen-card" style={{padding:24,marginBottom:20}}><h3>Carica i file. LIMEN organizza la conoscenza.</h3>
  <p>Conversione in Markdown, normalizzazione, categorie, collegamenti, ricerca e wiki AI automatici. Gli originali restano nel Vault.</p>
  <button className="limen-upload-button" aria-label="Carica documenti grezzi" aria-busy={busy} disabled={busy} onClick={()=>void upload()}>{busy?'CARICAMENTO…':'CARICA DOCUMENTI'}</button>
- <p>PDF e scansioni, Word (DOC/DOCX), ODT/RTF, PowerPoint (PPTX), Excel/ODS, immagini e testi. Elaborazione mentre LIMEN è aperta; ripresa automatica alla riapertura. Massimo 32 MB per file.</p>
+ {importProgress && (
+   <div style={{ marginTop: 12, padding: 12, background: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.3)', borderRadius: 8 }}>
+     <p style={{ margin: 0, fontWeight: 600 }}>
+       {importProgress.status === 'processing' ? `Importazione in corso: ${importProgress.name || 'documento'} (${importProgress.current}/${importProgress.total})` :
+        importProgress.status === 'cancelled' ? 'Importazione annullata dall’utente.' : 'Importazione completata.'}
+     </p>
+     {importProgress.status === 'processing' && (
+       <button
+         style={{ marginTop: 8, padding: '4px 12px', fontSize: 13, background: '#ef4444', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}
+         onClick={() => void cancelUpload()}
+       >
+         ANNULLA IMPORTAZIONE
+       </button>
+     )}
+   </div>
+ )}
+ <p>PDF e scansioni, Word (DOC/DOCX), archivi ZIP (struttura cartelle preservata), ODT/RTF, PowerPoint (PPTX), Excel/ODS, immagini e testi. Elaborazione mentre LIMEN è aperta; ripresa automatica alla riapertura. Supporto fino a 2 GB per file o archivio.</p>
  <details open={!report?.config.enabled}><summary>Configurazione dell’automazione</summary><p>Una sola configurazione: chiave API in Impostazioni e modello API per classificazione e wiki. L’attivazione autorizza l’invio automatico del testo estratto a OpenAI per classificazione e wiki; conversione e OCR avvengono sul computer, con consumo API. Non pubblica i documenti nel CRM.</p>
  <ModelPicker vaultPath={vaultPath} label="Modello per automazione" value={model} onChange={setModel}/>
  <button disabled={busy||running||!model.trim()} onClick={()=>void action('automation_configure',{config:{enabled:true,model:model.trim()}})}>ATTIVA AUTOMAZIONE</button>{' '}

@@ -1,7 +1,7 @@
 //! Deterministic text extraction and macOS OCR. No generative model invents source text.
 use quick_xml::{events::Event, Reader};
 use std::{
-    io::{Cursor, Read},
+    io::{Cursor, Read, Seek},
     path::Path,
     process::{Command, Stdio},
     time::{Duration, Instant},
@@ -53,7 +53,7 @@ fn xml_text(bytes: &[u8]) -> Result<String, String> {
     }
     Ok(out)
 }
-fn entry(z: &mut zip::ZipArchive<Cursor<&[u8]>>, name: &str) -> Result<Vec<u8>, String> {
+fn entry<R: Read + Seek>(z: &mut zip::ZipArchive<R>, name: &str) -> Result<Vec<u8>, String> {
     let mut f = z.by_name(name).map_err(err)?;
     if f.size() > MAX as u64 {
         return Err("Componente documento oltre 16 MB".into());
@@ -95,8 +95,11 @@ fn relationships(bytes: &[u8]) -> Result<std::collections::BTreeMap<String, Stri
     Ok(m)
 }
 fn office(bytes: &[u8], ext: &str) -> Result<String, String> {
-    let mut z = zip::ZipArchive::new(Cursor::new(bytes))
+    let z = zip::ZipArchive::new(Cursor::new(bytes))
         .map_err(|_| "Documento Office corrotto o protetto")?;
+    office_archive(z, ext)
+}
+fn office_archive<R: Read + Seek>(mut z: zip::ZipArchive<R>, ext: &str) -> Result<String, String> {
     if z.len() > 20000 {
         return Err("Troppi componenti nel documento".into());
     }
@@ -180,6 +183,13 @@ fn office(bytes: &[u8], ext: &str) -> Result<String, String> {
 }
 #[cfg(target_os = "macos")]
 fn vision(bytes: &[u8], ext: &str) -> Result<String, String> {
+    let input = Scratch::new()?;
+    let path = input.0.join("input");
+    std::fs::write(&path, bytes).map_err(err)?;
+    vision_file(&path, ext)
+}
+#[cfg(target_os = "macos")]
+fn vision_file(input: &Path, ext: &str) -> Result<String, String> {
     use std::os::unix::fs::PermissionsExt;
     let scratch = Scratch::new()?;
     // A distributed app executes its signed, notarized bundled helper.
@@ -200,9 +210,7 @@ fn vision(bytes: &[u8], ext: &str) -> Result<String, String> {
     std::fs::set_permissions(&binary, std::fs::Permissions::from_mode(0o700)).map_err(err)?;
     binary
     };
-    let input = scratch.0.join("input");
     let output = scratch.0.join("result.json");
-    std::fs::write(&input, bytes).map_err(err)?;
     let mut child = Command::new(&binary)
         .arg(&input)
         .arg(ext)
@@ -240,6 +248,32 @@ fn vision(bytes: &[u8], ext: &str) -> Result<String, String> {
 fn vision(_: &[u8], _: &str) -> Result<String, String> {
     Err("OCR locale richiede macOS".into())
 }
+/// File-based extraction keeps the compressed/PDF original out of Rust payload buffers.
+/// Parser/output limits remain explicit errors, never successful partial extraction.
+pub fn extract_file(path: &Path, name: &str) -> Result<String, String> {
+    let ext = Path::new(name).extension().and_then(|s| s.to_str()).unwrap_or("").to_lowercase();
+    match ext.as_str() {
+        "docx" | "pptx" | "odt" => {
+            let file = std::fs::File::open(path).map_err(err)?;
+            let archive = zip::ZipArchive::new(std::io::BufReader::new(file)).map_err(|_| "Documento Office corrotto o protetto")?;
+            office_archive(archive, &ext)
+        }
+        #[cfg(target_os = "macos")]
+        "pdf" | "png" | "jpg" | "jpeg" | "webp" | "gif" | "tif" | "tiff" | "heic" => vision_file(path, &ext),
+        #[cfg(target_os = "macos")]
+        "doc" | "rtf" => {
+            let scratch = Scratch::new()?;
+            let output = scratch.0.join("output.txt");
+            let result = Command::new("/usr/bin/textutil").args(["-convert", "txt", "-output"])
+                .arg(&output).arg(path).output().map_err(err)?;
+            if !result.status.success() { return Err("Documento non leggibile o protetto".into()); }
+            if std::fs::metadata(&output).map_err(err)?.len() > MAX as u64 { return Err("Documento estratto oltre 16 MB".into()); }
+            std::fs::read_to_string(output).map_err(err)
+        }
+        _ => Err("Formato non documentale o non supportato: originale conservato".into()),
+    }
+}
+
 pub fn extract(bytes: &[u8], name: &str) -> Result<String, String> {
     let ext = Path::new(name)
         .extension()

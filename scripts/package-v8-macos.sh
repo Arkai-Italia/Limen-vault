@@ -17,7 +17,7 @@ fi
 LIMEN_NOTARY_PROFILE="${LIMEN_NOTARY_PROFILE:-LIMEN-M9}"
 OUT="${LIMEN_RELEASE_OUT:-$ROOT_DIR/.local/limen-v8-release}"
 ENTITLEMENTS="$ROOT_DIR/apps/desktop/src-tauri/Entitlements.plist"
-DMG="$OUT/LIMEN-Vault-v8.dmg"
+DMG="$OUT/${LIMEN_DMG_NAME:-Limen Vault V.B.dmg}"
 
 echo "=== LIMEN Vault V8 Packaging Pipeline (macOS) ==="
 echo "Root: $ROOT_DIR"

@@ -8,6 +8,8 @@ import { createRoot } from 'react-dom/client';
 import { VaultPanel } from '../../src/VaultPanel';
 import { AiPanel } from '../../src/AiPanel';
 import { IndexingPromptModal } from '../../src/IndexingPromptModal';
+import { ImportDocumentsModal } from '../../src/ImportDocumentsModal';
+import { createVaultIpc, type ImportItem } from '../../src/vault-ipc';
 import { useCatalogDocuments } from '../../src/useCatalogDocuments';
 import { useNativeFileDrop } from '../../src/useNativeFileDrop';
 import type { CatalogListOptions, CatalogListResponse } from '../../src/vault-ipc';
@@ -68,13 +70,24 @@ function OrganizationFixture() {
     <output aria-label="Organizzazione">{result}</output>
   </>;
 }
+function ImportReviewFixture() {
+  const [items, setItems] = useState<ImportItem[] | null>(null);
+  const [result, setResult] = useState('');
+  const [busy, setBusy] = useState(false);
+  const api = React.useMemo(() => createVaultIpc(invoke, () => true), []);
+  React.useEffect(() => { void api.inspectImport('/fixture', ['/input/example.zip']).then(setItems); }, [api]);
+  return <>{items && <ImportDocumentsModal items={items} busy={busy} progress={busy ? { status: 'processing', current: 50, total: 100, name: 'example.zip' } : null}
+    onClose={() => setItems(null)} onCancel={() => api.automationCancelImport()}
+    onConfirm={choices => { setBusy(true); void api.executeImport('/fixture', choices).then(r => { setResult(JSON.stringify(r)); setItems(null); }).finally(() => setBusy(false)); }} />}
+    <output aria-label="Esito importazione">{result}</output></>;
+}
 function Fixture() {
   const panel = new URLSearchParams(location.search).get('panel');
   const [section, setSection] = useState('');
   const [open, setOpen] = useState(true);
   const [manual, setManual] = useState(false);
   return <LanguageProvider><main style={{ height: '95vh', fontFamily: 'Arial', '--limen-lime': '#c8ff00' } as React.CSSProperties}>
-    {panel === 'memory' ? <KnowledgePanel vaultPath="/fixture" category="all" /> : panel === 'organization' ? <OrganizationFixture /> : panel === 'banner' ? <VaultStatusBanner status="READY" vaultPath="/fixture" vaultName="Vault test" dismissible onOpenObsidian={() => {}} /> : panel === 'documents' ? <DocumentsFixture /> : panel === 'drop' ? <DropFixture /> : panel === 'vault' ? <VaultPanel vaultPath="/fixture" onOpenReader={p => setSection(p)} onRevealInFinder={async p => { setSection(`Finder: ${p}`); }} /> :
+    {panel === 'import-review' ? <ImportReviewFixture /> : panel === 'memory' ? <KnowledgePanel vaultPath="/fixture" category="all" /> : panel === 'organization' ? <OrganizationFixture /> : panel === 'banner' ? <VaultStatusBanner status="READY" vaultPath="/fixture" vaultName="Vault test" dismissible onOpenObsidian={() => {}} /> : panel === 'documents' ? <DocumentsFixture /> : panel === 'drop' ? <DropFixture /> : panel === 'vault' ? <VaultPanel vaultPath="/fixture" onOpenReader={p => setSection(p)} onRevealInFinder={async p => { setSection(`Finder: ${p}`); }} /> :
       panel === 'import' ? <IndexingPromptModal isOpen={open} filesCount={2} fileNames={['Uno.txt', 'Due.txt']} isProcessing={false} onProceed={() => setSection('index-requested')} onPostpone={() => { setOpen(false); setSection('postponed'); }} /> :
       <AiPanel archivedConversation={panel === 'plain-chat' ? { conversationId: 'plain', turns: [{ id: 'plain-turn', prompt: 'Risposta pulita', answer: { answer: '## Riepilogo\n**Costo**: 12,50 € [1]\n- ✅ Confermato\n_file_name resta invariato_', provider: 'Locale', model: 'Ministral', citations: [] } }] } : null} vaultPath="/fixture" showManualSearch={manual} onToggleManualSearch={() => setManual(v => !v)} onNavigateToSettings={s => setSection(s)} />}
     <output aria-label="Esito fixture">{section}</output>

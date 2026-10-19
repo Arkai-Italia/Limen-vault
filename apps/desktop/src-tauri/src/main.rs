@@ -2,6 +2,8 @@
 mod compiler;
 use limen_vault::search;
 mod snapshots;
+mod bnxt;
+use bnxt::*;
 use limen_vault::vault;
 
 use snapshots::*;
@@ -9,7 +11,8 @@ use std::{
     path::{Path, PathBuf},
     process::Command,
 };
-use tauri::Manager;
+use tauri::{Manager, Emitter};
+use limen_vault::automation;
 use vault::*;
 
 #[tauri::command]
@@ -42,29 +45,138 @@ async fn automation_configure(vault_path:String,config:limen_vault::automation::
 async fn automation_run(vault_path:String)->Result<limen_vault::automation::Report,String>{tauri::async_runtime::spawn_blocking(move||limen_vault::automation::run(Path::new(&vault_path))).await.map_err(|e|e.to_string())?}
 #[tauri::command]
 async fn automation_retry(vault_path:String)->Result<limen_vault::automation::Report,String>{tauri::async_runtime::spawn_blocking(move||limen_vault::automation::retry(Path::new(&vault_path))).await.map_err(|e|e.to_string())?}
+static IMPORT_ACTIVE: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+#[tauri::command]
+async fn import_pick_paths(app: tauri::AppHandle) -> Result<Vec<String>, String> {
+    use tauri_plugin_dialog::DialogExt;
+    tauri::async_runtime::spawn_blocking(move || {
+        app.dialog().file().set_title("Scegli documenti o archivi ZIP").blocking_pick_files().unwrap_or_default()
+            .into_iter().map(|p| p.into_path().map(|p| p.to_string_lossy().into_owned()).map_err(|e| e.to_string())).collect()
+    }).await.map_err(|e| e.to_string())?
+}
+#[tauri::command]
+async fn import_inspect(vault_path: String, paths: Vec<String>) -> Result<Vec<limen_vault::document_import::ImportItem>, String> {
+    tauri::async_runtime::spawn_blocking(move || limen_vault::document_import::inspect(Path::new(&vault_path), &paths.into_iter().map(PathBuf::from).collect::<Vec<_>>())).await.map_err(|e| e.to_string())?
+}
+#[tauri::command]
+async fn import_execute(vault_path: String, choices: Vec<limen_vault::document_import::ImportChoice>, app: tauri::AppHandle) -> Result<Vec<limen_vault::automation::ImportReceipt>, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let _guard = IMPORT_ACTIVE.try_lock().map_err(|_| "Importazione già in corso")?;
+        limen_vault::automation::reset_import_cancelled();
+        let last_event = std::sync::Mutex::new(std::time::Instant::now() - std::time::Duration::from_secs(1));
+        let report = |done: u64, total: u64, name: &str| {
+            if let Ok(mut last) = last_event.lock() {
+                if last.elapsed().as_millis() >= 100 || done == total {
+                    let _ = app.emit("import_progress", serde_json::json!({"vaultPath": vault_path, "status":"processing", "current":done, "total":total, "name":name}));
+                    *last = std::time::Instant::now();
+                }
+            }
+        };
+        let _ = app.emit("import_progress", serde_json::json!({"vaultPath":vault_path,"status":"processing","current":0,"total":0}));
+        let result = limen_vault::document_import::execute(Path::new(&vault_path), &choices, &report);
+        let status = if limen_vault::automation::is_import_cancelled() { "cancelled" } else if result.is_err() { "error" } else { "completed" };
+        let _ = app.emit("import_progress", serde_json::json!({"vaultPath":vault_path,"status":status,"current":0,"total":0}));
+        result
+    }).await.map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+async fn zip_inspect(vault_path: String, zip_path: String) -> Result<limen_vault::zip_import::ZipPreviewReport, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let vault = Path::new(&vault_path);
+        let zip = Path::new(&zip_path);
+        limen_vault::zip_import::inspect_zip(vault, zip)
+    }).await.map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+fn automation_cancel_import() -> Result<(), String> {
+    limen_vault::automation::cancel_import();
+    Ok(())
+}
+
 #[tauri::command]
 async fn automation_choose_files(vault_path:String,app:tauri::AppHandle)->Result<Vec<limen_vault::automation::ImportReceipt>,String>{
     use tauri_plugin_dialog::DialogExt;
+    limen_vault::automation::reset_import_cancelled();
+    let app_clone = app.clone();
     tauri::async_runtime::spawn_blocking(move||{
-        let selected=app.dialog().file().set_title("Carica documenti in LIMEN").blocking_pick_files().unwrap_or_default();
+        let selected=app_clone.dialog().file().set_title("Carica documenti in LIMEN").blocking_pick_files().unwrap_or_default();
         let vault = Path::new(&vault_path);
         let mut paths = Vec::new();
         for file in selected {
             let path_buf = file.into_path().map_err(|e|e.to_string())?;
             paths.push(path_buf);
         }
-        let path_refs: Vec<&Path> = paths.iter().map(|p| p.as_path()).collect();
-        Ok(limen_vault::automation::import_paths(vault, &path_refs))
+        let total = paths.len();
+        let mut receipts = Vec::new();
+        let mut cancelled = false;
+        for (idx, p) in paths.iter().enumerate() {
+            if limen_vault::automation::is_import_cancelled() {
+                cancelled = true;
+                break;
+            }
+            let _ = app_clone.emit("import_progress", serde_json::json!({
+                "status": "processing", "current": idx + 1, "total": total,
+                "name": p.file_name().map(|n| n.to_string_lossy()).unwrap_or_default()
+            }));
+            let r = limen_vault::automation::import_paths(vault, &[p.as_path()]);
+            receipts.extend(r);
+            if limen_vault::automation::is_import_cancelled() {
+                cancelled = true;
+                break;
+            }
+        }
+        if cancelled || limen_vault::automation::is_import_cancelled() {
+            let _ = app_clone.emit("import_progress", serde_json::json!({
+                "status": "cancelled", "current": receipts.len(), "total": total,
+            }));
+        } else {
+            let _ = app_clone.emit("import_progress", serde_json::json!({
+                "status": "completed", "current": total, "total": total,
+            }));
+        }
+        Ok(receipts)
     }).await.map_err(|e|e.to_string())?
 }
 
 #[tauri::command]
-async fn automation_import_files(vault_path: String, paths: Vec<String>) -> Result<Vec<limen_vault::automation::ImportReceipt>, String> {
+async fn automation_import_files(vault_path: String, paths: Vec<String>, app: tauri::AppHandle) -> Result<Vec<limen_vault::automation::ImportReceipt>, String> {
+    limen_vault::automation::reset_import_cancelled();
+    let app_clone = app.clone();
     tauri::async_runtime::spawn_blocking(move || {
         let vault = Path::new(&vault_path);
         let path_bufs: Vec<std::path::PathBuf> = paths.into_iter().map(std::path::PathBuf::from).collect();
-        let path_refs: Vec<&Path> = path_bufs.iter().map(|p| p.as_path()).collect();
-        Ok(limen_vault::automation::import_paths(vault, &path_refs))
+        let total = path_bufs.len();
+        let mut receipts = Vec::new();
+        let mut cancelled = false;
+        for (idx, p) in path_bufs.iter().enumerate() {
+            if limen_vault::automation::is_import_cancelled() {
+                cancelled = true;
+                break;
+            }
+            let _ = app_clone.emit("import_progress", serde_json::json!({
+                "status": "processing", "current": idx + 1, "total": total,
+                "name": p.file_name().map(|n| n.to_string_lossy()).unwrap_or_default()
+            }));
+            let r = limen_vault::automation::import_paths(vault, &[p.as_path()]);
+            receipts.extend(r);
+            if limen_vault::automation::is_import_cancelled() {
+                cancelled = true;
+                break;
+            }
+        }
+        if cancelled || limen_vault::automation::is_import_cancelled() {
+            let _ = app_clone.emit("import_progress", serde_json::json!({
+                "status": "cancelled", "current": receipts.len(), "total": total,
+            }));
+        } else {
+            let _ = app_clone.emit("import_progress", serde_json::json!({
+                "status": "completed", "current": total, "total": total,
+            }));
+        }
+        Ok(receipts)
     }).await.map_err(|e| e.to_string())?
 }
 
@@ -403,7 +515,7 @@ fn main() {
         .manage(llama_state)
         .manage(llama_llm_state)
         .manage(std::sync::Arc::new(limen_vault::automation::AutomationScheduler::default()))
-        .invoke_handler(tauri::generate_handler![organization_prefer,organization_plan,organization_classify,organization_move,organization_undo,automation_status,automation_configure,automation_run,automation_retry,automation_choose_files,automation_import_files,sync_revoke_publication,sync_select_notes,sync_list_releases,sync_get_status,sync_save_config,sync_save_key,sync_disconnect,sync_test_connection,sync_plan_transfer,sync_execute_transfer,sync_cancel_transfer,
+        .invoke_handler(tauri::generate_handler![import_pick_paths,import_inspect,import_execute,organization_prefer,organization_plan,organization_classify,organization_move,organization_undo,automation_status,automation_configure,automation_run,automation_retry,automation_choose_files,automation_import_files,zip_inspect,automation_cancel_import,sync_revoke_publication,sync_select_notes,sync_list_releases,sync_get_status,sync_save_config,sync_save_key,sync_disconnect,sync_test_connection,sync_plan_transfer,sync_execute_transfer,sync_cancel_transfer,
             get_default_vault_path,
             create_vault,
             open_vault,
@@ -431,7 +543,8 @@ fn main() {
             local_model_status,local_model_download,local_model_select_file,local_model_pick_and_install,local_model_verify_integrity,select_vault_folder,
             local_server_start,local_server_stop,local_server_status,embeddings_cancel_sync,
             local_llm_status,local_llm_download,local_llm_verify_integrity,local_llm_server_start,local_llm_server_stop,local_llm_server_status,
-            local_llm_catalog,local_llm_set_active,local_llm_download_model,local_llm_verify_model_integrity
+            local_llm_catalog,local_llm_set_active,local_llm_download_model,local_llm_verify_model_integrity,
+            bnxt_check_status,bnxt_prepare_vault,bnxt_inspect_source
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

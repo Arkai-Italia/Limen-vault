@@ -7,8 +7,10 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use sha2::{Digest, Sha256};
 use std::{
     collections::BTreeMap,
+    io::{Read, Write},
     path::Path,
     process::Command,
     sync::atomic::{AtomicU64, Ordering},
@@ -20,6 +22,10 @@ pub static CATALOG_WRITE: Mutex<()> = Mutex::new(());
 
 pub fn is_original(doc: &DocumentRecord) -> bool {
     doc.original_path.starts_with("20_RAW_SOURCES/") || doc.tags.iter().any(|t| t == "limen-original")
+}
+pub fn is_support_document(doc: &DocumentRecord) -> bool {
+    doc.tags.iter().any(|t| t == "limen-support-only") ||
+        (!crate::zip_import::is_document_extension(&doc.extension) && !doc.tags.iter().any(|t| t == "limen-index-selected"))
 }
 
 pub const CATALOG_FILE: &str = "VAULT_CATALOG.json";
@@ -158,6 +164,8 @@ pub struct DocumentRecord {
     #[serde(default)]
     pub indexing_authorized_hash: Option<String>,
     pub extraction_status: ExtractionStatus,
+    #[serde(default)]
+    pub extraction_version: u32,
     pub extraction_error: Option<String>,
     pub extracted_text_path: Option<String>,
     pub extracted_text_hash: Option<String>,
@@ -265,11 +273,14 @@ pub fn load_catalog_arc(vault_path: &Path) -> Result<Arc<CatalogState>, String> 
     }
 
     increment_catalog_disk_read_count(vault_path);
-    let bytes = read(&sys, CATALOG_FILE)?;
-    if bytes.len() > 32 * 1024 * 1024 {
-        return Err("Catalog file exceeds 32 MB".into());
+    const MAX_CATALOG_FILE_SIZE_BYTES: u64 = 1024 * 1024 * 1024;
+    let meta = std::fs::metadata(&cat_file).map_err(err)?;
+    if meta.len() > MAX_CATALOG_FILE_SIZE_BYTES {
+        return Err("Catalog file exceeds 1 GB limit".into());
     }
-    let catalog: CatalogState = serde_json::from_slice(&bytes).map_err(err)?;
+    let cat_f = std::fs::File::open(&cat_file).map_err(err)?;
+    let reader = std::io::BufReader::with_capacity(256 * 1024, cat_f);
+    let catalog: CatalogState = serde_json::from_reader(reader).map_err(err)?;
     let data_arc = Arc::new(catalog);
 
     if let Ok(meta) = std::fs::metadata(&cat_file) {
@@ -302,12 +313,22 @@ pub fn load_catalog(vault_path: &Path) -> Result<CatalogState, String> {
 pub fn save_catalog(vault_path: &Path, catalog: &mut CatalogState) -> Result<(), String> {
     catalog.catalog_revision += 1;
     catalog.last_updated_at = now_iso();
-    let r = root(vault_path)?;
-    let sys = child(&r, "00_SYSTEM")?;
+    let r = root(vault_path).map_err(|e| format!("Apertura Vault per salvare il catalogo: {e}"))?;
+    let sys = child(&r, "00_SYSTEM").map_err(|e| format!("Apertura 00_SYSTEM per salvare il catalogo: {e}"))?;
     let tmp = format!(".catalog-{}.tmp", crate::ai::random_token()?);
-    let bytes = serde_json::to_vec_pretty(&catalog).map_err(err)?;
-    write_new(&sys, &tmp, &bytes)?;
-    let res = sys.rename(&tmp, &sys, CATALOG_FILE).map_err(err);
+    let file = crate::snapshots::create_new_file(&sys, &tmp)?;
+    let mut writer = std::io::BufWriter::new(file);
+    let written = serde_json::to_writer_pretty(&mut writer, &catalog).map_err(err)
+        .and_then(|_| writer.flush().map_err(err))
+        .and_then(|_| {
+            if writer.get_ref().metadata().map_err(err)?.len() > 1024 * 1024 * 1024 {
+                return Err("Catalogo oltre 1 GiB: indicizzazione non completata; originali conservati. Suddividi l’archivio in più Vault.".into());
+            }
+            writer.get_ref().sync_all().map_err(err)
+        });
+    drop(writer);
+    if let Err(e) = written { let _ = sys.remove_file(&tmp); return Err(format!("Scrittura catalogo: {e}")); }
+    let res = sys.rename(&tmp, &sys, CATALOG_FILE).map_err(|e| format!("Pubblicazione atomica del catalogo: {e}"));
     if res.is_err() {
         let _ = sys.remove_file(&tmp);
         return res;
@@ -513,11 +534,18 @@ pub fn chunk_text_to_passages(document_id: &str, text: &str) -> Vec<DocumentPass
     passages
 }
 
+struct RawEntryInfo {
+    sub_rel: String,
+    name: String,
+    size: u64,
+    hash: String,
+}
+
 fn collect_entries_recursive(
     d: &cap_std::fs::Dir,
     prefix: &str,
     depth: usize,
-    out: &mut Vec<(String, String, Vec<u8>)>,
+    out: &mut Vec<RawEntryInfo>,
 ) -> Result<(), String> {
     if depth > 32 {
         return Ok(());
@@ -540,8 +568,23 @@ fn collect_entries_recursive(
                 let _ = collect_entries_recursive(&sub, &rel, depth + 1, out);
             }
         } else if m.is_file() {
-            if let Ok(bytes) = read(d, &name) {
-                out.push((rel, name, bytes));
+            let size = m.len();
+            let mut opts = cap_std::fs::OpenOptions::new();
+            opts.read(true);
+            #[cfg(unix)]
+            {
+                use cap_std::fs::OpenOptionsExt;
+                opts.custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK);
+            }
+            if let Ok(file) = d.open_with(&name, &opts) {
+                if let Ok((hash, _)) = crate::snapshots::compute_sha256_stream(file) {
+                    out.push(RawEntryInfo {
+                        sub_rel: rel,
+                        name,
+                        size,
+                        hash,
+                    });
+                }
             }
         }
     }
@@ -562,12 +605,14 @@ pub fn sync_catalog_from_vault(vault_path: &Path) -> Result<CatalogState, String
       if let Ok(raw_dir) = child(&r, &folder) {
         let mut raw_entries = Vec::new();
         let _ = collect_entries_recursive(&raw_dir, "", 0, &mut raw_entries);
-        for (sub_rel, name, bytes) in raw_entries {
-            let rel_path = format!("{}/{}", folder, sub_rel);
+        for entry in raw_entries {
+            let rel_path = format!("{}/{}", folder, entry.sub_rel);
             let known_original = catalog.documents.values().any(|d| d.original_path == rel_path && is_original(d));
-            if folder != "20_RAW_SOURCES" && name.to_lowercase().ends_with(".md") && !known_original
+            if folder != "20_RAW_SOURCES" && entry.name.to_lowercase().ends_with(".md") && !known_original
                 && crate::organization::category_for(&folder).is_some() { continue; }
-            let hash = compute_sha256(&bytes);
+            let hash = entry.hash;
+            let size = entry.size;
+            let name = entry.name;
             discovered_paths.insert(rel_path.clone());
 
             let doc_id = make_document_id(&rel_path);
@@ -580,11 +625,17 @@ pub fn sync_catalog_from_vault(vault_path: &Path) -> Result<CatalogState, String
                 if existing.content_hash != hash {
                     // Content changed: keep stable identity, increment revision, reset extraction
                     existing.content_hash = hash;
-                    existing.file_size = bytes.len() as u64;
+                    existing.file_size = size;
                     existing.revision += 1;
                     existing.updated_at = now_iso();
-                    existing.extraction_status = ExtractionStatus::Pending;
-                    existing.extraction_error = None;
+                    let is_extractable_doc = crate::zip_import::is_document_extension(&existing.extension);
+                    if (is_extractable_doc || existing.tags.iter().any(|t| t == "limen-index-selected")) && !existing.tags.iter().any(|t| t == "limen-support-only") {
+                        existing.extraction_status = ExtractionStatus::Pending;
+                        existing.extraction_error = None;
+                    } else {
+                        existing.extraction_status = ExtractionStatus::Unsupported;
+                        existing.extraction_error = Some("Materiale tecnico di supporto (conservato nel Vault, non indicizzato)".into());
+                    }
                     existing.extracted_text_path = None;
                     existing.extracted_text_hash = None;
                     existing.passages.clear();
@@ -630,6 +681,16 @@ pub fn sync_catalog_from_vault(vault_path: &Path) -> Result<CatalogState, String
                 _ => "application/octet-stream",
             };
 
+            let is_extractable_doc = crate::zip_import::is_document_extension(&ext);
+            let (initial_extraction_status, initial_extraction_error) = if is_extractable_doc {
+                (ExtractionStatus::Pending, None)
+            } else {
+                (
+                    ExtractionStatus::Unsupported,
+                    Some("Materiale tecnico di supporto (conservato nel Vault, non indicizzato)".into()),
+                )
+            };
+
             catalog.documents.insert(doc_id.clone(), DocumentRecord {
                 document_id: doc_id.clone(),
                 revision: 1,
@@ -638,13 +699,14 @@ pub fn sync_catalog_from_vault(vault_path: &Path) -> Result<CatalogState, String
                 aliases: Vec::new(),
                 file_name: name.clone(),
                 extension: ext.clone(),
-                file_size: bytes.len() as u64,
+                file_size: size,
                 mime_type: mime.to_string(),
                 imported_at: now_iso(),
                 updated_at: now_iso(),
                 indexing_authorized_hash: None,
-                extraction_status: ExtractionStatus::Pending,
-                extraction_error: None,
+                extraction_status: initial_extraction_status,
+                extraction_version: 0,
+                extraction_error: initial_extraction_error,
                 extracted_text_path: None,
                 extracted_text_hash: None,
                 passages: Vec::new(),
@@ -711,6 +773,7 @@ pub fn sync_catalog_from_vault(vault_path: &Path) -> Result<CatalogState, String
                 updated_at: now_iso(),
                 indexing_authorized_hash: None,
                 extraction_status: ExtractionStatus::Ready,
+                extraction_version: 0,
                 extraction_error: None,
                 extracted_text_path: Some(rel_path.clone()),
                 extracted_text_hash: Some(hash.clone()),
@@ -738,18 +801,19 @@ pub fn sync_catalog_from_vault(vault_path: &Path) -> Result<CatalogState, String
         if let Ok(k_dir) = child(&r, folder) {
             let mut k_entries = Vec::new();
             let _ = collect_entries_recursive(&k_dir, "", 0, &mut k_entries);
-            for (sub_rel, name, bytes) in k_entries {
-                if !name.ends_with(".md") {
+            for entry in k_entries {
+                if !entry.name.ends_with(".md") {
                     continue;
                 }
-                let rel_path = format!("{}/{}", folder, sub_rel);
+                let rel_path = format!("{}/{}", folder, entry.sub_rel);
                 if catalog.documents.values().any(|d| d.original_path == rel_path && is_original(d)) {
                     discovered_paths.insert(rel_path);
                     continue;
                 }
-                let hash = compute_sha256(&bytes);
+                let hash = entry.hash;
                 discovered_paths.insert(rel_path.clone());
                 let doc_id = make_document_id(&rel_path);
+                let bytes = read_path(&r, &rel_path).unwrap_or_default();
                 let text = String::from_utf8_lossy(&bytes).to_string();
                 let fm = crate::vault::frontmatter(&text).ok().flatten();
                 let auto_kind = fm.as_ref().and_then(|f| f["automation_kind"].as_str());
@@ -796,7 +860,7 @@ pub fn sync_catalog_from_vault(vault_path: &Path) -> Result<CatalogState, String
                     content_hash: hash.clone(),
                     original_path: rel_path.clone(),
                     aliases: Vec::new(),
-                    file_name: name.clone(),
+                    file_name: entry.name.clone(),
                     extension: "md".into(),
                     file_size: bytes.len() as u64,
                     mime_type: "text/markdown".into(),
@@ -804,6 +868,7 @@ pub fn sync_catalog_from_vault(vault_path: &Path) -> Result<CatalogState, String
                     updated_at: now_iso(),
                     indexing_authorized_hash: None,
                     extraction_status: ExtractionStatus::Ready,
+                    extraction_version: 0,
                     extraction_error: None,
                     extracted_text_path: Some(rel_path.clone()),
                     extracted_text_hash: Some(hash.clone()),
@@ -947,6 +1012,7 @@ fn extract_plain_text(bytes: &[u8], ext: &str) -> Result<String, String> {
         String::from_utf8(bytes.to_vec()).map_err(|_| "Codifica testo non UTF-8")?
     };
     let text = text.trim_start_matches('\u{feff}').replace("\r\n", "\n");
+    if text.contains('\0') { return Err("Documento privo di testo leggibile: contiene byte NUL; originale conservato".into()); }
     let text = if ext == "html" || ext == "htm" {
         crate::compiler::sanitize_html(&text)
     } else {
@@ -959,9 +1025,18 @@ fn extract_plain_text(bytes: &[u8], ext: &str) -> Result<String, String> {
 }
 
 fn extract_spreadsheet_content(bytes: &[u8]) -> Result<String, String> {
-    use calamine::Reader;
-    let mut workbook = calamine::open_workbook_auto_from_rs(std::io::Cursor::new(bytes.to_vec()))
+    let workbook = calamine::open_workbook_auto_from_rs(std::io::Cursor::new(bytes.to_vec()))
         .map_err(|_| "Foglio di calcolo non leggibile o protetto")?;
+    spreadsheet_text(workbook)
+}
+
+fn extract_spreadsheet_file(path: &Path) -> Result<String, String> {
+    let workbook = calamine::open_workbook_auto(path).map_err(|_| "Foglio di calcolo non leggibile o protetto")?;
+    spreadsheet_text(workbook)
+}
+
+fn spreadsheet_text<RS: std::io::Read + std::io::Seek>(mut workbook: calamine::Sheets<RS>) -> Result<String, String> {
+    use calamine::Reader;
     let mut output = String::new();
     for sheet in workbook.sheet_names() {
         let range = workbook
@@ -997,11 +1072,59 @@ pub fn extract_document_content(bytes: &[u8], filename: &str) -> Result<String, 
         .to_lowercase();
     if ["xls", "xlsx", "xlsb", "ods"].contains(&ext.as_str()) {
         extract_spreadsheet_content(bytes)
-    } else if ["txt", "md", "markdown", "csv", "tsv", "json", "xml", "yaml", "yml", "log", "eml", "html", "htm"].contains(&ext.as_str()) {
+    } else if ["txt", "md", "markdown", "csv", "tsv", "eml", "html", "htm", "json", "xml", "yaml", "yml", "log"].contains(&ext.as_str()) {
         extract_plain_text(bytes, &ext)
     } else {
         extraction::extract(bytes, filename)
     }
+}
+
+/// Extracts text and passages from plain-text files in streaming chunks (bounded RAM).
+fn stream_extract_text_and_passages(vault_path: &Path, rel_path: &str, doc_id: &str) -> Result<(Option<String>, Vec<DocumentPassage>), String> {
+    let r = root(vault_path)?;
+    let file = crate::snapshots::open_read_path(&r, rel_path)?;
+    let before = file.metadata().map_err(err)?;
+    let passages = if before.len() <= 4 * 1024 * 1024 {
+        let mut bytes = Vec::new();
+        std::io::Read::take(file, 4 * 1024 * 1024 + 1).read_to_end(&mut bytes).map_err(err)?;
+        let ext = Path::new(rel_path).extension().and_then(|e| e.to_str()).unwrap_or("");
+        chunk_text_to_passages(doc_id, &extract_plain_text(&bytes, ext)?)
+    } else {
+        crate::text_ingestion::passages(file, doc_id)?
+    };
+    let after = crate::snapshots::open_read_path(&r, rel_path)?.metadata().map_err(err)?;
+    if before.len() != after.len() || before.modified().map_err(err)? != after.modified().map_err(err)? {
+        return Err("Originale modificato durante l’estrazione: ripeti l’indicizzazione".into());
+    }
+    let mut hash = Sha256::new();
+    for (n, passage) in passages.iter().enumerate() {
+        if n > 0 { hash.update(b"\n\n"); }
+        hash.update(passage.text.as_bytes());
+    }
+    Ok((Some(format!("{:x}", hash.finalize())), passages))
+}
+
+pub fn set_import_policies(vault: &Path, policies: &[(String, bool)]) -> Result<(), String> {
+    let _guard = CATALOG_WRITE.lock().map_err(err)?;
+    let mut cat = load_catalog(vault)?;
+    for (path, index) in policies {
+        if let Some(doc) = cat.documents.values_mut().find(|d| d.original_path == *path) {
+            doc.tags.retain(|t| t != "limen-support-only" && t != "limen-index-selected");
+            doc.tags.push(if *index { "limen-index-selected" } else { "limen-support-only" }.into());
+            if !*index {
+                doc.extraction_status = ExtractionStatus::Unsupported;
+                doc.extraction_error = Some("Conservato come materiale di supporto per scelta dell’utente".into());
+                doc.passages.clear();
+                doc.indexing_authorized_hash = None;
+                doc.semantic_status = PhaseInfo::default();
+                doc.lexical_status = PhaseInfo::default();
+            } else if doc.extraction_status != ExtractionStatus::Ready {
+                doc.extraction_status = ExtractionStatus::Pending;
+                doc.extraction_error = None;
+            }
+        }
+    }
+    save_catalog(vault, &mut cat)
 }
 
 /// Extract and generate passages for any document in Pending status.
@@ -1012,29 +1135,51 @@ pub fn process_pending_extractions(vault_path: &Path) -> Result<usize, String> {
     let mut catalog = load_catalog(vault_path)?;
     let mut processed = 0;
     let mut changed = false;
-    let r = root(vault_path)?;
-
     for doc in catalog.documents.values_mut() {
+        if is_support_document(doc) { continue; }
         if is_original(doc) && doc.indexing_authorized_hash.as_deref() != Some(&doc.content_hash) {
             doc.indexing_authorized_hash = Some(doc.content_hash.clone());
             changed = true;
         }
-        if matches!(doc.extraction_status, ExtractionStatus::Ready | ExtractionStatus::Processing) {
+
+        let ext = doc.extension.to_lowercase();
+        let is_plain_text = matches!(ext.as_str(), "txt" | "md" | "markdown" | "csv" | "tsv" | "eml" | "html" | "htm" | "json" | "xml" | "yaml" | "yml" | "log");
+        let legacy_text = is_plain_text && is_original(doc) && doc.extraction_version < 2;
+        if doc.extraction_status == ExtractionStatus::Processing ||
+            (doc.extraction_status == ExtractionStatus::Ready && !legacy_text) { continue; }
+        // Explicit indexing also retries failed document extraction. Support-only
+        // records have already been excluded, regardless of their prior status.
+        changed = true;
+        doc.extraction_status = ExtractionStatus::Processing;
+
+        if is_plain_text {
+            // Streaming extraction with bounded memory (up to 2 GB documents)
+            match stream_extract_text_and_passages(vault_path, &doc.original_path, &doc.document_id) {
+                Ok((hash_opt, passages)) => {
+                    doc.extracted_text_hash = hash_opt;
+                    doc.passages = passages;
+                    doc.extraction_status = ExtractionStatus::Ready;
+                    doc.extraction_version = 2;
+                    doc.extraction_error = None;
+                    doc.updated_at = now_iso();
+                    processed += 1;
+                }
+                Err(e) => {
+                    doc.extraction_status = ExtractionStatus::Failed;
+                    doc.extraction_error = Some(e);
+                    doc.updated_at = now_iso();
+                }
+            }
             continue;
         }
 
-        changed = true;
-        doc.extraction_status = ExtractionStatus::Processing;
-        let original_bytes = match read_path(&r, &doc.original_path) {
-            Ok(b) => b,
-            Err(e) => {
-                doc.extraction_status = ExtractionStatus::Failed;
-                doc.extraction_error = Some(format!("Impossibile leggere l'originale: {}", e));
-                continue;
-            }
+        // Extract binary originals from their path, without a whole-file RAM buffer.
+        let extracted = if ["xls", "xlsx", "xlsb", "ods"].contains(&ext.as_str()) {
+            extract_spreadsheet_file(&vault_path.join(&doc.original_path))
+        } else {
+            extraction::extract_file(&vault_path.join(&doc.original_path), &doc.file_name)
         };
-
-        match extract_document_content(&original_bytes, &doc.file_name) {
+        match extracted {
             Ok(text) => {
                 let trimmed = text.trim().to_string();
                 if trimmed.is_empty() {
@@ -1045,8 +1190,10 @@ pub fn process_pending_extractions(vault_path: &Path) -> Result<usize, String> {
                     doc.extracted_text_hash = Some(hash);
                     doc.passages = chunk_text_to_passages(&doc.document_id, &trimmed);
                     doc.extraction_status = ExtractionStatus::Ready;
+                    doc.extraction_version = 2;
                     doc.extraction_error = None;
                 }
+                doc.extraction_version = 2;
                 doc.updated_at = now_iso();
                 processed += 1;
             }
@@ -1272,8 +1419,8 @@ pub fn verify_document_passage_integrity(
     }
 
     // Verify disk hash against stored content_hash
-    let disk_bytes = std::fs::read(&full_path).map_err(err)?;
-    let disk_hash = compute_sha256(&disk_bytes);
+    let source = crate::snapshots::open_read_path(&root(vault_path)?, &doc.original_path)?;
+    let (disk_hash, _) = crate::snapshots::compute_sha256_stream(source)?;
     if disk_hash != doc.content_hash {
         return Ok(DocumentVerificationReport {
             is_valid: false,
@@ -1587,6 +1734,30 @@ pub fn catalog_summary(vault_path: &Path) -> Result<CatalogSummary, String> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn legacy_ready_text_is_rebuilt_once_and_failed_documents_can_retry() {
+        let temp = tempfile::tempdir().unwrap();
+        let vault = temp.path();
+        std::fs::create_dir_all(vault.join("00_SYSTEM")).unwrap();
+        std::fs::create_dir_all(vault.join("20_RAW_SOURCES")).unwrap();
+        std::fs::write(vault.join("20_RAW_SOURCES/text.txt"), format!("{}é", "a".repeat(65535))).unwrap();
+        let mut cat = super::sync_catalog(vault).unwrap();
+        let id = cat.documents.keys().next().unwrap().clone();
+        let doc = cat.documents.get_mut(&id).unwrap();
+        doc.extraction_status = super::ExtractionStatus::Ready;
+        doc.passages = super::chunk_text_to_passages(&id, "corrotto �");
+        super::save_catalog(vault, &mut cat).unwrap();
+        assert_eq!(super::process_pending_extractions(vault).unwrap(), 1);
+        let mut fixed = super::load_catalog(vault).unwrap();
+        let doc = &fixed.documents[&id];
+        assert_eq!(doc.extraction_version, 2);
+        assert!(doc.passages.iter().any(|p| p.text.contains('é')));
+        assert!(!doc.passages.iter().any(|p| p.text.contains('�')));
+        assert_eq!(super::process_pending_extractions(vault).unwrap(), 0);
+        fixed.documents.get_mut(&id).unwrap().extraction_status = super::ExtractionStatus::Failed;
+        super::save_catalog(vault, &mut fixed).unwrap();
+        assert_eq!(super::process_pending_extractions(vault).unwrap(), 1);
+    }
     use super::*;
     use std::fs;
 
@@ -1654,6 +1825,7 @@ mod tests {
             updated_at: now_iso(),
             indexing_authorized_hash: None,
             extraction_status: ExtractionStatus::Ready,
+            extraction_version: 0,
             extraction_error: None,
             extracted_text_path: None,
             extracted_text_hash: None,
@@ -2143,5 +2315,70 @@ mod tests {
         let reads_b_after = get_catalog_disk_read_count_for_vault(path_b);
         assert_eq!(reads_b_after, reads_b_before, "Modifica al catalogo A non deve ricaricare catalogo B da disco");
     }
-}
 
+    #[test]
+    fn test_catalog_exceeding_32mb_can_be_saved_and_reloaded() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path();
+        fs::create_dir_all(path.join("00_SYSTEM")).unwrap();
+
+        let mut cat = CatalogState::default();
+        // Generate enough document metadata to exceed 32 MB
+        // 35 MB of text in passages
+        let chunk_padding = "x".repeat(100_000);
+        for i in 0..400 {
+            let doc_id = format!("doc_{:04}", i);
+            cat.documents.insert(doc_id.clone(), DocumentRecord {
+                document_id: doc_id.clone(),
+                revision: 1,
+                content_hash: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef".into(),
+                original_path: format!("20_RAW_SOURCES/large_doc_{:04}.txt", i),
+                aliases: Vec::new(),
+                file_name: format!("large_doc_{:04}.txt", i),
+                extension: "txt".into(),
+                file_size: 100_000,
+                mime_type: "text/plain".into(),
+                imported_at: now_iso(),
+                updated_at: now_iso(),
+                indexing_authorized_hash: None,
+                extraction_status: ExtractionStatus::Ready,
+                extraction_version: 0,
+                extraction_error: None,
+                extracted_text_path: None,
+                extracted_text_hash: None,
+                passages: vec![DocumentPassage {
+                    passage_id: format!("{}_p0", doc_id),
+                    locator: "P0".into(),
+                    char_count: 100_000,
+                    sha256: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef".into(),
+                    text: chunk_padding.clone(),
+                }],
+                lexical_status: PhaseInfo::default(),
+                semantic_status: PhaseInfo::default(),
+                classification_status: PhaseInfo::default(),
+                wiki_status: PhaseInfo::default(),
+                category: None,
+                client: None,
+                project: None,
+                tags: vec!["limen-original".into()],
+                evidence_type: "source".into(),
+                editorial_status: "auto".into(),
+            });
+        }
+
+        save_catalog(path, &mut cat).unwrap();
+
+        let cat_file = path.join("00_SYSTEM/VAULT_CATALOG.json");
+        let file_size = fs::metadata(&cat_file).unwrap().len();
+        assert!(file_size > 32 * 1024 * 1024, "Catalog file size ({file_size} bytes) must exceed 32 MB");
+
+        // Clear in-memory cache to force a fresh cold disk read
+        if let Ok(mut guard) = CATALOG_CACHE.lock() {
+            guard.remove(path);
+        }
+
+        // Must load cleanly from disk without the former 32 MB limit error
+        let loaded = load_catalog_arc(path).expect("Large catalog (> 32 MB) must load successfully");
+        assert_eq!(loaded.documents.len(), 400);
+    }
+}

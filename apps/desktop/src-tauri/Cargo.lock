@@ -2067,6 +2067,7 @@ dependencies = [
  "calamine",
  "cap-std",
  "chrono",
+ "encoding_rs",
  "getrandom 0.3.4",
  "libc",
  "quick-xml 0.31.0",

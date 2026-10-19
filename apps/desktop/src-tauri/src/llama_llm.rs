@@ -801,7 +801,7 @@ impl LlamaLlmServerState {
             "--port",
             &free_port.to_string(),
             "-c",
-            "8192",
+            "16384",
             "-np",
             "1",
             "-ctk",

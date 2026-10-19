@@ -3,9 +3,12 @@ import { OrganizationReview } from './OrganizationReview';
 import { useCatalogDocuments } from './useCatalogDocuments';
 import { useNativeFileDrop } from './useNativeFileDrop';
 import { runIndexing } from './indexing';
-import {AutomationPanel,useAutomation} from './AutomationPanel';
+import {useAutomation} from './AutomationPanel';
+import { ImportDocumentsModal } from './ImportDocumentsModal';
+import type { ImportItem, ImportChoice, ImportProgress } from './vault-ipc';
 import {labelIt, MessageIt} from './locale';
 import {LanguageToggle, useTranslation} from './i18n';
+import {ThemeToggle} from './ThemeToggle';
 import {KnowledgePanel} from './KnowledgePanel';
 import {ProposalPanel} from './ProposalPanel';
 import {SyncPanel} from './SyncPanel';
@@ -20,6 +23,16 @@ import { formatLocalDate } from './AiHistoryDrawer';
 import { cleanTitle } from './source-utils';
 import icLimenVault from './assets/ic-limenvault.png';
 import limenWordmark from './assets/limenvault-logo.png';
+import bnxtLogo from './assets/bnxt1-logo-complete-black.png';
+import { BnxtVaultPreparationModal, type BnxtPreparationProgress } from './BnxtVaultPreparationModal';
+import {
+  INITIAL_BNXT_PROGRESS,
+  listenBnxtProgress,
+  checkBnxtStatus,
+  inspectBnxtSource,
+  runBnxtPreparation,
+  cancelBnxtPreparation,
+} from './bnxt-preparation';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { LimenAiIcon } from './LimenAiIcon';
 import { VaultPanel } from './VaultPanel';
@@ -41,6 +54,7 @@ import {
   type DocumentRecord,
   type SnapshotRestoreReport,
   type EmbeddingsStatusReport,
+  type BnxtCorpusStatus,
 } from './vault-ipc';
 import {
   StatusBadge,
@@ -121,8 +135,79 @@ export default function App() {
   });
   const terms = getPlatformTerms();
   const [vaultPath, setVaultPath] = useState<string | null>(null);
-  useEffect(() => { void aiIpc.mcpStop().catch(() => {}); void aiIpc.tunnelStop().catch(() => {}); }, [vaultPath]);
+  const [importItems, setImportItems] = useState<ImportItem[] | null>(null);
+  const [importDestination, setImportDestination] = useState<string | undefined>();
+  const [importRunning, setImportRunning] = useState(false);
+  const [importProgress, setImportProgress] = useState<ImportProgress | null>(null);
+  const importCancelled = useRef(false);
+  useEffect(() => {
+    let disposed = false;
+    let unlisten: (() => void) | undefined;
+    import('@tauri-apps/api/event').then(({ listen }) => listen<ImportProgress>('import_progress', ({ payload }) => {
+      if (!disposed && payload.vaultPath === vaultPath) setImportProgress(payload);
+    })).then(stop => { if (disposed) stop(); else unlisten = stop; }).catch(() => {});
+    return () => { disposed = true; unlisten?.(); };
+  }, [vaultPath]);
+
   const automation=useAutomation(vaultLoaded&&vaultState==='READY'?vaultPath:null);
+
+  // LIMEN VAULT FOR BNXT EDITION State
+  const [showBnxtModal, setShowBnxtModal] = useState<boolean>(false);
+  const [bnxtMinimized, setBnxtMinimized] = useState<boolean>(false);
+  const [bnxtProgress, setBnxtProgress] = useState<BnxtPreparationProgress>(INITIAL_BNXT_PROGRESS);
+  const [bnxtCorpusStatus, setBnxtCorpusStatus] = useState<BnxtCorpusStatus | null>(null);
+
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    listenBnxtProgress((progress) => {
+      setBnxtProgress(progress);
+      if (progress.phase === 'completed') {
+        if (vaultPath) {
+          void refreshCatalog(vaultPath, generation.current);
+          void refreshCompiler(vaultPath, generation.current);
+        }
+      }
+    }).then((stop) => { unlisten = stop; });
+    return () => { unlisten?.(); };
+  }, [vaultPath]);
+
+  useEffect(() => {
+    if (!vaultPath || !vaultLoaded || vaultState !== 'READY') return;
+    checkBnxtStatus(vaultPath, ipc).then((status) => {
+      setBnxtCorpusStatus(status);
+      if (!status.isPresent && (status.zipAvailable || status.sourceAvailable) && bnxtProgress.phase === 'idle') {
+        setShowBnxtModal(true);
+      }
+    });
+  }, [vaultPath, vaultLoaded, vaultState]);
+
+  const handleStartBnxtPreparation = async (
+    customZipPath?: string,
+    duplicatePolicy?: 'skip' | 'overwrite' | 'continue_without_upload'
+  ) => {
+    const targetVault = vaultPath || '/Users/cesare/Documents/Vault BNXT';
+    try {
+      if (!vaultLoaded) {
+        await handleOpenVaultPath(targetVault);
+      }
+      await runBnxtPreparation(targetVault, ipc, setBnxtProgress, customZipPath, duplicatePolicy);
+    } catch (e: any) {
+      console.error('Errore preparazione BNXT:', e);
+    }
+  };
+
+  const handleCancelBnxtPreparation = async () => {
+    await cancelBnxtPreparation(ipc);
+  };
+
+  const handleRetryBnxtPreparation = async () => {
+    await handleStartBnxtPreparation();
+  };
+
+  const handleOpenBnxtVault = () => {
+    setShowBnxtModal(false);
+    setBnxtMinimized(false);
+  };
   const [vaultName, setVaultName] = useState<string | null>(null);
   const [pageCount, setPageCount] = useState<number>(0);
   const [sourceCount, setSourceCount] = useState<number>(0);
@@ -486,17 +571,25 @@ export default function App() {
       let currentLoaded = vaultLoaded;
       let currentPath = vaultPath;
 
-      // 1. Se presente un percorso precedente nel localStorage, prova auto-open
+      // 1. Se presente il Vault BNXT preindicizzato in Documents o percorso nel localStorage, apri automaticamente
+      const defaultBnxtVault = '/Users/cesare/Documents/Vault BNXT';
       const lastVault = typeof localStorage !== 'undefined' ? localStorage.getItem('limen_last_vault_path') : null;
-      if (!currentLoaded && lastVault && isTauriEnv) {
+      const targetStartupVault = (!lastVault || lastVault.endsWith('/VAULT')) ? defaultBnxtVault : lastVault;
+      if (!currentLoaded && targetStartupVault && isTauriEnv) {
         try {
-          const success = await handleOpenVaultPath(lastVault);
+          const success = await handleOpenVaultPath(targetStartupVault);
           if (success) {
             currentLoaded = true;
-            currentPath = lastVault;
+            currentPath = targetStartupVault;
           }
         } catch {
-          // ignora errore se il percorso salvato non è più accessibile
+          // fallback se il percorso salvato non è accessibile
+          if (targetStartupVault !== lastVault && lastVault) {
+            try {
+              const fallbackOk = await handleOpenVaultPath(lastVault);
+              if (fallbackOk) { currentLoaded = true; currentPath = lastVault; }
+            } catch {}
+          }
         }
       }
 
@@ -657,50 +750,29 @@ export default function App() {
     finally { finish(ticket); }
   };
 
-  const handleUploadDocuments = async () => {
-    if (!vaultPath) return;
+  const prepareImport = async (paths: string[], destination?: string) => {
+    if (!vaultPath || paths.length === 0) return;
+    if (busy.current || importItems || showIndexingPrompt) {
+      setActionError('Completa o rimanda l’operazione corrente prima di caricare altri file.');
+      return;
+    }
     const ticket = begin();
     if (ticket === null) return;
     setActionError(null);
     try {
-      const receipts = await ipc.automationChooseFiles(vaultPath);
-      // Se l'utente ha annullato il selettore file o non ha selezionato alcun file:
-      if (!receipts || receipts.length === 0) {
-        return;
-      }
-
-      await refreshCatalog(vaultPath, ticket);
-      await refreshCompiler(vaultPath, ticket);
-
-      const imported = receipts.filter((r) => r.status === 'imported');
-      const duplicates = receipts.filter((r) => r.status === 'duplicate');
-      const errors = receipts.filter((r) => r.status === 'error');
-
-      if (imported.length > 0) {
-        const fileNames = imported.map((r) => {
-          const raw = r.name || r.path || 'file';
-          return raw.split(/[/\\]/).pop() || raw;
-        });
-        setImportedFilesList(fileNames);
-        setShowIndexingPrompt(true);
-        setHasPendingIndexing(true);
-
-        if (duplicates.length > 0 || errors.length > 0) {
-          const notes: string[] = [];
-          if (duplicates.length > 0) notes.push(`${duplicates.length} duplicati ignorati`);
-          if (errors.length > 0) notes.push(`${errors.length} errori: ${errors.map((e) => e.error || 'errore').join(', ')}`);
-          setActionError(`Caricati ${imported.length} file (${notes.join(', ')}).`);
-        }
-      } else if (duplicates.length > 0 && errors.length === 0) {
-        setActionError(`I ${duplicates.length} file selezionati sono già presenti nel Vault (duplicati ignorati). Nessun nuovo file da indicizzare.`);
-      } else if (errors.length > 0) {
-        setActionError(`Errore durante il caricamento: ${errors.map((e) => `${(e.name || e.path || 'file').split(/[/\\]/).pop()}: ${e.error || 'errore'}`).join(' · ')}`);
-      }
-    } catch (err) {
-      setActionError(`Caricamento non riuscito: ${err instanceof Error ? err.message : String(err)}`);
-    } finally {
-      finish(ticket);
-    }
+      const items = await ipc.inspectImport(vaultPath, paths);
+      if (ticket !== generation.current) return;
+      if (!items.length) { setActionError('Nessun file nelle cartelle selezionate.'); return; }
+      setImportDestination(destination);
+      setImportProgress(null);
+      setImportItems(items);
+    } catch (e) { setActionError(`Anteprima importazione: ${String(e)}`); }
+    finally { finish(ticket); }
+  };
+  const handleUploadDocuments = async () => {
+    if (!vaultPath || busy.current || importItems) return;
+    try { await prepareImport(await ipc.pickImportPaths()); }
+    catch (e) { setActionError(`Selezione file: ${String(e)}`); }
   };
 
   const handleRestoreSnapshot = async (snapshotId: string) => {
@@ -719,19 +791,16 @@ export default function App() {
     }
   };
 
-  const handleNativeDrop = async (filePaths: string[], destination?: string) => {
-    setIsDragging(false);
+  const confirmImport = async (choices: ImportChoice[]) => {
     if (!vaultPath) return;
-    if (busy.current || showIndexingPrompt) {
-      setActionError('Completa o rimanda l’operazione corrente prima di caricare altri file.');
-      return;
-    }
+    const ticket = begin();
+    if (ticket === null) return;
+    const destination = importDestination;
+    importCancelled.current = false;
+    setImportRunning(true);
     setActionError(null);
-    if (filePaths.length > 0) {
-      const ticket = begin();
-      if (ticket === null) return;
-      try {
-        const receipts = await ipc.automationImportFiles(vaultPath, filePaths);
+    try {
+      const receipts = await ipc.executeImport(vaultPath, choices);
         let preferenceApplied = false;
         if (destination && destination !== '20_RAW_SOURCES' && !destination.startsWith('20_RAW_SOURCES/')) {
           const ids = receipts.filter(r => (r.status === 'imported' || r.status === 'duplicate') && r.documentId).map(r => r.documentId!);
@@ -747,7 +816,7 @@ export default function App() {
         const duplicates = (receipts || []).filter((r) => r.status === 'duplicate');
         const errors = (receipts || []).filter((r) => r.status === 'error');
 
-        if (imported.length > 0) {
+        if (imported.length > 0 && choices.some(c => c.index)) {
           const names = imported.map((r) => {
             const raw = r.name || r.path || 'file';
             return raw.split(/[/\\]/).pop() || raw;
@@ -762,6 +831,8 @@ export default function App() {
             if (errors.length > 0) notes.push(`${errors.length} errori: ${errors.map((e) => e.error).join(', ')}`);
             setActionError(`Importati ${imported.length} file (${notes.join(', ')}).`);
           }
+        } else if (imported.length > 0) {
+          setActionError(`Conservati ${imported.length} file come materiale di supporto.`);
         } else if (preferenceApplied) {
           setImportedFilesList([]); setShowIndexingPrompt(true); setHasPendingIndexing(true);
         } else if (duplicates.length > 0 && errors.length === 0) {
@@ -769,12 +840,19 @@ export default function App() {
         } else if (errors.length > 0) {
           setActionError(`Errore durante l'importazione: ${errors.map((e) => e.error).join(' · ')}`);
         }
-      } catch (err) {
-        setActionError(`Errore durante il caricamento: ${err instanceof Error ? err.message : String(err)}`);
-      } finally {
-        finish(ticket);
-      }
-    }
+      if (importCancelled.current) setActionError('Importazione annullata. I file già acquisiti sono conservati; puoi ripetere l’importazione senza sovrascriverli.');
+      setImportItems(null);
+    } catch (e) { setActionError(`Importazione: ${String(e)}`); }
+    finally { setImportRunning(false); finish(ticket); }
+  };
+  const cancelImport = async () => {
+    importCancelled.current = true;
+    try { await ipc.automationCancelImport(); }
+    catch (e) { importCancelled.current = false; setActionError(`Annullamento non riuscito: ${String(e)}`); throw e; }
+  };
+  const handleNativeDrop = async (paths: string[], destination?: string) => {
+    setIsDragging(false);
+    await prepareImport(paths, destination);
   };
   useNativeFileDrop(isTauriEnv && !!vaultPath, handleNativeDrop, setIsDragging, setActionError);
 
@@ -1124,6 +1202,7 @@ export default function App() {
                     width: 'auto',
                     objectFit: 'contain',
                     flexShrink: 0,
+                    filter: 'var(--limen-logo-filter, none)',
                   }}
                 />
                 <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '-0.01em', color: 'var(--limen-text-primary)' }}>
@@ -1159,8 +1238,8 @@ export default function App() {
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: 8,
-                  backgroundColor: '#c8ff00',
-                  color: '#0a0c10',
+                  backgroundColor: 'var(--limen-upload-btn-bg, #c8ff00)',
+                  color: 'var(--limen-upload-btn-text, #0a0c10)',
                   border: 'none',
                   borderRadius: 8,
                   padding: '9px 12px',
@@ -1168,7 +1247,7 @@ export default function App() {
                   fontWeight: 700,
                   cursor: isProcessing ? 'not-allowed' : 'pointer',
                   width: '100%',
-                  boxShadow: '0 2px 8px rgba(200, 255, 0, 0.25)',
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
                   transition: 'all 0.15s ease',
                   letterSpacing: '0.02em',
                 }}
@@ -1192,21 +1271,21 @@ export default function App() {
               {
                 id: 'documents',
                 label: t.nav.documents,
-                icon: <FolderArchive size={16} color={currentTab === 'documents' || currentTab === 'sources' ? '#0f172a' : '#64748b'} />,
+                icon: <FolderArchive size={16} color={currentTab === 'documents' || currentTab === 'sources' ? 'var(--limen-text-primary, #0f172a)' : 'var(--limen-text-secondary, #64748b)'} />,
                 active: currentTab === 'documents' || currentTab === 'sources',
                 badge: String(catalogSummary?.totalRawSources ?? sourceCount),
               },
               {
                 id: 'vault',
                 label: 'Vault',
-                icon: <FolderTree size={16} color={currentTab === 'vault' ? '#0f172a' : '#64748b'} />,
+                icon: <FolderTree size={16} color={currentTab === 'vault' ? 'var(--limen-text-primary, #0f172a)' : 'var(--limen-text-secondary, #64748b)'} />,
                 active: currentTab === 'vault',
                 badge: undefined,
               },
               {
                 id: 'memory',
                 label: t.nav.memory,
-                icon: <BookOpen size={16} color={currentTab === 'memory' || currentTab === 'knowledge' ? '#0f172a' : '#64748b'} />,
+                icon: <BookOpen size={16} color={currentTab === 'memory' || currentTab === 'knowledge' ? 'var(--limen-text-primary, #0f172a)' : 'var(--limen-text-secondary, #64748b)'} />,
                 active: currentTab === 'memory' || currentTab === 'knowledge',
                 badge: String(pageCount),
               },
@@ -1221,10 +1300,10 @@ export default function App() {
                     justifyContent: 'space-between',
                     padding: '8px 12px',
                     borderRadius: 6,
-                    border: item.active ? '1px solid #cbd5e1' : '1px solid transparent',
-                    backgroundColor: item.active ? '#ffffff' : 'transparent',
-                    color: item.active ? '#0f172a' : '#475569',
-                    boxShadow: item.active ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+                    border: item.active ? '1px solid var(--limen-border-subtle, #cbd5e1)' : '1px solid transparent',
+                    backgroundColor: item.active ? 'var(--limen-bg-surface, #ffffff)' : 'transparent',
+                    color: item.active ? 'var(--limen-text-primary, #0f172a)' : 'var(--limen-text-secondary, #475569)',
+                    boxShadow: item.active ? 'var(--limen-shadow-sm, 0 1px 3px rgba(0,0,0,0.06))' : 'none',
                     fontWeight: item.active ? 600 : 500,
                     fontSize: 13,
                     cursor: 'pointer',
@@ -1236,7 +1315,7 @@ export default function App() {
                     <span>{item.label}</span>
                   </div>
                   {item.badge !== undefined && (
-                    <span style={{ fontSize: 11, fontWeight: 600, padding: '1px 6px', borderRadius: 10, backgroundColor: item.active ? '#e2e8f0' : '#f1f5f9', color: '#475569' }}>
+                    <span style={{ fontSize: 11, fontWeight: 600, padding: '1px 6px', borderRadius: 10, backgroundColor: item.active ? 'var(--limen-border-light, #e2e8f0)' : 'var(--limen-bg-subtle, #f1f5f9)', color: 'var(--limen-text-secondary, #475569)' }}>
                       {item.badge}
                     </span>
                   )}
@@ -1258,10 +1337,10 @@ export default function App() {
                 justifyContent: 'space-between',
                 padding: '8px 12px',
                 borderRadius: 6,
-                border: (currentTab === 'advanced' || ['proposals', 'outputs', 'snapshots', 'transfers', 'system', 'settings', 'help'].includes(currentTab)) ? '1px solid #cbd5e1' : '1px solid transparent',
-                backgroundColor: (currentTab === 'advanced' || ['proposals', 'outputs', 'snapshots', 'transfers', 'system', 'settings', 'help'].includes(currentTab)) ? '#ffffff' : 'transparent',
-                color: (currentTab === 'advanced' || ['proposals', 'outputs', 'snapshots', 'transfers', 'system', 'settings', 'help'].includes(currentTab)) ? '#0f172a' : '#64748b',
-                boxShadow: (currentTab === 'advanced' || ['proposals', 'outputs', 'snapshots', 'transfers', 'system', 'settings', 'help'].includes(currentTab)) ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
+                border: (currentTab === 'advanced' || ['proposals', 'outputs', 'snapshots', 'transfers', 'system', 'settings', 'help'].includes(currentTab)) ? '1px solid var(--limen-border-subtle, #cbd5e1)' : '1px solid transparent',
+                backgroundColor: (currentTab === 'advanced' || ['proposals', 'outputs', 'snapshots', 'transfers', 'system', 'settings', 'help'].includes(currentTab)) ? 'var(--limen-bg-surface, #ffffff)' : 'transparent',
+                color: (currentTab === 'advanced' || ['proposals', 'outputs', 'snapshots', 'transfers', 'system', 'settings', 'help'].includes(currentTab)) ? 'var(--limen-text-primary, #0f172a)' : 'var(--limen-text-secondary, #64748b)',
+                boxShadow: (currentTab === 'advanced' || ['proposals', 'outputs', 'snapshots', 'transfers', 'system', 'settings', 'help'].includes(currentTab)) ? 'var(--limen-shadow-sm, 0 1px 2px rgba(0,0,0,0.05))' : 'none',
                 fontWeight: (currentTab === 'advanced' || ['proposals', 'outputs', 'snapshots', 'transfers', 'system', 'settings', 'help'].includes(currentTab)) ? 600 : 500,
                 fontSize: 13,
                 cursor: 'pointer',
@@ -1280,7 +1359,7 @@ export default function App() {
         <div style={{ height: 1, backgroundColor: 'var(--limen-border-light)', margin: '8px 0', flexShrink: 0 }} />
 
         {/* SEZIONE STORICO CONVERSAZIONI (VISIBILE IN TUTTE LE PAGINE, SCORRE AL PROPRIO INTERNO) */}
-        <div style={{ flex: 1, minHeight: 90, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div style={{ flex: 1, minHeight: 40, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           {/* Intestazione Storico con pulsante Nuova conversazione e opzione Svuota */}
           <div
             style={{
@@ -1300,16 +1379,16 @@ export default function App() {
                 gap: 5,
                 padding: '4px 8px',
                 borderRadius: 6,
-                border: '1px solid #cbd5e1',
-                backgroundColor: '#ffffff',
-                color: '#0f172a',
+                border: '1px solid var(--limen-border-subtle, #cbd5e1)',
+                backgroundColor: 'var(--limen-bg-surface, #ffffff)',
+                color: 'var(--limen-text-primary, #0f172a)',
                 fontSize: 11,
                 fontWeight: 600,
                 cursor: 'pointer',
               }}
               title={t.nav.newChat}
             >
-              <PlusCircle size={13} color="#0f172a" />
+              <PlusCircle size={13} color="var(--limen-text-primary, #0f172a)" />
               <span>{t.nav.newChat}</span>
             </button>
 
@@ -1321,7 +1400,7 @@ export default function App() {
                   border: 'none',
                   padding: 4,
                   borderRadius: 4,
-                  color: '#94a3b8',
+                  color: 'var(--limen-text-muted, #94a3b8)',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -1336,7 +1415,7 @@ export default function App() {
           {/* Elenco conversazioni scrollabile */}
           <div style={{ flex: 1, overflowY: 'auto', padding: '4px 6px', display: 'flex', flexDirection: 'column', gap: 4 }}>
             {conversationGroups.length === 0 ? (
-              <div style={{ padding: '16px 8px', textAlign: 'center', fontSize: 11, color: '#94a3b8' }}>
+              <div style={{ padding: '16px 8px', textAlign: 'center', fontSize: 11, color: 'var(--limen-text-muted, #94a3b8)' }}>
                 {t.nav.noConversations}
               </div>
             ) : (
@@ -1350,9 +1429,9 @@ export default function App() {
                     style={{
                       padding: '6px 8px',
                       borderRadius: 6,
-                      border: isSelected ? '1px solid #0f172a' : '1px solid transparent',
-                      backgroundColor: isSelected ? '#ffffff' : 'transparent',
-                      boxShadow: isSelected ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+                      border: isSelected ? '1px solid var(--limen-accent-primary, #0f172a)' : '1px solid transparent',
+                      backgroundColor: isSelected ? 'var(--limen-bg-surface, #ffffff)' : 'transparent',
+                      boxShadow: isSelected ? 'var(--limen-shadow-sm, 0 1px 3px rgba(0,0,0,0.06))' : 'none',
                       cursor: 'pointer',
                       display: 'flex',
                       flexDirection: 'column',
@@ -1365,7 +1444,7 @@ export default function App() {
                         style={{
                           fontSize: 12,
                           fontWeight: isSelected ? 700 : 500,
-                          color: isSelected ? '#0f172a' : '#334155',
+                          color: isSelected ? 'var(--limen-text-primary, #0f172a)' : 'var(--limen-text-secondary, #334155)',
                           whiteSpace: 'nowrap',
                           textOverflow: 'ellipsis',
                           overflow: 'hidden',
@@ -1426,15 +1505,15 @@ export default function App() {
                 justifyContent: 'space-between',
                 cursor: 'pointer',
                 borderRadius: 6,
-                backgroundColor: '#ffffff',
-                border: '1px solid #e2e8f0',
+                backgroundColor: 'var(--limen-bg-surface, #ffffff)',
+                border: '1px solid var(--limen-border-light)',
                 userSelect: 'none',
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden' }}>
-                {sourcesSidebarOpen ? <ChevronDown size={14} color="#0f172a" /> : <ChevronRight size={14} color="#0f172a" />}
-                <FileText size={14} color="#0f172a" />
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap' }}>
+                {sourcesSidebarOpen ? <ChevronDown size={14} color="var(--limen-text-primary, #0f172a)" /> : <ChevronRight size={14} color="var(--limen-text-primary, #0f172a)" />}
+                <FileText size={14} color="var(--limen-text-primary, #0f172a)" />
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--limen-text-primary, #0f172a)', whiteSpace: 'nowrap' }}>
                   {t.nav.sources}: {selectedTurnCitedCount} {selectedTurnCitedCount === 1 ? t.nav.cited : t.nav.citedPlural} / {selectedTurnSources.length}
                 </span>
               </div>
@@ -1447,7 +1526,7 @@ export default function App() {
                     setModalOpen(true);
                   }}
                   style={{
-                    background: '#0f172a',
+                    background: 'var(--limen-accent-primary, #0f172a)',
                     border: 'none',
                     borderRadius: 4,
                     padding: '2px 6px',
@@ -1482,8 +1561,8 @@ export default function App() {
                       style={{
                         padding: '5px 8px',
                         borderRadius: 6,
-                        backgroundColor: isCited ? '#f0fdf4' : '#ffffff',
-                        border: isCited ? '1px solid #86efac' : '1px solid #e2e8f0',
+                        backgroundColor: isCited ? 'rgba(141, 99, 45, 0.20)' : 'var(--limen-bg-surface, #ffffff)',
+                        border: isCited ? '1px solid var(--limen-lime)' : '1px solid var(--limen-border-light)',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
@@ -1494,12 +1573,12 @@ export default function App() {
                       title={cleanName}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden' }}>
-                        <FileText size={12} color={isCited ? '#16a34a' : '#64748b'} style={{ flexShrink: 0 }} />
+                        <FileText size={12} color={isCited ? 'var(--limen-lime)' : 'var(--limen-text-muted, #64748b)'} style={{ flexShrink: 0 }} />
                         <span
                           style={{
                             fontSize: 11,
                             fontWeight: isCited ? 700 : 500,
-                            color: isCited ? '#14532d' : '#1e293b',
+                            color: isCited ? 'var(--limen-lime)' : 'var(--limen-text-primary, #1e293b)',
                             whiteSpace: 'nowrap',
                             textOverflow: 'ellipsis',
                             overflow: 'hidden',
@@ -1515,7 +1594,7 @@ export default function App() {
                             fontWeight: 700,
                             padding: '1px 4px',
                             borderRadius: 3,
-                            backgroundColor: '#22c55e',
+                            backgroundColor: 'var(--limen-lime)',
                             color: '#ffffff',
                             flexShrink: 0,
                           }}
@@ -1532,7 +1611,80 @@ export default function App() {
         )}
 
         {/* BOTTOM QUICK LAUNCHER (SEMPRE FERMO IN BASSO) */}
-        <div style={{ flexShrink: 0, paddingTop: 10, borderTop: '1px solid var(--limen-border-light)' }}>
+        <div
+          style={{
+            flexShrink: 0,
+            paddingTop: 10,
+            borderTop: '1px solid var(--limen-border-light)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 8,
+          }}
+        >
+          {/* EDITION FOR BNXT1 */}
+          <div
+            data-testid="sidebar-bnxt-edition"
+            onClick={() => {
+              setBnxtMinimized(false);
+              setShowBnxtModal(true);
+            }}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 4,
+              padding: '4px 6px',
+              borderRadius: 6,
+              cursor: 'pointer',
+              userSelect: 'none',
+              textAlign: 'center',
+              transition: 'background-color 0.15s ease',
+            }}
+            title="LIMEN VAULT FOR BNXT EDITION — Fai clic per visualizzare lo stato del Vault BNXT"
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--limen-bg-hover, #f1f5f9)')}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+          >
+            <span
+              style={{
+                fontStyle: 'italic',
+                fontSize: 11,
+                color: 'var(--limen-text-muted, #64748b)',
+                letterSpacing: '-0.01em',
+                lineHeight: 1.2,
+              }}
+            >
+              LIMEN VAULT FOR BNXT EDITION
+            </span>
+            <img
+              src={bnxtLogo}
+              alt="BNXT1"
+              style={{
+                height: 20,
+                width: 'auto',
+                maxWidth: 140,
+                objectFit: 'contain',
+                display: 'block',
+                filter: 'var(--limen-logo-filter, none)',
+              }}
+            />
+            {bnxtMinimized && (
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 600,
+                  color: '#0284c7',
+                  backgroundColor: '#e0f2fe',
+                  padding: '1px 6px',
+                  borderRadius: 10,
+                  marginTop: 2,
+                }}
+              >
+                In preparazione ({bnxtProgress.processedCount}/{bnxtProgress.totalCount})
+              </span>
+            )}
+          </div>
+
           <button
             onClick={handleOpenObsidian}
             disabled={!vaultLoaded || !obsidianAvailable || isProcessing}
@@ -1545,8 +1697,8 @@ export default function App() {
               padding: '8px 12px',
               borderRadius: 6,
               border: '1px solid var(--limen-border-light)',
-              backgroundColor: vaultLoaded && obsidianAvailable ? '#ffffff' : '#f8fafc',
-              color: vaultLoaded && obsidianAvailable ? '#0f172a' : '#94a3b8',
+              backgroundColor: vaultLoaded && obsidianAvailable ? 'var(--limen-bg-surface, #ffffff)' : 'var(--limen-bg-subtle, #f8fafc)',
+              color: vaultLoaded && obsidianAvailable ? 'var(--limen-text-primary, #0f172a)' : 'var(--limen-text-muted, #94a3b8)',
               fontSize: 12,
               fontWeight: 600,
               cursor: vaultLoaded && obsidianAvailable ? 'pointer' : 'not-allowed',
@@ -1559,12 +1711,12 @@ export default function App() {
       </aside>
 
       {/* RIGHT CONTENT COLUMN */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', backgroundColor: 'var(--limen-bg-app)' }}>
         {/* TOP NAVBAR WITH REFRESH BUTTON IN CENTER */}
         <header
           style={{
             height: 52,
-            backgroundColor: '#ffffff',
+            backgroundColor: 'var(--limen-bg-navbar, #ffffff)',
             borderBottom: '1px solid var(--limen-border-light)',
             display: 'flex',
             alignItems: 'center',
@@ -1577,7 +1729,7 @@ export default function App() {
         >
           {/* LEFT: Current Section Breadcrumb */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--limen-text-primary, #0f172a)' }}>
               {currentTab === 'home' && t.nav.overview}
               {(currentTab === 'ask' || currentTab === 'search') && t.nav.ask}
               {(currentTab === 'documents' || currentTab === 'sources') && t.nav.documents}
@@ -1586,7 +1738,7 @@ export default function App() {
               {(currentTab === 'advanced' || ['proposals', 'outputs', 'snapshots', 'transfers', 'system', 'help', 'settings'].includes(currentTab)) && t.nav.advanced}
             </span>
             {vaultPath && (
-              <span style={{ fontSize: 11, color: '#64748b', backgroundColor: '#f1f5f9', padding: '2px 8px', borderRadius: 4, fontFamily: 'monospace' }}>
+              <span style={{ fontSize: 11, color: 'var(--limen-text-secondary, #64748b)', backgroundColor: 'var(--limen-bg-subtle, #f1f5f9)', padding: '2px 8px', borderRadius: 4, fontFamily: 'monospace', border: '1px solid var(--limen-border-light)' }}>
                 {vaultPath.split(/[/\\]/).filter(Boolean).pop()}
               </span>
             )}
@@ -1604,36 +1756,37 @@ export default function App() {
                 gap: 8,
                 padding: '6px 18px',
                 borderRadius: 20,
-                border: '1.5px solid #cbd5e1',
-                backgroundColor: isProcessing ? '#f1f5f9' : '#ffffff',
-                color: isProcessing ? '#94a3b8' : '#0f172a',
+                border: '1.5px solid var(--limen-border-subtle, #cbd5e1)',
+                backgroundColor: isProcessing ? 'var(--limen-bg-subtle, #f1f5f9)' : 'var(--limen-bg-surface, #ffffff)',
+                color: isProcessing ? 'var(--limen-text-muted, #94a3b8)' : 'var(--limen-text-primary, #0f172a)',
                 fontSize: 13,
                 fontWeight: 600,
                 cursor: isProcessing || !vaultPath ? 'not-allowed' : 'pointer',
-                boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
+                boxShadow: 'var(--limen-shadow-sm, 0 1px 2px rgba(0,0,0,0.06))',
                 transition: 'all 0.15s ease',
               }}
               onMouseEnter={(e) => {
                 if (!isProcessing && vaultPath) {
-                  e.currentTarget.style.borderColor = '#0f172a';
-                  e.currentTarget.style.backgroundColor = '#f8fafc';
+                  e.currentTarget.style.borderColor = 'var(--limen-accent-primary, #0f172a)';
+                  e.currentTarget.style.backgroundColor = 'var(--limen-bg-subtle, #f8fafc)';
                 }
               }}
               onMouseLeave={(e) => {
                 if (!isProcessing && vaultPath) {
-                  e.currentTarget.style.borderColor = '#cbd5e1';
-                  e.currentTarget.style.backgroundColor = '#ffffff';
+                  e.currentTarget.style.borderColor = 'var(--limen-border-subtle, #cbd5e1)';
+                  e.currentTarget.style.backgroundColor = 'var(--limen-bg-surface, #ffffff)';
                 }
               }}
             >
-              <RotateCw size={15} className={isProcessing ? 'spin' : ''} color={isProcessing ? '#94a3b8' : '#0f172a'} />
+              <RotateCw size={15} className={isProcessing ? 'spin' : ''} color={isProcessing ? 'var(--limen-text-muted, #94a3b8)' : 'var(--limen-text-primary, #0f172a)'} />
               <span>{isProcessing ? t.nav.refreshing : t.nav.refresh}</span>
             </button>
           </div>
 
-          {/* RIGHT: Language Toggle + Status Badge */}
+          {/* RIGHT: Language Toggle + Theme Toggle + Status Badge */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <LanguageToggle />
+            <ThemeToggle />
             {vaultLoaded ? (
               <span
                 style={{
@@ -1641,16 +1794,16 @@ export default function App() {
                   fontWeight: 700,
                   padding: '3px 9px',
                   borderRadius: 12,
-                  backgroundColor: vaultState === 'READY' ? '#dcfce7' : '#fee2e2',
-                  color: vaultState === 'READY' ? '#15803d' : '#b91c1c',
+                  backgroundColor: vaultState === 'READY' ? 'var(--limen-status-ready-bg, #dcfce7)' : 'var(--limen-status-warn-bg, #fee2e2)',
+                  color: vaultState === 'READY' ? 'var(--limen-status-ready-text, #15803d)' : '#b91c1c',
                   border: '1px solid',
-                  borderColor: vaultState === 'READY' ? '#bbf7d0' : '#fecaca',
+                  borderColor: vaultState === 'READY' ? 'var(--limen-status-ready-border, #bbf7d0)' : '#fecaca',
                 }}
               >
                 ● {labelIt(vaultState, language)}
               </span>
             ) : (
-              <span style={{ fontSize: 11, color: '#94a3b8' }}>{t.nav.noVault}</span>
+              <span style={{ fontSize: 11, color: 'var(--limen-text-muted, #94a3b8)' }}>{t.nav.noVault}</span>
             )}
           </div>
         </header>
@@ -2460,7 +2613,7 @@ export default function App() {
                     Trascina file o cartelle nella finestra, oppure clicca per selezionare {terms.fromDeviceTerm}
                   </div>
                   <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
-                    PDF, Word (.docx), Excel (.xlsx), presentazioni, scansioni, note e testi. Massimo 32 MB per file.
+                    PDF, Word (.docx), Excel (.xlsx), archivi ZIP, presentazioni, note e testi. Fino a 2 GB per file o archivio.
                   </div>
                 </div>
 
@@ -2664,6 +2817,7 @@ export default function App() {
                 }}
                 onNavigateToUpload={() => void handleUploadDocuments()}
                 onNavigateToAsk={() => setCurrentTab('ask')}
+                onAutoIndex={() => { setImportedFilesList([]); setShowIndexingPrompt(true); }}
               />
             )}
 
@@ -2983,6 +3137,9 @@ export default function App() {
       </main>
       </div>
 
+      {importItems && <ImportDocumentsModal items={importItems} busy={importRunning} progress={importProgress}
+        error={actionError} onConfirm={choices => void confirmImport(choices)} onClose={() => setImportItems(null)} onCancel={cancelImport} />}
+
       <DocumentReaderModal
         isOpen={readerOpen}
         onClose={() => {
@@ -3040,6 +3197,18 @@ export default function App() {
         <OrganizationReview items={organizationPending} folders={organizationFolders} choices={organizationChoices} disabled={isAutoIndexing}
           onChange={(id, folder) => setOrganizationChoices(current => ({ ...current, [id]: folder }))} />
       </IndexingPromptModal>
+
+      <BnxtVaultPreparationModal
+        isOpen={showBnxtModal && !bnxtMinimized}
+        progress={bnxtProgress}
+        corpusStatus={bnxtCorpusStatus}
+        onMinimize={() => setBnxtMinimized(true)}
+        onCancel={handleCancelBnxtPreparation}
+        onRetry={handleRetryBnxtPreparation}
+        onOpenVault={handleOpenBnxtVault}
+        onStart={handleStartBnxtPreparation}
+        onInspect={(p) => inspectBnxtSource(vaultPath || '/Users/cesare/Documents/Vault BNXT', ipc, p)}
+      />
     </div>
   );
 }

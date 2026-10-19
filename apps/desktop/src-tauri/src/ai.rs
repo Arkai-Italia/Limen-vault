@@ -1821,8 +1821,10 @@ Regole fondamentali da seguire con la massima precisione:\n\
 }
 
 pub fn estimate_tokens(text: &str) -> usize {
-    // Stima conservativa dei token (circa 3 caratteri per token in italiano/inglese con UTF-8)
-    (text.chars().count() + 2) / 3
+    // Stima rigorosa e conservativa dei token per tokenizer BPE (Llama/Mistral) in italiano e markdown.
+    // In italiano con punteggiatura, markdown e numeri, la media effettiva è di circa 1.7-2.0 caratteri per token.
+    // Usando (chars * 10 + 16) / 17 garantiamo di non sottostimare mai i token reali inviati a llama-server.
+    (text.chars().count() * 10 + 16) / 17
 }
 
 /// Seleziona e riduce le fonti per rispettare il limite di contesto del modello (8192 token),
@@ -1850,7 +1852,13 @@ Regole fondamentali:\n\
         base_text.push_str("CONTESTO CONVERSAZIONE PRECEDENTE:\n");
         let max_3: Vec<&ConversationTurn> = o.previous_turns.iter().rev().take(3).rev().collect();
         for (i, t) in max_3.iter().enumerate() {
-            base_text.push_str(&format!("Turno {}:\nDomanda: {}\nRisposta: {}\n\n", i + 1, t.question, t.answer));
+            let ans: String = if t.answer.chars().count() > 500 {
+                let p: String = t.answer.chars().take(500).collect();
+                format!("{}...", p.trim_end())
+            } else {
+                t.answer.clone()
+            };
+            base_text.push_str(&format!("Turno {}:\nDomanda: {}\nRisposta: {}\n\n", i + 1, t.question, ans));
         }
     }
     base_text.push_str(&format!("DOMANDA DELL'UTENTE:\n{}\n\nRisposta:", o.prompt));
@@ -1876,7 +1884,16 @@ Regole fondamentali:\n\
             remaining_budget -= s_tokens;
             selected_sources.push(s.clone());
         } else {
-            // Scarta questa e le successive fonti meno pertinenti
+            // Se nessuna fonte entra per intero, includiamo almeno un estratto della fonte più rilevante
+            if selected_sources.is_empty() && remaining_budget > 150 {
+                let char_allowance = (remaining_budget * 17 / 10).saturating_sub(120);
+                let truncated: String = s.content.chars().take(char_allowance).collect();
+                if !truncated.trim().is_empty() {
+                    let mut s_trunc = s.clone();
+                    s_trunc.content = truncated;
+                    selected_sources.push(s_trunc);
+                }
+            }
             break;
         }
     }
@@ -1892,7 +1909,7 @@ Regole fondamentali:\n\
 2. Sintetizza le informazioni da tutte le fonti pertinenti fornite.\n\
 3. Non inserire asterischi ('*') per formattazione, usa elenchi con trattino ('- ').";
 
-    let active_sources = prune_sources_for_context(o, sources, 8192, 1500);
+    let active_sources = prune_sources_for_context(o, sources, 6500, 1500);
 
     let mut user_text = String::new();
     user_text.push_str("DOCUMENTI DEL VAULT:\n\n");
@@ -1910,7 +1927,13 @@ Regole fondamentali:\n\
         user_text.push_str("CONTESTO CONVERSAZIONE PRECEDENTE:\n");
         let max_3: Vec<&ConversationTurn> = o.previous_turns.iter().rev().take(3).rev().collect();
         for (i, t) in max_3.iter().enumerate() {
-            user_text.push_str(&format!("Turno {}:\nDomanda: {}\nRisposta: {}\n\n", i + 1, t.question, t.answer));
+            let ans: String = if t.answer.chars().count() > 500 {
+                let p: String = t.answer.chars().take(500).collect();
+                format!("{}...", p.trim_end())
+            } else {
+                t.answer.clone()
+            };
+            user_text.push_str(&format!("Turno {}:\nDomanda: {}\nRisposta: {}\n\n", i + 1, t.question, ans));
         }
     }
 
@@ -4751,6 +4774,7 @@ mod tests {
           updated_at: "".into(),
           indexing_authorized_hash: None,
           extraction_status: ExtractionStatus::Ready,
+          extraction_version: 0,
           extraction_error: None,
           extracted_text_path: None,
           extracted_text_hash: None,
@@ -4910,6 +4934,7 @@ mod tests {
           updated_at: "".into(),
           indexing_authorized_hash: None,
           extraction_status: ExtractionStatus::Ready,
+          extraction_version: 0,
           extraction_error: None,
           extracted_text_path: None,
           extracted_text_hash: None,
@@ -4972,6 +4997,7 @@ mod tests {
           updated_at: "".into(),
           indexing_authorized_hash: None,
           extraction_status: ExtractionStatus::Ready,
+          extraction_version: 0,
           extraction_error: None,
           extracted_text_path: None,
           extracted_text_hash: None,

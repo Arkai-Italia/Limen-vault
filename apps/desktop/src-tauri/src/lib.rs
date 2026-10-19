@@ -17,6 +17,8 @@ pub mod sync;
 pub mod automation;
 pub mod extraction;
 pub mod catalog;
+pub mod document_import;
+mod text_ingestion;
 pub mod embeddings;
 pub mod llama;
 pub mod llama_llm;
@@ -29,3 +31,4 @@ pub mod indexing;
 mod release_regressions;
 
 pub mod organization;
+pub mod zip_import;

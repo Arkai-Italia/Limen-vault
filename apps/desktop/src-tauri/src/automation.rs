@@ -1,8 +1,10 @@
 //! Persistent, opt-in RAW ingestion. Generated files are immutable, never human-approved.
 use crate::{
     compiler, search,
-    snapshots::{child, compute_sha256, names, publish, read, root, write_new},
+    snapshots::{child, compute_sha256, copy_and_compute_sha256, create_new_file, names, publish, read, root, write_new},
 };
+pub const MAX_IMPORT_FILE_SIZE_BYTES: u64 = 2_000_000_000;
+
 use cap_std::fs::{Dir, OpenOptions};
 #[cfg(unix)]
 use cap_std::fs::OpenOptionsExt;
@@ -20,6 +22,20 @@ use std::{
 };
 #[cfg(unix)]
 use std::os::fd::AsRawFd;
+
+static IMPORT_CANCELLED: AtomicBool = AtomicBool::new(false);
+
+pub fn cancel_import() {
+    IMPORT_CANCELLED.store(true, Ordering::SeqCst);
+}
+
+pub fn is_import_cancelled() -> bool {
+    IMPORT_CANCELLED.load(Ordering::SeqCst)
+}
+
+pub fn reset_import_cancelled() {
+    IMPORT_CANCELLED.store(false, Ordering::SeqCst);
+}
 
 const STATE: &str = "AUTO_KNOWLEDGE.json";
 const CONFIG: &str = "AUTO_KNOWLEDGE_CONFIG.json";
@@ -197,9 +213,9 @@ pub fn import(path: &Path, name: &str, bytes: &[u8]) -> Result<String, String> {
     if name.is_empty()
         || name.starts_with('.')
         || name.contains(['/', '\\', '\0'])
-        || bytes.len() > 32 * 1024 * 1024
+        || bytes.len() > MAX_IMPORT_FILE_SIZE_BYTES as usize
     {
-        return Err("Nome non valido o file oltre 32 MB".into());
+        return Err("Nome non valido o file oltre 2 GB".into());
     }
     let d = root(path)?;
     let raw = child(&d, "20_RAW_SOURCES")?;
@@ -232,6 +248,10 @@ pub struct ImportReceipt {
 }
 
 pub fn import_selected_with_receipt(vault: &Path, source: &Path) -> ImportReceipt {
+    import_selected_with_progress(vault, source, None)
+}
+
+pub fn import_selected_with_progress(vault: &Path, source: &Path, progress: Option<&dyn Fn(u64)>) -> ImportReceipt {
     let name = match source.file_name().and_then(|s| s.to_str()) {
         Some(n) => n.to_string(),
         None => {
@@ -246,6 +266,28 @@ pub fn import_selected_with_receipt(vault: &Path, source: &Path) -> ImportReceip
             };
         }
     };
+
+    let is_zip = source.extension()
+        .and_then(|s| s.to_str())
+        .map(|s| s.eq_ignore_ascii_case("zip"))
+        .unwrap_or(false);
+    if is_zip {
+        let receipts = crate::zip_import::import_zip_archive(vault, source);
+        if let Some(r) = receipts.into_iter().next() {
+            return r;
+        } else {
+            return ImportReceipt {
+                name,
+                path: None,
+                status: "error".into(),
+                error: Some("Archivio ZIP vuoto".into()),
+                document_id: None,
+                hash: None,
+                size_bytes: None,
+            };
+        }
+    }
+
     let mut opts = std::fs::OpenOptions::new();
     opts.read(true);
     #[cfg(unix)]
@@ -253,8 +295,7 @@ pub fn import_selected_with_receipt(vault: &Path, source: &Path) -> ImportReceip
         use std::os::unix::fs::OpenOptionsExt;
         opts.custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK);
     }
-    let mut file = match opts.open(source)
-    {
+    let mut file = match opts.open(source) {
         Ok(f) => f,
         Err(e) => {
             return ImportReceipt {
@@ -282,78 +323,155 @@ pub fn import_selected_with_receipt(vault: &Path, source: &Path) -> ImportReceip
             };
         }
     };
-    let max = 32 * 1024 * 1024;
+    let max = MAX_IMPORT_FILE_SIZE_BYTES;
     if !before.is_file() || before.len() > max {
         return ImportReceipt {
             name,
             path: None,
             status: "error".into(),
-            error: Some("File non regolare o oltre 32 MB".into()),
+            error: Some("File non regolare o oltre 2 GB (2.000.000.000 byte)".into()),
             document_id: None,
             hash: None,
             size_bytes: Some(before.len()),
         };
     }
-    let mut bytes = Vec::new();
-    if let Err(e) = Read::by_ref(&mut file).take(max + 1).read_to_end(&mut bytes) {
-        return ImportReceipt {
-            name,
-            path: None,
-            status: "error".into(),
-            error: Some(e.to_string()),
-            document_id: None,
-            hash: None,
-            size_bytes: Some(before.len()),
-        };
-    }
+
+    let d = match root(vault) {
+        Ok(dir) => dir,
+        Err(e) => {
+            return ImportReceipt {
+                name,
+                path: None,
+                status: "error".into(),
+                error: Some(e),
+                document_id: None,
+                hash: None,
+                size_bytes: Some(before.len()),
+            };
+        }
+    };
+    let raw = match child(&d, "20_RAW_SOURCES") {
+        Ok(r) => r,
+        Err(e) => {
+            return ImportReceipt {
+                name,
+                path: None,
+                status: "error".into(),
+                error: Some(e),
+                document_id: None,
+                hash: None,
+                size_bytes: Some(before.len()),
+            };
+        }
+    };
+
+    let temp_name = format!(".import-{}", crate::ai::random_token().unwrap_or_else(|_| "tmp".into()));
+    let mut temp_file = match create_new_file(&raw, &temp_name) {
+        Ok(f) => f,
+        Err(e) => {
+            return ImportReceipt {
+                name,
+                path: None,
+                status: "error".into(),
+                error: Some(e),
+                document_id: None,
+                hash: None,
+                size_bytes: Some(before.len()),
+            };
+        }
+    };
+
+    let (hash, copied_size) = match copy_and_compute_sha256(&mut file, &mut temp_file, max, progress) {
+        Ok(res) => res,
+        Err(e) => {
+            let _ = raw.remove_file(&temp_name);
+            return ImportReceipt {
+                name,
+                path: None,
+                status: "error".into(),
+                error: Some(e),
+                document_id: None,
+                hash: None,
+                size_bytes: Some(before.len()),
+            };
+        }
+    };
+    drop(temp_file);
+
     let after = match file.metadata() {
         Ok(m) => m,
         Err(e) => {
+            let _ = raw.remove_file(&temp_name);
             return ImportReceipt {
                 name,
                 path: None,
                 status: "error".into(),
                 error: Some(e.to_string()),
                 document_id: None,
-                hash: None,
-                size_bytes: Some(bytes.len() as u64),
+                hash: Some(hash),
+                size_bytes: Some(copied_size),
             };
         }
     };
-    if bytes.len() > max as usize
+
+    if copied_size > max
         || before.len() != after.len()
+        || before.len() != copied_size
         || before.modified().map_err(err).ok() != after.modified().map_err(err).ok()
     {
+        let _ = raw.remove_file(&temp_name);
         return ImportReceipt {
             name,
             path: None,
             status: "error".into(),
             error: Some("File modificato durante l’importazione".into()),
             document_id: None,
-            hash: None,
-            size_bytes: Some(bytes.len() as u64),
+            hash: Some(hash),
+            size_bytes: Some(copied_size),
         };
     }
-    let hash = compute_sha256(&bytes);
-    let size = bytes.len() as u64;
-    let hash_prefix = format!("{}-", &hash[..16]);
 
+    let target = format!("{}-{}", &hash[..16], name);
+
+    // Deduplication check: verify actual bytes on disk
     let existing_match = (|| -> Result<Option<String>, String> {
-        // Deduplicate also against originals already organized outside RAW.
+        let raw_fs = vault.join("20_RAW_SOURCES");
+        // 1. Check catalog matches, but confirm actual disk content
         if let Ok(cat) = crate::catalog::load_catalog(vault) {
-            let r = root(vault)?;
-            for doc in cat.documents.values().filter(|d| crate::catalog::is_original(d) && d.content_hash == hash) {
-                if read_path(&r, &doc.original_path).is_ok_and(|b| b == bytes) { return Ok(Some(doc.original_path.clone())); }
+            for doc in cat.documents.values().filter(|d| crate::catalog::is_original(d) && d.content_hash == hash && d.file_size == copied_size) {
+                let full = vault.join(&doc.original_path);
+                if let Ok(f) = std::fs::File::open(&full) {
+                    if let Ok((actual_hash, actual_len)) = crate::snapshots::compute_sha256_stream(f) {
+                        if actual_len == copied_size && actual_hash == hash {
+                            return Ok(Some(doc.original_path.clone()));
+                        }
+                    }
+                }
             }
         }
-
-        let d = root(vault)?;
-        let raw = child(&d, "20_RAW_SOURCES")?;
-        for existing in names(&raw)? {
-            if existing.starts_with(&hash_prefix) {
-                if let Ok(existing_bytes) = read(&raw, &existing) {
-                    if existing_bytes == bytes {
-                        return Ok(Some(format!("20_RAW_SOURCES/{existing}")));
+        // 2. Check exact target file on disk
+        let target_path = raw_fs.join(&target);
+        if target_path.exists() {
+            if let Ok(f) = std::fs::File::open(&target_path) {
+                if let Ok((actual_hash, actual_len)) = crate::snapshots::compute_sha256_stream(f) {
+                    if actual_len == copied_size && actual_hash == hash {
+                        return Ok(Some(format!("20_RAW_SOURCES/{target}")));
+                    }
+                }
+            }
+        }
+        // 3. Check matching hash prefix files on disk
+        let hash_prefix = format!("{}-", &hash[..16]);
+        if let Ok(entries) = std::fs::read_dir(&raw_fs) {
+            for entry in entries.flatten() {
+                let fname = entry.file_name().to_string_lossy().to_string();
+                if fname.starts_with(&hash_prefix) {
+                    if let Ok(f) = std::fs::File::open(entry.path()) {
+                        if let Ok((actual_hash, actual_len)) = crate::snapshots::compute_sha256_stream(f) {
+                            if actual_len == copied_size && actual_hash == hash {
+                                return Ok(Some(format!("20_RAW_SOURCES/{fname}")));
+                            }
+                        }
                     }
                 }
             }
@@ -361,8 +479,15 @@ pub fn import_selected_with_receipt(vault: &Path, source: &Path) -> ImportReceip
         Ok(None)
     })().unwrap_or(None);
 
+    if is_import_cancelled() {
+        let _ = raw.remove_file(&temp_name);
+        return ImportReceipt { name, path: None, status: "error".into(), error: Some("Importazione annullata dall’utente".into()), document_id: None, hash: Some(hash), size_bytes: Some(copied_size) };
+    }
     if let Some(existing_rel) = existing_match {
-        let doc_id = crate::catalog::get_document_by_path(vault, &existing_rel).map(|d| d.document_id).unwrap_or_else(|_| crate::catalog::make_document_id(&existing_rel));
+        let _ = raw.remove_file(&temp_name);
+        let doc_id = crate::catalog::get_document_by_path(vault, &existing_rel)
+            .map(|d| d.document_id)
+            .unwrap_or_else(|_| crate::catalog::make_document_id(&existing_rel));
         return ImportReceipt {
             name,
             path: Some(existing_rel),
@@ -370,12 +495,20 @@ pub fn import_selected_with_receipt(vault: &Path, source: &Path) -> ImportReceip
             error: None,
             document_id: Some(doc_id),
             hash: Some(hash),
-            size_bytes: Some(size),
+            size_bytes: Some(copied_size),
         };
     }
 
-    match import(vault, &name, &bytes) {
-        Ok(rel_path) => {
+    let mut final_target = target.clone();
+    let mut counter = 1;
+    while names(&raw).map(|n| n.contains(&final_target)).unwrap_or(false) {
+        final_target = format!("{}-{}-{}", &hash[..16], counter, name);
+        counter += 1;
+    }
+
+    match publish(&raw, &temp_name, &final_target) {
+        Ok(()) => {
+            let rel_path = format!("20_RAW_SOURCES/{final_target}");
             let doc_id = crate::catalog::make_document_id(&rel_path);
             ImportReceipt {
                 name,
@@ -384,18 +517,21 @@ pub fn import_selected_with_receipt(vault: &Path, source: &Path) -> ImportReceip
                 error: None,
                 document_id: Some(doc_id),
                 hash: Some(hash),
-                size_bytes: Some(size),
+                size_bytes: Some(copied_size),
             }
         }
-        Err(e) => ImportReceipt {
-            name,
-            path: None,
-            status: "error".into(),
-            error: Some(e),
-            document_id: None,
-            hash: Some(hash),
-            size_bytes: Some(size),
-        },
+        Err(e) => {
+            let _ = raw.remove_file(&temp_name);
+            ImportReceipt {
+                name,
+                path: None,
+                status: "error".into(),
+                error: Some(format!("Destinazione già occupata con contenuto differente (collisione): {}", e)),
+                document_id: None,
+                hash: Some(hash),
+                size_bytes: Some(copied_size),
+            }
+        }
     }
 }
 
@@ -419,6 +555,20 @@ pub fn import_paths(vault: &Path, sources: &[&Path]) -> Vec<ImportReceipt> {
         collect_import_files(src, vault_root.as_deref(), 0, &mut remaining, &mut files, &mut errors);
     }
     for src in files {
+        let is_zip = src.extension()
+            .and_then(|s| s.to_str())
+            .map(|s| s.eq_ignore_ascii_case("zip"))
+            .unwrap_or(false);
+        if is_zip {
+            let zip_receipts = crate::zip_import::import_zip_archive(vault, &src);
+            for r in zip_receipts {
+                if r.status == "imported" || r.status == "duplicate" {
+                    any_success = true;
+                }
+                receipts.push(r);
+            }
+            continue;
+        }
         let receipt = import_selected_with_receipt(vault, &src);
         if receipt.status == "imported" || receipt.status == "duplicate" {
             any_success = true;
@@ -442,9 +592,10 @@ pub fn import_paths(vault: &Path, sources: &[&Path]) -> Vec<ImportReceipt> {
     receipts
 }
 
+
 // Finder drops contain real paths, including directories. Never follow links or
 // recurse into the destination vault; bound traversal and retain per-item errors.
-fn collect_import_files(
+pub(crate) fn collect_import_files(
     path: &Path, vault: Option<&Path>, depth: usize, remaining: &mut usize,
     files: &mut Vec<std::path::PathBuf>, errors: &mut Vec<(std::path::PathBuf, String)>,
 ) {
@@ -580,11 +731,12 @@ fn read_path(root: &Dir, relative: &str) -> Result<Vec<u8>, String> {
         .open_with(parts[parts.len() - 1], &opts)
         .map_err(err)?;
     let before = f.metadata().map_err(err)?;
-    let max = 32 * 1024 * 1024;
-    if !before.is_file() || before.len() > max {
-        return Err("File non regolare o oltre 32 MB".into());
+    const MAX_READ_BYTES: u64 = 64 * 1024 * 1024; // 64 MB maximum buffer for in-memory text/doc extraction
+    if !before.is_file() || before.len() > MAX_READ_BYTES {
+        return Err(format!("File eccede il limite di lettura in memoria (max {} MB)", MAX_READ_BYTES / (1024 * 1024)));
     }
-    let mut bytes = Vec::new();
+    let max = before.len();
+    let mut bytes = Vec::with_capacity(max as usize);
     Read::by_ref(&mut f)
         .take(max + 1)
         .read_to_end(&mut bytes)
@@ -599,19 +751,55 @@ fn read_path(root: &Dir, relative: &str) -> Result<Vec<u8>, String> {
     drop(f);
     Ok(bytes)
 }
+
+fn hash_path(root: &Dir, relative: &str) -> Result<String, String> {
+    let parts: Vec<_> = relative.split('/').collect();
+    if parts.len() < 2
+        || parts
+            .iter()
+            .any(|s| s.is_empty() || *s == "." || *s == ".." || s.contains(['\\', '\0']))
+    {
+        return Err("Percorso non valido".into());
+    }
+    let mut d = root.try_clone().map_err(err)?;
+    for p in &parts[..parts.len() - 1] {
+        d = child(&d, p)?;
+    }
+    let mut opts = OpenOptions::new();
+    opts.read(true);
+    #[cfg(unix)]
+    opts.custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK);
+    let mut f = d
+        .open_with(parts[parts.len() - 1], &opts)
+        .map_err(err)?;
+    let before = f.metadata().map_err(err)?;
+    if !before.is_file() || before.len() > MAX_IMPORT_FILE_SIZE_BYTES {
+        return Err("File non regolare o oltre 2 GB".into());
+    }
+    let (hash, written) = crate::snapshots::compute_sha256_stream(&mut f)?;
+    let after = f.metadata().map_err(err)?;
+    if before.len() != after.len()
+        || before.len() != written
+        || before.modified().map_err(err)? != after.modified().map_err(err)?
+    {
+        return Err("File modificato durante la lettura".into());
+    }
+    Ok(hash)
+}
+
 fn current(d: &Dir, j: &Job) -> bool {
     j.status == "ready"
         && j.output
             .as_ref()
             .zip(j.output_hash.as_ref())
-            .is_some_and(|(p, h)| read_path(d, p).is_ok_and(|b| compute_sha256(&b) == *h))
+            .is_some_and(|(p, h)| hash_path(d, p).is_ok_and(|actual| actual == *h))
         && j.parts
             .iter()
-            .all(|(p, h)| read_path(d, p).is_ok_and(|b| compute_sha256(&b) == *h))
+            .all(|(p, h)| hash_path(d, p).is_ok_and(|actual| actual == *h))
         && !j.dependencies.is_empty()
         && j.dependencies
             .iter()
-            .all(|(p, h)| read_path(d, p).is_ok_and(|b| compute_sha256(&b) == *h))
+            .all(|(p, h)| hash_path(d, p).is_ok_and(|actual| actual == *h))
 }
 /// Only persisted current generated artifacts are eligible; a frontmatter flag alone grants nothing.
 pub fn managed(relative: &str) -> bool {
@@ -920,8 +1108,9 @@ pub fn run_with(
     let mut calls = 0;
     let mut observed = BTreeMap::new();
     for p in &paths {
-        let bytes = match read_path(&d, p) {
-            Ok(b) => b,
+        if catalog.documents.values().any(|doc| doc.original_path == *p && crate::catalog::is_support_document(doc)) { continue; }
+        let hash = match hash_path(&d, p) {
+            Ok(h) => h,
             Err(e) => {
                 let j = s
                     .jobs
@@ -931,7 +1120,6 @@ pub fn run_with(
                 continue;
             }
         };
-        let hash = compute_sha256(&bytes);
         observed.insert(p.clone(), hash.clone());
         let fingerprint =
             compute_sha256(format!("auto-native-extract-1:{}:{hash}", c.model).as_bytes());
@@ -978,6 +1166,7 @@ pub fn run_with(
         s.jobs.insert(p.clone(), j.clone());
         atomic(&sys, STATE, &s)?;
         let result: Result<(), String> = (|| {
+            let bytes = read_path(&d, p)?;
             let text = if spreadsheet(p) {
                 extract_spreadsheet(&bytes)?
             } else if text_format(p) {
@@ -1024,7 +1213,7 @@ pub fn run_with(
                     j.project = value.into()
                 }
             }
-            if compute_sha256(&read_path(&d, p)?) != hash {
+            if hash_path(&d, p)? != hash {
                 return Err("Fonte modificata durante l’elaborazione; verrà riletta".into());
             }
             j.parts.clear();
@@ -1212,7 +1401,7 @@ pub fn run_with(
                 if !j
                     .dependencies
                     .iter()
-                    .all(|(p, h)| read_path(&d, p).is_ok_and(|b| compute_sha256(&b) == *h))
+                    .all(|(p, h)| hash_path(&d, p).is_ok_and(|actual| actual == *h))
                 {
                     return Err("Fonti wiki modificate durante l’elaborazione".into());
                 }
@@ -1684,5 +1873,35 @@ mod tests {
         crate::embeddings::set_embeddings_provider(t.path(), "local", 0).unwrap();
         let stat = status(t.path()).unwrap();
         assert!(!stat.message.contains("Solo Locale attiva"), "La modalità ibrida con embeddings locali non deve essere confusa con Solo Locale");
+    }
+
+    #[test]
+    fn test_import_selected_streaming_and_oversize_rejection() {
+        let t = fixture();
+        let input = tempfile::tempdir().unwrap();
+
+        // 1. Valid file import
+        let src = input.path().join("normal.txt");
+        fs::write(&src, "Contenuto normale per test di streaming").unwrap();
+        let receipt = import_selected_with_receipt(t.path(), &src);
+        assert_eq!(receipt.status, "imported");
+        assert_eq!(receipt.size_bytes, Some(fs::metadata(&src).unwrap().len()));
+        let imported_path = t.path().join(receipt.path.unwrap());
+        assert!(imported_path.exists());
+        assert_eq!(fs::read(&imported_path).unwrap(), b"Contenuto normale per test di streaming");
+
+        // 2. Duplicate detection on re-import
+        let dup_receipt = import_selected_with_receipt(t.path(), &src);
+        assert_eq!(dup_receipt.status, "duplicate");
+
+        // 3. Oversize file (> 2 GB) rejection
+        let large_src = input.path().join("huge.bin");
+        let f = fs::File::create(&large_src).unwrap();
+        f.set_len(2_000_000_001).unwrap();
+        drop(f);
+
+        let err_receipt = import_selected_with_receipt(t.path(), &large_src);
+        assert_eq!(err_receipt.status, "error");
+        assert!(err_receipt.error.as_ref().unwrap().contains("oltre 2 GB"));
     }
 }

@@ -50,6 +50,49 @@ fn err(e: impl std::fmt::Display) -> String {
 pub fn compute_sha256(bytes: &[u8]) -> String {
     format!("{:x}", Sha256::digest(bytes))
 }
+pub fn compute_sha256_stream<R: Read>(mut reader: R) -> Result<(String, u64), String> {
+    let mut hasher = Sha256::new();
+    let mut buf = [0u8; 128 * 1024];
+    let mut total: u64 = 0;
+    loop {
+        let n = reader.read(&mut buf).map_err(err)?;
+        if n == 0 {
+            break;
+        }
+        hasher.update(&buf[..n]);
+        total += n as u64;
+    }
+    Ok((format!("{:x}", hasher.finalize()), total))
+}
+pub fn copy_and_compute_sha256<R: Read, W: Write>(
+    mut reader: R,
+    mut writer: W,
+    max_bytes: u64,
+    progress: Option<&dyn Fn(u64)>,
+) -> Result<(String, u64), String> {
+    let mut hasher = Sha256::new();
+    let mut buf = [0u8; 128 * 1024];
+    let mut total: u64 = 0;
+    loop {
+        let n = reader.read(&mut buf).map_err(err)?;
+        if n == 0 {
+            break;
+        }
+        if crate::automation::is_import_cancelled() {
+            return Err("Importazione annullata dall'utente".into());
+        }
+        total += n as u64;
+        if total > max_bytes {
+            return Err(format!("File eccede il limite di {} byte", max_bytes));
+        }
+        hasher.update(&buf[..n]);
+        writer.write_all(&buf[..n]).map_err(err)?;
+        if let Some(report) = progress { report(total); }
+    }
+    writer.flush().map_err(err)?;
+    Ok((format!("{:x}", hasher.finalize()), total))
+}
+
 fn component(s: &str) -> Result<(), String> {
     if s.is_empty() || s == "." || s == ".." || s.contains(['/', '\\', '\0']) {
         Err("Unsafe path component".into())
@@ -129,6 +172,19 @@ pub(crate) fn read_path(dir: &Dir, path: &str) -> Result<Vec<u8>, String> {
     }
     read(&d, parts[parts.len() - 1])
 }
+pub(crate) fn open_read_path(dir: &Dir, path: &str) -> Result<cap_std::fs::File, String> {
+    relative(path)?;
+    let parts: Vec<_> = path.split('/').collect();
+    let mut d = dir.try_clone().map_err(err)?;
+    for p in &parts[..parts.len() - 1] { d = child(&d, p)?; }
+    let mut options = OpenOptions::new();
+    options.read(true);
+    #[cfg(unix)]
+    options.custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK);
+    let file = d.open_with(parts[parts.len() - 1], &options).map_err(err)?;
+    if !file.metadata().map_err(err)?.is_file() { return Err("Not a regular file".into()); }
+    Ok(file)
+}
 pub(crate) fn names(d: &Dir) -> Result<Vec<String>, String> {
     let mut result = Vec::new();
     for e in d.entries().map_err(err)? {
@@ -182,16 +238,18 @@ pub fn is_excluded_from_snapshots(rel: &str) -> bool {
     }
     RECONSTRUCTIBLE_SYSTEM_FILES.contains(&rel)
 }
-pub(crate) fn write_new(d: &Dir, name: &str, bytes: &[u8]) -> Result<(), String> {
+pub(crate) fn create_new_file(d: &Dir, name: &str) -> Result<cap_std::fs::File, String> {
     component(name)?;
     let mut opts = OpenOptions::new();
     opts.write(true).create_new(true);
     #[cfg(unix)]
     {
-        use std::os::unix::fs::OpenOptionsExt;
         opts.custom_flags(libc::O_NOFOLLOW);
     }
-    let mut f = d.open_with(name, &opts).map_err(err)?;
+    d.open_with(name, &opts).map_err(err)
+}
+pub(crate) fn write_new(d: &Dir, name: &str, bytes: &[u8]) -> Result<(), String> {
+    let mut f = create_new_file(d, name)?;
     f.write_all(bytes).map_err(err)?;
     f.sync_all().map_err(err)
 }

@@ -596,6 +596,26 @@ impl Serialize for VaultFolderFilesReport {
     }
 }
 
+pub fn count_vault_files_recursive(dir: &Path) -> usize {
+    let mut count = 0;
+    if let Ok(entries) = std::fs::read_dir(dir) {
+        for entry in entries.flatten() {
+            let n = entry.file_name().to_string_lossy().to_string();
+            if n.starts_with('.') || n == "node_modules" {
+                continue;
+            }
+            if let Ok(ft) = entry.file_type() {
+                if ft.is_dir() {
+                    count += count_vault_files_recursive(&entry.path());
+                } else if ft.is_file() {
+                    count += 1;
+                }
+            }
+        }
+    }
+    count
+}
+
 pub fn list_vault_folders(vault_path: &Path) -> Result<Vec<VaultFolderReport>, String> {
     if !vault_path.exists() {
         return Err("La cartella del vault non esiste".into());
@@ -641,16 +661,7 @@ pub fn list_vault_folders(vault_path: &Path) -> Result<Vec<VaultFolderReport>, S
                     error: Some("Il percorso non è una cartella".into()),
                 });
             } else {
-                let count = match std::fs::read_dir(&canonical_f) {
-                    Ok(entries) => entries
-                        .flatten()
-                        .filter(|e| {
-                            let n = e.file_name().to_string_lossy().to_string();
-                            !n.starts_with('.')
-                        })
-                        .count(),
-                    Err(_) => 0,
-                };
+                let count = count_vault_files_recursive(&canonical_f);
                 reports.push(VaultFolderReport {
                     id: folder_name.to_string(),
                     name: folder_name.to_string(),
@@ -685,16 +696,7 @@ pub fn list_vault_folders(vault_path: &Path) -> Result<Vec<VaultFolderReport>, S
                 if meta.is_dir() {
                     if let Ok(canonical_f) = entry.path().canonicalize() {
                         if canonical_f.starts_with(&canonical_vault) {
-                            let count = match std::fs::read_dir(&canonical_f) {
-                                Ok(sub_entries) => sub_entries
-                                    .flatten()
-                                    .filter(|e| {
-                                        let n = e.file_name().to_string_lossy().to_string();
-                                        !n.starts_with('.')
-                                    })
-                                    .count(),
-                                Err(_) => 0,
-                            };
+                            let count = count_vault_files_recursive(&canonical_f);
                             reports.push(VaultFolderReport {
                                 id: name.clone(),
                                 name: name.clone(),
@@ -841,9 +843,8 @@ pub fn read_vault_text(vault_path: &Path, relative_path: &str) -> Result<String,
     let file = root.open_with(relative_path, &options).map_err(|e| e.to_string())?;
     if !file.metadata().map_err(|e| e.to_string())?.is_file() { return Err("Seleziona un file".into()); }
     let mut bytes = Vec::new();
-    file.take(1_048_577).read_to_end(&mut bytes).map_err(|e| e.to_string())?;
-    if bytes.len() > 1_048_576 { return Err("Anteprima disponibile per file di testo fino a 1 MiB. Usa Apri nel Finder.".into()); }
-    String::from_utf8(bytes).map_err(|_| "Anteprima testuale non disponibile per questo formato".into())
+    file.take(1_048_576).read_to_end(&mut bytes).map_err(|e| e.to_string())?;
+    String::from_utf8(bytes.clone()).or_else(|_| Ok(String::from_utf8_lossy(&bytes).to_string()))
 }
 
 pub fn reveal_vault_path(vault_path: &Path, target: &str) -> Result<(), String> {

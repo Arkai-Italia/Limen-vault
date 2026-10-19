@@ -1,0 +1,40 @@
+Design a premium responsive product landing page for LIMEN Vault. Deliver desktop (1440 px) and mobile (390 px) designs. Use English copy.
+
+Read STITCH_DESIGN.md for the landing rules and DESIGN_SYSTEM.md for the existing app identity and product constraints. The landing is a premium marketing extension, not a redesign of the desktop UI.
+
+PRODUCT
+LIMEN Vault turns imported documents into searchable knowledge. It preserves originals, extracts their text, creates Markdown source notes, indexes content for RAG search, and offers automatically generated thematic wikis with source references. Users do not need Markdown files or Obsidian. Do not headline either of those technologies.
+
+ART DIRECTION — LIGHT THEME REQUIRED
+Premium light editorial design, consistent with the existing desktop UI. White #FFFFFF, light Slate #F8FAFC and #F1F5F9, deep Slate text #0F172A, secondary text #475569, fine borders #E2E8F0. Restrained LIMEN lime #77F117 as a small accent with dark text, never small lime text on white. Dark Slate primary buttons with white text; white secondary buttons with dark outlines. Generous whitespace, confident clean sans-serif typography and meticulous alignment. No dark hero, dark sections, black/gold luxury styling, gradients, glow, glass-card grids or decorative architectural doorway. Do not use the previously generated dark social cover. Use the ORIGINAL supplied black Limen logo without redrawing its letters. Keep screenshots in their real light UI. Convey premium quality through proportion and editorial restraint.
+
+HERO
+Headline: “Your documents. Connected knowledge.”
+Subheading: “Import documents, turn their text into indexed knowledge, search with RAG, and generate thematic wikis.”
+Primary CTA: “Download for macOS”
+Secondary CTA: “View on GitHub”
+Availability: “macOS Apple Silicon · Preview”
+Use a strong editorial split composition, with a clean document-to-knowledge visual secondary to the product message.
+
+PAGE SEQUENCE
+1. Minimal navigation: How it works / Search & Wikis / Privacy / FAQ / Download.
+2. Hero above.
+3. Four-step visual story: Import → Extract & convert → Index & retrieve → Generate wikis. Explain that Markdown is generated internally, not required as input.
+4. Large authentic app preview. Supplied screenshots are v3 from September 2026: label them “Historical desktop capture — v3, September 2026”. Never fabricate a current product screenshot.
+5. Two substantial editorial sections: document-grounded RAG answers; thematic wiki pages connecting multiple sources with references. Any illustrative examples must be explicitly labeled.
+6. Supported-format overview: text/structured text, Office, spreadsheets, PDF/images. Explain platform-dependent extraction and macOS OCR. Never say “any file”.
+7. Clear local/cloud comparison. Local search and local answers use configured local models. CURRENT AUTOMATIC CLASSIFICATION AND WIKI GENERATION USE OPENAI: API key and internet required, source content sent to that provider. State this alongside the wiki section and privacy section. Do not promise all features work offline.
+8. FAQ: no Obsidian required; no pre-existing Markdown required; supported formats only; current wiki automation uses OpenAI; Windows final installer not yet asserted; license decision pending.
+9. Final download CTA and simple GitHub footer.
+
+DESIGN DETAILS
+1200 px maximum content width; 112 px section spacing on desktop / 64 px mobile; 24 px mobile gutters. Large editorial headings, readable body text 18 px, buttons at least 48 px high. Restrained 8–12 px radii. Use dividers and generous bands rather than repetitive cards. Provide keyboard-focus and hover states, accessible contrast, a mobile menu and reduced-motion behavior. Avoid excessive animation.
+
+LINKS
+GitHub: https://github.com/cesarenegro/Limen-vault
+Download: https://github.com/cesarenegro/Limen-vault/raw/windows-build/USER%20INSTALL/LIMEN-Vault-v7Mini.dmg
+
+DO NOT INVENT
+No pricing, testimonials, customer logos, user counts, speed benchmarks, certifications, open-source license, release guarantees, sign-up service or working web demo. No document upload form: this page explains a desktop application. No repainted screenshots or invented app controls. If an asset is unavailable, use a clearly labeled placeholder rather than fabricating evidence.
+
+Produce the complete coherent landing design in both sizes, using real page copy and a clear visual hierarchy. This request is for design, not deployment.

@@ -104,6 +104,15 @@ export interface ImportReceipt {
   hash?: string | null;
   sizeBytes?: number | null;
 }
+export interface ImportChoice { sourcePath: string; entryIndex: number | null; index: boolean }
+export interface ImportItem extends ImportChoice {
+  name: string;
+  targetPath: string;
+  sizeBytes: number;
+  canExtract: boolean;
+  blockedReason: string | null;
+}
+export interface ImportProgress { vaultPath?: string; status: 'processing' | 'completed' | 'cancelled' | 'error'; current: number; total: number; name?: string }
 
 export type ExtractionStatus =
   | 'pending'
@@ -215,6 +224,28 @@ export interface DocumentVerificationReport {
   message: string;
 }
 
+export interface BnxtCorpusStatus {
+  isPresent: boolean;
+  fileCount: number;
+  indexedCount: number;
+  conservedCount: number;
+  defaultSourcePath: string;
+  sourceAvailable: boolean;
+  defaultZipPath?: string;
+  zipAvailable?: boolean;
+}
+
+export interface BnxtInspectResult {
+  sourcePath: string;
+  totalFiles: number;
+  totalUncompressedBytes: number;
+  documentFilesCount: number;
+  supportFilesCount: number;
+  existingFilesCount: number;
+  identicalFilesCount: number;
+  hasExistingFiles: boolean;
+}
+
 export interface CitationOpenRequest {
   documentId: string;
   passageId?: string;
@@ -314,7 +345,12 @@ export function createVaultIpc(invoke: Invoke, native: () => boolean) {
     revealInFinder: (path: string, documentIdOrPath: string) => run(async () => invoke<void>('vault_reveal_path', { vaultPath: path, target: documentIdOrPath })),
     getCatalogSummary: (path: string) => readOnly(async () => invoke<CatalogSummary>('catalog_get_summary', { vaultPath: path })),
     automationChooseFiles: (path: string) => run(async () => invoke<ImportReceipt[]>('automation_choose_files', { vaultPath: path })),
+    pickImportPaths: () => readOnly(() => invoke<string[]>('import_pick_paths')),
+    inspectImport: (path: string, paths: string[]) => readOnly(() => invoke<ImportItem[]>('import_inspect', { vaultPath: path, paths })),
+    executeImport: (path: string, choices: ImportChoice[]) => run(() => invoke<ImportReceipt[]>('import_execute', { vaultPath: path, choices })),
     automationImportFiles: (path: string, filePaths: string[]) => run(async () => invoke<ImportReceipt[]>('automation_import_files', { vaultPath: path, paths: filePaths })),
+    zipInspect: (path: string, zipPath: string) => readOnly(async () => invoke<any>('zip_inspect', { vaultPath: path, zipPath })),
+    automationCancelImport: () => readOnly(async () => invoke<void>('automation_cancel_import')),
     organizationPlan: (path: string) => readOnly(() => invoke<import('./organization').OrganizationPlan>('organization_plan', { vaultPath: path })),
     organizationClassify: (path: string, documentId: string, expectedHash: string) => run(() => invoke<{ category: string; certainty: string; evidence: string }>('organization_classify', { vaultPath: path, documentId, expectedHash })),
     organizationMove: (path: string, documentId: string, expectedHash: string, destination: string) => run(() => invoke<import('./organization').MoveSummary>('organization_move', { vaultPath: path, documentId, expectedHash, destination })),
@@ -325,6 +361,9 @@ export function createVaultIpc(invoke: Invoke, native: () => boolean) {
     syncEmbeddings: (path: string, apiKey?: string, model?: string) => run(async () => invoke<EmbeddingsStatusReport>('embeddings_sync_vault', { vaultPath: path, apiKey: apiKey ?? null, model: model ?? null })),
     searchVaultHybrid: (path: string, query: SearchQuery, apiKey?: string, useSemantic?: boolean) => readOnly(async () => searchResults(await invoke('search_vault_hybrid', { vaultPath: path, query, apiKey: apiKey ?? null, useSemantic: useSemantic ?? true }))),
     restoreSnapshot: (path: string, snapshotId: string, destinationPath?: string) => run(async () => invoke<SnapshotRestoreReport>('snapshot_restore', { vaultPath: path, snapshotId, destinationPath })),
+    bnxtCheckStatus: (path: string) => readOnly(async () => invoke<BnxtCorpusStatus>('bnxt_check_status', { vaultPath: path })),
+    bnxtInspectSource: (path: string, sourcePath?: string) => readOnly(async () => invoke<BnxtInspectResult>('bnxt_inspect_source', { vaultPath: path, sourcePath: sourcePath ?? null })),
+    bnxtPrepareVault: (path: string, sourcePath?: string, duplicatePolicy?: string) => run(async () => invoke<BnxtCorpusStatus>('bnxt_prepare_vault', { vaultPath: path, sourcePath: sourcePath ?? null, duplicatePolicy: duplicatePolicy ?? null })),
     selectVaultFolder: () => readOnly(async () => native() ? invoke<string | null>('select_vault_folder') : null),
   };
 }

@@ -19,13 +19,15 @@ import { LimenAiIcon } from './LimenAiIcon';
 
 const fieldStyle: React.CSSProperties = {
   padding: '10px 14px',
-  border: '1px solid #cbd5e1',
+  border: '1px solid var(--limen-chat-box-border, #cbd5e1)',
   borderRadius: 8,
   font: 'inherit',
   fontSize: 14,
   outline: 'none',
   width: '100%',
   boxSizing: 'border-box',
+  backgroundColor: 'var(--limen-chat-box-bg, var(--limen-lime-30))',
+  color: 'var(--limen-chat-box-text, #0f172a)',
 };
 
 const primaryButtonStyle: React.CSSProperties = {
@@ -36,7 +38,7 @@ const primaryButtonStyle: React.CSSProperties = {
   fontSize: 14,
   fontWeight: 600,
   cursor: 'pointer',
-  background: '#0f172a',
+  background: 'var(--limen-accent-primary, #0f172a)',
   color: 'white',
   display: 'inline-flex',
   alignItems: 'center',
@@ -577,7 +579,7 @@ export function AiPanel({
           flexShrink: 0,
           padding: '10px 24px',
           borderBottom: '1px solid var(--limen-border-light)',
-          backgroundColor: '#ffffff',
+          backgroundColor: 'var(--limen-bg-navbar, #ffffff)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -588,10 +590,10 @@ export function AiPanel({
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <LimenAiIcon size={18} />
-            <span style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>Chiedi a Limen</span>
+            <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--limen-text-primary, #0f172a)' }}>Chiedi a Limen</span>
           </div>
 
-            {showManualSearch && <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+            {showManualSearch && <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--limen-text-secondary, #475569)' }}>
               <input type="checkbox" checked={drafts} onChange={e => setDrafts(e.target.checked)} />
               {language === 'en' ? 'Include drafts and unapproved notes' : 'Includi bozze e note non approvate'}
             </label>}
@@ -604,8 +606,8 @@ export function AiPanel({
                 gap: 5,
                 padding: '2px 8px',
                 borderRadius: 12,
-                backgroundColor: '#f1f5f9',
-                color: '#475569',
+                backgroundColor: 'var(--limen-bg-subtle, #f1f5f9)',
+                color: 'var(--limen-text-secondary, #475569)',
                 fontSize: 11,
                 fontWeight: 600,
               }}
@@ -630,10 +632,10 @@ export function AiPanel({
                   fontWeight: 700,
                   cursor: isStartingLocal ? 'wait' : 'pointer',
                   transition: 'all 0.2s ease',
-                  backgroundColor: isLocalMode ? 'var(--limen-lime)' : isStartingLocal ? '#fef3c7' : '#f8fafc',
-                  color: isLocalMode ? '#0f172a' : isStartingLocal ? '#92400e' : '#475569',
-                  border: isLocalMode ? '1px solid #52c41a' : isStartingLocal ? '1px solid #f59e0b' : '1px solid #cbd5e1',
-                  boxShadow: isLocalMode ? '0 0 10px rgba(119, 241, 23, 0.45)' : 'none',
+                  backgroundColor: isLocalMode ? 'var(--limen-lime)' : isStartingLocal ? 'var(--limen-status-warn-bg, #fef3c7)' : 'var(--limen-bg-subtle, #f8fafc)',
+                  color: isLocalMode ? '#ffffff' : isStartingLocal ? 'var(--limen-status-warn-text, #92400e)' : 'var(--limen-text-secondary, #475569)',
+                  border: isLocalMode ? '1px solid var(--limen-lime)' : isStartingLocal ? '1px solid var(--limen-status-warn-border, #f59e0b)' : '1px solid var(--limen-border-subtle, #cbd5e1)',
+                  boxShadow: isLocalMode ? '0 0 10px rgba(141, 99, 45, 0.45)' : 'none',
                 }}
                 title={isLocalMode ? 'Modalità 100% Locale attiva (Ministral 3B + bge-m3 su 127.0.0.1). Clicca per passare a Ibrido.' : 'Attiva la modalità 100% Solo Locale con 1 click (avvio automatico e zero cloud).'}
               >
@@ -644,7 +646,7 @@ export function AiPanel({
                   </>
                 ) : (
                   <>
-                    <Sparkles size={13} color={isLocalMode ? '#0f172a' : '#64748b'} />
+                    <Sparkles size={13} color={isLocalMode ? '#ffffff' : 'var(--limen-text-secondary, #64748b)'} />
                     <span>{isLocalMode ? (localLlmServer?.healthy && localSearchHealthy ? 'SOLO LOCALE ATTIVO' : 'SOLO LOCALE · CONFIGURA') : 'SOLO LOCALE'}</span>
                   </>
                 )}
@@ -652,7 +654,7 @@ export function AiPanel({
 
               {vaultMode.error && <span role="alert">{vaultMode.error}</span>}
               {localStatusMessage && (
-                <span style={{ fontSize: 11, color: '#64748b', fontStyle: 'italic' }}>
+                <span style={{ fontSize: 11, color: 'var(--limen-text-muted, #64748b)', fontStyle: 'italic' }}>
                   {localStatusMessage}
                 </span>
               )}
@@ -665,11 +667,11 @@ export function AiPanel({
                     gap: 6,
                     padding: '3px 10px',
                     borderRadius: 6,
-                    backgroundColor: 'rgba(119, 241, 23, 0.15)',
-                    border: '1px solid rgba(119, 241, 23, 0.5)',
+                    backgroundColor: 'var(--limen-lime-30)',
+                    border: '1px solid var(--limen-lime)',
                     fontSize: 11,
                     fontWeight: 600,
-                    color: '#0f172a',
+                    color: 'var(--limen-text-primary, #0f172a)',
                   }}
                   title="Generazione testuale su Apple Silicon Metal GPU a rete zero"
                 >
@@ -677,7 +679,7 @@ export function AiPanel({
                 </span>
               ) : (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <label htmlFor="ai-model-select" style={{ fontSize: 12, fontWeight: 600, color: '#475569' }}>
+                  <label htmlFor="ai-model-select" style={{ fontSize: 12, fontWeight: 600, color: 'var(--limen-text-secondary, #475569)' }}>
                     Modello:
                   </label>
                   <select
@@ -688,10 +690,10 @@ export function AiPanel({
                     style={{
                       padding: '4px 8px',
                       borderRadius: 6,
-                      border: '1px solid #cbd5e1',
+                      border: '1px solid var(--limen-border-subtle, #cbd5e1)',
                       fontSize: 12,
-                      backgroundColor: '#ffffff',
-                      color: '#0f172a',
+                      backgroundColor: 'var(--limen-bg-surface, #ffffff)',
+                      color: 'var(--limen-text-primary, #0f172a)',
                       outline: 'none',
                     }}
                   >
@@ -720,9 +722,9 @@ export function AiPanel({
                 gap: 5,
                 padding: '5px 11px',
                 borderRadius: 6,
-                border: '1px solid #cbd5e1',
-                backgroundColor: showManualSearch ? '#f1f5f9' : '#ffffff',
-                color: '#475569',
+                border: '1px solid var(--limen-border-subtle, #cbd5e1)',
+                backgroundColor: showManualSearch ? 'var(--limen-bg-subtle, #f1f5f9)' : 'var(--limen-bg-surface, #ffffff)',
+                color: 'var(--limen-text-secondary, #475569)',
                 fontSize: 12,
                 fontWeight: 600,
                 cursor: 'pointer',
@@ -732,7 +734,6 @@ export function AiPanel({
               <SlidersHorizontal size={13} />
               <span>{showManualSearch ? 'Nascondi Ricerca' : 'Strumenti Ricerca'}</span>
             </button>
-
           )}
 
           {isArchived ? (
@@ -744,15 +745,15 @@ export function AiPanel({
                 gap: 6,
                 padding: '5px 12px',
                 borderRadius: 6,
-                border: '1px solid #cbd5e1',
-                backgroundColor: '#ffffff',
-                color: '#0f172a',
+                border: '1px solid var(--limen-border-subtle, #cbd5e1)',
+                backgroundColor: 'var(--limen-bg-surface, #ffffff)',
+                color: 'var(--limen-text-primary, #0f172a)',
                 fontSize: 12,
                 fontWeight: 600,
                 cursor: 'pointer',
               }}
             >
-              <PlusCircle size={14} />
+              <PlusCircle size={14} color="var(--limen-text-primary, #0f172a)" />
               <span>Nuova conversazione</span>
             </button>
           ) : (
@@ -765,15 +766,15 @@ export function AiPanel({
                   gap: 6,
                   padding: '5px 12px',
                   borderRadius: 6,
-                  border: '1px solid #cbd5e1',
-                  backgroundColor: '#ffffff',
-                  color: '#0f172a',
+                  border: '1px solid var(--limen-border-subtle, #cbd5e1)',
+                  backgroundColor: 'var(--limen-bg-surface, #ffffff)',
+                  color: 'var(--limen-text-primary, #0f172a)',
                   fontSize: 12,
                   fontWeight: 600,
                   cursor: 'pointer',
                 }}
               >
-                <PlusCircle size={14} />
+                <PlusCircle size={14} color="var(--limen-text-primary, #0f172a)" />
                 <span>Nuova conversazione</span>
               </button>
             )
@@ -786,8 +787,8 @@ export function AiPanel({
         <div
           style={{
             margin: '10px 24px 0',
-            backgroundColor: '#fef3c7',
-            border: '1px solid #fde68a',
+            backgroundColor: 'var(--limen-status-warn-bg, #fef3c7)',
+            border: '1px solid var(--limen-status-warn-border, #fde68a)',
             borderRadius: 8,
             padding: '8px 16px',
             display: 'flex',
@@ -797,7 +798,7 @@ export function AiPanel({
             flexWrap: 'wrap',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: '#92400e' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'var(--limen-status-warn-text, #92400e)' }}>
             <Info size={15} />
             <span>Indicizzazione da completare: alcuni documenti o indici richiedono attenzione.</span>
           </div>
@@ -809,7 +810,7 @@ export function AiPanel({
               alignItems: 'center',
               justifyContent: 'center',
               padding: '4px 14px',
-              backgroundColor: '#0f172a',
+              backgroundColor: 'var(--limen-accent-primary, #0f172a)',
               color: '#ffffff',
               borderRadius: 6,
               border: 'none',
@@ -817,7 +818,7 @@ export function AiPanel({
             }}
           >
             <span style={{ fontSize: 11.5, fontWeight: 700 }}>Indicizza automaticamente</span>
-            <span style={{ fontSize: 9, opacity: 0.8, color: '#94a3b8' }}>ricalcola cache</span>
+            <span style={{ fontSize: 9, opacity: 0.8, color: 'rgba(255, 255, 255, 0.8)' }}>ricalcola cache</span>
           </button>
         </div>
       )}
@@ -860,9 +861,9 @@ export function AiPanel({
                     maxWidth: '85%',
                     padding: '12px 18px',
                     backgroundColor: 'var(--limen-lime-60)',
-                    color: '#0f172a',
+                    color: 'var(--limen-text-primary, #0f172a)',
                     borderRadius: '16px 16px 4px 16px',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+                    boxShadow: 'var(--limen-shadow-sm, 0 1px 3px rgba(0,0,0,0.06))',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: 4,
@@ -871,7 +872,7 @@ export function AiPanel({
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                     <span
                       style={{
-                        background: '#0f172a',
+                        background: 'var(--limen-accent-primary, #0f172a)',
                         color: '#ffffff',
                         padding: '1px 6px',
                         borderRadius: 4,
@@ -881,11 +882,11 @@ export function AiPanel({
                     >
                       Turno {turn.answer.turnIndex ?? (tIdx + 1)}
                     </span>
-                    <span style={{ fontSize: 11, color: '#0f172a', opacity: 0.8, fontWeight: 600 }}>
+                    <span style={{ fontSize: 11, color: 'var(--limen-text-primary, #0f172a)', opacity: 0.85, fontWeight: 600 }}>
                       {turn.answer.model}
                     </span>
                   </div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: '#0f172a', lineHeight: 1.4, wordBreak: 'break-word' }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--limen-text-primary, #0f172a)', lineHeight: 1.4, wordBreak: 'break-word' }}>
                     {turn.prompt}
                   </div>
                 </div>
@@ -905,9 +906,9 @@ export function AiPanel({
                     display: 'flex',
                     flexDirection: 'column',
                     gap: 12,
-                    backgroundColor: '#ffffff',
-                    border: isSelected ? '1.5px solid #0f172a' : '1px solid #e2e8f0',
-                    boxShadow: isSelected ? '0 0 0 2px rgba(15, 23, 42, 0.08)' : '0 1px 3px rgba(0,0,0,0.04)',
+                    backgroundColor: 'var(--limen-bg-surface, #ffffff)',
+                    border: isSelected ? '1.5px solid var(--limen-accent-primary, #0f172a)' : '1px solid var(--limen-border-light, #e2e8f0)',
+                    boxShadow: isSelected ? '0 0 0 2px var(--limen-accent-subtle, rgba(15, 23, 42, 0.08))' : 'var(--limen-shadow-sm, 0 1px 3px rgba(0,0,0,0.04))',
                     cursor: 'pointer',
                     transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
                   }}
@@ -954,7 +955,7 @@ export function AiPanel({
                   )}
 
                   {turn.answer.status !== 'error' && (
-                    <div style={{ fontSize: 14, lineHeight: 1.65, color: '#0f172a', whiteSpace: 'pre-wrap' }}>
+                    <div style={{ fontSize: 14, lineHeight: 1.65, color: 'var(--limen-text-primary, #0f172a)', whiteSpace: 'pre-wrap' }}>
                       {plainChatText(turn.answer.answer)}
                     </div>
                   )}
@@ -965,7 +966,7 @@ export function AiPanel({
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-                      borderTop: '1px solid #f1f5f9',
+                      borderTop: '1px solid var(--limen-border-light, #f1f5f9)',
                       paddingTop: 10,
                       flexWrap: 'wrap',
                       gap: 8,
@@ -985,9 +986,9 @@ export function AiPanel({
                           gap: 6,
                           padding: '4px 10px',
                           borderRadius: 16,
-                          border: isSelected ? '1px solid #0f172a' : '1px solid #cbd5e1',
-                          backgroundColor: isSelected ? '#0f172a' : '#f8fafc',
-                          color: isSelected ? '#ffffff' : '#334155',
+                          border: isSelected ? '1px solid var(--limen-accent-primary, #0f172a)' : '1px solid var(--limen-border-subtle, #cbd5e1)',
+                          backgroundColor: isSelected ? 'var(--limen-accent-primary, #0f172a)' : 'var(--limen-bg-subtle, #f8fafc)',
+                          color: isSelected ? '#ffffff' : 'var(--limen-text-secondary, #334155)',
                           fontSize: 11,
                           fontWeight: 600,
                           cursor: 'pointer',
@@ -995,7 +996,7 @@ export function AiPanel({
                         }}
                         title="Clicca per aprire le fonti di questa risposta nella barra laterale"
                       >
-                        <FileText size={12} color={isSelected ? '#ffffff' : '#64748b'} />
+                        <FileText size={12} color={isSelected ? '#ffffff' : 'var(--limen-text-muted, #64748b)'} />
                         <span>
                           {turn.answer.provider === 'Ministral (Locale Mac)' || turn.answer.model?.toLowerCase().includes('ministral') ? (
                             totalConsulted > 0 ? (
@@ -1020,9 +1021,9 @@ export function AiPanel({
                         <button
                           style={{
                             ...primaryButtonStyle,
-                            backgroundColor: '#ffffff',
-                            color: '#0f172a',
-                            border: '1px solid #cbd5e1',
+                            backgroundColor: 'var(--limen-bg-surface, #ffffff)',
+                            color: 'var(--limen-text-primary, #0f172a)',
+                            border: '1px solid var(--limen-border-subtle, #cbd5e1)',
                             fontSize: 11,
                             padding: '4px 10px',
                           }}
@@ -1045,18 +1046,18 @@ export function AiPanel({
                           alignItems: 'center',
                           gap: 5,
                           backgroundColor: 'var(--limen-lime-30)',
-                          color: '#0f172a',
+                          color: 'var(--limen-text-primary, #0f172a)',
                           fontWeight: 600,
                           padding: '2px 8px',
                           borderRadius: 12,
                           border: '1px solid var(--limen-lime)',
                         }}
                       >
-                        <Sparkles size={11} color="#0f172a" />
+                        <Sparkles size={11} color="var(--limen-text-primary, #0f172a)" />
                         Generato sul Mac · {turn.answer.model?.includes('3B') || turn.answer.model?.includes('3b') ? 'Ministral 3 3B Instruct Q5_K_M (Offline)' : 'Ministral 3 8B Instruct Q5_K_M (Offline)'}
                       </span>
                     ) : turn.answer.status !== 'error' ? (
-                      <span style={{ fontSize: 11, color: '#94a3b8', fontStyle: 'italic' }}>
+                      <span style={{ fontSize: 11, color: 'var(--limen-text-muted, #94a3b8)', fontStyle: 'italic' }}>
                         OpenAI · {turn.answer.model}
                       </span>
                     ) : null}
@@ -1076,9 +1077,9 @@ export function AiPanel({
                   maxWidth: '85%',
                   padding: '12px 18px',
                   backgroundColor: 'var(--limen-lime-60)',
-                  color: '#0f172a',
+                  color: 'var(--limen-text-primary, #0f172a)',
                   borderRadius: '16px 16px 4px 16px',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+                  boxShadow: 'var(--limen-shadow-sm, 0 1px 3px rgba(0,0,0,0.06))',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
@@ -1126,7 +1127,7 @@ export function AiPanel({
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-start', width: '100%' }}>
-              <div className="limen-card" style={{ width: '100%', maxWidth: '92%', padding: 18, display: 'flex', flexDirection: 'column', gap: 12, backgroundColor: '#ffffff' }}>
+              <div className="limen-card" style={{ width: '100%', maxWidth: '92%', padding: 18, display: 'flex', flexDirection: 'column', gap: 12, backgroundColor: 'var(--limen-bg-surface, #ffffff)', border: '1px solid var(--limen-border-light, #e2e8f0)' }}>
                 {loadingStep && (
                   <div style={{ textAlign: 'center', color: '#475569', padding: '10px 0' }}>
                     <div className="animate-spin" style={{ display: 'inline-block', marginBottom: 6 }}>
@@ -1233,8 +1234,8 @@ export function AiPanel({
           flexShrink: 0,
           padding: '14px 24px',
           borderTop: '1px solid var(--limen-border-light)',
-          backgroundColor: '#ffffff',
-          boxShadow: '0 -2px 10px rgba(0,0,0,0.03)',
+          backgroundColor: 'var(--limen-bg-navbar, #ffffff)',
+          boxShadow: 'var(--limen-shadow-sm, 0 -2px 10px rgba(0,0,0,0.03))',
         }}
       >
         {isArchived ? (
@@ -1242,16 +1243,16 @@ export function AiPanel({
             style={{
               padding: '12px 18px',
               borderRadius: 8,
-              backgroundColor: '#f8fafc',
-              border: '1px solid #cbd5e1',
+              backgroundColor: 'var(--limen-bg-subtle, #f8fafc)',
+              border: '1px solid var(--limen-border-subtle, #cbd5e1)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
               gap: 12,
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#475569', fontSize: 13 }}>
-              <Lock size={16} color="#64748b" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--limen-text-secondary, #475569)', fontSize: 13 }}>
+              <Lock size={16} color="var(--limen-text-muted, #64748b)" />
               <span><strong>{language === 'en' ? 'Archived conversation:' : 'Conversazione archiviata:'}</strong> {language === 'en' ? 'read-only.' : 'sola lettura.'}</span>
             </div>
             <button
@@ -1278,10 +1279,10 @@ export function AiPanel({
                     height: 8,
                     borderRadius: '50%',
                     backgroundColor: isLocalMode ? 'var(--limen-lime)' : '#3b82f6',
-                    boxShadow: isLocalMode ? '0 0 6px rgba(119, 241, 23, 0.8)' : 'none',
+                    boxShadow: isLocalMode ? '0 0 6px rgba(141, 99, 45, 0.8)' : 'none',
                   }}
                 />
-                <span style={{ fontSize: 11, fontWeight: 600, color: isLocalMode ? '#1e293b' : '#64748b' }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: isLocalMode ? 'var(--limen-text-primary, #1e293b)' : 'var(--limen-text-muted, #64748b)' }}>
                   {isLocalMode ? t.ask.localMode : t.ask.hybridMode}
                 </span>
               </div>
@@ -1294,7 +1295,7 @@ export function AiPanel({
                   padding: 0,
                   fontSize: 11,
                   fontWeight: 600,
-                  color: isLocalMode ? '#15803d' : '#2563eb',
+                  color: isLocalMode ? 'var(--limen-lime, #15803d)' : '#2563eb',
                   cursor: 'pointer',
                   textDecoration: 'underline',
                 }}
@@ -1308,18 +1309,18 @@ export function AiPanel({
             {isLocalMode && !memoryWarningDismissed && (localLlmReport?.ramWarning || localLlmServer?.ramWarning || (localLlmReport?.physicalRamBytes && localLlmReport.physicalRamBytes < 17179869184)) && (
               <div
                 style={{
-                  backgroundColor: '#fffbeb',
-                  border: '1px solid #fde68a',
+                  backgroundColor: 'var(--limen-status-warn-bg, #fffbeb)',
+                  border: '1px solid var(--limen-status-warn-border, #fde68a)',
                   borderRadius: 8,
                   padding: '8px 12px',
                   display: 'flex',
                   alignItems: 'center',
                   gap: 8,
                   fontSize: 11,
-                  color: '#92400e',
+                  color: 'var(--limen-status-warn-text, #92400e)',
                 }}
               >
-                <AlertTriangle size={14} color="#b45309" style={{ flexShrink: 0 }} />
+                <AlertTriangle size={14} color="var(--limen-status-warn-text, #b45309)" style={{ flexShrink: 0 }} />
                 <span>
                   <strong>Avviso memoria:</strong> {localLlmReport?.ramWarning || localLlmServer?.ramWarning || 'Mac con meno di 16 GB di RAM. Il modello locale occupa circa 6 GB e può rallentare il Mac.'}
                 </span>
@@ -1356,7 +1357,9 @@ export function AiPanel({
                   paddingRight: 100,
                   fontSize: 14,
                   lineHeight: 1.5,
-                  backgroundColor: 'var(--limen-lime-30)',
+                  backgroundColor: 'var(--limen-chat-box-bg, var(--limen-lime-30))',
+                  color: 'var(--limen-chat-box-text, #0f172a)',
+                  borderColor: 'var(--limen-chat-box-border, #cbd5e1)',
                 }}
               />
               <button
@@ -1366,6 +1369,8 @@ export function AiPanel({
                   right: 10,
                   bottom: 14,
                   padding: '8px 16px',
+                  backgroundColor: 'var(--limen-accent-primary, #0f172a)',
+                  color: '#ffffff',
                   opacity: ((!isLocalMode && !model) || !prompt.trim() || isBusy) ? 0.6 : 1,
                 }}
                 disabled={isBusy || !prompt.trim() || (!isLocalMode && !model)}
@@ -1402,12 +1407,13 @@ export function AiPanel({
           <div
             className="limen-card"
             style={{
-              backgroundColor: '#ffffff',
+              backgroundColor: 'var(--limen-bg-surface, #ffffff)',
               borderRadius: 12,
+              border: '1px solid var(--limen-border-light, #cbd5e1)',
               padding: 24,
               maxWidth: 520,
               width: '100%',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1)',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.2)',
               display: 'flex',
               flexDirection: 'column',
               gap: 16,
@@ -1426,13 +1432,13 @@ export function AiPanel({
                   flexShrink: 0,
                 }}
               >
-                <Sparkles size={22} color="#0f172a" />
+                <Sparkles size={22} color="var(--limen-text-primary, #0f172a)" />
               </div>
               <div>
-                <h3 style={{ margin: '0 0 4px 0', fontSize: 16, fontWeight: 700, color: '#0f172a' }}>
+                <h3 style={{ margin: '0 0 4px 0', fontSize: 16, fontWeight: 700, color: 'var(--limen-text-primary, #0f172a)' }}>
                   Modello Generativo Locale — Ministral 3 8B Instruct
                 </h3>
-                <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>
+                <p style={{ margin: 0, fontSize: 12, color: 'var(--limen-text-secondary, #64748b)' }}>
                   Mistral AI · Quantizzazione ufficiale Q5_K_M (Massima fedeltà)
                 </p>
               </div>

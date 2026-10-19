@@ -1389,18 +1389,107 @@ mod tests {
 /// Lookup a search document record in the in-memory index cache
 pub fn get_search_document(path: &Path, document_id: &str) -> Result<SearchDocumentRecord, String> {
     let r = root(path)?;
-    let data = load_with_vault_path(&child(&r, "00_SYSTEM")?, Some(path))?
-        .filter(|d| d.version == VERSION)
-        .ok_or("Search index missing or outdated")?;
-    data.documents.values().find(|d| d.id == document_id).cloned().ok_or_else(|| "Unknown document".into())
+    if let Ok(Some(data)) = load_with_vault_path(&child(&r, "00_SYSTEM")?, Some(path)) {
+        if data.version == VERSION {
+            if let Some(d) = data.documents.values().find(|d| d.id == document_id || d.relative_path == document_id) {
+                return Ok(d.clone());
+            }
+        }
+    }
+    // Catalog fallback
+    if let Ok(catalog) = crate::catalog::load_catalog_arc(path) {
+        if let Some(cat_doc) = catalog.documents.get(document_id).or_else(|| catalog.documents.values().find(|cd| cd.original_path == document_id)) {
+            let passages: Vec<SearchPassageRecord> = cat_doc.passages.iter().map(|p| SearchPassageRecord {
+                passage_id: p.passage_id.clone(),
+                locator: p.locator.clone(),
+                sha256: p.sha256.clone(),
+                text: p.text.clone(),
+                tokens: tokenize_text(&p.text),
+            }).collect();
+            let preview = passages.first().map(|p| p.text.chars().take(500).collect::<String>()).unwrap_or_default();
+            return Ok(SearchDocumentRecord {
+                id: cat_doc.document_id.clone(),
+                note_id: None,
+                relative_path: cat_doc.original_path.clone(),
+                sha256: cat_doc.content_hash.clone(),
+                mtime_ms: 0,
+                title: cat_doc.file_name.clone(),
+                category: cat_doc.category.clone().unwrap_or_else(|| "raw_source".to_string()),
+                client: cat_doc.client.clone(),
+                project: cat_doc.project.clone(),
+                brand: None,
+                tags: cat_doc.tags.clone(),
+                status: Some(cat_doc.editorial_status.clone()),
+                created_at: cat_doc.imported_at.clone(),
+                updated_at: cat_doc.updated_at.clone(),
+                tokens: tokenize_text(&format!("{} {}", cat_doc.file_name, cat_doc.tags.join(" "))),
+                content_preview: preview,
+                passages,
+            });
+        }
+    }
+    Err("Unknown document".into())
 }
 
 /// Read the exact indexed bytes or extracted text through a pinned directory, for AI/MCP citations.
 pub fn read_indexed_document(path: &Path, document_id: &str, expected: &str) -> Result<(SearchDocumentRecord, String), String> {
-    let r=root(path)?;
-    let data=load_with_vault_path(&child(&r,"00_SYSTEM")?, Some(path))?.filter(|d|d.version==VERSION).ok_or("Search index missing or outdated")?;
-    let d=data.documents.values().find(|d|d.id==document_id).ok_or("Unknown document")?;
-    if d.sha256!=expected {return Err("Source changed; select again".into())}
+    let r = root(path)?;
+    let data_opt = load_with_vault_path(&child(&r, "00_SYSTEM")?, Some(path))?.filter(|d| d.version == VERSION);
+    let d_opt = data_opt.as_ref().and_then(|data| {
+        data.documents.values().find(|d| d.id == document_id || d.relative_path == document_id).cloned()
+    });
+
+    let d = match d_opt {
+        Some(found) => found,
+        None => {
+            // Robust fallback: if document was matched from catalog/embeddings but SEARCH_INDEX is lagging/missing
+            if let Ok(catalog) = crate::catalog::load_catalog_arc(path) {
+                if let Some(cat_doc) = catalog.documents.get(document_id).or_else(|| catalog.documents.values().find(|cd| cd.original_path == document_id)) {
+                    if cat_doc.content_hash != expected {
+                        return Err("Source changed; select again".into());
+                    }
+                    let content = if !cat_doc.passages.is_empty() {
+                        cat_doc.passages.iter().map(|p| p.text.as_str()).collect::<Vec<_>>().join("\n\n")
+                    } else {
+                        crate::catalog::read_document_text(path, &cat_doc.document_id).unwrap_or_default()
+                    };
+                    if content.trim().is_empty() {
+                        return Err("Extracted text empty for raw source".into());
+                    }
+                    let passages: Vec<SearchPassageRecord> = cat_doc.passages.iter().map(|p| SearchPassageRecord {
+                        passage_id: p.passage_id.clone(),
+                        locator: p.locator.clone(),
+                        sha256: p.sha256.clone(),
+                        text: p.text.clone(),
+                        tokens: tokenize_text(&p.text),
+                    }).collect();
+                    let preview = passages.first().map(|p| p.text.chars().take(500).collect::<String>()).unwrap_or_default();
+                    let record = SearchDocumentRecord {
+                        id: cat_doc.document_id.clone(),
+                        note_id: None,
+                        relative_path: cat_doc.original_path.clone(),
+                        sha256: cat_doc.content_hash.clone(),
+                        mtime_ms: 0,
+                        title: cat_doc.file_name.clone(),
+                        category: cat_doc.category.clone().unwrap_or_else(|| "raw_source".to_string()),
+                        client: cat_doc.client.clone(),
+                        project: cat_doc.project.clone(),
+                        brand: None,
+                        tags: cat_doc.tags.clone(),
+                        status: Some(cat_doc.editorial_status.clone()),
+                        created_at: cat_doc.imported_at.clone(),
+                        updated_at: cat_doc.updated_at.clone(),
+                        tokens: tokenize_text(&format!("{} {}", cat_doc.file_name, cat_doc.tags.join(" "))),
+                        content_preview: preview,
+                        passages,
+                    };
+                    return Ok((record, content));
+                }
+            }
+            return Err("Unknown document".into());
+        }
+    };
+    if d.sha256 != expected { return Err("Source changed; select again".into()); }
     relative(&d.relative_path)?;
     let parts:Vec<_>=d.relative_path.split('/').collect();
 
