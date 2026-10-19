@@ -1,0 +1,41 @@
+================================================================================
+REGISTRO TEMPI RISPOSTA [2026-09-24T04:52:24.687Z]
+Modello: gpt-4o | Stato: ERRORE (OpenAI network error or timeout: error sending request for url (https://api.openai.com/v1/responses)) | Token usati: null
+Tempo visto da UI (click -> risposta): 99951 ms
+Tempo totale Backend: 2848 ms
+├─ 1. ANTEPRIMA (Preview): 1728 ms
+│    ├─ Indice & cache: 27 ms
+│    ├─ Vettore semantico (embed): 0 ms
+│    ├─ Ricerca ibrida (search): 1527 ms
+│    │    ├─ Parole (search_words_ms): 1527 ms
+│    │    ├─ Semantica (search_sem_ms): 0 ms
+│    │    ├─ Fusione (search_fuse_ms): 0 ms
+│    │    └─ Ammissibilità (search_admit_ms): 0 ms
+│    ├─ Lettura documenti (doc_read): 63 ms
+│    └─ Estrazione passaggi (passage_extract): 15 ms
+├─ 2. PASSAGGIO ANTEPRIMA-INVIO (Handoff IPC/UI): 47 ms
+└─ 3. INTERROGAZIONE (Ask): 1073 ms
+├─ Verifica impronte pre-chiamata (verify_pre): 22 ms
+├─ Costruzione richiesta (payload): 0 ms
+├─ Chiamata OpenAI (openai): 1050 ms
+├─ Verifica impronte post-chiamata (verify_post): 0 ms
+└─ Lettura risposta (parse): 0 ms
+Verifica quadratura somme:
+Backend = Preview (1728 ms) + Handoff (47 ms) + Ask (1073 ms) = 2848 ms
+Search  = Words (1527 ms) + Sem (0 ms) + Fuse (0 ms) + Admit (0 ms) = 1527 ms (vs search_ms: 1527 ms)
+Ask     = Verify_pre (22 ms) + Payload (0 ms) + OpenAI (1050 ms) + Verify_post (0 ms) + Parse (0 ms) = 1072 ms
+Fonti inviate a OpenAI (10 fonti, 15959 byte totali):
+  ├─ [S1] 20_RAW_SOURCES/32f2a4081d13410e-BNXT CRM.md (2439 B, loc: "Paragrafi 1-13, Paragrafi 52-68") -> NON CITATA
+  ├─ [S2] 20_RAW_SOURCES/a86061ba2701d614-_Progetto - BNXT AUDIT VICENZA.md (555 B, loc: "Paragrafi 1-8") -> NON CITATA
+  ├─ [S3] 20_RAW_SOURCES/957b10627e45aa38-_INDICE.md (1104 B, loc: "Paragrafi 1-2") -> NON CITATA
+  ├─ [S4] 20_RAW_SOURCES/5a54c2ce2f581cf2-verifica-walkthrough-ux-email-whatsapp-2026-09-10.md (1742 B, loc: "Paragrafi 1-3, Paragrafo 4") -> NON CITATA
+  ├─ [S5] 20_RAW_SOURCES/1e755ab82023a095-verifica-impl-plan-ux-email-whatsapp-2026-09-10.md (1463 B, loc: "Paragrafi 1-3, Paragrafo 4") -> NON CITATA
+  ├─ [S6] 20_RAW_SOURCES/abaef2b48c6e5b70-audit-localizzazione-EN-baseline-6f2f2b8.md (2394 B, loc: "Paragrafi 1-4, Paragrafo 5, Paragrafo 6") -> NON CITATA
+  ├─ [S7] 20_RAW_SOURCES/cb67beeece396682-2026-02-13 - Redesign UI home page macOS app.md (2335 B, loc: "Paragrafi 18-28, Paragrafi 29-42") -> NON CITATA
+  ├─ [S8] 20_RAW_SOURCES/c428eb949fc0201f-areas - packaging-in-italy.md (1205 B, loc: "Paragrafi 1-3") -> NON CITATA
+  ├─ [S9] 20_RAW_SOURCES/966ef623917316c7-2026-02-16 - Creazione file Localizable.strings per iOS.md (2381 B, loc: "Paragrafi 13-25, Paragrafo 133") -> NON CITATA
+  └─ [S10] 20_RAW_SOURCES/e86a061e0f5becb0-_Progetto - Progetto senza nome 19-08-2026.md (341 B, loc: "Paragrafi 1-8") -> NON CITATA
+Riepilogo citazioni: 0 citata/e su 10 consultate (nessuna).
+JSON: {"timestamp":"2026-09-24T04:52:24.687Z","model":"gpt-4o","status":"errore (rete)","incomplete_reason":"OpenAI network error or timeout: error sending request for url (https://api.openai.com/v1/responses)","tokens_used":null,"t_ui_total_ms":99951,"t_backend_total_ms":2848,"preview":{"total_ms":1728,"index_cache_ms":27,"embed_ms":0,"search_ms":1527,"search_words_ms":1527,"search_sem_ms":0,"search_fuse_ms":0,"search_admit_ms":0,"doc_read_ms":63,"passage_extract_ms":15},"t_handoff_ms":47,"ask":{"total_ms":1073,"verify_pre_ms":22,"payload_ms":0,"openai_ms":1050,"verify_post_ms":0,"parse_ms":0},"sources":[{"id":"S1","relative_path":"20_RAW_SOURCES/32f2a4081d13410e-BNXT CRM.md","bytes":2439,"locator":"Paragrafi 1-13, Paragrafi 52-68","cited":false},{"id":"S2","relative_path":"20_RAW_SOURCES/a86061ba2701d614-_Progetto - BNXT AUDIT VICENZA.md","bytes":555,"locator":"Paragrafi 1-8","cited":false},{"id":"S3","relative_path":"20_RAW_SOURCES/957b10627e45aa38-_INDICE.md","bytes":1104,"locator":"Paragrafi 1-2","cited":false},{"id":"S4","relative_path":"20_RAW_SOURCES/5a54c2ce2f581cf2-verifica-walkthrough-ux-email-whatsapp-2026-09-10.md","bytes":1742,"locator":"Paragrafi 1-3, Paragrafo 4","cited":false},{"id":"S5","relative_path":"20_RAW_SOURCES/1e755ab82023a095-verifica-impl-plan-ux-email-whatsapp-2026-09-10.md","bytes":1463,"locator":"Paragrafi 1-3, Paragrafo 4","cited":false},{"id":"S6","relative_path":"20_RAW_SOURCES/abaef2b48c6e5b70-audit-localizzazione-EN-baseline-6f2f2b8.md","bytes":2394,"locator":"Paragrafi 1-4, Paragrafo 5, Paragrafo 6","cited":false},{"id":"S7","relative_path":"20_RAW_SOURCES/cb67beeece396682-2026-02-13 - Redesign UI home page macOS app.md","bytes":2335,"locator":"Paragrafi 18-28, Paragrafi 29-42","cited":false},{"id":"S8","relative_path":"20_RAW_SOURCES/c428eb949fc0201f-areas - packaging-in-italy.md","bytes":1205,"locator":"Paragrafi 1-3","cited":false},{"id":"S9","relative_path":"20_RAW_SOURCES/966ef623917316c7-2026-02-16 - Creazione file Localizable.strings per iOS.md","bytes":2381,"locator":"Paragrafi 13-25, Paragrafo 133","cited":false},{"id":"S10","relative_path":"20_RAW_SOURCES/e86a061e0f5becb0-_Progetto - Progetto senza nome 19-08-2026.md","bytes":341,"locator":"Paragrafi 1-8","cited":false}]}
+================================================================================
+

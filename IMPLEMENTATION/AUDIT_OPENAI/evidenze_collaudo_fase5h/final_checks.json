@@ -1,0 +1,57 @@
+{
+  "At": "2026-09-24T15:55:42.5748538+08:00",
+  "Processes": [],
+  "ViteListeners": [],
+  "FixtureInWorktree": false,
+  "RepoSHA": "6b0427122288651bce14051bd9e86fd371656e18",
+  "RepoBranch": "windows-build",
+  "WorktreeSHA": "6b0427122288651bce14051bd9e86fd371656e18",
+  "RepoTrackedChanges": [],
+  "WorktreeTrackedChanges": [],
+  "ModelSHA256": "950F4A8E5E19477A6D3C26D2F162233C20002C601F75E4B002E3239997821167",
+  "ExeSHA256": "3172F6AC4BF9F6D71E0DD2F032EBAF641AD36DB169DE7C54FD4EF4F8E972283A",
+  "AISettingsUnchanged": true,
+  "VaultFilesWrittenSinceWindow": [
+    {
+      "FullName": "E:\\VAULT WIN TEST DEV\\00_SYSTEM\\VAULT_CATALOG.json",
+      "Length": 31605699,
+      "LastWriteTime": "2026-09-24T15:42:59.191728+08:00"
+    }
+  ],
+  "OldFirewallRules": [],
+  "Firewall": {
+    "Name": "LIMEN-COLLAUDO-20260924-6b04271",
+    "Enabled": 1,
+    "Action": 4,
+    "Direction": 2,
+    "Profile": 0
+  },
+  "FirewallProgram": {
+    "Program": "E:\\Projects\\vault_memai_obsi_collaudo_6b04271\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe"
+  },
+  "FirewallAddress": {
+    "LocalAddress": "Any",
+    "RemoteAddress": "Any"
+  },
+  "FirewallPorts": {
+    "Protocol": "Any",
+    "LocalPort": "Any",
+    "RemotePort": "Any"
+  },
+  "FirewallProfiles": [
+    {
+      "Name": "Domain",
+      "Enabled": 1
+    },
+    {
+      "Name": "Private",
+      "Enabled": 1
+    },
+    {
+      "Name": "Public",
+      "Enabled": 1
+    }
+  ],
+  "SharedPID": "ABSENT",
+  "SharedPort": "ABSENT"
+}

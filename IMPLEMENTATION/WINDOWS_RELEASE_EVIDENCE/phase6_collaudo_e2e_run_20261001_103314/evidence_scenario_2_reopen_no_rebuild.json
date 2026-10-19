@@ -1,0 +1,10 @@
+{
+  "Level": "Prova applicativa con riscontro fisico",
+  "Description": "Riapertura effettiva dello stesso vault: disponibilità ricerca, indice valido, assenza di ricostruzione superflua",
+  "IndexFile": "C:\\Users\\user\\.gemini\\antigravity-ide\\brain\\0507c37e-8563-4e38-92a4-12844e0fa9c1\\scratch\\isolated_e2e\\Vault_A\\00_SYSTEM\\SEARCH_INDEX.json",
+  "IndexMtimeBefore": 1790821999945.841,
+  "IndexMtimeAfter": 1790821999945.841,
+  "NoUnnecessaryRebuild": true,
+  "SearchFunctioningPostReopen": true,
+  "Outcome": "PASS"
+}

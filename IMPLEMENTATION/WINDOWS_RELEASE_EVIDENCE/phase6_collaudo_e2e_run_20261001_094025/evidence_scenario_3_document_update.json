@@ -1,0 +1,10 @@
+{
+  "Level": "Prova applicativa con verifica semantica contenuti",
+  "Description": "Aggiunta, modifica e rimozione di una nota con verifica dei contenuti ricercabili",
+  "NoteAddedFound": true,
+  "NoteModifiedReplacedPrevious": true,
+  "NoteRemovedAbsent": true,
+  "RequiredManualMaintenanceCommand": false,
+  "NoteOnAutomation": "Rilevazione automatica perfettamente operante tramite normale percorso applicativo.",
+  "Outcome": "PASS"
+}

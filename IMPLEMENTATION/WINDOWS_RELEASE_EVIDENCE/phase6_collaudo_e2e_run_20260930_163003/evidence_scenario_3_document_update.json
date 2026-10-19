@@ -1,0 +1,10 @@
+{
+  "Level": "Prova applicativa con verifica semantica contenuti",
+  "Description": "Aggiunta, modifica e rimozione di una nota con verifica dei contenuti ricercabili",
+  "NoteAddedFound": true,
+  "NoteModifiedReplacedPrevious": true,
+  "NoteRemovedAbsent": true,
+  "RequiredManualMaintenanceCommand": true,
+  "NoteOnAutomation": "La rilevazione automatica su modifiche al filesystem richiede il comando esplicito \"Aggiorna indice\" o importazione documenti.",
+  "Outcome": "PARTIAL_MANUAL_REQUIRED"
+}

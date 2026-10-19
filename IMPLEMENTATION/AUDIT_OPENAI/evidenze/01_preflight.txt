@@ -1,0 +1,31 @@
+2026-09-24T09:38:42.7672875+08:00
+warning: unable to access 'C:\Users\user/.config/git/ignore': Permission denied
+warning: unable to access 'C:\Users\user/.config/git/ignore': Permission denied
+?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/diff-20b27f2-HEAD.patch
+?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-1.patch
+?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-2-b.patch
+?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-2.patch
+?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-2L-b.patch
+?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-2L.patch
+?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-3b1.patch
+?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-3b2.patch
+?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-3b2b.patch
+?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-3b2c.patch
+?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-4.patch
+?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-4c.patch
+?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-5.patch
+?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-5b.patch
+?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase2-preliminary-stash.patch
+?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/screenshots-ux/
+windows-build
+1037060a5cb0194236cb3c03cc47f6c924dad977
+origin	https://github.com/cesarenegro/vault_memai_obsi (fetch)
+origin	https://github.com/cesarenegro/vault_memai_obsi (push)
+1037060a5cb0194236cb3c03cc47f6c924dad977 refs/remotes/origin/windows-build
+d34f222 ancestor_exit=0
+04bd7dd ancestor_exit=0
+efa0cef ancestor_exit=0
+ef2532c ancestor_exit=0
+e0afe10 ancestor_exit=0
+c21cb10 ancestor_exit=0
+67da90f ancestor_exit=0

@@ -1,0 +1,11 @@
+{
+  "Level": "Verificato sulla fixture",
+  "Description": "Apertura tramite UI di vault senza indice -> creazione automatica dell’indice e stato “Indice: Pronto”",
+  "ObservedIndexingBanner": false,
+  "IndexFileCreated": true,
+  "UIStatusReady": true,
+  "IndexFilePath": "C:\\Users\\user\\.gemini\\antigravity-ide\\brain\\54971fd6-624d-414a-9d6b-1cd5e7fb6c0e\\scratch\\isolated_e2e\\Vault_A\\00_SYSTEM\\SEARCH_INDEX.json",
+  "IndexSizeBytes": 3535,
+  "IndexingDurationSec": "2.8",
+  "Outcome": "PASS"
+}

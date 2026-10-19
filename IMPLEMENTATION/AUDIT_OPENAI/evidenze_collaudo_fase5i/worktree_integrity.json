@@ -1,0 +1,8 @@
+{
+  "At": "2026-09-24T19:15:05.1425188+08:00",
+  "DiffExit": 0,
+  "Diff": null,
+  "CargoBlob": "0bca563a0150ae3c2585c2292dfac76289f674ab",
+  "ExpectedBlob": "0bca563a0150ae3c2585c2292dfac76289f674ab",
+  "Status": " M apps/desktop/src-tauri/Cargo.toml"
+}

@@ -1,0 +1,407 @@
+1: ---
+2: title: "LIMEN Vault — Workflow utente"
+3: type: help
+4: tags: [limen-vault, workflow, mermaid]
+5: ---
+6: 
+7: # Workflow utente
+8: 
+9: Torna all'indice: [[00_INDICE]]
+10: 
+11: I diagrammi usano Mermaid e si vedono direttamente in Obsidian.
+12: 
+13: ---
+14: 
+15: ## W0 — Il ciclo di vita di un contenuto
+16: 
+17: ```mermaid
+18: stateDiagram-v2
+19:   [*] --> Grezzo: file in 20_RAW_SOURCES
+20:   Grezzo --> NoteAutomatiche: Conversione e classificazione
+21:   NoteAutomatiche --> Wiki: Sintesi con fonti
+22:   Wiki --> RicercaAI: Indicizzazione
+23:   Grezzo --> Bozza: Compilazione manuale facoltativa
+24:   [*] --> RispostaAI: Chiedi al Vault / SALVA RISPOSTA COME BOZZA
+25:   RispostaAI --> Proposta: Risposte AI / CREA PROPOSTA
+26:   Bozza --> Proposta: Proposte / IMPORTA BOZZA MOSTRATA
+27:   Proposta --> Proposta: SALVA NUOVA REVISIONE
+28:   Proposta --> Rifiutata: RIFIUTA REVISIONE MOSTRATA
+29:   Proposta --> Approvata: APPROVA REVISIONE MOSTRATA
+30:   [*] --> Approvata: nota scritta a mano in Obsidian (01-10)
+31:   Approvata --> Pubblicata: Trasferimenti / Pubblica conoscenza
+32:   Pubblicata --> Ritirata: Ritira pubblicazione
+33: ```
+34: 
+35: ## W0b — Chi può scrivere dove
+36: 
+37: ```mermaid
+38: flowchart LR
+39:   U((Utente in Obsidian)) --> K[01-10 Conoscenza]
+40:   U --> R[20_RAW_SOURCES]
+41:   AUTO[Automazione attivata] --> N[01-09 Note e wiki, status review]
+42:   AUTO -. legge .-> R
+43:   C[Compilatore manuale] --> P[90_PROPOSALS]
+44:   AI[OpenAI] --> O[80_AI_OUTPUTS]
+45:   AP{Approvazione umana in Proposte} --> K
+46:   P --> AP
+47:   O --> P
+48:   C -. legge .-> R
+49:   AI -. legge solo fonti mostrate .-> K
+50: ```
+51: 
+52: ---
+53: 
+54: ## W1 — Primo avvio
+55: 
+56: ```mermaid
+57: flowchart TD
+58:   A[Avvia LIMEN Vault] --> B{Anteprima nel browser?}
+59:   B -- Sì --> B1[Apri l'app macOS nativa]
+60:   B -- No --> C[Inserisci percorso assoluto]
+61:   C --> D{La cartella è un Vault LIMEN?}
+62:   D -- Sì --> E[APRI VAULT ESISTENTE]
+63:   D -- No, cartella nuova/vuota --> F[CREA NUOVO VAULT]
+64:   E --> G{Stato}
+65:   F --> G
+66:   G -- Pronto --> H[Panoramica]
+67:   G -- Non accessibile / Incompleto / Non valido --> I[Leggi errori, correggi, riprova. Non cancellare file]
+68: ```
+69: 
+70: ## W2 — Collegare Obsidian
+71: 
+72: ```mermaid
+73: sequenceDiagram
+74:   actor U as Utente
+75:   participant L as LIMEN
+76:   participant O as Obsidian
+77:   U->>L: Apri in Obsidian
+78:   L->>O: apre il Vault (se già registrato)
+79:   alt Vault non registrato
+80:     O-->>U: selettore Vault
+81:     U->>O: Open folder as vault, scegli cartella
+82:     U->>L: Apri in Obsidian (di nuovo)
+83:     L->>O: apertura diretta
+84:   end
+85: ```
+86: 
+87: ## W3 — Scrivere una nota e ritrovarla
+88: 
+89: ```mermaid
+90: flowchart LR
+91:   A[Apri in Obsidian] --> B[Scrivi nota con frontmatter in 01-10]
+92:   B --> C[LIMEN: Conoscenza > categoria > AGGIORNA CONOSCENZA]
+93:   C --> D[Ricerca > AGGIORNA INDICE DI RICERCA]
+94:   D --> E[Cerca con parole e filtri]
+95: ```
+96: 
+97: ## W4 — Percorso manuale facoltativo da testo a conoscenza approvata
+98: 
+99: ```mermaid
+100: flowchart TD
+101:   A[Copia .md .txt .html in 20_RAW_SOURCES dal Finder] --> B[Fonti > AGGIORNA FONTI]
+102:   B --> C{Stato}
+103:   C -- Non supportata --> C1[Usa caricamento automatico per PDF e Office]
+104:   C -- Da compilare / Modificata --> D[Compila bozza o COMPILA TUTTE LE FONTI]
+105:   D --> E[Bozza in 90_PROPOSALS, status draft]
+106:   E --> F[Proposte > Importa una bozza compilata > categoria > IMPORTA BOZZA MOSTRATA]
+107:   F --> G[Leggi testo, fonti, cronologia]
+108:   G --> H{Serve correggere?}
+109:   H -- Sì --> H1[SALVA NUOVA REVISIONE] --> G
+110:   H -- No --> I{Decisione}
+111:   I -- Rifiuta --> J[Motivo > RIFIUTA REVISIONE MOSTRATA]
+112:   I -- Approva --> K[Nuova destinazione .md > spunta conferma > APPROVA]
+113:   K --> L[Conoscenza: aggiorna]
+114:   L --> M[Ricerca: aggiorna indice]
+115: ```
+116: 
+117: ## W5 — Domanda AI con controllo delle fonti
+118: 
+119: ```mermaid
+120: sequenceDiagram
+121:   actor U as Utente
+122:   participant L as LIMEN (locale)
+123:   participant K as Portachiavi macOS
+124:   participant AI as OpenAI
+125:   U->>L: Impostazioni > SALVA CHIAVE
+126:   L->>K: salva chiave
+127:   U->>L: Ricerca > AGGIORNA INDICE
+128:   U->>L: modello + domanda (max 2000) > ANTEPRIMA FONTI
+129:   L-->>U: elenco fonti (valido 300 s)
+130:   U->>L: controlla fonti > INVIA A OPENAI LE FONTI MOSTRATE
+131:   L->>K: legge chiave
+132:   L->>AI: domanda + fonti mostrate (HTTPS, timeout 30 s)
+133:   AI-->>L: risposta
+134:   L-->>U: risposta + citazioni
+135:   opt conservare
+136:     U->>L: SALVA RISPOSTA COME BOZZA
+137:     L->>L: scrive in 80_AI_OUTPUTS
+138:   end
+139: ```
+140: 
+141: ## W6 — Da risposta AI a nota approvata
+142: 
+143: ```mermaid
+144: flowchart LR
+145:   A[Risposte AI > AGGIORNA] --> B[Apri risposta]
+146:   B --> C[Categoria > CREA PROPOSTA DALLA RISPOSTA SALVATA]
+147:   C --> D[Proposte: revisione]
+148:   D --> E[APPROVA REVISIONE MOSTRATA]
+149:   E --> F[Aggiorna Conoscenza e indice]
+150: ```
+151: 
+152: ## W7 — Copie locali e integrità
+153: 
+154: ```mermaid
+155: flowchart TD
+156:   A[Copie locali] --> B[Nota facoltativa > CREA COPIA LOCALE]
+157:   B --> C[Copia, manifesto e verifica in staging]
+158:   C -->|riuscita| D[Pubblicata in 00_SYSTEM/SNAPSHOTS/snap-...]
+159:   C -->|errore| E[Staging pulito, nessuna copia pubblicata]
+160:   D --> F[VERIFICA INTEGRITÀ]
+161:   F --> G{Esito}
+162:   G -- Verificata SHA-256 --> OK[Copia valida]
+163:   G -- Incompleta --> X1[Manifesto assente: non usarla come copia valida]
+164:   G -- Danneggiata --> X2[File alterati: non usarla come copia valida]
+165: ```
+166: 
+167: ## W8 — Collegare il cloud
+168: 
+169: ```mermaid
+170: flowchart TD
+171:   A[Ricevi codice dall'amministratore] --> B[Trasferimenti > Impostazioni Copia cloud]
+172:   B --> C[Incolla codice > Collega archivio]
+173:   C --> D{Esito}
+174:   D -- Collegamento verificato --> E[Test Connessione quando serve]
+175:   D -- errore --> F[Controlla il codice con l'amministratore. Non inventarlo]
+176: ```
+177: 
+178: ## W9 — Pubblicare nel CRM
+179: 
+180: ```mermaid
+181: sequenceDiagram
+182:   actor U as Utente
+183:   participant L as LIMEN
+184:   participant W as Servizio sync (Worker)
+185:   participant R2 as Cloudflare R2
+186:   participant CRM as CRM pii-crm
+187:   U->>L: Pubblica conoscenza
+188:   L-->>U: anteprima note approvate 01-10
+189:   U->>L: seleziona note (anche quelle già pubblicate da mantenere)
+190:   U->>L: Conferma ed Esegui
+191:   L->>W: carica oggetti per hash
+192:   W->>R2: scrittura esclusiva
+193:   L->>W: commit versione
+194:   W-->>L: COMMITTED
+195:   CRM->>W: lettura autorizzata (staff + allowlist)
+196:   W-->>CRM: note della versione corrente
+197: ```
+198: 
+199: Mapping Cliente/Progetto: i campi `client` e `project` della nota devono contenere gli **identificativi CRM esatti**. Il nome visibile non viene convertito. Falli confermare all'amministratore.
+200: 
+201: ## W10 — Copia privata e recupero
+202: 
+203: ```mermaid
+204: flowchart TD
+205:   subgraph Backup
+206:     A[Carica versione] --> B[Controlla elenco ed esclusi] --> C[Conferma ed Esegui]
+207:   end
+208:   subgraph Recupero
+209:     D[Versioni precedenti da recuperare > Carica versioni] --> E[Scegli versione o Ultima versione]
+210:     E --> F[Scarica copia > anteprima > conferma]
+211:     F --> G[Download in staging + verifica hash]
+212:     G --> H[Nuova cartella LIMEN-copy-id accanto al Vault]
+213:     H --> I[Riavvia app > APRI VAULT ESISTENTE sul nuovo percorso]
+214:   end
+215: ```
+216: 
+217: ## W11 — Interruzioni e conflitti
+218: 
+219: ```mermaid
+220: flowchart TD
+221:   A[Trasferimento in corso] --> B{Evento}
+222:   B -- Annulla trasferimento --> C[Arresto dopo la richiesta in corso]
+223:   B -- App chiusa / rete persa --> D[Riapri Trasferimenti]
+224:   D --> E[Riprendi trasferimento interrotto: stessa versione]
+225:   B -- Conflitto --> F[Ricarica anteprima, controlla nuovo piano, conferma]
+226:   B -- Download interrotto --> G[Staging .limen-download conservata: non aprirla come Vault]
+227: ```
+228: 
+229: ## W12 — Ritirare una pubblicazione
+230: 
+231: ```mermaid
+232: flowchart LR
+233:   A[Ritira pubblicazione] --> B{Conferma?}
+234:   B -- Conferma ritiro --> C[Letture CRM successive negate. Note locali intatte]
+235:   B -- Mantieni pubblicazione --> D[Nessuna modifica]
+236: ```
+237: Il ritiro non cancella copie già scaricate da altri. **Disconnetti** è un'altra cosa: toglie solo il collegamento da questo Mac.
+238: 
+239: ## W13 — Codex / client MCP
+240: 
+241: ```mermaid
+242: flowchart TD
+243:   A{Tipo di client} -- client HTTP locale --> B[Impostazioni > ATTIVA MCP LOCALE]
+244:   B --> C[Copia indirizzo, ID Vault, token]
+245:   C --> D[Configura il client]
+246:   D --> E[Uso: list_vaults, search_vault, read_document]
+247:   E --> F[REVOCA MCP a fine lavoro]
+248:   A -- Codex stdio --> G["command: binario limen-vault dentro l'app
+249: args: --mcp-stdio, percorso assoluto Vault"]
+250:   G --> H[Il client avvia il processo]
+251:   H --> I[Per disattivare: togli la configurazione dal client]
+252: ```
+253: 
+254: Il binario accetta esattamente due argomenti: `--mcp-stdio` e il percorso del Vault (`main.rs`).
+255: Il percorso del binario dentro l'app va verificato sul Mac (vedi [[06_NOTE_AUDIT_DOCUMENTAZIONE]]).
+256: 
+257: ## W14 — ChatGPT Business
+258: 
+259: ```mermaid
+260: sequenceDiagram
+261:   actor U as Utente
+262:   participant L as LIMEN
+263:   participant T as Tunnel
+264:   participant G as ChatGPT Business
+265:   U->>L: ID tunnel, ID organizzazione, chiave > SALVA CHIAVE TUNNEL
+266:   U->>L: AVVIA TUNNEL BUSINESS
+267:   L->>T: avvio
+268:   T-->>L: Tunnel locale pronto
+269:   U->>G: verifica dal client ChatGPT
+270:   G->>T: letture di note approvate e automatiche correnti indicizzate
+271:   U->>L: ARRESTA TUNNEL BUSINESS
+272:   U->>G: scollega il plugin (revoca remota)
+273: ```
+274: 
+275: ## W15 — Aggiornare l'app
+276: 
+277: ```mermaid
+278: flowchart LR
+279:   A[ARRESTA TUNNEL, chiudi LIMEN] --> B[Installa nuova versione dal DMG]
+280:   B --> C[Copia LIMEN Vault v3 in Applicazioni conservando la versione precedente]
+281:   C --> D[Avvia, APRI VAULT ESISTENTE, verifica Pronto]
+282: ```
+283: Il Vault resta fuori dall'app. Rimuovere l'app non cancella il Vault né le chiavi nel Portachiavi.
+284: 
+285: ## W16 — Flusso quotidiano automatico
+286: 
+287: ```mermaid
+288: flowchart LR
+289:   U[Carica originali] --> R[RAW: originale integro]
+290:   R --> E[Estrazione e OCR locali]
+291:   E --> C[Classificazione AI]
+292:   C --> N[Note Markdown nelle categorie]
+293:   N --> W[Wiki con fonti e collegamenti]
+294:   W --> I[Indice e ricerca AI]
+295: ```
+296: 
+297: Una configurazione iniziale autorizza le chiamate automatiche; LIMEN deve restare aperta. Dettagli: [[07_AUTOMAZIONE_DOCUMENTI]].
+298: 
+299: ---
+300: 
+301: ## W17 — Configurazione e Primo Avvio del RAG 100% Locale
+302: 
+303: ```mermaid
+304: flowchart TD
+305:   A[Avanzate > Collegamenti AI & MCP] --> B[Pannello Motore Semantico]
+306:   B --> C{Fornitore attivo}
+307:   C -- OpenAI --> D[Seleziona: Locale bge-m3, nessun dato esce dal Mac]
+308:   C -- Già Locale --> E{Modello bge-m3 presente?}
+309:   D --> E
+310:   E -- No --> F[SCARICA MODELLO 635 MB oppure SELEZIONA FILE GGUF DA DISCO]
+311:   F --> G[Verifica automatica SHA-256: 950f4a8e...]
+312:   E -- Sì, INSTALLATO SHA-256 OK --> H[AVVIA SERVIZIO LOCALE]
+313:   G --> H
+314:   H --> I[Assegnazione porta libera loopback 127.0.0.1]
+315:   I --> J{Controllo /health entro 25 s}
+316:   J -- Superato --> K[Stato: ATTIVO PORTA dinamica]
+317:   J -- Errore --> L[Consulta ~/Library/.../llama-server.log]
+318:   K --> M{Cache Semantica allineata?}
+319:   M -- Sì: 1024 dim 100% --> N[Pronto per Ricerca Ibrida]
+320:   M -- No: disallineata o 0 passaggi --> O[RICALCOLA CACHE SEMANTICA]
+321:   O --> P[Staging atomico progressivo: riprendibile]
+322:   P --> N
+323: ```
+324: 
+325: 1. Apri la barra laterale su **Avanzate e Manutenzione** e seleziona **Collegamenti AI & MCP**.
+326: 2. Nel riquadro **Motore semantico**, seleziona **Locale (bge-m3, nessun dato esce dal Mac)**.
+327: 3. Se il modello non è installato, premi **SCARICA MODELLO (635 MB)** o **SELEZIONA FILE GGUF DA DISCO…**.
+328: 4. Premi **AVVIA SERVIZIO LOCALE**: il processo `llama-server` parte su porta libera loopback e supera `/health`.
+329: 5. Se la cache mostra disallineamento, premi **RICALCOLA CACHE**: il calcolo avviene progressivamente sul Mac.
+330: 
+331: ---
+332: 
+333: ## W18 — Ricerca Ibrida Quotidiana e Gestione Modalità Degradata
+334: 
+335: ```mermaid
+336: sequenceDiagram
+337:   actor U as Utente
+338:   participant APP as Schermata Ricerca
+339:   participant HYB as embeddings.rs (Ibrido)
+340:   participant BM25 as search.rs (BM25 Lessicale)
+341:   participant LLAMA as llama-server (127.0.0.1)
+342: 
+343:   U->>APP: Digita query + spunta "Ricerca Ibrida"
+344:   APP->>HYB: search_vault_hybrid(query)
+345:   HYB->>BM25: Calcolo BM25 (k1=1.2, b=0.75, dl/avgdl)
+346:   BM25-->>HYB: Candidati lessicali normalizzati
+347:   alt llama-server ATTIVO e SANO
+348:     HYB->>LLAMA: Vettore query (1024 float)
+349:     LLAMA-->>HYB: Vettore generato
+350:     HYB->>HYB: Similarità coseno su EMBEDDINGS_CACHE
+351:     HYB->>HYB: Coalescenza ID + Fusione F2 max(lex,sem)+0.2min(lex,sem)+bonus
+352:     HYB-->>APP: 50 risultati ibridi (degraded: false)
+353:     APP-->>U: Risultati combinati + Badge RAG 100% LOCALE
+354:   else llama-server SPENTO o NON RISPONDE
+355:     HYB-->>APP: 50 risultati solo lessicali (degraded: true)
+356:     APP-->>U: Banner giallo Modalità degradata (solo lessicale)
+357:     opt Ripristino
+358:       U->>APP: Avanzate > Motore semantico > AVVIA SERVIZIO LOCALE
+359:       APP->>LLAMA: Avvio processo su nuova porta libera
+360:       APP-->>U: ATTIVO (PORTA n), riesegui la ricerca
+361:     end
+362:   end
+363: ```
+364: 
+365: - **Ricerca a doppio segnale**: i documenti con parole esatte e concetti affini (es. *MDD* / *private label* per *marca privata*) vengono valorizzati in cima alla classifica.
+366: - **Se compare il banner giallo**: la ricerca continua in sola modalità lessicale BM25 senza bloccarsi e senza inviare alcun dato all'esterno.
+367: 
+368: ---
+369: 
+370: ## W19 — Migrazione e Ricalcolo Sicuro della Cache Semantica
+371: 
+372: ```mermaid
+373: flowchart TD
+374:   A[Cambio fornitore: es. da OpenAI 1536d a Locale 1024d] --> B[SYNC_PROFILE.json aggiornato]
+375:   B --> C[needsReindex rilevato da catalogo vs cache]
+376:   C --> D[Avviso: Cache non allineata al fornitore attivo]
+377:   D --> E[Premi: RICALCOLA CACHE SEMANTICA]
+378:   E --> F[Creazione file 00_SYSTEM/EMBEDDINGS_CACHE.staging.json]
+379:   F --> G[Calcolo a lotti di 16 sul Mac con GPU Metal: misurati 0,3 s per passaggio, 9.458 passaggi in 49 min]
+380:   G --> H{Interruzione utente o app chiusa?}
+381:   H -- Sì: ANNULLA o Chiusura --> I[Staging preservata parzialmente; vecchia cache ancora valida]
+382:   I --> J[Alla ripresa: riparte dall'ultimo salvataggio dello staging - ogni 320 passaggi, o al punto esatto se premuto ANNULLA]
+383:   H -- No: 100% completato --> K[Scrittura atomica: rinomina staging in EMBEDDINGS_CACHE.json]
+384:   K --> L[Stato: Allineata 100% - Vecchia cache rimossa in sicurezza]
+385: ```
+386: 
+387: - **Staging atomico**: la cache esistente rimane valida e utilizzabile per le ricerche fino al completamento al 100%.
+388: - **Ripresa**: alla riapertura dell'app, premendo di nuovo RICALCOLA il calcolo salta i passaggi già presenti nello staging (salvato ogni 320 passaggi, o al punto esatto con ANNULLA).
+389: - **Barra reale**: la percentuale e il conteggio «K/N passaggi» sono aggiornati a ogni lotto; il badge del servizio passa a *ATTIVO (PORTA n)* all'avvio automatico.
+390: 
+391: ---
+392: 
+393: ## W20 — Dal Passaggio Semantico al Lettore e alla Conoscenza Approvata
+394: 
+395: ```mermaid
+396: flowchart LR
+397:   A[Ricerca Ibrida Locale] -->|Clic su risultato| B[Apri nel Lettore]
+398:   B --> C[Verifica impronta SHA-256 del passaggio]
+399:   C --> D{Azione desiderata}
+400:   D -- Consultazione --> E[Lettura contestualizzata di pagina/paragrafo]
+401:   D -- Elaborazione Conoscenza --> F[Crea bozza in 90_PROPOSALS]
+402:   F --> G[Revisione umana in Proposte]
+403:   G --> H[APPROVA REVISIONE MOSTRATA]
+404:   H --> I[Inserimento in 01-10 con status: approved]
+405:   I --> J[Aggiorna Indice: cercabile in BM25 e Semantico]
+406: ```
+407: 

@@ -1,0 +1,21 @@
+{
+  "At": "2026-09-24T15:06:51.7622664+08:00",
+  "RemoteSHA": "6b0427122288651bce14051bd9e86fd371656e18",
+  "PatchMatchesGitDiffNormalizedEOL": true,
+  "PatchSHA256": "CF9923223E0BBFE42D4C054D832A5689A4413D1DC41AFE3915EFCA45C6B5A744",
+  "OldFirewallRules": [],
+  "Processes": [
+    {
+      "ProcessId": 21516,
+      "ParentProcessId": 10712,
+      "ExecutablePath": "C:\\Users\\user\\AppData\\Local\\LIMEN Vault v4\\limen-vault.exe",
+      "CreationDate": "2026-09-24T13:55:11.794741+08:00"
+    },
+    {
+      "ProcessId": 36844,
+      "ParentProcessId": 21516,
+      "ExecutablePath": "C:\\Users\\user\\AppData\\Local\\LIMEN Vault v4\\native\\llama-server.exe",
+      "CreationDate": "2026-09-24T13:55:29.968688+08:00"
+    }
+  ]
+}

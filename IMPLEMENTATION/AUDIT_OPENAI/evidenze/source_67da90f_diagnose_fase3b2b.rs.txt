@@ -1,0 +1,116 @@
+1: // E:\Projects\vault_memai_obsi\apps\desktop\src-tauri\src\bin\diagnose_fase3b2b.rs
+2: // Diagnostica comparativa offline per il Passo 3b-2b.
+3: // Esegue select_with_port_timed sulle tre domande di Cesare senza chiamare OpenAI.
+4: // Misura puntualmente t_doc_read_ms, t_passage_extract_ms, t_search_ms, e verifica l'assenza di sovrapposizioni.
+5: 
+6: use limen_vault::ai::{self, Options};
+7: use limen_vault::llama;
+8: use std::path::Path;
+9: 
+10: #[tokio::main]
+11: async fn main() -> Result<(), Box<dyn std::error::Error>> {
+12:     let vault_dir = Path::new(r"E:\VAULT WIN TEST DEV");
+13:     println!("================================================================================");
+14:     println!("DIAGNOSTICA COMPARATIVA PASSO 3b-2b — PRESTAZIONI E ZERO SOVRAPPOSIZIONI");
+15:     println!("Vault: {:?}", vault_dir);
+16:     println!("================================================================================");
+17: 
+18:     // Rileva la porta del servizio llama-server dell'app verificando modello bge-m3 e dimensioni 1024d.
+19:     // Non usa porte cablate. Fallisce immediatamente con errore chiaro se il servizio non è verificato.
+20:     let active_port = match llama::find_active_bge_m3_service() {
+21:         Ok(port) => {
+22:             println!("Servizio locale llama-server (bge-m3, 1024d) VERIFICATO e attivo sulla porta {}", port);
+23:             port
+24:         }
+25:         Err(err) => {
+26:             eprintln!("ERRORE FATALE: Nessun servizio llama-server verificato (bge-m3, 1024d) attivo!");
+27:             eprintln!("Dettaglio errore: {}", err);
+28:             eprintln!("La diagnosi richiede il servizio dell'app attivo. Avviare l'app LIMEN Vault o impostare LIMEN_LOCAL_PORT.");
+29:             return Err(err.into());
+30:         }
+31:     };
+32: 
+33:     let queries = [
+34:         "Cosa è il progetto BNXT?",
+35:         "ARKAI è un'azienda o un marchio? Di cosa si occupa?",
+36:         "Cos'è il progetto SCENA e quali app comprende?",
+37:     ];
+38: 
+39:     for (idx, q) in queries.iter().enumerate() {
+40:         println!("\n--------------------------------------------------------------------------------");
+41:         println!("DOMANDA #{}: \"{}\"", idx + 1, q);
+42:         println!("--------------------------------------------------------------------------------");
+43: 
+44:         let options = Options {
+45:             prompt: q.to_string(),
+46:             model: "gpt-4o".to_string(),
+47:             include_drafts: false,
+48:             source_ids: vec![],
+49:             category: None,
+50:             client: None,
+51:             project: None,
+52:             tags: None,
+53:         };
+54: 
+55:         match ai::select_with_port_timed(vault_dir, &options, Some(active_port)).await {
+56:             Ok((sources, timings)) => {
+57:                 let total_content_bytes: usize = sources.iter().map(|s| s.content.len()).sum();
+58:                 let serialized_bytes = serde_json::to_string(&sources).map(|s| s.len()).unwrap_or(0);
+59:                 println!("Fonti selezionate da select_with_port_timed: {} fonti", sources.len());
+60:                 println!("Volume testo contenuti (s.content): {} byte (su 24.000 byte budget)", total_content_bytes);
+61:                 println!("Volume payload serializzato JSON: {} byte", serialized_bytes);
+62:                 println!(
+63:                     "Tempi Preview: totale: {} ms | search: {} ms | doc_read: {} ms | passage_extract: {} ms",
+64:                     timings.t_preview_total_ms,
+65:                     timings.t_search_ms,
+66:                     timings.t_doc_read_ms,
+67:                     timings.t_passage_extract_ms
+68:                 );
+69: 
+70:                 // Verifica automatica assenza di sovrapposizioni
+71:                 for s in &sources {
+72:                     if let Some(ref loc) = s.locator {
+73:                         let parts: Vec<&str> = loc.split(", ").collect();
+74:                         for i in 0..parts.len() {
+75:                             for j in (i + 1)..parts.len() {
+76:                                 if ai::locators_overlap(parts[i], parts[j]) {
+77:                                     eprintln!("ATTENZIONE: Trovata sovrapposizione tra '{}' e '{}' in {}", parts[i], parts[j], s.relative_path);
+78:                                 }
+79:                             }
+80:                         }
+81:                     }
+82:                 }
+83: 
+84:                 println!("\nDettaglio Fonti Inviate:");
+85:                 println!("{:<6}| {:<70} | {:<8} | {:<9} | {:<30}", "ID", "Percorso Relativo", "Byte", "Passaggi", "Localizzatore");
+86:                 println!("{:-<6}+{:-<72}+{:-<10}+{:-<11}+{:-<31}", "", "", "", "", "");
+87: 
+88:                 for (s_idx, s) in sources.iter().enumerate() {
+89:                     let id_tag = format!("S{}", s_idx + 1);
+90:                     let num_p = if !s.passage_hashes.is_empty() {
+91:                         s.passage_hashes.len()
+92:                     } else {
+93:                         1
+94:                     };
+95:                     let loc_str = s.locator.as_deref().unwrap_or("-");
+96:                     println!(
+97:                         "[{:<4}] | {:<70} | {:>6} B | {:>7} p | {}",
+98:                         id_tag,
+99:                         s.relative_path,
+100:                         s.content.len(),
+101:                         num_p,
+102:                         loc_str
+103:                     );
+104:                 }
+105:             }
+106:             Err(e) => {
+107:                 eprintln!("ERRORE durante select_with_port_timed: {}", e);
+108:             }
+109:         }
+110:     }
+111: 
+112:     println!("\n================================================================================");
+113:     println!("DIAGNOSTICA PASSO 3b-2b COMPLETATA CON SUCCESSO");
+114:     println!("================================================================================\n");
+115:     Ok(())
+116: }

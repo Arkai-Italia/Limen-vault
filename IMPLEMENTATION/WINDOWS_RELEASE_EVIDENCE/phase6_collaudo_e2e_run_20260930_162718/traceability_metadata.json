@@ -1,0 +1,30 @@
+{
+  "TestRunId": "phase6_run_20260930_162718",
+  "TimestampISO": "2026-09-30T08:27:18.503Z",
+  "GitCommit": "e1fe50d61ac852f9fa2ab70c8a3c3320256068f0",
+  "Installer": {
+    "Path": "E:\\Projects\\vault_memai_obsi\\USER INSTALL WINDOWS\\LIMEN-Vault-v6Mini-0.6.0-windows-x64-setup.exe",
+    "Sha256": "8c9b1aa4b494e7d768f9384391c943d056d6cb58cac2c5ca5697efefc717e31b",
+    "SizeBytes": 63062230
+  },
+  "InstalledExecutable": {
+    "Path": "C:\\Users\\user\\AppData\\Local\\LIMEN Vault v6Mini\\limen-vault.exe",
+    "Sha256": "154778aba8607638355b835b4ee26358443174bb30ffd0f0ee700288551987a6",
+    "SizeBytes": 23714816
+  },
+  "LlamaServer": {
+    "Path": "C:\\Users\\user\\AppData\\Local\\LIMEN Vault v6Mini\\native\\llama-server.exe",
+    "Sha256": "45438f026845b4611474e3a7a21b486cab83d3ac39ca60d591ceb88300d8ee4c",
+    "SizeBytes": 8177392
+  },
+  "Models": {
+    "BgeM3": {
+      "Path": "C:\\Users\\user\\LIMEN Vault\\models\\bge-m3-Q8_0.gguf",
+      "SizeBytes": 634553760
+    },
+    "Ministral3_8B": {
+      "Path": "C:\\Users\\user\\LIMEN Vault\\models\\Ministral-3-8B-Instruct-2512-Q5_K_M.gguf",
+      "SizeBytes": 6059268512
+    }
+  }
+}

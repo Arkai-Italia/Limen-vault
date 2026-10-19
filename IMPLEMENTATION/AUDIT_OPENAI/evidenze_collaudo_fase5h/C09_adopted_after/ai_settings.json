@@ -1,0 +1,4 @@
+{
+  "embeddings_provider": "local",
+  "selected_model": "gpt-4o"
+}

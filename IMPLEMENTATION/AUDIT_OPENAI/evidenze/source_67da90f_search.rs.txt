@@ -1,0 +1,1364 @@
+1: use crate::snapshots::{child, compute_sha256, names, read, read_path, root, write_new};
+2: use cap_std::fs::{Dir, OpenOptions};
+3: #[cfg(unix)]
+4: use cap_std::fs::OpenOptionsExt;
+5: use regex::Regex;
+6: use serde::{Deserialize, Serialize};
+7: use serde_json::{json, Value};
+8: use std::{
+9:     collections::{BTreeMap, BTreeSet},
+10:     io::Read,
+11:     path::Path,
+12:     sync::{
+13:         atomic::{AtomicU64, Ordering},
+14:         OnceLock,
+15:     },
+16: };
+17: use unicode_normalization::UnicodeNormalization;
+18: const VERSION: u32 = 2;
+19: static COUNTER: AtomicU64 = AtomicU64::new(0);
+20: #[derive(Deserialize)]
+21: struct Spec {
+22:     categories: BTreeMap<String, String>,
+23:     stop_words: BTreeSet<String>,
+24: }
+25: fn spec() -> &'static Spec {
+26:     static S: OnceLock<Spec> = OnceLock::new();
+27:     S.get_or_init(|| {
+28:         serde_json::from_str(include_str!(
+29:             "../../../../packages/search-engine/src/search-spec.json"
+30:         ))
+31:         .expect("Built-in search spec")
+32:     })
+33: }
+34: fn err(e: impl std::fmt::Display) -> String {
+35:     e.to_string()
+36: }
+37: #[derive(Debug, Serialize, Deserialize, Clone, Default)]
+38: pub struct SearchQuery {
+39:     pub term: Option<String>,
+40:     pub category: Option<String>,
+41:     pub client: Option<String>,
+42:     pub project: Option<String>,
+43:     pub tags: Option<Vec<String>>,
+44:     pub status: Option<String>,
+45:     pub limit: Option<usize>,
+46:     pub offset: Option<usize>,
+47: }
+48: #[derive(Debug, Serialize, Deserialize, Clone)]
+49: pub struct SearchPassageRecord {
+50:     pub passage_id: String,
+51:     pub locator: String,
+52:     pub sha256: String,
+53:     pub text: String,
+54:     pub tokens: Vec<String>,
+55: }
+56: #[derive(Debug, Serialize, Deserialize, Clone)]
+57: pub struct SearchMatchingPassage {
+58:     pub passage_id: String,
+59:     pub locator: String,
+60:     pub snippet: String,
+61:     pub score: f64,
+62: }
+63: #[derive(Debug, Serialize, Deserialize, Clone)]
+64: pub struct SearchResultItem {
+65:     pub id: String,
+66:     pub title: String,
+67:     pub relative_path: String,
+68:     pub category: String,
+69:     pub client: Option<String>,
+70:     pub project: Option<String>,
+71:     pub tags: Vec<String>,
+72:     pub status: Option<String>,
+73:     pub snippet: String,
+74:     pub score: f64,
+75:     pub updated_at: Option<String>,
+76:     pub sha256: String,
+77:     #[serde(default, skip_serializing_if = "Option::is_none")]
+78:     pub matching_locator: Option<String>,
+79:     #[serde(default, skip_serializing_if = "Option::is_none")]
+80:     pub matching_passage_id: Option<String>,
+81:     #[serde(default, skip_serializing_if = "Vec::is_empty")]
+82:     pub passages: Vec<SearchMatchingPassage>,
+83:     #[serde(default, skip_serializing_if = "Option::is_none")]
+84:     pub semantic_similarity: Option<f64>,
+85: }
+86: #[derive(Debug, Serialize, Deserialize, Clone)]
+87: pub struct IndexStatusReport {
+88:     pub state: String,
+89:     pub total_indexed: usize,
+90:     pub last_indexed_at: String,
+91:     pub version: u32,
+92:     pub indexed_categories: BTreeMap<String, usize>,
+93: }
+94: #[derive(Debug, Serialize, Deserialize, Clone)]
+95: pub struct SearchDocumentRecord {
+96:     pub id: String,
+97:     #[serde(skip_serializing_if = "Option::is_none")]
+98:     pub note_id: Option<String>,
+99:     pub relative_path: String,
+100:     pub sha256: String,
+101:     pub mtime_ms: u64,
+102:     pub title: String,
+103:     pub category: String,
+104:     #[serde(skip_serializing_if = "Option::is_none")]
+105:     pub client: Option<String>,
+106:     #[serde(skip_serializing_if = "Option::is_none")]
+107:     pub project: Option<String>,
+108:     #[serde(skip_serializing_if = "Option::is_none")]
+109:     pub brand: Option<String>,
+110:     pub tags: Vec<String>,
+111:     #[serde(skip_serializing_if = "Option::is_none")]
+112:     pub status: Option<String>,
+113:     pub created_at: String,
+114:     pub updated_at: String,
+115:     pub tokens: Vec<String>,
+116:     pub content_preview: String,
+117:     #[serde(default, skip_serializing_if = "Vec::is_empty")]
+118:     pub passages: Vec<SearchPassageRecord>,
+119: }
+120: #[derive(Debug, Serialize, Deserialize, Clone)]
+121: pub struct SearchIndexData {
+122:     pub version: u32,
+123:     pub last_indexed_at: String,
+124:     pub documents: BTreeMap<String, SearchDocumentRecord>,
+125: }
+126: fn id(p: &str) -> String {
+127:     format!("doc_{}", compute_sha256(p.as_bytes()))
+128: }
+129: fn relative(p: &str) -> Result<(), String> {
+130:     let parts: Vec<_> = p.split('/').collect();
+131:     if parts.len() < 2
+132:         || (!spec().categories.contains_key(parts[0]) && parts[0] != "20_RAW_SOURCES")
+133:         || parts
+134:             .iter()
+135:             .any(|s| s.is_empty() || *s == "." || *s == ".." || s.contains(['\\', '\0']))
+136:     {
+137:         return Err("Invalid indexed path".into());
+138:     }
+139:     Ok(())
+140: }
+141: fn valid_status(s: &str) -> bool {
+142:     ["draft", "review", "approved", "archived", "auto", "legacy_draft"].contains(&s)
+143: }
+144: fn valid_category(s: &str) -> bool {
+145:     spec().categories.values().any(|v| v == s) || s == "raw_source"
+146: }
+147: fn validate(data: &SearchIndexData) -> Result<(), String> {
+148:     if data.version != VERSION {
+149:         return Err("Unsupported search index version".into());
+150:     }
+151:     for (p, d) in &data.documents {
+152:         relative(p)?;
+153:         if (d.id != id(p) && !d.id.starts_with("doc_"))
+154:             || d.relative_path != *p
+155:             || d.sha256.len() != 64
+156:             || !d
+157:                 .sha256
+158:                 .bytes()
+159:                 .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+160:             || d.mtime_ms > 9_007_199_254_740_991
+161:             || !valid_category(&d.category)
+162:             || d.status.as_ref().is_some_and(|s| !valid_status(s))
+163:         {
+164:             return Err("Invalid search document".into());
+165:         }
+166:     }
+167:     Ok(())
+168: }
+169: pub static SEARCH_INDEX_REVISION: AtomicU64 = AtomicU64::new(1);
+170: pub static SEARCH_INDEX_DISK_READ_COUNT: AtomicU64 = AtomicU64::new(0);
+171: static SEARCH_INDEX_DISK_READ_COUNTS: std::sync::Mutex<std::collections::BTreeMap<std::path::PathBuf, u64>> =
+172:     std::sync::Mutex::new(std::collections::BTreeMap::new());
+173: static SEARCH_INDEX_REVISIONS: std::sync::Mutex<std::collections::BTreeMap<std::path::PathBuf, u64>> =
+174:     std::sync::Mutex::new(std::collections::BTreeMap::new());
+175: 
+176: #[derive(Clone)]
+177: struct SearchIndexCacheEntry {
+178:     vault_path: std::path::PathBuf,
+179:     size: u64,
+180:     mtime: std::time::SystemTime,
+181:     revision: u64,
+182:     data: std::sync::Arc<SearchIndexData>,
+183: }
+184: 
+185: static SEARCH_INDEX_CACHE: std::sync::Mutex<std::collections::BTreeMap<std::path::PathBuf, SearchIndexCacheEntry>> =
+186:     std::sync::Mutex::new(std::collections::BTreeMap::new());
+187: 
+188: pub fn get_search_index_disk_read_count() -> u64 {
+189:     SEARCH_INDEX_DISK_READ_COUNT.load(Ordering::SeqCst)
+190: }
+191: 
+192: pub fn get_search_index_disk_read_count_for_vault(vault_path: &Path) -> u64 {
+193:     SEARCH_INDEX_DISK_READ_COUNTS.lock().unwrap().get(vault_path).copied().unwrap_or(0)
+194: }
+195: 
+196: fn increment_search_index_disk_read_count(vault_path: Option<&Path>) {
+197:     SEARCH_INDEX_DISK_READ_COUNT.fetch_add(1, Ordering::SeqCst);
+198:     if let Some(v_path) = vault_path {
+199:         let mut guard = SEARCH_INDEX_DISK_READ_COUNTS.lock().unwrap();
+200:         let entry = guard.entry(v_path.to_path_buf()).or_insert(0);
+201:         *entry += 1;
+202:     }
+203: }
+204: 
+205: pub fn get_search_index_revision(vault_path: &Path) -> u64 {
+206:     SEARCH_INDEX_REVISIONS.lock().unwrap().get(vault_path).copied().unwrap_or(0)
+207: }
+208: 
+209: pub fn bump_search_index_revision(vault_path: &Path) {
+210:     SEARCH_INDEX_REVISION.fetch_add(1, Ordering::SeqCst);
+211:     let mut guard = SEARCH_INDEX_REVISIONS.lock().unwrap();
+212:     let entry = guard.entry(vault_path.to_path_buf()).or_insert(0);
+213:     *entry += 1;
+214: }
+215: 
+216: fn load(system: &Dir) -> Result<Option<std::sync::Arc<SearchIndexData>>, String> {
+217:     load_with_vault_path(system, None)
+218: }
+219: 
+220: pub fn load_index_for_vault(path: &Path) -> Result<Option<std::sync::Arc<SearchIndexData>>, String> {
+221:     let r = root(path)?;
+222:     load_with_vault_path(&child(&r, "00_SYSTEM")?, Some(path))
+223: }
+224: 
+225: pub fn load_with_vault_path(system: &Dir, vault_path: Option<&Path>) -> Result<Option<std::sync::Arc<SearchIndexData>>, String> {
+226:     if !names(system)?.iter().any(|n| n == "SEARCH_INDEX.json") {
+227:         return Ok(None);
+228:     }
+229: 
+230:     if let Some(v_path) = vault_path {
+231:         let idx_file = v_path.join("00_SYSTEM").join("SEARCH_INDEX.json");
+232:         if let Ok(meta) = std::fs::metadata(&idx_file) {
+233:             let size = meta.len();
+234:             let mtime = meta.modified().unwrap_or(std::time::SystemTime::UNIX_EPOCH);
+235:             let current_rev = get_search_index_revision(v_path);
+236:             if let Ok(guard) = SEARCH_INDEX_CACHE.lock() {
+237:                 if let Some(entry) = guard.get(v_path) {
+238:                     let is_high_prec = crate::ai::is_high_precision_fs(v_path);
+239:                     let is_mtime_match = if is_high_prec {
+240:                         entry.mtime == mtime
+241:                     } else {
+242:                         entry.mtime == mtime
+243:                             || entry.mtime.duration_since(mtime).map(|d| d.as_millis() < 2000).unwrap_or(false)
+244:                             || mtime.duration_since(entry.mtime).map(|d| d.as_millis() < 2000).unwrap_or(false)
+245:                     };
+246:                     if entry.size == size && is_mtime_match && entry.revision == current_rev {
+247:                         return Ok(Some(entry.data.clone()));
+248:                     }
+249:                 }
+250:             }
+251:         }
+252:     }
+253: 
+254:     increment_search_index_disk_read_count(vault_path);
+255:     let value: Value = serde_json::from_slice(&read(system, "SEARCH_INDEX.json")?).map_err(err)?;
+256:     if value["version"] == 1 && value["documents"].is_object() {
+257:         return Ok(Some(std::sync::Arc::new(SearchIndexData {
+258:             version: 1,
+259:             last_indexed_at: value["last_indexed_at"].as_str().unwrap_or("").into(),
+260:             documents: BTreeMap::new(),
+261:         })));
+262:     }
+263:     let data: SearchIndexData = serde_json::from_value(value).map_err(err)?;
+264:     validate(&data)?;
+265:     let data_arc = std::sync::Arc::new(data);
+266: 
+267:     if let Some(v_path) = vault_path {
+268:         let idx_file = v_path.join("00_SYSTEM").join("SEARCH_INDEX.json");
+269:         if let Ok(meta) = std::fs::metadata(&idx_file) {
+270:             let size = meta.len();
+271:             let mtime = meta.modified().unwrap_or(std::time::SystemTime::UNIX_EPOCH);
+272:             let current_rev = get_search_index_revision(v_path);
+273:             if let Ok(mut guard) = SEARCH_INDEX_CACHE.lock() {
+274:                 guard.insert(v_path.to_path_buf(), SearchIndexCacheEntry {
+275:                     vault_path: v_path.to_path_buf(),
+276:                     size,
+277:                     mtime,
+278:                     revision: current_rev,
+279:                     data: data_arc.clone(),
+280:                 });
+281:             }
+282:         }
+283:     }
+284: 
+285:     Ok(Some(data_arc))
+286: }
+287: fn status(data: Option<&SearchIndexData>) -> IndexStatusReport {
+288:     let state = match data {
+289:         None => "missing",
+290:         Some(d) if d.version != VERSION => "outdated",
+291:         _ => "ready",
+292:     };
+293:     let mut cats = BTreeMap::new();
+294:     let mut total = 0;
+295:     if state == "ready" {
+296:         for d in data.unwrap().documents.values() {
+297:             *cats.entry(d.category.clone()).or_insert(0) += 1;
+298:             total += 1;
+299:         }
+300:     }
+301:     IndexStatusReport {
+302:         state: state.into(),
+303:         total_indexed: total,
+304:         last_indexed_at: data.map(|d| d.last_indexed_at.clone()).unwrap_or_default(),
+305:         version: data.map(|d| d.version).unwrap_or(VERSION),
+306:         indexed_categories: cats,
+307:     }
+308: }
+309: pub fn get_search_index_status(path: &Path) -> Result<IndexStatusReport, String> {
+310:     let r = root(path)?;
+311:     Ok(status(load_with_vault_path(&child(&r, "00_SYSTEM")?, Some(path))?.as_ref().map(|v| &**v)))
+312: }
+313: struct Lock<'a> {
+314:     system: &'a Dir,
+315:     opened: Option<Dir>,
+316: }
+317: impl Drop for Lock<'_> {
+318:     fn drop(&mut self) {
+319:         if let Some(opened) = self.opened.take() {
+320:             let _ = opened.remove_file("owner.json");
+321:             drop(opened);
+322:             let _ = self.system.remove_dir(".search-lock");
+323:         }
+324:     }
+325: }
+326: fn save(system: &Dir, data: &SearchIndexData) -> Result<(), String> {
+327:     validate(data)?;
+328:     let temp = format!(
+329:         ".search-index-{}-{}-{}",
+330:         chrono::Utc::now().timestamp_nanos_opt().unwrap_or_default(),
+331:         std::process::id(),
+332:         COUNTER.fetch_add(1, Ordering::Relaxed)
+333:     );
+334:     if let Err(e) = write_new(
+335:         system,
+336:         &temp,
+337:         &serde_json::to_vec_pretty(data).map_err(err)?,
+338:     ) {
+339:         let _ = system.remove_file(&temp);
+340:         return Err(e);
+341:     }
+342:     if let Err(e) = system.rename(&temp, system, "SEARCH_INDEX.json") {
+343:         let _ = system.remove_file(&temp);
+344:         return Err(err(e));
+345:     }
+346:     Ok(())
+347: }
+348: pub fn normalize_text(s: &str) -> String {
+349:     s.nfd()
+350:         .filter(|c| !('\u{0300}'..='\u{036f}').contains(c))
+351:         .collect::<String>()
+352:         .to_lowercase()
+353: }
+354: fn patterns() -> &'static Vec<(Regex, &'static str)> {
+355:     static R: OnceLock<Vec<(Regex, &str)>> = OnceLock::new();
+356:     R.get_or_init(|| {
+357:         vec![
+358:             (
+359:                 Regex::new(r"^---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)").unwrap(),
+360:                 "",
+361:             ),
+362:             (Regex::new(r"```[\s\S]*?```").unwrap(), " "),
+363:             (Regex::new(r"\[([^\]]+)\]\([^)]+\)").unwrap(), "$1"),
+364:             (Regex::new(r"(?m)^#{1,6}[ \t]+").unwrap(), ""),
+365:             (Regex::new(r"(?m)^>[ \t]*").unwrap(), ""),
+366:             (Regex::new(r"[`*_]").unwrap(), ""),
+367:         ]
+368:     })
+369: }
+370: pub fn strip_markdown(raw: &str) -> String {
+371:     let mut s = raw.to_string();
+372:     for (r, rep) in patterns() {
+373:         s = r.replace_all(&s, *rep).into_owned();
+374:     }
+375:     s.split_whitespace().collect::<Vec<_>>().join(" ")
+376: }
+377: pub fn tokenize_text(raw: &str) -> Vec<String> {
+378:     static SEP: OnceLock<Regex> = OnceLock::new();
+379:     let lower = normalize_text(&strip_markdown(raw));
+380:     SEP.get_or_init(|| Regex::new(r"[^\p{L}\p{N}]+").unwrap())
+381:         .split(&lower)
+382:         .filter(|t| t.chars().count() >= 2 && !spec().stop_words.contains(*t))
+383:         .map(str::to_string)
+384:         .collect()
+385: }
+386: /// Vero se `needle` compare in `hay` delimitato da caratteri non alfanumerici (o dai bordi), cioe' come
+387: /// parola o sequenza di parole intere: "personal" non e' contenuto in "personale", "lead" non in "leader".
+388: /// Entrambe le stringhe devono essere gia' normalizzate con `normalize_text`.
+389: pub fn contains_whole_words(hay: &str, needle: &str) -> bool {
+390:     let needle = needle.trim();
+391:     if needle.is_empty() {
+392:         return false;
+393:     }
+394:     let h: Vec<char> = hay.chars().collect();
+395:     let n: Vec<char> = needle.chars().collect();
+396:     if n.len() > h.len() {
+397:         return false;
+398:     }
+399:     let is_word = |c: char| c.is_alphanumeric();
+400:     let mut i = 0;
+401:     while i + n.len() <= h.len() {
+402:         if h[i..i + n.len()] == n[..] {
+403:             let before_ok = i == 0 || !is_word(h[i - 1]);
+404:             let after_ok = i + n.len() == h.len() || !is_word(h[i + n.len()]);
+405:             if before_ok && after_ok {
+406:                 return true;
+407:             }
+408:         }
+409:         i += 1;
+410:     }
+411:     false
+412: }
+413: 
+414: pub fn extract_snippet(content: &str, terms: &[String], max: usize) -> String {
+415:     if max == 0 {
+416:         return String::new();
+417:     }
+418:     let chars: Vec<_> = strip_markdown(content).chars().collect();
+419:     let mut folded = Vec::new();
+420:     let mut map = Vec::new();
+421:     for (i, c) in chars.iter().enumerate() {
+422:         for n in normalize_text(&c.to_string()).chars() {
+423:             folded.push(n);
+424:             map.push(i);
+425:         }
+426:     }
+427:     let mut found = 0;
+428:     for t in terms {
+429:         let q: Vec<_> = normalize_text(t).chars().collect();
+430:         if !q.is_empty() {
+431:             if let Some(i) = folded.windows(q.len()).position(|w| w == q.as_slice()) {
+432:                 found = map[i];
+433:                 break;
+434:             }
+435:         }
+436:     }
+437:     let mut from = found.saturating_sub(max / 2);
+438:     if chars.len() - from < max {
+439:         from = chars.len().saturating_sub(max);
+440:     }
+441:     let to = chars.len().min(from.saturating_add(max));
+442:     format!(
+443:         "{}{}{}",
+444:         if from > 0 { "..." } else { "" },
+445:         chars[from..to].iter().collect::<String>(),
+446:         if to < chars.len() { "..." } else { "" }
+447:     )
+448: }
+449: fn read_file(d: &Dir, name: &str) -> Result<(Vec<u8>, u64), String> {
+450:     use cap_std::fs::MetadataExt;
+451:     let mut opts = OpenOptions::new();
+452:     opts.read(true);
+453:     #[cfg(unix)]
+454:     {
+455:         use std::os::unix::fs::OpenOptionsExt;
+456:         opts.custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK);
+457:     }
+458:     let mut f = d.open_with(name, &opts).map_err(err)?;
+459:     let a = f.metadata().map_err(err)?;
+460:     if !a.is_file() || a.len() > 4 * 1024 * 1024 {
+461:         return Err("Not a regular file or exceeds 4 MiB".into());
+462:     }
+463:     let mut bytes = Vec::new();
+464:     (&mut f).take(4*1024*1024+1).read_to_end(&mut bytes).map_err(err)?;
+465:     if bytes.len()>4*1024*1024{return Err("Source exceeds 4 MiB".into())}
+466:     let b = f.metadata().map_err(err)?;
+467:     if a.len() != b.len()
+468:         || a.modified().map_err(err)? != b.modified().map_err(err)?
+469:     {
+470:         return Err("Source changed while reading".into());
+471:     }
+472:     #[cfg(unix)]
+473:     {
+474:         use cap_std::fs::MetadataExt;
+475:         if a.ctime() != b.ctime() || a.ctime_nsec() != b.ctime_nsec() {
+476:             return Err("Source changed while reading".into());
+477:         }
+478:     }
+479:     drop(f);
+480:     let time = a
+481:         .modified()
+482:         .map_err(err)?
+483:         .into_std()
+484:         .duration_since(std::time::UNIX_EPOCH)
+485:         .map(|d| d.as_millis() as u64)
+486:         .unwrap_or(0);
+487:     Ok((bytes, time))
+488: }
+489: fn parse(
+490:     content: &str,
+491:     p: &str,
+492:     category: &str,
+493:     mtime: u64,
+494:     sha: String,
+495: ) -> Result<SearchDocumentRecord, String> {
+496:     let content = content.strip_prefix('\u{feff}').unwrap_or(content);
+497:     let normalized = content.replace("\r\n", "\n");
+498:     let fm = if normalized.starts_with("---\n") || normalized == "---" {
+499:         let rest = normalized
+500:             .strip_prefix("---\n")
+501:             .ok_or("Unclosed frontmatter")?;
+502:         let end = rest
+503:             .match_indices("\n---")
+504:             .find(|(i, _)| {
+505:                 rest.get(i + 4..)
+506:                     .is_some_and(|s| s.is_empty() || s.starts_with('\n'))
+507:             })
+508:             .map(|(i, _)| i)
+509:             .ok_or("Unclosed frontmatter")?;
+510:         let v: Value = serde_yaml::from_str(&rest[..end]).map_err(err)?;
+511:         if !v.is_object() {
+512:             return Err("Frontmatter must be a mapping".into());
+513:         }
+514:         v
+515:     } else {
+516:         json!({})
+517:     };
+518:     let body = patterns()[0].0.replace(content, "").trim().to_string();
+519:     for k in [
+520:         "id",
+521:         "title",
+522:         "type",
+523:         "client",
+524:         "project",
+525:         "brand",
+526:         "status",
+527:         "created_at",
+528:         "updated_at",
+529:     ] {
+530:         if fm.get(k).is_some_and(|v| !v.is_string()) {
+531:             return Err(format!("{p}: Invalid {k}"));
+532:         }
+533:     }
+534:     let tags: Vec<String> = match fm.get("tags") {
+535:         Some(v) => serde_json::from_value(v.clone()).map_err(err)?,
+536:         None => Vec::new(),
+537:     };
+538:     let val = |k: &str| fm.get(k).and_then(Value::as_str).map(str::to_string);
+539:     let cat = val("type").unwrap_or_else(|| category.into());
+540:     if !valid_category(&cat) || val("status").is_some_and(|s| !valid_status(&s)) {
+541:         return Err(format!("{p}: Invalid category/status"));
+542:     }
+543:     let fallback = Path::new(p)
+544:         .file_stem()
+545:         .unwrap_or_default()
+546:         .to_string_lossy()
+547:         .replace(['-', '_'], " ");
+548:     let title = val("title").unwrap_or_else(|| {
+549:         body.lines()
+550:             .find_map(|l| l.strip_prefix("# "))
+551:             .map(str::trim)
+552:             .filter(|s| !s.is_empty())
+553:             .unwrap_or(&fallback)
+554:             .into()
+555:     });
+556:     let date = chrono::DateTime::from_timestamp_millis(mtime as i64)
+557:         .ok_or("Invalid mtime")?
+558:         .to_rfc3339_opts(chrono::SecondsFormat::Millis, true);
+559:     let doc_id = id(p);
+560:     let chunked = crate::catalog::chunk_text_to_passages(&doc_id, &body);
+561:     let passages: Vec<SearchPassageRecord> = chunked
+562:         .into_iter()
+563:         .map(|cp| {
+564:             let tokens = tokenize_text(&cp.text);
+565:             SearchPassageRecord {
+566:                 passage_id: cp.passage_id,
+567:                 locator: cp.locator,
+568:                 sha256: cp.sha256,
+569:                 text: cp.text,
+570:                 tokens,
+571:             }
+572:         })
+573:         .collect();
+574: 
+575:     Ok(SearchDocumentRecord {
+576:         id: doc_id,
+577:         note_id: val("id"),
+578:         relative_path: p.into(),
+579:         sha256: sha,
+580:         mtime_ms: mtime,
+581:         title: title.clone(),
+582:         category: cat,
+583:         client: val("client"),
+584:         project: val("project"),
+585:         brand: val("brand"),
+586:         tags: tags.clone(),
+587:         status: val("status"),
+588:         created_at: val("created_at").unwrap_or_else(|| date.clone()),
+589:         updated_at: val("updated_at").unwrap_or(date),
+590:         tokens: tokenize_text(&format!("{title} {body} {}", tags.join(" "))),
+591:         content_preview: body,
+592:         passages,
+593:     })
+594: }
+595: fn walk(
+596:     d: &Dir,
+597:     rel: &str,
+598:     cat: &str,
+599:     depth: usize,
+600:     old: Option<&SearchIndexData>,
+601:     docs: &mut BTreeMap<String, SearchDocumentRecord>,
+602: ) -> Result<(), String> {
+603:     if depth > 64 {
+604:         return Err("Directory depth exceeds 64".into());
+605:     }
+606:     for n in names(d)? {
+607:         if n.starts_with('.') {
+608:             continue;
+609:         }
+610:         let p = format!("{rel}/{n}");
+611:         let m = d.symlink_metadata(&n).map_err(err)?;
+612:         if m.is_symlink() {
+613:             return Err(format!("{p}: Symlinks are not allowed"));
+614:         }
+615:         if m.is_dir() {
+616:             walk(&child(d, &n)?, &p, cat, depth + 1, old, docs)?;
+617:         } else if !m.is_file() {
+618:             return Err(format!("{p}: Not a regular file"));
+619:         } else if ["md", "markdown"].contains(
+620:             &Path::new(&n)
+621:                 .extension()
+622:                 .unwrap_or_default()
+623:                 .to_string_lossy()
+624:                 .to_lowercase()
+625:                 .as_str(),
+626:         ) {
+627:             let (bytes, mtime) = read_file(d, &n)?;
+628:             let sha = compute_sha256(&bytes);
+629:             let cached = old
+630:                 .filter(|i| i.version == VERSION)
+631:                 .and_then(|i| i.documents.get(&p));
+632:             let doc = if let Some(c) = cached.filter(|c| c.sha256 == sha && c.mtime_ms == mtime) {
+633:                 c.clone()
+634:             } else {
+635:                 parse(&String::from_utf8(bytes).map_err(err)?, &p, cat, mtime, sha)?
+636:             };
+637:             docs.insert(p, doc);
+638:         }
+639:     }
+640:     Ok(())
+641: }
+642: pub fn index_vault_search(path: &Path) -> Result<IndexStatusReport, String> {
+643:     let r = root(path)?;
+644:     let s = child(&r, "00_SYSTEM")?;
+645:     if s.create_dir(".search-lock").is_err() {
+646:         let previous=child(&s,".search-lock")?;
+647:         let owner:Value=serde_json::from_slice(&read(&previous,"owner.json")?).map_err(err)?;
+648:         let pid = owner["pid"].as_i64().unwrap_or(0) as i32;
+649:         #[cfg(unix)]
+650:         let active = unsafe { libc::kill(pid, 0) } == 0 || std::io::Error::last_os_error().raw_os_error() != Some(libc::ESRCH);
+651:         #[cfg(not(unix))]
+652:         let active = pid == std::process::id() as i32;
+653:         if active { return Err("Search lock held by an active process".into()); }
+654:         previous.remove_file("owner.json").map_err(err)?;
+655:         drop(previous);
+656:         s.remove_dir(".search-lock").map_err(err)?;
+657:         s.create_dir(".search-lock").map_err(err)?;
+658:     }
+659:     let lock_dir = child(&s, ".search-lock")?;
+660:     write_new(&lock_dir, "owner.json", json!({"pid": std::process::id()}).to_string().as_bytes())?;
+661:     let _lock = Lock { system: &s, opened: Some(lock_dir) };
+662:     let old = load_with_vault_path(&s, Some(path))?;
+663:     let mut docs = BTreeMap::new();
+664:     let entries = names(&r)?;
+665:     for (cat, kind) in &spec().categories {
+666:         if entries.contains(cat) {
+667:             walk(&child(&r, cat)?, cat, kind, 0, old.as_ref().map(|v| &**v), &mut docs)?;
+668:         }
+669:     }
+670: 
+671:     // Sync catalog so new, modified, or removed raw sources are updated
+672:     let _ = crate::catalog::sync_catalog(path);
+673: 
+674:     // Index catalog raw sources (20_RAW_SOURCES) if VAULT_CATALOG.json exists
+675:     if let Ok(catalog) = crate::catalog::load_catalog_arc(path) {
+676:         for doc in catalog.documents.values() {
+677:             if doc.original_path.starts_with("20_RAW_SOURCES/") && doc.extraction_status == crate::catalog::ExtractionStatus::Ready && !doc.passages.is_empty() {
+678:                 let p = doc.original_path.clone();
+679:                 let cached = old
+680:                     .as_ref()
+681:                     .map(|v| &**v)
+682:                     .filter(|i| i.version == VERSION)
+683:                     .and_then(|i| i.documents.get(&p));
+684:                 let search_doc = if let Some(c) = cached.filter(|c| c.sha256 == doc.content_hash) {
+685:                     c.clone()
+686:                 } else {
+687:                     let passages: Vec<SearchPassageRecord> = doc.passages.iter().map(|pass| {
+688:                         SearchPassageRecord {
+689:                             passage_id: pass.passage_id.clone(),
+690:                             locator: pass.locator.clone(),
+691:                             sha256: pass.sha256.clone(),
+692:                             text: pass.text.clone(),
+693:                             tokens: tokenize_text(&pass.text),
+694:                         }
+695:                     }).collect();
+696: 
+697:                     let mut all_tokens = tokenize_text(&format!("{} {}", doc.file_name, doc.tags.join(" ")));
+698:                     for pass in &passages {
+699:                         all_tokens.extend(pass.tokens.clone());
+700:                     }
+701:                     // C11 fix: do not deduplicate tokens so term frequency (tf) accurately reflects occurrences.
+702:                     // tokens is never used via binary_search, so full bag-of-words ordering is preserved identically to knowledge documents (line 455).
+703: 
+704:                     let preview = passages.first().map(|pass| pass.text.chars().take(500).collect::<String>()).unwrap_or_default();
+705: 
+706:                     SearchDocumentRecord {
+707:                         id: doc.document_id.clone(),
+708:                         note_id: None,
+709:                         relative_path: p.clone(),
+710:                         sha256: doc.content_hash.clone(),
+711:                         mtime_ms: 0,
+712:                         title: doc.file_name.clone(),
+713:                         category: doc.category.clone().unwrap_or_else(|| "raw_source".to_string()),
+714:                         client: doc.client.clone(),
+715:                         project: doc.project.clone(),
+716:                         brand: None,
+717:                         tags: doc.tags.clone(),
+718:                         status: Some(doc.editorial_status.clone()),
+719:                         created_at: doc.imported_at.clone(),
+720:                         updated_at: doc.updated_at.clone(),
+721:                         tokens: all_tokens,
+722:                         content_preview: preview,
+723:                         passages,
+724:                     }
+725:                 };
+726:                 docs.insert(p, search_doc);
+727:             }
+728:         }
+729:     }
+730: 
+731:     let data = SearchIndexData {
+732:         version: VERSION,
+733:         last_indexed_at: chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
+734:         documents: docs,
+735:     };
+736:     save(&s, &data)?;
+737:     bump_search_index_revision(path);
+738:     Ok(status(Some(&data)))
+739: }
+740: pub fn search_vault(path: &Path, q: SearchQuery) -> Result<Vec<SearchResultItem>, String> {
+741:     search_vault_filtered::<fn(&SearchDocumentRecord) -> bool>(path, q, None)
+742: }
+743: 
+744: pub fn search_vault_filtered<F>(
+745:     path: &Path,
+746:     q: SearchQuery,
+747:     filter_fn: Option<F>,
+748: ) -> Result<Vec<SearchResultItem>, String>
+749: where
+750:     F: Fn(&SearchDocumentRecord) -> bool,
+751: {
+752:     let limit = q.limit.unwrap_or(50);
+753:     let offset = q.offset.unwrap_or(0);
+754:     if limit > 200
+755:         || offset > 1_000_000
+756:         || q.term
+757:             .as_ref()
+758:             .is_some_and(|t| t.encode_utf16().count() > 2000)
+759:     {
+760:         return Err("Invalid search query/pagination".into());
+761:     }
+762:     let r = root(path)?;
+763:     let _sys = child(&r, "00_SYSTEM")?;
+764:     let data = load_with_vault_path(&child(&r, "00_SYSTEM")?, Some(path))?
+765:         .filter(|d| d.version == VERSION)
+766:         .ok_or("Search index missing or outdated; re-index required")?;
+767:     let terms: Vec<_> = tokenize_text(q.term.as_deref().unwrap_or(""))
+768:         .into_iter()
+769:         .collect::<BTreeSet<_>>()
+770:         .into_iter()
+771:         .collect();
+772:     if !q.term.as_deref().unwrap_or("").trim().is_empty() && terms.is_empty() {
+773:         return Ok(Vec::new());
+774:     }
+775:     let df: BTreeMap<_, _> = terms
+776:         .iter()
+777:         .map(|t| {
+778:             (
+779:                 t,
+780:                 data.documents
+781:                     .values()
+782:                     .filter(|d| d.tokens.contains(t))
+783:                     .count(),
+784:             )
+785:         })
+786:         .collect();
+787:     // BM25 (C11, seconda meta'): normalizzazione sulla lunghezza del documento.
+788:     // Senza questo fattore, con tf reale i documenti lunghi dominano per costruzione
+789:     // (misurato: il file piu' grande del corpus al rango 1 in 47 query su 82).
+790:     const BM25_K1: f64 = 1.2;
+791:     const BM25_B: f64 = 0.75;
+792:     let avgdl = {
+793:         let n = data.documents.len().max(1) as f64;
+794:         (data.documents.values().map(|d| d.tokens.len() as f64).sum::<f64>() / n).max(1.0)
+795:     };
+796:     let mut results = Vec::new();
+797:     for d in data.documents.values() {
+798:         if crate::automation::managed(&d.relative_path) && !crate::automation::is_current(path,&d.relative_path,&d.sha256){continue;}
+799:         if let Some(ref f) = filter_fn {
+800:             if !f(d) {
+801:                 continue;
+802:             }
+803:         }
+804:         if q.category
+805:             .as_ref()
+806:             .is_some_and(|c| !c.is_empty() && *c != d.category)
+807:         {
+808:             continue;
+809:         }
+810:         if [
+811:             (&q.client, &d.client),
+812:             (&q.project, &d.project),
+813:             (&q.status, &d.status),
+814:         ]
+815:         .iter()
+816:         .any(|(a, b)| {
+817:             a.as_ref().is_some_and(|s| {
+818:                 !s.is_empty() && normalize_text(s) != normalize_text(b.as_deref().unwrap_or(""))
+819:             })
+820:         }) {
+821:             continue;
+822:         }
+823:         if q.tags.as_ref().is_some_and(|ts| {
+824:             ts.iter().any(|t| {
+825:                 !d.tags
+826:                     .iter()
+827:                     .any(|x| normalize_text(x) == normalize_text(t))
+828:             })
+829:         }) {
+830:             continue;
+831:         }
+832:         let mut score = if terms.is_empty() { 1.0 } else { 0.0 };
+833:         let title_tokens = tokenize_text(&d.title);
+834:         let tags_tokens = tokenize_text(&d.tags.join(" "));
+835:         let dl = d.tokens.len() as f64;
+836:         let length_norm = 1.0 - BM25_B + BM25_B * dl / avgdl;
+837:         let doc_count = data.documents.len().max(1);
+838:         for t in &terms {
+839:             let tf = d.tokens.iter().filter(|x| *x == t).count() as f64;
+840:             let idf =
+841:                 ((data.documents.len() + 1) as f64 / (*df.get(t).unwrap_or(&0) + 1) as f64).ln() + 1.0;
+842:             if tf > 0.0 {
+843:                 score += idf * (tf * (BM25_K1 + 1.0)) / (tf + BM25_K1 * length_norm);
+844:             }
+845:             // FASE 3a (Punto A): bonus del titolo assegnato solo a parole rare / poco frequenti nel vault
+846:             // (df <= 2 o df/N <= 0.30, tarato sulle 30 query di sviluppo A05_DEV_QUERIES).
+847:             // Evita che parole generiche come "progetto" (df ~ 35.4%) ottengano il bonus scavalcando documenti specifici.
+848:             let term_df = *df.get(t).unwrap_or(&0);
+849:             let is_infrequent = term_df <= 2 || (term_df as f64 / doc_count as f64) <= 0.30;
+850:             if title_tokens.contains(t) && is_infrequent {
+851:                 score += 10.0;
+852:             }
+853:             if tags_tokens.contains(t) {
+854:                 score += 5.0;
+855:             }
+856:         }
+857: 
+858:         // Passages matching and locator detection
+859:         let mut matching_passages = Vec::new();
+860:         let mut best_passage_locator = None;
+861:         let mut best_passage_id = None;
+862:         let mut best_passage_snippet = None;
+863:         let mut best_passage_score = 0.0;
+864: 
+865:         let dynamic_passages: Vec<SearchPassageRecord>;
+866:         let passages_ref = if !d.passages.is_empty() {
+867:             &d.passages
+868:         } else {
+869:             dynamic_passages = crate::catalog::chunk_text_to_passages(&d.id, &d.content_preview)
+870:                 .into_iter()
+871:                 .map(|p| SearchPassageRecord {
+872:                     passage_id: p.passage_id,
+873:                     locator: p.locator,
+874:                     sha256: p.sha256,
+875:                     text: p.text.clone(),
+876:                     tokens: tokenize_text(&p.text),
+877:                 })
+878:                 .collect();
+879:             &dynamic_passages
+880:         };
+881: 
+882:         for p in passages_ref {
+883:             let mut p_score = 0.0;
+884:             for t in &terms {
+885:                 let p_tf = p.tokens.iter().filter(|x| *x == t).count() as f64;
+886:                 if p_tf > 0.0 {
+887:                     let idf = ((data.documents.len() + 1) as f64 / (*df.get(t).unwrap_or(&0) + 1) as f64).ln() + 1.0;
+888:                     p_score += p_tf * idf;
+889:                 }
+890:             }
+891:             if let Some(ref term) = q.term {
+892:                 let norm_term = normalize_text(term);
+893:                 let norm_p = normalize_text(&p.text);
+894:                 // C12 (21/09/2026): confronto a parola intera. Con `contains` un termine breve prendeva il bonus
+895:                 // anche come sottostringa di altre parole ("personal" in "personale", "lead" in "leader") e,
+896:                 // poiche' il bonus vale solo per i documenti con BM25 zero ed e' piu' alto di qualsiasi BM25,
+897:                 // i documenti con la sola sottostringa superavano quelli con il termine vero: misurato sul
+898:                 // corpus reale, 50 documenti a pari merito con punteggio 15,0 per "personal", "cita", "lead".
+899:                 if contains_whole_words(&norm_p, &norm_term) {
+900:                     p_score += 15.0;
+901:                 }
+902:             }
+903:             if p_score > 0.0 {
+904:                 let snippet = extract_snippet(&p.text, &terms, 180);
+905:                 matching_passages.push(SearchMatchingPassage {
+906:                     passage_id: p.passage_id.clone(),
+907:                     locator: p.locator.clone(),
+908:                     snippet: snippet.clone(),
+909:                     score: (p_score * 100.0).round() / 100.0,
+910:                 });
+911:                 if p_score > best_passage_score {
+912:                     best_passage_score = p_score;
+913:                     best_passage_locator = Some(p.locator.clone());
+914:                     best_passage_id = Some(p.passage_id.clone());
+915:                     best_passage_snippet = Some(snippet);
+916:                 }
+917:             }
+918:         }
+919: 
+920:         if score <= 0.0 {
+921:             if best_passage_score > 0.0 {
+922:                 score = best_passage_score;
+923:             } else {
+924:                 continue;
+925:             }
+926:         }
+927: 
+928:         if compute_sha256(&read_path(&r, &d.relative_path)?) != d.sha256 {
+929:             return Err(format!(
+930:                 "Search index stale: {}; re-index required",
+931:                 d.relative_path
+932:             ));
+933:         }
+934: 
+935:         let snippet = best_passage_snippet.unwrap_or_else(|| {
+936:             extract_snippet(&d.content_preview, &terms, 180)
+937:         });
+938: 
+939:         matching_passages.sort_by(|a, b| b.score.total_cmp(&a.score));
+940: 
+941:         results.push(SearchResultItem {
+942:             id: d.id.clone(),
+943:             title: d.title.clone(),
+944:             relative_path: d.relative_path.clone(),
+945:             category: d.category.clone(),
+946:             client: d.client.clone(),
+947:             project: d.project.clone(),
+948:             tags: d.tags.clone(),
+949:             status: d.status.clone(),
+950:             snippet,
+951:             score: (score * 100.0).round() / 100.0,
+952:             updated_at: Some(d.updated_at.clone()),
+953:             sha256: d.sha256.clone(),
+954:             matching_locator: best_passage_locator,
+955:             matching_passage_id: best_passage_id,
+956:             passages: matching_passages,
+957:             semantic_similarity: None,
+958:         });
+959:     }
+960:     results.sort_by(|a, b| {
+961:         b.score
+962:             .total_cmp(&a.score)
+963:             .then_with(|| b.updated_at.cmp(&a.updated_at))
+964:             .then_with(|| a.relative_path.cmp(&b.relative_path))
+965:     });
+966:     Ok(results.into_iter().skip(offset).take(limit).collect())
+967: }
+968: #[cfg(test)]
+969: mod tests {
+970:     use super::*;
+971:     use std::fs;
+972:     #[test]
+973:     fn metadata_filters_unicode_and_readonly() {
+974:         let t = tempfile::tempdir().unwrap();
+975:         for d in ["00_SYSTEM", "01_CLIENTS"] {
+976:             fs::create_dir(t.path().join(d)).unwrap();
+977:         }
+978:         let raw="---\ntitle: Metadata\nclient: Acme\nproject: Apollo\nstatus: draft\ntags: [tech]\n---\n# Heading\nCaffè software";
+979:         fs::write(t.path().join("01_CLIENTS/doc.md"), raw).unwrap();
+980:         assert_eq!(index_vault_search(t.path()).unwrap().total_indexed, 1);
+981:         assert_eq!(
+982:             search_vault(
+983:                 t.path(),
+984:                 SearchQuery {
+985:                     client: Some("Acme".into()),
+986:                     term: Some("caffe".into()),
+987:                     ..Default::default()
+988:                 }
+989:             )
+990:             .unwrap()
+991:             .len(),
+992:             1
+993:         );
+994:         assert_eq!(
+995:             search_vault(
+996:                 t.path(),
+997:                 SearchQuery {
+998:                     status: Some("approved".into()),
+999:                     ..Default::default()
+1000:                 }
+1001:             )
+1002:             .unwrap()
+1003:             .len(),
+1004:             0
+1005:         );
+1006:         assert_eq!(
+1007:             fs::read_to_string(t.path().join("01_CLIENTS/doc.md")).unwrap(),
+1008:             raw
+1009:         );
+1010:         assert!(!extract_snippet(&format!("{}è😀tail", "a".repeat(179)), &[], 180).is_empty());
+1011:     }
+1012:     #[test]
+1013:     #[cfg(unix)]
+1014:     fn index_symlink_never_overwrites_note() {
+1015:         use std::os::unix::fs::symlink;
+1016:         let t = tempfile::tempdir().unwrap();
+1017:         fs::create_dir(t.path().join("00_SYSTEM")).unwrap();
+1018:         fs::write(t.path().join("note.md"), "# SAFE").unwrap();
+1019:         symlink(
+1020:             t.path().join("note.md"),
+1021:             t.path().join("00_SYSTEM/SEARCH_INDEX.json"),
+1022:         )
+1023:         .unwrap();
+1024:         assert!(index_vault_search(t.path()).is_err());
+1025:         assert_eq!(
+1026:             fs::read_to_string(t.path().join("note.md")).unwrap(),
+1027:             "# SAFE"
+1028:         );
+1029:     }
+1030:     #[test]
+1031:     fn search_passages_and_catalog_indexing() {
+1032:         let t = tempfile::tempdir().unwrap();
+1033:         for d in ["00_SYSTEM", "01_CLIENTS", "20_RAW_SOURCES"] {
+1034:             fs::create_dir(t.path().join(d)).unwrap();
+1035:         }
+1036:         let note = "---\ntitle: Multi Paragraph Note\nclient: BetaCorp\nstatus: approved\n---\n# Introduzione\nPrimo paragrafo con informazioni generali.\n\nSecondo paragrafo con specifiche su algoritmo QuantumLeap e architettura distribuita.";
+1037:         fs::write(t.path().join("01_CLIENTS/note.md"), note).unwrap();
+1038: 
+1039:         // Index note
+1040:         let rep = index_vault_search(t.path()).unwrap();
+1041:         assert_eq!(rep.total_indexed, 1);
+1042: 
+1043:         // Search for QuantumLeap
+1044:         let res = search_vault(t.path(), SearchQuery {
+1045:             term: Some("QuantumLeap".into()),
+1046:             ..Default::default()
+1047:         }).unwrap();
+1048:         assert_eq!(res.len(), 1);
+1049:         assert!(res[0].matching_locator.is_some());
+1050:         assert!(res[0].matching_passage_id.is_some());
+1051:         assert!(res[0].snippet.contains("QuantumLeap"));
+1052:         assert!(!res[0].passages.is_empty());
+1053:     }
+1054: 
+1055:     #[test]
+1056:     fn test_search_detects_removed_and_modified_files_without_blocking() {
+1057:         let t = tempfile::tempdir().unwrap();
+1058:         fs::create_dir(t.path().join("00_SYSTEM")).unwrap();
+1059:         fs::create_dir(t.path().join("01_CLIENTS")).unwrap();
+1060: 
+1061:         let file_path = t.path().join("01_CLIENTS/doc.md");
+1062:         fs::write(&file_path, "---\ntitle: Progetto Alfa\nstatus: approved\n---\nVersione Iniziale di prova Alfa.").unwrap();
+1063: 
+1064:         index_vault_search(t.path()).unwrap();
+1065:         let res1 = search_vault(t.path(), SearchQuery {
+1066:             term: Some("Iniziale".into()),
+1067:             ..Default::default()
+1068:         }).unwrap();
+1069:         assert_eq!(res1.len(), 1);
+1070: 
+1071:         // 1. Modify content on disk -> reindexing updates search without blocking
+1072:         fs::write(&file_path, "---\ntitle: Progetto Alfa\nstatus: approved\n---\nVersione Rinnovata con dettagli Delta.").unwrap();
+1073:         index_vault_search(t.path()).unwrap();
+1074:         let res2 = search_vault(t.path(), SearchQuery {
+1075:             term: Some("Delta".into()),
+1076:             ..Default::default()
+1077:         }).unwrap();
+1078:         assert_eq!(res2.len(), 1);
+1079: 
+1080:         // 2. Remove file from disk -> reindexing detects removal
+1081:         fs::remove_file(&file_path).unwrap();
+1082:         index_vault_search(t.path()).unwrap();
+1083:         let res3 = search_vault(t.path(), SearchQuery {
+1084:             term: Some("Delta".into()),
+1085:             ..Default::default()
+1086:         }).unwrap();
+1087:         assert_eq!(res3.len(), 0);
+1088:     }
+1089: 
+1090:     #[test]
+1091:     fn test_c11_raw_sources_term_frequency_not_deduped() {
+1092:         let t = tempfile::tempdir().unwrap();
+1093:         let path = t.path();
+1094:         fs::create_dir_all(path.join("00_SYSTEM")).unwrap();
+1095:         fs::create_dir_all(path.join("20_RAW_SOURCES")).unwrap();
+1096: 
+1097:         // Doc 1: term "benchmark" appears 1 time
+1098:         let content_single = "benchmark termine comune per test";
+1099:         fs::write(path.join("20_RAW_SOURCES/doc_single.txt"), content_single).unwrap();
+1100: 
+1101:         // Doc 2: term "benchmark" appears 5 times
+1102:         let content_multi = "benchmark benchmark benchmark benchmark benchmark termine comune per test";
+1103:         fs::write(path.join("20_RAW_SOURCES/doc_multi.txt"), content_multi).unwrap();
+1104: 
+1105:         // Sync catalog and process extractions
+1106:         crate::catalog::sync_catalog(path).unwrap();
+1107:         let _ = crate::catalog::process_pending_extractions(path).unwrap();
+1108: 
+1109:         // Index vault search
+1110:         index_vault_search(path).unwrap();
+1111: 
+1112:         // Verify SEARCH_INDEX.json tokens
+1113:         let root_dir = root(path).unwrap();
+1114:         let sys_dir = child(&root_dir, "00_SYSTEM").unwrap();
+1115:         let index_data = load(&sys_dir).unwrap().unwrap();
+1116: 
+1117:         let doc_single = index_data.documents.get("20_RAW_SOURCES/doc_single.txt").expect("doc_single missing");
+1118:         let doc_multi = index_data.documents.get("20_RAW_SOURCES/doc_multi.txt").expect("doc_multi missing");
+1119: 
+1120:         let tf_single = doc_single.tokens.iter().filter(|x| *x == "benchmark").count();
+1121:         let tf_multi = doc_multi.tokens.iter().filter(|x| *x == "benchmark").count();
+1122: 
+1123:         // Crucial C11 assertions: tf must be N, not 1
+1124:         assert_eq!(tf_single, 1, "tf for doc_single must be exactly 1");
+1125:         assert_eq!(tf_multi, 5, "tf for doc_multi must be exactly 5, not deduplicated to 1");
+1126: 
+1127:         // Search for "benchmark"
+1128:         let results = search_vault(path, SearchQuery {
+1129:             term: Some("benchmark".into()),
+1130:             ..Default::default()
+1131:         }).unwrap();
+1132: 
+1133:         assert_eq!(results.len(), 2);
+1134:         assert_eq!(results[0].relative_path, "20_RAW_SOURCES/doc_multi.txt");
+1135:         assert_eq!(results[1].relative_path, "20_RAW_SOURCES/doc_single.txt");
+1136:         assert!(
+1137:             results[0].score > results[1].score,
+1138:             "Document with 5 occurrences (score {}) must strictly outrank document with 1 occurrence (score {})",
+1139:             results[0].score,
+1140:             results[1].score
+1141:         );
+1142:     }
+1143: 
+1144:     #[test]
+1145:     fn test_contains_whole_words_rejects_substrings_of_other_words() {
+1146:         assert!(contains_whole_words("parliamo di personal branding", "personal"));
+1147:         assert!(!contains_whole_words("il posizionamento a livello personale", "personal"));
+1148:         assert!(!contains_whole_words("il leader del mercato", "lead"));
+1149:         assert!(contains_whole_words("genera un lead qualificato", "lead"));
+1150:         assert!(contains_whole_words("marca privata e distribuzione", "marca privata"));
+1151:         assert!(!contains_whole_words("marca privatamente gestita", "marca privata"));
+1152:         assert!(contains_whole_words("codice sku-999-x in listino", "sku-999-x"));
+1153:         assert!(!contains_whole_words("qualsiasi", ""));
+1154:     }
+1155: 
+1156:     #[test]
+1157:     fn test_c12_exact_token_document_outranks_substring_only_document() {
+1158:         let tmp = tempfile::tempdir().unwrap();
+1159:         let path = tmp.path();
+1160:         fs::create_dir_all(path.join("00_SYSTEM")).unwrap();
+1161:         fs::create_dir_all(path.join("20_RAW_SOURCES")).unwrap();
+1162:         // A contiene il token esatto "personal"; B contiene solo "personale"/"personalmente" (sottostringhe).
+1163:         fs::write(path.join("20_RAW_SOURCES/a.txt"), "Oggi parliamo di personal branding e di come costruire il personal brand di un consulente.").unwrap();
+1164:         fs::write(path.join("20_RAW_SOURCES/b.txt"), "Il posizionamento a livello personale conta molto, personalmente credo che la personalizzazione sia decisiva.").unwrap();
+1165:         crate::catalog::sync_catalog_from_vault(path).unwrap();
+1166:         crate::catalog::process_pending_extractions(path).unwrap();
+1167:         index_vault_search(path).unwrap();
+1168:         let res = search_vault(path, SearchQuery { term: Some("personal".into()), ..Default::default() }).unwrap();
+1169:         assert!(!res.is_empty());
+1170:         assert!(res[0].relative_path.ends_with("a.txt"), "il documento con il termine esatto deve essere primo, trovato {}", res[0].relative_path);
+1171:         assert!(res.iter().all(|r| !r.relative_path.ends_with("b.txt")), "un documento con la sola sottostringa non deve entrare tramite il bonus di frase esatta");
+1172:     }
+1173: 
+1174:     #[test]
+1175:     fn test_c11_bm25_short_exact_document_beats_long_document_with_common_words() {
+1176:         // C11, seconda meta': con tf reale ma senza normalizzazione sulla lunghezza,
+1177:         // un documento lungo che ripete una parola comune batteva un documento breve
+1178:         // che contiene la frase cercata (misurato sul corpus reale: il file piu' grande
+1179:         // al rango 1 in 47 query su 82). BM25 deve invertire l'ordine.
+1180:         let t = tempfile::tempdir().unwrap();
+1181:         let path = t.path();
+1182:         fs::create_dir_all(path.join("00_SYSTEM")).unwrap();
+1183:         fs::create_dir_all(path.join("20_RAW_SOURCES")).unwrap();
+1184: 
+1185:         // Documento breve e mirato: contiene la frase esatta una sola volta.
+1186:         let short = "Nota tecnica. Confezione termosaldata per salumi affettati con barriera ossigeno.";
+1187:         fs::write(path.join("20_RAW_SOURCES/breve.txt"), short).unwrap();
+1188: 
+1189:         // Documento lungo: ripete "confezione" centinaia di volte in un mare di parole di riempimento,
+1190:         // senza mai contenere gli altri termini della frase.
+1191:         let mut long = String::new();
+1192:         for i in 0..500 {
+1193:             long.push_str("confezione ");
+1194:             long.push_str(&format!("parola{} riempimento{} testo{} ", i % 37, i % 53, i % 71));
+1195:         }
+1196:         fs::write(path.join("20_RAW_SOURCES/lungo.txt"), long).unwrap();
+1197: 
+1198:         crate::catalog::sync_catalog(path).unwrap();
+1199:         let _ = crate::catalog::process_pending_extractions(path).unwrap();
+1200:         index_vault_search(path).unwrap();
+1201: 
+1202:         let results = search_vault(path, SearchQuery {
+1203:             term: Some("confezione termosaldata per salumi affettati".into()),
+1204:             ..Default::default()
+1205:         }).unwrap();
+1206: 
+1207:         assert_eq!(results.len(), 2, "entrambi i documenti contengono almeno un termine");
+1208:         assert_eq!(
+1209:             results[0].relative_path, "20_RAW_SOURCES/breve.txt",
+1210:             "il documento breve con la frase esatta deve stare al rango 1 (punteggi: breve {} / lungo {})",
+1211:             results.iter().find(|r| r.relative_path.ends_with("breve.txt")).map(|r| r.score).unwrap_or(0.0),
+1212:             results.iter().find(|r| r.relative_path.ends_with("lungo.txt")).map(|r| r.score).unwrap_or(0.0)
+1213:         );
+1214:         assert!(
+1215:             results[0].score > results[1].score,
+1216:             "il punteggio del documento breve ({}) deve superare strettamente quello del documento lungo ({})",
+1217:             results[0].score,
+1218:             results[1].score
+1219:         );
+1220:     }
+1221: 
+1222:     #[test]
+1223:     fn test_in_memory_search_cache_consecutive_no_disk_re_read() {
+1224:         let tmp = tempfile::tempdir().unwrap();
+1225:         let path = tmp.path();
+1226:         std::fs::create_dir_all(path.join("00_SYSTEM")).unwrap();
+1227:         std::fs::create_dir_all(path.join("01_CLIENTS")).unwrap();
+1228: 
+1229:         std::fs::write(path.join("01_CLIENTS/client_a.md"), "---\ntitle: Client A Note\ntags: [demo]\n---\nStrategic marketing notes.").unwrap();
+1230:         index_vault_search(path).unwrap();
+1231: 
+1232:         let initial_reads = get_search_index_disk_read_count_for_vault(path);
+1233:         let res1 = search_vault(path, SearchQuery { term: Some("marketing".into()), ..Default::default() }).unwrap();
+1234:         assert!(!res1.is_empty());
+1235:         let reads_after_first = get_search_index_disk_read_count_for_vault(path);
+1236:         assert!(reads_after_first > initial_reads, "La prima ricerca legge da disco");
+1237: 
+1238:         let res2 = search_vault(path, SearchQuery { term: Some("marketing".into()), ..Default::default() }).unwrap();
+1239:         assert!(!res2.is_empty());
+1240:         let reads_after_second = get_search_index_disk_read_count_for_vault(path);
+1241:         assert_eq!(reads_after_second, reads_after_first, "La seconda ricerca usa la cache in memoria e NON rilegge il disco!");
+1242: 
+1243:         // Aggiorna indice -> vede nuovi documenti e incrementa il contatore alla ricerca successiva
+1244:         std::fs::write(path.join("01_CLIENTS/client_b.md"), "---\ntitle: Client B Note\ntags: [demo]\n---\nStrategic marketing expansion.").unwrap();
+1245:         index_vault_search(path).unwrap();
+1246: 
+1247:         let res3 = search_vault(path, SearchQuery { term: Some("expansion".into()), ..Default::default() }).unwrap();
+1248:         assert!(!res3.is_empty(), "La ricerca dopo aggiornamento indice deve vedere i documenti nuovi");
+1249:         let reads_after_third = get_search_index_disk_read_count_for_vault(path);
+1250:         assert!(reads_after_third > reads_after_second, "Dopo l'aggiornamento dell'indice i dati vengono ricaricati");
+1251:     }
+1252: 
+1253:     #[test]
+1254:     fn test_search_index_rewrite_same_size_reloaded() {
+1255:         let tmp = tempfile::tempdir().unwrap();
+1256:         let path = tmp.path();
+1257:         std::fs::create_dir_all(path.join("00_SYSTEM")).unwrap();
+1258:         std::fs::create_dir_all(path.join("01_CLIENTS")).unwrap();
+1259: 
+1260:         std::fs::write(path.join("01_CLIENTS/doc.md"), "---\ntitle: Doc\ntags: [a]\n---\nHello world 12345").unwrap();
+1261:         index_vault_search(path).unwrap();
+1262: 
+1263:         let initial_reads = get_search_index_disk_read_count_for_vault(path);
+1264:         let _ = search_vault(path, SearchQuery { term: Some("world".into()), ..Default::default() }).unwrap();
+1265:         let reads_after_first = get_search_index_disk_read_count_for_vault(path);
+1266:         assert_eq!(reads_after_first, initial_reads + 1);
+1267: 
+1268:         // Second search hits cache
+1269:         let _ = search_vault(path, SearchQuery { term: Some("world".into()), ..Default::default() }).unwrap();
+1270:         assert_eq!(get_search_index_disk_read_count_for_vault(path), reads_after_first);
+1271: 
+1272:         // Rewrite doc with same byte length and re-index (bumps revision for this vault)
+1273:         std::fs::write(path.join("01_CLIENTS/doc.md"), "---\ntitle: Doc\ntags: [b]\n---\nHello world 12345").unwrap();
+1274:         index_vault_search(path).unwrap();
+1275: 
+1276:         // Search again -> revision changed, so data must be reloaded from disk!
+1277:         let _ = search_vault(path, SearchQuery { term: Some("world".into()), ..Default::default() }).unwrap();
+1278:         let reads_after_reindex = get_search_index_disk_read_count_for_vault(path);
+1279:         assert!(reads_after_reindex > reads_after_first, "Riscrittura con stessa dimensione ricarica i dati");
+1280:     }
+1281: 
+1282:     #[test]
+1283:     fn test_search_index_multivault_isolation() {
+1284:         let tmp_a = tempfile::tempdir().unwrap();
+1285:         let path_a = tmp_a.path();
+1286:         let tmp_b = tempfile::tempdir().unwrap();
+1287:         let path_b = tmp_b.path();
+1288: 
+1289:         std::fs::create_dir_all(path_a.join("00_SYSTEM")).unwrap();
+1290:         std::fs::create_dir_all(path_a.join("01_CLIENTS")).unwrap();
+1291:         std::fs::create_dir_all(path_b.join("00_SYSTEM")).unwrap();
+1292:         std::fs::create_dir_all(path_b.join("01_CLIENTS")).unwrap();
+1293: 
+1294:         std::fs::write(path_a.join("01_CLIENTS/a.md"), "---\ntitle: A\n---\nVault A Content").unwrap();
+1295:         std::fs::write(path_b.join("01_CLIENTS/b.md"), "---\ntitle: B\n---\nVault B Content").unwrap();
+1296: 
+1297:         index_vault_search(path_a).unwrap();
+1298:         index_vault_search(path_b).unwrap();
+1299: 
+1300:         // Load both into memory cache
+1301:         let _ = search_vault(path_a, SearchQuery { term: Some("Vault".into()), ..Default::default() }).unwrap();
+1302:         let _ = search_vault(path_b, SearchQuery { term: Some("Vault".into()), ..Default::default() }).unwrap();
+1303: 
+1304:         let reads_b_before = get_search_index_disk_read_count_for_vault(path_b);
+1305: 
+1306:         // Modify and re-index vault A
+1307:         std::fs::write(path_a.join("01_CLIENTS/a2.md"), "---\ntitle: A2\n---\nVault A New Content").unwrap();
+1308:         index_vault_search(path_a).unwrap();
+1309: 
+1310:         // Query vault B again: MUST NOT reload from disk
+1311:         let _ = search_vault(path_b, SearchQuery { term: Some("Vault".into()), ..Default::default() }).unwrap();
+1312:         let reads_b_after = get_search_index_disk_read_count_for_vault(path_b);
+1313:         assert_eq!(reads_b_after, reads_b_before, "Modifica di vault A non deve ricaricare vault B");
+1314:     }
+1315: }
+1316: 
+1317: /// Lookup a search document record in the in-memory index cache
+1318: pub fn get_search_document(path: &Path, document_id: &str) -> Result<SearchDocumentRecord, String> {
+1319:     let r = root(path)?;
+1320:     let data = load_with_vault_path(&child(&r, "00_SYSTEM")?, Some(path))?
+1321:         .filter(|d| d.version == VERSION)
+1322:         .ok_or("Search index missing or outdated")?;
+1323:     data.documents.values().find(|d| d.id == document_id).cloned().ok_or_else(|| "Unknown document".into())
+1324: }
+1325: 
+1326: /// Read the exact indexed bytes or extracted text through a pinned directory, for AI/MCP citations.
+1327: pub fn read_indexed_document(path: &Path, document_id: &str, expected: &str) -> Result<(SearchDocumentRecord, String), String> {
+1328:     let r=root(path)?;
+1329:     let data=load_with_vault_path(&child(&r,"00_SYSTEM")?, Some(path))?.filter(|d|d.version==VERSION).ok_or("Search index missing or outdated")?;
+1330:     let d=data.documents.values().find(|d|d.id==document_id).ok_or("Unknown document")?;
+1331:     if d.sha256!=expected {return Err("Source changed; select again".into())}
+1332:     relative(&d.relative_path)?;
+1333:     let parts:Vec<_>=d.relative_path.split('/').collect();
+1334: 
+1335:     // SPECIAL HANDLING FOR 20_RAW_SOURCES (PDF, DOCX, binary sources)
+1336:     if parts[0] == "20_RAW_SOURCES" {
+1337:         let mut dir=r;
+1338:         for part in &parts[..parts.len()-1]{dir=child(&dir,part)?;}
+1339:         let (bytes,_)=read_file(&dir,parts[parts.len()-1])?;
+1340:         if compute_sha256(&bytes)!=expected{return Err("Source changed; re-index required".into())}
+1341: 
+1342:         // Return extracted plain text rather than binary bytes
+1343:         let content = if !d.passages.is_empty() {
+1344:             d.passages.iter().map(|p| p.text.as_str()).collect::<Vec<_>>().join("\n\n")
+1345:         } else {
+1346:             crate::catalog::read_document_text(path, &d.id).unwrap_or_else(|_| d.content_preview.clone())
+1347:         };
+1348:         if content.trim().is_empty() {
+1349:             return Err("Extracted text empty for raw source".into());
+1350:         }
+1351:         return Ok((d.clone(), content));
+1352:     }
+1353: 
+1354:     let mut dir=r;
+1355:     for part in &parts[..parts.len()-1]{dir=child(&dir,part)?;}
+1356:     let (bytes,_)=read_file(&dir,parts[parts.len()-1])?;
+1357:     if bytes.len()>256*1024{return Err("AI document exceeds 256 KiB".into())}
+1358:     if compute_sha256(&bytes)!=expected{return Err("Source changed; re-index required".into())}
+1359:     let content=String::from_utf8(bytes).map_err(|_|"Invalid UTF-8")?;
+1360:     let category=spec().categories.get(parts[0]).ok_or("Invalid category directory")?;
+1361:     let actual=parse(&content,&d.relative_path,category,d.mtime_ms,d.sha256.clone())?;
+1362:     if actual.status!=d.status||actual.category!=d.category||actual.client!=d.client||actual.project!=d.project||actual.tags!=d.tags||actual.title!=d.title{return Err("Indexed metadata differs from source; re-index required".into())}
+1363:     Ok((actual,content))
+1364: }

@@ -1,0 +1,16 @@
+Trascrizione dell'output del comando iniziale in questa sessione, prima della raccolta persistente.
+Comandi: Get-Date -Format o; Get-Process -Name limen-vault,llama-server | Select-Object Id,ProcessName,Path,StartTime | Format-List; Get-Content dei file llama-server.pid e llama-server.port.
+
+2026-09-24T09:33:24.6504283+08:00
+Id          : 36736
+ProcessName : limen-vault
+Path        : E:\Projects\vault_memai_obsi\apps\desktop\src-tauri\target\release\limen-vault.exe
+StartTime   : 24/09/2026 09:25:35
+
+Id          : 40488
+ProcessName : llama-server
+Path        : E:\Projects\vault_memai_obsi\apps\desktop\src-tauri\target\debug\native\llama-server.exe
+StartTime   : 24/09/2026 09:08:54
+
+llama-server.pid: 40488
+llama-server.port: 62991

@@ -1,0 +1,1568 @@
+diff --git a/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/cargo-test-fase-3b2c-parallel.log b/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/cargo-test-fase-3b2c-parallel.log
+new file mode 100644
+index 0000000..a4d6269
+--- /dev/null
++++ b/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/cargo-test-fase-3b2c-parallel.log
+@@ -0,0 +1,438 @@
++warning: unused import: `cap_std::fs::MetadataExt`
++   --> src\search.rs:450:9
++    |
++450 |     use cap_std::fs::MetadataExt;
++    |         ^^^^^^^^^^^^^^^^^^^^^^^^
++    |
++    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
++
++warning: unused import: `ffi::CString`
++  --> src\snapshots.rs:12:5
++   |
++12 |     ffi::CString,
++   |     ^^^^^^^^^^^^
++
++warning: unused imports: `Command`, `Duration`, `Instant`, and `Stdio`
++ --> src\extraction.rs:6:15
++  |
++6 |     process::{Command, Stdio},
++  |               ^^^^^^^  ^^^^^
++7 |     time::{Duration, Instant},
++  |            ^^^^^^^^  ^^^^^^^
++
++warning: unused variable: `lock`
++   --> src\sync.rs:484:17
++    |
++484 |             let lock = sys.open_with(".m7-lock", &lock_opts).map_err(err)?;
++    |                 ^^^^ help: if this is intentional, prefix it with an underscore: `_lock`
++    |
++    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
++
++warning: variable does not need to be mutable
++  --> src\extraction.rs:17:13
++   |
++17 |         let mut builder = std::fs::DirBuilder::new();
++   |             ----^^^^^^^
++   |             |
++   |             help: remove this `mut`
++   |
++   = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
++
++warning: field `vault_path` is never read
++   --> src\search.rs:178:5
++    |
++177 | struct SearchIndexCacheEntry {
++    |        --------------------- field in this struct
++178 |     vault_path: std::path::PathBuf,
++    |     ^^^^^^^^^^
++    |
++    = note: `SearchIndexCacheEntry` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
++    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
++
++warning: function `load` is never used
++   --> src\search.rs:216:4
++    |
++216 | fn load(system: &Dir) -> Result<Option<std::sync::Arc<SearchIndexData>>, String> {
++    |    ^^^^
++
++warning: constant `SERVICE` is never used
++   --> src\tunnel.rs:177:7
++    |
++177 | const SERVICE:&str="dev.arkai.limenvault.tunnel";
++    |       ^^^^^^^
++
++warning: struct `Scratch` is never constructed
++  --> src\extraction.rs:13:8
++   |
++13 | struct Scratch(std::path::PathBuf);
++   |        ^^^^^^^
++
++warning: associated function `new` is never used
++  --> src\extraction.rs:15:8
++   |
++14 | impl Scratch {
++   | ------------ associated function in this implementation
++15 |     fn new() -> Result<Self, String> {
++   |        ^^^
++
++warning: field `vault_path` is never read
++  --> src\catalog.rs:29:5
++   |
++28 | struct CatalogCacheEntry {
++   |        ----------------- field in this struct
++29 |     vault_path: std::path::PathBuf,
++   |     ^^^^^^^^^^
++   |
++   = note: `CatalogCacheEntry` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
++
++warning: field `vault_path` is never read
++  --> src\embeddings.rs:31:5
++   |
++30 | struct EmbeddingsCacheEntry {
++   |        -------------------- field in this struct
++31 |     vault_path: PathBuf,
++   |     ^^^^^^^^^^
++   |
++   = note: `EmbeddingsCacheEntry` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
++
++warning: `limen-vault` (lib) generated 12 warnings (run `cargo fix --lib -p limen-vault` to apply 5 suggestions)
++warning: variable does not need to be mutable
++   --> src\tunnel.rs:224:13
++    |
++224 |         let mut child = Command::new("cmd")
++    |             ----^^^^^
++    |             |
++    |             help: remove this `mut`
++    |
++    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
++
++warning: variable does not need to be mutable
++  --> src\extraction.rs:17:13
++   |
++17 |         let mut builder = std::fs::DirBuilder::new();
++   |             ----^^^^^^^
++   |             |
++   |             help: remove this `mut`
++
++warning: unused variable: `doc_id`
++    --> src\catalog.rs:2056:13
++     |
++2056 |         let doc_id = make_document_id("20_RAW_SOURCES/doc.md");
++     |             ^^^^^^ help: if this is intentional, prefix it with an underscore: `_doc_id`
++
++warning: `limen-vault` (lib test) generated 13 warnings (10 duplicates) (run `cargo fix --lib -p limen-vault --tests` to apply 3 suggestions)
++warning: fields `title` and `base_score` are never read
++  --> src\bin\measure_punto_e.rs:20:5
++   |
++17 | struct ScoredCandidate {
++   |        --------------- fields in this struct
++...
++20 |     title: String,
++   |     ^^^^^
++21 |     base_score: f64,
++   |     ^^^^^^^^^^
++   |
++   = note: `ScoredCandidate` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
++   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
++
++warning: field `query_id` is never read
++  --> src\bin\measure_punto_e.rs:37:5
++   |
++36 | struct QueryEvalContext {
++   |        ---------------- field in this struct
++37 |     query_id: String,
++   |     ^^^^^^^^
++
++warning: unused variable: `t0`
++  --> src\bin\diagnose_fase1.rs:46:9
++   |
++46 |     let t0 = std::time::Instant::now();
++   |         ^^ help: if this is intentional, prefix it with an underscore: `_t0`
++   |
++   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
++
++warning: field `exact_bonus` is never read
++   --> src\bin\diagnose_fase1.rs:236:9
++    |
++223 |     struct FusedRecord {
++    |            ----------- field in this struct
++...
++236 |         exact_bonus: f64,
++    |         ^^^^^^^^^^^
++    |
++    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
++
++warning: unused import: `ffi::CString`
++  --> src\snapshots.rs:12:5
++   |
++12 |     ffi::CString,
++   |     ^^^^^^^^^^^^
++   |
++   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
++
++warning: `limen-vault` (bin "measure_punto_e" test) generated 2 warnings
++warning: `limen-vault` (bin "diagnose_fase1" test) generated 2 warnings (run `cargo fix --bin "diagnose_fase1" -p limen-vault --tests` to apply 1 suggestion)
++warning: `limen-vault` (bin "limen-vault" test) generated 1 warning (run `cargo fix --bin "limen-vault" -p limen-vault --tests` to apply 1 suggestion)
++    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.69s
++     Running unittests src\lib.rs (target\debug\deps\limen_vault-b7ab620e0196d8b2.exe)
++
++running 142 tests
++test ai::model_tests::models_are_validated_and_deduplicated ... ok
++test ai::index_policy_test::forged_approval_is_rejected ... ok
++test ai::tests::binary_raw_source_extracted_text_is_read_in_ai ... ok
++test ai::tests::source_stale_symlink_and_preview_cancel ... ok
++test ai::tests::test_citation_locators_and_tamper_detection ... ok
++test ai::tests::citation_ids_and_incomplete_rejected ... ok
++test ai::tests::preview_bounds_and_untrusted_data_role ... ok
++test ai::tests::test_extract_multi_passages_rejects_overlapping_passages ... ok
++test ai::tests::test_locators_overlap_detection ... ok
++test ai::tests::test_extract_multi_passages_and_budget_cap ... ok
++test ai::tests::test_consecutive_read_indexed_document_and_read_source_zero_disk_reads ... ok
++test ai::tests::test_log_ask_timing_detailed_includes_source_audit_and_no_text_leakage ... ok
++test ai::tests::test_openai_consent_persisted_and_enforced ... ok
++test ai::tests::test_punto_e_fallback_first_candidate_when_none_admitted ... ok
++test ai::tests::test_punto_e_metodo_c_admitted_when_close_to_max_without_rare_word ... ok
++test ai::tests::test_punto_e_metodo_c_admitted_when_has_rare_word_even_low_similarity ... ok
++test ai::tests::test_punto_e_metodo_c_excluded_when_no_rare_word_and_far_from_max ... ok
++test ai::tests::test_punto_e_service_offline_preserves_exact_unfiltered_candidates ... ok
++test ai::tests::approved_policy_and_context_hash ... ok
++test ai::tests::test_offline_llama_server_hybrid_fallback_no_error ... ok
++test ai::tests::test_corrections_a_b_c_d_schema_short_ids_warning_and_system_instructions ... ok
++test ai::tests::test_diagnosis_passage_id_and_relative_path_citations_resolved ... ok
++test ai::tests::test_sanitize_answer_prose_removes_asterisks ... ok
++test ai::tests::test_sanitize_answer_prose_removes_citation_brackets ... ok
++test ai::tests::test_system_instruction_contains_required_rules_and_restrictive_citation ... ok
++test ai::tests::test_multi_vault_cache_isolation ... ok
++test ai::tests::test_passage_crypto_sha256_verification_rejects_corrupted_passage ... ok
++test ai::tests::test_punto_e_service_offline_retains_all_sources_without_filtering ... ok
++test ai::tests::test_verify_source_ineligible_rejected ... ok
++test ai::tests::test_verify_post_source_changed_during_request_rejected ... ok
++test ai::tests::test_source_integrity_ntfs_vs_non_ntfs ... ok
++test ai::tests::test_verify_pre_source_changed_since_preview_rejected ... ok
++test automation::tests::batch_import_receipts_deduplication_and_isolation ... ok
++test ai::tests::test_verify_source_generated_obsolete_rejected ... ok
++test automation::tests::concurrency_and_scheduler_background_reconciliation ... ok
++test ai::tests::test_eligibility_before_limits_regression_50_drafts_do_not_hide_approved_source ... ok
++test automation::tests::native_picker_import_is_bounded_and_preserves_selected_file ... ok
++test automation::tests::forged_citations_human_edits_and_symlinks ... ok
++test automation::tests::offline_ingestion_and_extraction_without_ai_key ... ok
++test automation::tests::full_workflow_preserves_originals_deduplicates_and_retrieves ... ok
++test automation::tests::unicode_text_chunks_preserve_every_byte ... ok
++test automation::tests::inventory_visible_before_activation_and_after_source_changes ... ok
++test automation::tests::long_documents_are_split_without_manual_work ... ok
++test catalog::tests::test_catalog_in_memory_caching_and_zero_disk_reads_on_consecutive_calls ... ok
++test automation::tests::spreadsheets_keep_rows_beyond_api_limit_and_formulas ... ok
++test catalog::tests::test_catalog_reloaded_after_vault_modification ... ok
++test catalog::tests::test_catalog_save_and_load_lifecycle ... ok
++test catalog::tests::test_catalog_multivault_isolation ... ok
++test catalog::tests::test_chunk_text_to_passages_crlf_and_lf_produce_identical_passages ... ok
++test automation::tests::bounded_retries_resume_and_key_absence ... ok
++test catalog::tests::test_chunk_text_to_passages_locators ... ok
++test automation::tests::source_changes_and_deletion_invalidate_wiki_before_next_tick ... ok
++test catalog::tests::test_catalog_rewrite_same_size_reloaded ... ok
++test catalog::tests::test_document_pruning_on_file_deletion ... ok
++test catalog::tests::test_deduplication_preserves_aliases ... ok
++test catalog::tests::test_document_revision_bump_on_content_change ... ok
++test automation::tests::stale_search_lock_recovers_and_active_lock_is_preserved ... ok
++test catalog::tests::test_proposals_stay_legacy_drafts_and_human_notes_preserved ... ok
++test catalog::tests::test_double_migration_idempotent_and_rollback ... ok
++test catalog::tests::test_sync_catalog_and_offline_extraction ... ok
++test catalog::tests::test_passage_integrity_and_tamper_detection ... ok
++test embeddings::tests::test_cosine_similarity ... ok
++test embeddings::tests::test_embedded_text_sha256_cache_invalidation_on_prefix_change ... ok
++test catalog::tests::test_verify_single_passage_document_integrity_with_doc_hash_and_passage_hash ... ok
++test catalog::tests::test_lookup_by_path_beyond_50_documents_and_homonyms ... ok
++test compiler::tests::test_rust_compiler_compiles_draft_with_status_draft ... ok
++test embeddings::tests::test_fetch_embeddings_api_key_rules ... ok
++test catalog::tests::test_verify_document_passage_integrity_all_cases ... ok
++test embeddings::tests::test_embeddings_cache_invalidates_on_dimension_change ... ok
++test compiler::tests::test_rust_compiler_deduplication ... ok
++test embeddings::tests::test_embeddings_cache_lifecycle ... ok
++test compiler::tests::test_rust_compiler_sanitizes_html ... ok
++test embeddings::tests::test_embeddings_in_memory_cache_no_disk_re_read ... ok
++test embeddings::tests::test_hybrid_search_local_offline_graceful_fallback ... ok
++test embeddings::tests::test_is_loopback_endpoint_security_rules ... ok
++test embeddings::tests::test_hybrid_fusion_coalesced_beats_single_engine_at_score_parity ... ok
++test embeddings::tests::test_hybrid_fusion_ranks_exact_code_first ... ok
++test embeddings::tests::test_local_provider_rejects_non_loopback_endpoint ... ok
++test embeddings::tests::test_passage_embedding_text_context_and_20_percent_cap ... ok
++test extraction::tests::word_and_slides_are_literal ... ok
++test embeddings::tests::test_hybrid_fusion_coalescence_single_row_when_found_by_both_engines ... ok
++test embeddings::tests::test_hybrid_fusion_pure_semantic_enters_top_ten ... ok
++test embeddings::tests::test_hybrid_fusion_high_sem_pure_beats_mediocre_dual_signals ... ok
++test embeddings::tests::test_hybrid_search_offline_graceful_fallback ... ok
++test embeddings::tests::test_resolve_embeddings_endpoint_defaults_to_openai_when_absent ... ok
++test llama::tests::test_detect_llama_server_binary ... ok
++test llama::tests::test_find_free_port ... ok
++test llama::tests::test_execution_does_not_modify_userprofile_limen_vault ... ok
++test llama::tests::test_local_model_status_returns_struct ... ok
++test llama::tests::test_model_expected_constants ... ok
++test knowledge::tests::symlink_and_oversized_notes_fail_explicitly ... ok
++test embeddings::tests::test_provider_report_with_empty_cache_reports_zero_dims_and_total_passages ... ok
++test knowledge::tests::actual_notes_without_index_and_no_mutations ... ok
++test llama::tests::test_cache_with_unexpected_hash_triggers_recomputation ... ok
++test llama::tests::test_install_from_file_single_io_pass ... ok
++test llama::tests::test_pid_file_roundtrip_and_orphan_decision ... ok
++test llama::tests::test_unexpected_size_reports_not_installed ... ok
++test mcp::tests::rpc_readonly_lifecycle ... ok
++test llama::tests::test_second_status_call_uses_cache_zero_hash_recalculation ... ok
++test mcp::tests::windows_identity_stable_and_distinct ... ok
++test mcp::tests::http_auth_origin_and_revocation ... ok
++test llama::tests::test_model_modified_mtime_triggers_recomputation ... ok
++test llama::tests::test_model_replaced_same_size_detected ... ok
++test proposals::tests::m7_corrupt_state_and_journal_preserved ... ok
++test keychain::test_windows_credential_manager_roundtrip ... ok
++test search::tests::metadata_filters_unicode_and_readonly ... ok
++test proposals::tests::m7_raw_collision_symlink_and_changed_bytes_denied ... ok
++test proposals::tests::m7_recovery_after_document_published ... ok
++test search::tests::search_passages_and_catalog_indexing ... ok
++test proposals::tests::m7_metadata_secrets_and_output_provenance ... ok
++test search::tests::test_contains_whole_words_rejects_substrings_of_other_words ... ok
++test proposals::tests::m7_import_keeps_compiler_draft_and_rejection ... ok
++test search::tests::test_c11_raw_sources_term_frequency_not_deduped ... ok
++test proposals::tests::m7_revisions_exclusive_approval_and_idempotence ... ok
++test search::tests::test_c12_exact_token_document_outranks_substring_only_document ... ok
++test search::tests::test_in_memory_search_cache_consecutive_no_disk_re_read ... ok
++test search::tests::test_c11_bm25_short_exact_document_beats_long_document_with_common_words ... ok
++test search::tests::test_search_index_rewrite_same_size_reloaded ... ok
++test search::tests::test_search_detects_removed_and_modified_files_without_blocking ... ok
++test search::tests::test_search_index_multivault_isolation ... ok
++test snapshots::tests::test_rust_snapshot_creation_and_integrity ... ok
++test sync::tests::sync_capture_rejects_symlink_and_freezes_bytes ... ok
++test sync::tests::sync_config_rejects_insecure_endpoints ... ok
++test sync::tests::sync_import_receipt_recovers_commit_window_without_overwrite ... ok
++test sync::tests::sync_rejects_paths_and_collisions ... ok
++test sync::tests::sync_persisted_capture_survives_state_restart_and_detects_corruption ... ok
++test tunnel::tests::invalid_config_and_symlink_do_not_overwrite_files ... ok
++test sync::tests::sync_selection_persists_only_selected_frozen_notes ... ok
++test snapshots::tests::failure_at_manifest_write_cleans_only_staging ... ok
++test snapshots::tests::test_snapshot_restore_to_separate_folder_verifies_hashes ... ok
++test tunnel::tests::test_job_object_process_tree_kill ... ok
++test snapshots::tests::snapshot_corruption_and_readonly ... ok
++test vault::tests::capability_blocks_external_symlinks_and_broken_links ... ok
++test snapshots::tests::concurrent_publication_and_collision ... ok
++test vault::tests::shared_frontmatter_fixtures ... ok
++test vault::tests::concurrent_creation_has_one_winner ... ok
++test vault::tests::capability_blocks_external_junctions ... ok
++test vault::tests::exclusive_creation_preserves_existing_bytes ... ok
++test vault::tests::manifest_is_consumed_without_reopening ... ok
++test vault::tests::raw_sources_foreign_yaml_frontmatter_allows_vault_opening ... ok
++test automation::tests::complete_multi_format_pipeline_with_declared_fake_ai ... ok
++test llama::tests::test_process_parent_and_command_reads_live_process_only ... ok
++
++test result: ok. 142 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.78s
++
++     Running unittests src\bin\a04_real_local.rs (target\debug\deps\a04_real_local-20417175db04e0a5.exe)
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
++     Running unittests src\bin\answer_compare.rs (target\debug\deps\answer_compare-278af9b893fe2f21.exe)
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
++     Running unittests src\bin\c10_tune_dev.rs (target\debug\deps\c10_tune_dev-c8cf6d5abcbe379a.exe)
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
++     Running unittests src\bin\collaudo_compito1.rs (target\debug\deps\collaudo_compito1-d527ea8ef2d164aa.exe)
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
++     Running unittests src\bin\diagnose_bnxt.rs (target\debug\deps\diagnose_bnxt-99b44144db5482de.exe)
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
++     Running unittests src\bin\diagnose_c8.rs (target\debug\deps\diagnose_c8-9c5ae0262f62da9f.exe)
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
++     Running unittests src\bin\diagnose_fase1.rs (target\debug\deps\diagnose_fase1-58785d216e2f5089.exe)
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
++     Running unittests src\bin\diagnose_fase3b2.rs (target\debug\deps\diagnose_fase3b2-08916ed7bf33e34c.exe)
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
++     Running unittests src\bin\diagnose_fase3b2b.rs (target\debug\deps\diagnose_fase3b2b-86994c86fea652bf.exe)
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
++     Running unittests src\bin\gold-benchmark.rs (target\debug\deps\gold_benchmark-f5e3bbd2936f0e35.exe)
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
++     Running unittests src\main.rs (target\debug\deps\limen_vault-dc16fa893d5aac5c.exe)
++
++running 18 tests
++test compiler::tests::test_rust_compiler_sanitizes_html ... ok
++test compiler::tests::test_rust_compiler_compiles_draft_with_status_draft ... ok
++test tests::obsidian_registration_matches_canonical_path ... ok
++test snapshots::tests::test_rust_snapshot_creation_and_integrity ... ok
++test compiler::tests::test_rust_compiler_deduplication ... ok
++test tests::test_rust_vault_validation ... ok
++test tests::test_rust_invalid_yaml_rejection ... ok
++test snapshots::tests::failure_at_manifest_write_cleans_only_staging ... ok
++test snapshots::tests::test_snapshot_restore_to_separate_folder_verifies_hashes ... ok
++test vault::tests::capability_blocks_external_junctions ... ok
++test vault::tests::shared_frontmatter_fixtures ... ok
++test snapshots::tests::snapshot_corruption_and_readonly ... ok
++test vault::tests::capability_blocks_external_symlinks_and_broken_links ... ok
++test vault::tests::concurrent_creation_has_one_winner ... ok
++test vault::tests::exclusive_creation_preserves_existing_bytes ... ok
++test vault::tests::manifest_is_consumed_without_reopening ... ok
++test vault::tests::raw_sources_foreign_yaml_frontmatter_allows_vault_opening ... ok
++test snapshots::tests::concurrent_publication_and_collision ... ok
++
++test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.41s
++
++     Running unittests src\bin\measure_punto_e.rs (target\debug\deps\measure_punto_e-2ca8dfc639e1f24b.exe)
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
++     Running unittests src\bin\search_benchmark.rs (target\debug\deps\search_benchmark-3965c69f87794315.exe)
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
++     Running unittests src\bin\sync_timing.rs (target\debug\deps\sync_timing-5bbe42fbc8a008cb.exe)
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
++     Running unittests src\bin\vault-check.rs (target\debug\deps\vault_check-a37c9b7465d0ba38.exe)
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
++   Doc-tests limen_vault
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
+diff --git a/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/cargo-test-fase-3b2c-single.log b/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/cargo-test-fase-3b2c-single.log
+new file mode 100644
+index 0000000..5cae40b
+--- /dev/null
++++ b/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/cargo-test-fase-3b2c-single.log
+@@ -0,0 +1,438 @@
++warning: unused import: `cap_std::fs::MetadataExt`
++   --> src\search.rs:450:9
++    |
++450 |     use cap_std::fs::MetadataExt;
++    |         ^^^^^^^^^^^^^^^^^^^^^^^^
++    |
++    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
++
++warning: unused import: `ffi::CString`
++  --> src\snapshots.rs:12:5
++   |
++12 |     ffi::CString,
++   |     ^^^^^^^^^^^^
++
++warning: unused imports: `Command`, `Duration`, `Instant`, and `Stdio`
++ --> src\extraction.rs:6:15
++  |
++6 |     process::{Command, Stdio},
++  |               ^^^^^^^  ^^^^^
++7 |     time::{Duration, Instant},
++  |            ^^^^^^^^  ^^^^^^^
++
++warning: unused variable: `lock`
++   --> src\sync.rs:484:17
++    |
++484 |             let lock = sys.open_with(".m7-lock", &lock_opts).map_err(err)?;
++    |                 ^^^^ help: if this is intentional, prefix it with an underscore: `_lock`
++    |
++    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
++
++warning: variable does not need to be mutable
++  --> src\extraction.rs:17:13
++   |
++17 |         let mut builder = std::fs::DirBuilder::new();
++   |             ----^^^^^^^
++   |             |
++   |             help: remove this `mut`
++   |
++   = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
++
++warning: field `vault_path` is never read
++   --> src\search.rs:178:5
++    |
++177 | struct SearchIndexCacheEntry {
++    |        --------------------- field in this struct
++178 |     vault_path: std::path::PathBuf,
++    |     ^^^^^^^^^^
++    |
++    = note: `SearchIndexCacheEntry` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
++    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
++
++warning: function `load` is never used
++   --> src\search.rs:216:4
++    |
++216 | fn load(system: &Dir) -> Result<Option<std::sync::Arc<SearchIndexData>>, String> {
++    |    ^^^^
++
++warning: constant `SERVICE` is never used
++   --> src\tunnel.rs:177:7
++    |
++177 | const SERVICE:&str="dev.arkai.limenvault.tunnel";
++    |       ^^^^^^^
++
++warning: struct `Scratch` is never constructed
++  --> src\extraction.rs:13:8
++   |
++13 | struct Scratch(std::path::PathBuf);
++   |        ^^^^^^^
++
++warning: associated function `new` is never used
++  --> src\extraction.rs:15:8
++   |
++14 | impl Scratch {
++   | ------------ associated function in this implementation
++15 |     fn new() -> Result<Self, String> {
++   |        ^^^
++
++warning: field `vault_path` is never read
++  --> src\catalog.rs:29:5
++   |
++28 | struct CatalogCacheEntry {
++   |        ----------------- field in this struct
++29 |     vault_path: std::path::PathBuf,
++   |     ^^^^^^^^^^
++   |
++   = note: `CatalogCacheEntry` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
++
++warning: field `vault_path` is never read
++  --> src\embeddings.rs:31:5
++   |
++30 | struct EmbeddingsCacheEntry {
++   |        -------------------- field in this struct
++31 |     vault_path: PathBuf,
++   |     ^^^^^^^^^^
++   |
++   = note: `EmbeddingsCacheEntry` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
++
++warning: `limen-vault` (lib) generated 12 warnings (run `cargo fix --lib -p limen-vault` to apply 5 suggestions)
++warning: fields `title` and `base_score` are never read
++  --> src\bin\measure_punto_e.rs:20:5
++   |
++17 | struct ScoredCandidate {
++   |        --------------- fields in this struct
++...
++20 |     title: String,
++   |     ^^^^^
++21 |     base_score: f64,
++   |     ^^^^^^^^^^
++   |
++   = note: `ScoredCandidate` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
++   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
++
++warning: field `query_id` is never read
++  --> src\bin\measure_punto_e.rs:37:5
++   |
++36 | struct QueryEvalContext {
++   |        ---------------- field in this struct
++37 |     query_id: String,
++   |     ^^^^^^^^
++
++warning: variable does not need to be mutable
++   --> src\tunnel.rs:224:13
++    |
++224 |         let mut child = Command::new("cmd")
++    |             ----^^^^^
++    |             |
++    |             help: remove this `mut`
++    |
++    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
++
++warning: variable does not need to be mutable
++  --> src\extraction.rs:17:13
++   |
++17 |         let mut builder = std::fs::DirBuilder::new();
++   |             ----^^^^^^^
++   |             |
++   |             help: remove this `mut`
++
++warning: unused variable: `doc_id`
++    --> src\catalog.rs:2056:13
++     |
++2056 |         let doc_id = make_document_id("20_RAW_SOURCES/doc.md");
++     |             ^^^^^^ help: if this is intentional, prefix it with an underscore: `_doc_id`
++
++warning: unused variable: `t0`
++  --> src\bin\diagnose_fase1.rs:46:9
++   |
++46 |     let t0 = std::time::Instant::now();
++   |         ^^ help: if this is intentional, prefix it with an underscore: `_t0`
++   |
++   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
++
++warning: field `exact_bonus` is never read
++   --> src\bin\diagnose_fase1.rs:236:9
++    |
++223 |     struct FusedRecord {
++    |            ----------- field in this struct
++...
++236 |         exact_bonus: f64,
++    |         ^^^^^^^^^^^
++    |
++    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
++
++warning: `limen-vault` (bin "measure_punto_e" test) generated 2 warnings
++warning: `limen-vault` (lib test) generated 13 warnings (10 duplicates) (run `cargo fix --lib -p limen-vault --tests` to apply 3 suggestions)
++warning: `limen-vault` (bin "diagnose_fase1" test) generated 2 warnings (run `cargo fix --bin "diagnose_fase1" -p limen-vault --tests` to apply 1 suggestion)
++warning: unused import: `ffi::CString`
++  --> src\snapshots.rs:12:5
++   |
++12 |     ffi::CString,
++   |     ^^^^^^^^^^^^
++   |
++   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
++
++warning: `limen-vault` (bin "limen-vault" test) generated 1 warning (run `cargo fix --bin "limen-vault" -p limen-vault --tests` to apply 1 suggestion)
++    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.76s
++     Running unittests src\lib.rs (target\debug\deps\limen_vault-b7ab620e0196d8b2.exe)
++
++running 142 tests
++test ai::index_policy_test::forged_approval_is_rejected ... ok
++test ai::model_tests::models_are_validated_and_deduplicated ... ok
++test ai::tests::approved_policy_and_context_hash ... ok
++test ai::tests::binary_raw_source_extracted_text_is_read_in_ai ... ok
++test ai::tests::citation_ids_and_incomplete_rejected ... ok
++test ai::tests::preview_bounds_and_untrusted_data_role ... ok
++test ai::tests::source_stale_symlink_and_preview_cancel ... ok
++test ai::tests::test_citation_locators_and_tamper_detection ... ok
++test ai::tests::test_consecutive_read_indexed_document_and_read_source_zero_disk_reads ... ok
++test ai::tests::test_corrections_a_b_c_d_schema_short_ids_warning_and_system_instructions ... ok
++test ai::tests::test_diagnosis_passage_id_and_relative_path_citations_resolved ... ok
++test ai::tests::test_eligibility_before_limits_regression_50_drafts_do_not_hide_approved_source ... ok
++test ai::tests::test_extract_multi_passages_and_budget_cap ... ok
++test ai::tests::test_extract_multi_passages_rejects_overlapping_passages ... ok
++test ai::tests::test_locators_overlap_detection ... ok
++test ai::tests::test_log_ask_timing_detailed_includes_source_audit_and_no_text_leakage ... ok
++test ai::tests::test_multi_vault_cache_isolation ... ok
++test ai::tests::test_offline_llama_server_hybrid_fallback_no_error ... ok
++test ai::tests::test_openai_consent_persisted_and_enforced ... ok
++test ai::tests::test_passage_crypto_sha256_verification_rejects_corrupted_passage ... ok
++test ai::tests::test_punto_e_fallback_first_candidate_when_none_admitted ... ok
++test ai::tests::test_punto_e_metodo_c_admitted_when_close_to_max_without_rare_word ... ok
++test ai::tests::test_punto_e_metodo_c_admitted_when_has_rare_word_even_low_similarity ... ok
++test ai::tests::test_punto_e_metodo_c_excluded_when_no_rare_word_and_far_from_max ... ok
++test ai::tests::test_punto_e_service_offline_preserves_exact_unfiltered_candidates ... ok
++test ai::tests::test_punto_e_service_offline_retains_all_sources_without_filtering ... ok
++test ai::tests::test_sanitize_answer_prose_removes_asterisks ... ok
++test ai::tests::test_sanitize_answer_prose_removes_citation_brackets ... ok
++test ai::tests::test_source_integrity_ntfs_vs_non_ntfs ... ok
++test ai::tests::test_system_instruction_contains_required_rules_and_restrictive_citation ... ok
++test ai::tests::test_verify_post_source_changed_during_request_rejected ... ok
++test ai::tests::test_verify_pre_source_changed_since_preview_rejected ... ok
++test ai::tests::test_verify_source_generated_obsolete_rejected ... ok
++test ai::tests::test_verify_source_ineligible_rejected ... ok
++test automation::tests::batch_import_receipts_deduplication_and_isolation ... ok
++test automation::tests::bounded_retries_resume_and_key_absence ... ok
++test automation::tests::complete_multi_format_pipeline_with_declared_fake_ai ... ok
++test automation::tests::concurrency_and_scheduler_background_reconciliation ... ok
++test automation::tests::forged_citations_human_edits_and_symlinks ... ok
++test automation::tests::full_workflow_preserves_originals_deduplicates_and_retrieves ... ok
++test automation::tests::inventory_visible_before_activation_and_after_source_changes ... ok
++test automation::tests::long_documents_are_split_without_manual_work ... ok
++test automation::tests::native_picker_import_is_bounded_and_preserves_selected_file ... ok
++test automation::tests::offline_ingestion_and_extraction_without_ai_key ... ok
++test automation::tests::source_changes_and_deletion_invalidate_wiki_before_next_tick ... ok
++test automation::tests::spreadsheets_keep_rows_beyond_api_limit_and_formulas ... ok
++test automation::tests::stale_search_lock_recovers_and_active_lock_is_preserved ... ok
++test automation::tests::unicode_text_chunks_preserve_every_byte ... ok
++test catalog::tests::test_catalog_in_memory_caching_and_zero_disk_reads_on_consecutive_calls ... ok
++test catalog::tests::test_catalog_multivault_isolation ... ok
++test catalog::tests::test_catalog_reloaded_after_vault_modification ... ok
++test catalog::tests::test_catalog_rewrite_same_size_reloaded ... ok
++test catalog::tests::test_catalog_save_and_load_lifecycle ... ok
++test catalog::tests::test_chunk_text_to_passages_crlf_and_lf_produce_identical_passages ... ok
++test catalog::tests::test_chunk_text_to_passages_locators ... ok
++test catalog::tests::test_deduplication_preserves_aliases ... ok
++test catalog::tests::test_document_pruning_on_file_deletion ... ok
++test catalog::tests::test_document_revision_bump_on_content_change ... ok
++test catalog::tests::test_double_migration_idempotent_and_rollback ... ok
++test catalog::tests::test_lookup_by_path_beyond_50_documents_and_homonyms ... ok
++test catalog::tests::test_passage_integrity_and_tamper_detection ... ok
++test catalog::tests::test_proposals_stay_legacy_drafts_and_human_notes_preserved ... ok
++test catalog::tests::test_sync_catalog_and_offline_extraction ... ok
++test catalog::tests::test_verify_document_passage_integrity_all_cases ... ok
++test catalog::tests::test_verify_single_passage_document_integrity_with_doc_hash_and_passage_hash ... ok
++test compiler::tests::test_rust_compiler_compiles_draft_with_status_draft ... ok
++test compiler::tests::test_rust_compiler_deduplication ... ok
++test compiler::tests::test_rust_compiler_sanitizes_html ... ok
++test embeddings::tests::test_cosine_similarity ... ok
++test embeddings::tests::test_embedded_text_sha256_cache_invalidation_on_prefix_change ... ok
++test embeddings::tests::test_embeddings_cache_invalidates_on_dimension_change ... ok
++test embeddings::tests::test_embeddings_cache_lifecycle ... ok
++test embeddings::tests::test_embeddings_in_memory_cache_no_disk_re_read ... ok
++test embeddings::tests::test_fetch_embeddings_api_key_rules ... ok
++test embeddings::tests::test_hybrid_fusion_coalesced_beats_single_engine_at_score_parity ... ok
++test embeddings::tests::test_hybrid_fusion_coalescence_single_row_when_found_by_both_engines ... ok
++test embeddings::tests::test_hybrid_fusion_high_sem_pure_beats_mediocre_dual_signals ... ok
++test embeddings::tests::test_hybrid_fusion_pure_semantic_enters_top_ten ... ok
++test embeddings::tests::test_hybrid_fusion_ranks_exact_code_first ... ok
++test embeddings::tests::test_hybrid_search_local_offline_graceful_fallback ... ok
++test embeddings::tests::test_hybrid_search_offline_graceful_fallback ... ok
++test embeddings::tests::test_is_loopback_endpoint_security_rules ... ok
++test embeddings::tests::test_local_provider_rejects_non_loopback_endpoint ... ok
++test embeddings::tests::test_passage_embedding_text_context_and_20_percent_cap ... ok
++test embeddings::tests::test_provider_report_with_empty_cache_reports_zero_dims_and_total_passages ... ok
++test embeddings::tests::test_resolve_embeddings_endpoint_defaults_to_openai_when_absent ... ok
++test extraction::tests::word_and_slides_are_literal ... ok
++test keychain::test_windows_credential_manager_roundtrip ... ok
++test knowledge::tests::actual_notes_without_index_and_no_mutations ... ok
++test knowledge::tests::symlink_and_oversized_notes_fail_explicitly ... ok
++test llama::tests::test_cache_with_unexpected_hash_triggers_recomputation ... ok
++test llama::tests::test_detect_llama_server_binary ... ok
++test llama::tests::test_execution_does_not_modify_userprofile_limen_vault ... ok
++test llama::tests::test_find_free_port ... ok
++test llama::tests::test_install_from_file_single_io_pass ... ok
++test llama::tests::test_local_model_status_returns_struct ... ok
++test llama::tests::test_model_expected_constants ... ok
++test llama::tests::test_model_modified_mtime_triggers_recomputation ... ok
++test llama::tests::test_model_replaced_same_size_detected ... ok
++test llama::tests::test_pid_file_roundtrip_and_orphan_decision ... ok
++test llama::tests::test_process_parent_and_command_reads_live_process_only ... ok
++test llama::tests::test_second_status_call_uses_cache_zero_hash_recalculation ... ok
++test llama::tests::test_unexpected_size_reports_not_installed ... ok
++test mcp::tests::http_auth_origin_and_revocation ... ok
++test mcp::tests::rpc_readonly_lifecycle ... ok
++test mcp::tests::windows_identity_stable_and_distinct ... ok
++test proposals::tests::m7_corrupt_state_and_journal_preserved ... ok
++test proposals::tests::m7_import_keeps_compiler_draft_and_rejection ... ok
++test proposals::tests::m7_metadata_secrets_and_output_provenance ... ok
++test proposals::tests::m7_raw_collision_symlink_and_changed_bytes_denied ... ok
++test proposals::tests::m7_recovery_after_document_published ... ok
++test proposals::tests::m7_revisions_exclusive_approval_and_idempotence ... ok
++test search::tests::metadata_filters_unicode_and_readonly ... ok
++test search::tests::search_passages_and_catalog_indexing ... ok
++test search::tests::test_c11_bm25_short_exact_document_beats_long_document_with_common_words ... ok
++test search::tests::test_c11_raw_sources_term_frequency_not_deduped ... ok
++test search::tests::test_c12_exact_token_document_outranks_substring_only_document ... ok
++test search::tests::test_contains_whole_words_rejects_substrings_of_other_words ... ok
++test search::tests::test_in_memory_search_cache_consecutive_no_disk_re_read ... ok
++test search::tests::test_search_detects_removed_and_modified_files_without_blocking ... ok
++test search::tests::test_search_index_multivault_isolation ... ok
++test search::tests::test_search_index_rewrite_same_size_reloaded ... ok
++test snapshots::tests::concurrent_publication_and_collision ... ok
++test snapshots::tests::failure_at_manifest_write_cleans_only_staging ... ok
++test snapshots::tests::snapshot_corruption_and_readonly ... ok
++test snapshots::tests::test_rust_snapshot_creation_and_integrity ... ok
++test snapshots::tests::test_snapshot_restore_to_separate_folder_verifies_hashes ... ok
++test sync::tests::sync_capture_rejects_symlink_and_freezes_bytes ... ok
++test sync::tests::sync_config_rejects_insecure_endpoints ... ok
++test sync::tests::sync_import_receipt_recovers_commit_window_without_overwrite ... ok
++test sync::tests::sync_persisted_capture_survives_state_restart_and_detects_corruption ... ok
++test sync::tests::sync_rejects_paths_and_collisions ... ok
++test sync::tests::sync_selection_persists_only_selected_frozen_notes ... ok
++test tunnel::tests::invalid_config_and_symlink_do_not_overwrite_files ... ok
++test tunnel::tests::test_job_object_process_tree_kill ... ok
++test vault::tests::capability_blocks_external_junctions ... ok
++test vault::tests::capability_blocks_external_symlinks_and_broken_links ... ok
++test vault::tests::concurrent_creation_has_one_winner ... ok
++test vault::tests::exclusive_creation_preserves_existing_bytes ... ok
++test vault::tests::manifest_is_consumed_without_reopening ... ok
++test vault::tests::raw_sources_foreign_yaml_frontmatter_allows_vault_opening ... ok
++test vault::tests::shared_frontmatter_fixtures ... ok
++
++test result: ok. 142 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 9.22s
++
++     Running unittests src\bin\a04_real_local.rs (target\debug\deps\a04_real_local-20417175db04e0a5.exe)
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
++     Running unittests src\bin\answer_compare.rs (target\debug\deps\answer_compare-278af9b893fe2f21.exe)
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
++     Running unittests src\bin\c10_tune_dev.rs (target\debug\deps\c10_tune_dev-c8cf6d5abcbe379a.exe)
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
++     Running unittests src\bin\collaudo_compito1.rs (target\debug\deps\collaudo_compito1-d527ea8ef2d164aa.exe)
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
++     Running unittests src\bin\diagnose_bnxt.rs (target\debug\deps\diagnose_bnxt-99b44144db5482de.exe)
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
++     Running unittests src\bin\diagnose_c8.rs (target\debug\deps\diagnose_c8-9c5ae0262f62da9f.exe)
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
++     Running unittests src\bin\diagnose_fase1.rs (target\debug\deps\diagnose_fase1-58785d216e2f5089.exe)
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
++     Running unittests src\bin\diagnose_fase3b2.rs (target\debug\deps\diagnose_fase3b2-08916ed7bf33e34c.exe)
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
++     Running unittests src\bin\diagnose_fase3b2b.rs (target\debug\deps\diagnose_fase3b2b-86994c86fea652bf.exe)
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
++     Running unittests src\bin\gold-benchmark.rs (target\debug\deps\gold_benchmark-f5e3bbd2936f0e35.exe)
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
++     Running unittests src\main.rs (target\debug\deps\limen_vault-dc16fa893d5aac5c.exe)
++
++running 18 tests
++test compiler::tests::test_rust_compiler_compiles_draft_with_status_draft ... ok
++test compiler::tests::test_rust_compiler_deduplication ... ok
++test compiler::tests::test_rust_compiler_sanitizes_html ... ok
++test snapshots::tests::concurrent_publication_and_collision ... ok
++test snapshots::tests::failure_at_manifest_write_cleans_only_staging ... ok
++test snapshots::tests::snapshot_corruption_and_readonly ... ok
++test snapshots::tests::test_rust_snapshot_creation_and_integrity ... ok
++test snapshots::tests::test_snapshot_restore_to_separate_folder_verifies_hashes ... ok
++test tests::obsidian_registration_matches_canonical_path ... ok
++test tests::test_rust_invalid_yaml_rejection ... ok
++test tests::test_rust_vault_validation ... ok
++test vault::tests::capability_blocks_external_junctions ... ok
++test vault::tests::capability_blocks_external_symlinks_and_broken_links ... ok
++test vault::tests::concurrent_creation_has_one_winner ... ok
++test vault::tests::exclusive_creation_preserves_existing_bytes ... ok
++test vault::tests::manifest_is_consumed_without_reopening ... ok
++test vault::tests::raw_sources_foreign_yaml_frontmatter_allows_vault_opening ... ok
++test vault::tests::shared_frontmatter_fixtures ... ok
++
++test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.04s
++
++     Running unittests src\bin\measure_punto_e.rs (target\debug\deps\measure_punto_e-2ca8dfc639e1f24b.exe)
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
++     Running unittests src\bin\search_benchmark.rs (target\debug\deps\search_benchmark-3965c69f87794315.exe)
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
++     Running unittests src\bin\sync_timing.rs (target\debug\deps\sync_timing-5bbe42fbc8a008cb.exe)
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
++     Running unittests src\bin\vault-check.rs (target\debug\deps\vault_check-a37c9b7465d0ba38.exe)
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
++   Doc-tests limen_vault
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
+diff --git a/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase3b2b-diagnose-output.txt b/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase3b2b-diagnose-output.txt
+index 831ed5f..417ab44 100644
+--- a/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase3b2b-diagnose-output.txt
++++ b/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase3b2b-diagnose-output.txt
+@@ -1,158 +1,55 @@
+-   Compiling limen-vault v0.3.0 (E:\Projects\vault_memai_obsi\apps\desktop\src-tauri)
+-warning: unused import: `cap_std::fs::MetadataExt`
+-   --> src\search.rs:450:9
+-    |
+-450 |     use cap_std::fs::MetadataExt;
+-    |         ^^^^^^^^^^^^^^^^^^^^^^^^
+-    |
+-    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+-
+-warning: unused import: `ffi::CString`
+-  --> src\snapshots.rs:12:5
+-   |
+-12 |     ffi::CString,
+-   |     ^^^^^^^^^^^^
+-
+-warning: unused imports: `Command`, `Duration`, `Instant`, and `Stdio`
+- --> src\extraction.rs:6:15
+-  |
+-6 |     process::{Command, Stdio},
+-  |               ^^^^^^^  ^^^^^
+-7 |     time::{Duration, Instant},
+-  |            ^^^^^^^^  ^^^^^^^
+-
+-warning: unused variable: `lock`
+-   --> src\sync.rs:484:17
+-    |
+-484 |             let lock = sys.open_with(".m7-lock", &lock_opts).map_err(err)?;
+-    |                 ^^^^ help: if this is intentional, prefix it with an underscore: `_lock`
+-    |
+-    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+-
+-warning: variable does not need to be mutable
+-  --> src\extraction.rs:17:13
+-   |
+-17 |         let mut builder = std::fs::DirBuilder::new();
+-   |             ----^^^^^^^
+-   |             |
+-   |             help: remove this `mut`
+-   |
+-   = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+-
+-warning: field `vault_path` is never read
+-   --> src\search.rs:178:5
+-    |
+-177 | struct SearchIndexCacheEntry {
+-    |        --------------------- field in this struct
+-178 |     vault_path: std::path::PathBuf,
+-    |     ^^^^^^^^^^
+-    |
+-    = note: `SearchIndexCacheEntry` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+-    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+-
+-warning: function `load` is never used
+-   --> src\search.rs:216:4
+-    |
+-216 | fn load(system: &Dir) -> Result<Option<std::sync::Arc<SearchIndexData>>, String> {
+-    |    ^^^^
+-
+-warning: constant `SERVICE` is never used
+-   --> src\tunnel.rs:177:7
+-    |
+-177 | const SERVICE:&str="dev.arkai.limenvault.tunnel";
+-    |       ^^^^^^^
+-
+-warning: struct `Scratch` is never constructed
+-  --> src\extraction.rs:13:8
+-   |
+-13 | struct Scratch(std::path::PathBuf);
+-   |        ^^^^^^^
+-
+-warning: associated function `new` is never used
+-  --> src\extraction.rs:15:8
+-   |
+-14 | impl Scratch {
+-   | ------------ associated function in this implementation
+-15 |     fn new() -> Result<Self, String> {
+-   |        ^^^
+-
+-warning: field `vault_path` is never read
+-  --> src\catalog.rs:29:5
+-   |
+-28 | struct CatalogCacheEntry {
+-   |        ----------------- field in this struct
+-29 |     vault_path: std::path::PathBuf,
+-   |     ^^^^^^^^^^
+-   |
+-   = note: `CatalogCacheEntry` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+-
+-warning: field `vault_path` is never read
+-  --> src\embeddings.rs:31:5
+-   |
+-30 | struct EmbeddingsCacheEntry {
+-   |        -------------------- field in this struct
+-31 |     vault_path: PathBuf,
+-   |     ^^^^^^^^^^
+-   |
+-   = note: `EmbeddingsCacheEntry` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+-
+-warning: `limen-vault` (lib) generated 12 warnings (run `cargo fix --lib -p limen-vault` to apply 5 suggestions)
+-    Finished `release` profile [optimized] target(s) in 38.93s
+-     Running `target\release\diagnose_fase3b2b.exe`
+ ================================================================================
+ DIAGNOSTICA COMPARATIVA PASSO 3b-2b — PRESTAZIONI E ZERO SOVRAPPOSIZIONI
+ Vault: "E:\\VAULT WIN TEST DEV"
+ ================================================================================
+-Servizio locale bge-m3 rilevato attivo sulla porta 8080
++Servizio locale llama-server (bge-m3, 1024d) VERIFICATO e attivo sulla porta 53361
+ 
+ --------------------------------------------------------------------------------
+ DOMANDA #1: "Cosa è il progetto BNXT?"
+ --------------------------------------------------------------------------------
+-Fonti selezionate da select_with_port_timed: 10 fonti
+-Volume testo contenuti (s.content): 15959 byte (su 24.000 byte budget)
+-Volume payload serializzato JSON: 22857 byte
+-Tempi Preview: totale: 3581 ms | search: 987 ms | doc_read: 21 ms | passage_extract: 3 ms
++Fonti selezionate da select_with_port_timed: 8 fonti
++Volume testo contenuti (s.content): 14459 byte (su 24.000 byte budget)
++Volume payload serializzato JSON: 19998 byte
++Tempi Preview: totale: 57060 ms | search: 26175 ms | doc_read: 30 ms | passage_extract: 48 ms
+ 
+ Dettaglio Fonti Inviate:
+ ID    | Percorso Relativo                                                      | Byte     | Passaggi  | Localizzatore                 
+ ------+------------------------------------------------------------------------+----------+-----------+-------------------------------
+ [S1  ] | 20_RAW_SOURCES/32f2a4081d13410e-BNXT CRM.md                            |   2439 B |       2 p | Paragrafi 1-13, Paragrafi 52-68
+ [S2  ] | 20_RAW_SOURCES/a86061ba2701d614-_Progetto - BNXT AUDIT VICENZA.md      |    555 B |       1 p | Paragrafi 1-8
+-[S3  ] | 20_RAW_SOURCES/957b10627e45aa38-_INDICE.md                             |   1104 B |       1 p | Paragrafi 1-2
+-[S4  ] | 20_RAW_SOURCES/5a54c2ce2f581cf2-verifica-walkthrough-ux-email-whatsapp-2026-09-10.md |   1742 B |       2 p | Paragrafi 1-3, Paragrafo 4
+-[S5  ] | 20_RAW_SOURCES/1e755ab82023a095-verifica-impl-plan-ux-email-whatsapp-2026-09-10.md |   1463 B |       2 p | Paragrafi 1-3, Paragrafo 4
+-[S6  ] | 20_RAW_SOURCES/abaef2b48c6e5b70-audit-localizzazione-EN-baseline-6f2f2b8.md |   2394 B |       3 p | Paragrafi 1-4, Paragrafo 5, Paragrafo 6
+-[S7  ] | 20_RAW_SOURCES/cb67beeece396682-2026-02-13 - Redesign UI home page macOS app.md |   2335 B |       2 p | Paragrafi 18-28, Paragrafi 29-42
+-[S8  ] | 20_RAW_SOURCES/c428eb949fc0201f-areas - packaging-in-italy.md          |   1205 B |       1 p | Paragrafi 1-3
+-[S9  ] | 20_RAW_SOURCES/966ef623917316c7-2026-02-16 - Creazione file Localizable.strings per iOS.md |   2381 B |       2 p | Paragrafi 13-25, Paragrafo 133
+-[S10 ] | 20_RAW_SOURCES/e86a061e0f5becb0-_Progetto - Progetto senza nome 19-08-2026.md |    341 B |       1 p | Paragrafi 1-8
++[S3  ] | 20_RAW_SOURCES/d70f1c7b1d36f912-STEFANO APP.md                         |   2350 B |       2 p | Paragrafi 224-234, Paragrafi 235-243
++[S4  ] | 20_RAW_SOURCES/4245a51312c5c1f2-2026-04-07 - Workflow app iPhone nativa con Xcode.md |   2412 B |       2 p | Paragrafi 6-11, Paragrafi 12-25
++[S5  ] | 20_RAW_SOURCES/5a54c2ce2f581cf2-verifica-walkthrough-ux-email-whatsapp-2026-09-10.md |   1742 B |       2 p | Paragrafi 1-3, Paragrafo 4
++[S6  ] | 20_RAW_SOURCES/957b10627e45aa38-_INDICE.md                             |   1104 B |       1 p | Paragrafi 1-2
++[S7  ] | 20_RAW_SOURCES/abaef2b48c6e5b70-audit-localizzazione-EN-baseline-6f2f2b8.md |   2394 B |       3 p | Paragrafi 1-4, Paragrafo 5, Paragrafo 6
++[S8  ] | 20_RAW_SOURCES/1e755ab82023a095-verifica-impl-plan-ux-email-whatsapp-2026-09-10.md |   1463 B |       2 p | Paragrafi 1-3, Paragrafo 4
+ 
+ --------------------------------------------------------------------------------
+ DOMANDA #2: "ARKAI è un'azienda o un marchio? Di cosa si occupa?"
+ --------------------------------------------------------------------------------
+ Fonti selezionate da select_with_port_timed: 7 fonti
+-Volume testo contenuti (s.content): 17168 byte (su 24.000 byte budget)
+-Volume payload serializzato JSON: 22734 byte
+-Tempi Preview: totale: 1850 ms | search: 1063 ms | doc_read: 401 ms | passage_extract: 182 ms
++Volume testo contenuti (s.content): 17671 byte (su 24.000 byte budget)
++Volume payload serializzato JSON: 23230 byte
++Tempi Preview: totale: 26158 ms | search: 15170 ms | doc_read: 2018 ms | passage_extract: 8265 ms
+ 
+ Dettaglio Fonti Inviate:
+ ID    | Percorso Relativo                                                      | Byte     | Passaggi  | Localizzatore                 
+ ------+------------------------------------------------------------------------+----------+-----------+-------------------------------
+-[S1  ] | 20_RAW_SOURCES/aa217245dfd86aeb-nuovo LLM AI Arkai.md                  |   2871 B |       3 p | Paragrafi 1-10, Paragrafo 74, Paragrafo 75
+-[S2  ] | 20_RAW_SOURCES/86e2218e7ed905f1-ARKAI FLOORPLAN NICE.md                |   3235 B |       3 p | Paragrafi 505-507, Paragrafi 508-513, Paragrafi 614-621
+-[S3  ] | 20_RAW_SOURCES/0bc92121a0ad46f7-2026-03-26 - Arkai.Dev expansion into Italian market.md |   2805 B |       3 p | Paragrafi 1-4, Paragrafo 33, Paragrafo 34
+-[S4  ] | 20_RAW_SOURCES/2ff8773ddf4229e7-2026-04-06 - Building ARKAI free image generation web app.md |   1876 B |       2 p | Paragrafi 22-25, Paragrafo 26
+-[S5  ] | 20_RAW_SOURCES/b3f8add2793aa3b3-CONTRATTI ARKAI ITALIA.md              |   2130 B |       2 p | Paragrafi 1-16, Paragrafi 17-26
+-[S6  ] | 20_RAW_SOURCES/540e37c638dd2045-2026-03-31 - Presentazione investitori Arkai.archi.md |   2258 B |       2 p | Paragrafi 1-4, Paragrafo 5
+-[S7  ] | 20_RAW_SOURCES/7254c793dd89f65d-2026-03-19 - Analisi icona app ARKAI STAGER.md |   1993 B |       2 p | Paragrafi 1-4, Paragrafi 9-15
++[S1  ] | 20_RAW_SOURCES/540e37c638dd2045-2026-03-31 - Presentazione investitori Arkai.archi.md |   3400 B |       3 p | Paragrafi 1-4, Paragrafo 5, Paragrafo 8
++[S2  ] | 20_RAW_SOURCES/0bc92121a0ad46f7-2026-03-26 - Arkai.Dev expansion into Italian market.md |   2805 B |       3 p | Paragrafi 1-4, Paragrafo 33, Paragrafo 34
++[S3  ] | 20_RAW_SOURCES/aa217245dfd86aeb-nuovo LLM AI Arkai.md                  |   2871 B |       3 p | Paragrafi 1-10, Paragrafo 74, Paragrafo 75
++[S4  ] | 20_RAW_SOURCES/98de5fb0d0fac3db-2026-04-12 - AI model development with LORA for floorplan recognition.md |   2250 B |       2 p | Paragrafo 339, Paragrafo 340
++[S5  ] | 20_RAW_SOURCES/f4fd17ebca858f34-ARKAI.DEV Software Developer.md        |   2058 B |       2 p | Paragrafi 1-8, Paragrafi 9-19
++[S6  ] | 20_RAW_SOURCES/410dbac00663f59c-2026-06-03 - Analisi Excel investitori e outreach personalizzate.md |   2232 B |       2 p | Paragrafi 188-193, Paragrafi 387-388
++[S7  ] | 20_RAW_SOURCES/86e2218e7ed905f1-ARKAI FLOORPLAN NICE.md                |   2055 B |       2 p | Paragrafi 505-507, Paragrafi 508-513
+ 
+ --------------------------------------------------------------------------------
+ DOMANDA #3: "Cos'è il progetto SCENA e quali app comprende?"
+ --------------------------------------------------------------------------------
+-Fonti selezionate da select_with_port_timed: 9 fonti
+-Volume testo contenuti (s.content): 17650 byte (su 24.000 byte budget)
+-Volume payload serializzato JSON: 23976 byte
+-Tempi Preview: totale: 2761 ms | search: 2220 ms | doc_read: 215 ms | passage_extract: 192 ms
++Fonti selezionate da select_with_port_timed: 8 fonti
++Volume testo contenuti (s.content): 16854 byte (su 24.000 byte budget)
++Volume payload serializzato JSON: 22683 byte
++Tempi Preview: totale: 51118 ms | search: 42119 ms | doc_read: 1686 ms | passage_extract: 6479 ms
+ 
+ Dettaglio Fonti Inviate:
+ ID    | Percorso Relativo                                                      | Byte     | Passaggi  | Localizzatore                 
+@@ -160,14 +57,12 @@ ID    | Percorso Relativo                                                      |
+ [S1  ] | 20_RAW_SOURCES/1779683df5b44f8e-2026-04-29 - Presentazione funzionalità sistema SCENA.md |   2386 B |       2 p | Paragrafi 19-24, Paragrafi 29-35
+ [S2  ] | 20_RAW_SOURCES/823633921a2bb46a-areas - scena.md                       |   1117 B |       1 p | Paragrafi 1-3
+ [S3  ] | 20_RAW_SOURCES/ada7498f19b363c3-STUDIO CINEMA APP & DASHBOARD.md       |   2392 B |       2 p | Paragrafi 1405-1436, Paragrafi 1437-1454
+-[S4  ] | 20_RAW_SOURCES/ea956cc6b97028d8-2026-04-29 - Manuale cliente gestionale e PWA.md |   1892 B |       2 p | Paragrafi 1-4, Paragrafi 21-26
+-[S5  ] | 20_RAW_SOURCES/d70f1c7b1d36f912-STEFANO APP.md                         |   2278 B |       2 p | Paragrafi 1-12, Paragrafi 13-21
+-[S6  ] | 20_RAW_SOURCES/309bcc15297b9408-2026-05-20 - Esecuzione di codice senza autorizzazione.md |   2324 B |       2 p | Paragrafo 430, Paragrafo 436
+-[S7  ] | 20_RAW_SOURCES/c4f02a78e4b17fdc-2026-06-01 - Audit sincronizzazione dati tra gestionale e app iOS.md |   2317 B |       2 p | Paragrafi 114-118, Paragrafo 179
+-[S8  ] | 20_RAW_SOURCES/2a3b60ff71c42897-Coordinating updates across three integrated projects.md |   2386 B |       2 p | Paragrafi 98-103, Paragrafi 139-146
+-[S9  ] | 20_RAW_SOURCES/90d5c3efb5ed5930-_Progetto - LIMEN VAULT.md             |    558 B |       1 p | Paragrafi 1-8
++[S4  ] | 20_RAW_SOURCES/c4f02a78e4b17fdc-2026-06-01 - Audit sincronizzazione dati tra gestionale e app iOS.md |   2317 B |       2 p | Paragrafi 114-118, Paragrafo 179
++[S5  ] | 20_RAW_SOURCES/2a3b60ff71c42897-Coordinating updates across three integrated projects.md |   2143 B |       2 p | Paragrafi 98-103, Paragrafi 111-116
++[S6  ] | 20_RAW_SOURCES/c7fdf167bf695434-2026-05-16 - Manuale operativo minimalista e leggibile.md |   1785 B |       2 p | Paragrafi 1-4, Paragrafo 24
++[S7  ] | 20_RAW_SOURCES/18ce369ee3bd81fe-2026-06-02 - Migrazione chat a project.md |   2449 B |       2 p | Paragrafi 1147-1150, Paragrafo 1851
++[S8  ] | 20_RAW_SOURCES/7e90bad5776b00a0-Autorizzazioni CRM Packaging in Italy.md |   2265 B |       2 p | Paragrafi 1-12, Paragrafi 13-18
+ 
+ ================================================================================
+ DIAGNOSTICA PASSO 3b-2b COMPLETATA CON SUCCESSO
+ ================================================================================
+-
+diff --git a/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase4-piano.md b/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase4-piano.md
+new file mode 100644
+index 0000000..10870c3
+--- /dev/null
++++ b/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase4-piano.md
+@@ -0,0 +1,92 @@
++# Piano di Implementazione FASE 4 — Selezione Modello, Benchmark Prestazionale ed Etichetta Fonti
++
++**Data**: 23 Settembre 2026  
++**Ambiente**: LIMEN Vault v3 (Windows 11 Pro, Tauri / Rust)  
++**Obiettivo**: Ottimizzare il 70–80% del tempo di risposta end-to-end (frazione OpenAI) consentendo la selezione e persistenza del modello AI da account, la misurazione comparativa su tempi, token e voti qualitativi di Cesare, e l'introduzione dell'etichetta trasparente delle fonti.
++
++---
++
++## 1. Contesto e Motivazione
++
++Nella FASE 3 (approvata con voti 9-9-9 da Cesare sulle tre domande canoniche), i tempi di preparazione locale (ricerca ibrida semantica + estrazione multi-passaggio + deduplicazione + integrità SHA-256) sono scesi a circa 1,0–2,6 secondi.  
++Il tempo totale registrato in `C:\Users\user\.limen-vault\ask_timing.log` è stato:
++- **BNXT**: totale 7,0 s (di cui **OpenAI 5,8 s**, pari all'**83%** del tempo);
++- **ARKAI**: totale 8,0 s (di cui **OpenAI 5,9 s**, pari al **74%** del tempo);
++- **SCENA**: totale 11,8 s (di cui **OpenAI 9,0 s**, pari al **77%** del tempo).
++
++La frazione dominante del tempo percepito dall'utente è quindi la latenza di generazione della chiamata remota a OpenAI.  
++Attualmente:
++1. In `apps/desktop/src/AiPanel.tsx:57`, il modello è fisso con `const [model, setModel] = useState('gpt-4o');`.
++2. Il menu in "Collegamenti AI & MCP" non persiste la scelta dell'utente per le sessioni future.
++3. L'elenco dei modelli è statico e non recuperato dall'account OpenAI associato alla chiave API configurata.
++4. L'interfaccia utente mostra le fonti in un elenco a scomparsa ma non evidenzia la sintesi trasparente delle fonti citate rispetto a quelle consultate.
++
++---
++
++## 2. Componenti della FASE 4
++
++### A. Elenco Modelli Dinamico da Account e Persistenza Modello
++
++1. **Recupero Dinamico Modelli da Account OpenAI**:
++   - Backend Rust / IPC Tauri: comando per interrogare l'endpoint `GET https://api.openai.com/v1/models` usando la chiave API registrata nel keychain o nelle impostazioni.
++   - Filtro intelligente: selezionare esclusivamente i modelli abilitati a chat/completions (es. `gpt-4o`, `gpt-4o-mini`, `o1-mini`, `o3-mini`, `gpt-4-turbo`), escludendo modelli legacy, audio, realtime o solo embedding (`bge-m3`, `text-embedding-3-*`).
++   - Caching locale: memorizzare l'elenco modelli in cache per evitare chiamate ripetute all'apertura del pannello, con pulsante "Aggiorna elenco modelli".
++
++2. **Salvataggio e Persistenza delle Preferenze**:
++   - Salvare il modello selezionato nella configurazione locale dell'utente (file `settings.json` del Vault o preferenze utente persistite in Tauri).
++   - In "Collegamenti AI & MCP", la selezione del modello predefinito aggiorna la preferenza persistita.
++   - All'apertura della schermata "Chiedi" (`AiPanel.tsx`), il valore iniziale dello stato `model` viene letto dalle preferenze salvate anziché essere fissato a `"gpt-4o"`.
++
++### B. Etichetta Trasparente Fonti Consultate e Citate
++
++1. **Rilevazione Fonti Citate vs Consultate**:
++   - Fonti Consultate ($M$): totale delle fonti rilevanti selezionate e iniettate nel prompt OpenAI (es. 8 per BNXT, 7 per ARKAI, 8 per SCENA).
++   - Fonti Citate ($N$): numero di documenti distinti referenziati dal modello nella risposta generata (es. 5 per BNXT, 4 per ARKAI, 3 per SCENA).
++2. **Presentazione UI in `AiPanel.tsx`**:
++   - Inserire sopra o accanto al riquadro delle fonti un'etichetta esplicita e rassicurante:
++     > **"Basata su N documenti citati tra M consultati"**
++   - Click sull'etichetta o espansione per mostrare il dettaglio puntuale (con badge visivo per i documenti citati rispetto a quelli solo consultati a supporto).
++
++### C. Misurazione Comparativa di Cesare (Tempi, Token e Voto Qualitativo)
++
++1. **Protocollo di Test**:
++   - Cesare testerà almeno due modelli OpenAI (es. `gpt-4o` vs `gpt-4o-mini` o `o3-mini`) sulle stesse tre domande canoniche:
++     1. *"Cosa è il progetto BNXT?"*
++     2. *"ARKAI è un'azienda o un marchio? Di cosa si occupa?"*
++     3. *"Cos'è il progetto SCENA e quali app comprende?"*
++2. **Metriche Raccolte da `ask_timing.log` per Ciascun Modello**:
++   - Tempo OpenAI ($t_{ai}$) in millisecondi;
++   - Tempo Totale ($t_{tot}$) in millisecondi;
++   - Token consumati (prompt tokens, completion tokens, total tokens);
++   - Voto di qualità assegnato da Cesare (scala 1–10).
++3. **Analisi del Trade-Off**:
++   - Se `gpt-4o-mini` (o altro modello leggero) fornisce tempi di risposta inferiori a 2–3 secondi mantenendo voti elevati (es. 8–9), potrà essere raccomandato o impostato come opzione rapida di default.
++
++---
++
++## 3. Task List Tracciabile FASE 4
++
++### Componente 1: Gestione e Persistenza Modelli OpenAI
++- [ ] **1.1** Implementare backend Rust / comando Tauri per recuperare la lista dei modelli da `https://api.openai.com/v1/models` validando la chiave API.
++- [ ] **1.2** Filtrare la lista modelli per includere solo i modelli di testo/chat supportati (es. `gpt-4o`, `gpt-4o-mini`, `o3-mini`, `gpt-4-turbo`).
++- [ ] **1.3** Implementare la persistenza della scelta del modello nel file di preferenze/configurazione del Vault.
++- [ ] **1.4** Sincronizzare il selettore del modello in "Collegamenti AI & MCP" con la configurazione salvata.
++- [ ] **1.5** Aggiornare `AiPanel.tsx` per inizializzare il modello predefinito dalla configurazione salvata anziché usare la costante fissa `gpt-4o`.
++
++### Componente 2: Interfaccia Fonti Citate vs Consultate
++- [ ] **2.1** Calcolare in `AiPanel.tsx` il conteggio dei documenti citati ($N$) e consultati ($M$).
++- [ ] **2.2** Inserire l'etichetta visiva `"Basata su N documenti citati tra M consultati"` in testata alla sezione fonti.
++- [ ] **2.3** Evidenziare con stile grafico dedicato (badge o spunta) i documenti che sono stati citati nella risposta rispetto a quelli solo consultati.
++
++### Componente 3: Benchmark e Valutazione di Cesare
++- [ ] **3.1** Rilascio build o configurazione pronta per la prova di Cesare senza chiamate automatiche.
++- [ ] **3.2** Misurazione live condotta da Cesare con Modello A (`gpt-4o`): raccolta tempi, token e voti su BNXT, ARKAI, SCENA.
++- [ ] **3.3** Misurazione live condotta da Cesare con Modello B (`gpt-4o-mini` o alternativo): raccolta tempi, token e voti sulle stesse domande.
++- [ ] **3.4** Tabulazione comparativa finale in `fase4-benchmark.md`.
++- [ ] **3.5** Chiusura FASE 4 con approvazione finale di Cesare.
++
++---
++
++## 4. Regole Operative Tassative per la FASE 4
++- **ZERO chiamate a OpenAI da parte dell'assistente**: tutte le chiamate di prova devono essere effettuate unicamente da Cesare all'interno dell'app.
++- **ZERO terminazioni di processi di sistema** senza previa autorizzazione esplicita di Cesare.
+diff --git a/SESSION_HANDOVER_WINDOWS_BUILD.md b/SESSION_HANDOVER_WINDOWS_BUILD.md
+index 572e90a..c2f3da7 100644
+--- a/SESSION_HANDOVER_WINDOWS_BUILD.md
++++ b/SESSION_HANDOVER_WINDOWS_BUILD.md
+@@ -95,9 +95,11 @@ Conformemente alle direttive e alle due correzioni deliberate da Cesare:
+ 
+ ### FASE 3 — PASSO 3b-2b COMPLETATO (Rettifica ARKAI, Zero Sovrapposizioni, Zero Asterischi, Prestazioni)
+ 
+-1. **Rettifica Rapporto ARKAI**:
+-   - In `fase3b2-diagnosi.md` e nel presente handover rettificato il conteggio: delle 7 fonti selezionate per ARKAI, **5 appartengono alle 12 canoniche ARKAI FASE 1** (`aa217245`, `86e2218e`, `0bc92121`, `2ff8773d`, `b3f8add2`). Le altre 2 (`540e37c6` e `7254c793`) sono comunque strettamente pertinenti al dominio Arkai (presentazione investitori Arkai.archi e analisi icona Arkai Stager).
+-   - **Criterio Primario di Valutazione**: Viene formalizzato che il criterio primario di approvazione per Cesare è il suo **voto qualitativo** (8 per Arkai, 7-8 per BNXT, 9 per Scena), mentre il conteggio dei documenti è solo un indicatore di supporto.
++1. **Rettifica Rapporto ARKAI (dal registro reale dell'app ask_timing.log)**:
++   - Delle 7 fonti selezionate e inviate nell'app per la domanda ARKAI (registro di Cesare ore 10:48, 11:02 e 12:04 UTC), **5 appartengono alle 12 canoniche ARKAI FASE 1**: `540e37c638dd2045`, `0bc92121a0ad46f7`, `aa217245dfd86aeb`, `f4fd17ebca858f34`, `86e2218e7ed905f1`.
++   - Le restanti 2 fonti sono file grezzi correlati nel vault con menzione del dominio: `98de5fb0d0fac3db` e `410dbac00663f59c`.
++   - Le 4 fonti citate nella risposta dell'app (voto 9) sono state: `540e37c638dd2045`, `0bc92121a0ad46f7`, `f4fd17ebca858f34` e `410dbac00663f59c`.
++   - **Criterio Primario di Valutazione**: Viene confermato che il criterio primario di approvazione per Cesare è il suo **voto qualitativo** (9 per Arkai, 9 per BNXT, 9 per Scena), con zero passaggi sovrapposti e rispetto del budget.
+ 
+ 2. **Esclusione Categorica Passaggi Sovrapposti (`locators_overlap`)**:
+    - Implementate le funzioni `parse_locator_range(loc)` e `locators_overlap(loc1, loc2)`: riconoscono e confrontano intervalli di paragrafi, pagine e slide (`s1.max(s2) <= e1.min(e2)`).
+@@ -123,14 +125,47 @@ Conformemente alle direttive e alle due correzioni deliberate da Cesare:
+ 
+ ---
+ 
+-## 2. Stato Attuale e Prossimo Passo (STOP per Prova di Cesare)
++### FASE 3 — CHIUSA SULLA QUALITÀ (VOTI 9 - 9 - 9) ED APPROVATA DA CESARE
++
++- **Prova di Cesare post 3b-2b (registro `C:\Users\user\.limen-vault\ask_timing.log`, 23/09/2026 12:03-12:05 UTC)**:
++  - **BNXT**: **Voto 9** (5 fonti citate tra 8 inviate, 14.459 byte, Preview 1.119 ms, totale 6.965 ms, OpenAI 5.846 ms).
++  - **ARKAI**: **Voto 9** (4 fonti citate tra 7 inviate, 17.671 byte, Preview 2.131 ms, totale 8.048 ms, OpenAI 5.917 ms).
++  - **SCENA**: **Voto 9** (3 fonti citate tra 8 inviate, 16.854 byte, Preview 2.624 ms, totale 11.772 ms, OpenAI 9.048 ms).
++  - **Zero passaggi sovrapposti**: conformità verificata al 100%.
++  - **Tempi di risposta**: OpenAI rappresenta il 70-80% del tempo totale (5,8 - 9,0 s su 7,0 - 11,8 s).
++  - **Qualità**: FASE 3 ufficialmente **APPROVATA**.
++
++---
++
++### CORREZIONI FINALI PASSO 3b-2c
++
++1. **Diagnosi su Servizio Verificato (`llama::find_active_bge_m3_service`)**:
++   - `diagnose_fase3b2b.rs` eliminata la ricerca su porte fisse (59722, 62021, 8080).
++   - Accertato che sulla porta 8080 ascoltavano i processi Docker Desktop / WSL (`com.docker.backend.exe` PID 39604, `wslrelay.exe` PID 31948).
++   - Implementata in `llama.rs` la funzione `find_active_bge_m3_service()`, che cerca su `LIMEN_LOCAL_PORT`, file `llama-server.port`, `llama-server.pid`, o processi `llama-server` attivi, convalidando obbligatoriamente salute e dimensioni vettoriali a 1024d su `POST /v1/embeddings` (modello `bge-m3`). Se non verificato, fallisce immediatamente con errore bloccante.
++   - Diagnostica rieseguita con successo su servizio verificato porta 53361: le fonti estratte coincidono perfettamente con quelle dell'app di Cesare (8 fonti BNXT, 7 fonti ARKAI, 8 fonti SCENA).
++
++2. **Pulizia Asterischi e Preservazione Asterischi Aritmetici (`sanitize_answer_prose`)**:
++   - Eliminata la rimozione indiscriminata di `*` (`step3.replace('*', "")`).
++   - Mantenuta la pulizia puntuale dei marcatori di formattazione markdown: `**testo**` -> `testo`, `*testo*` -> `testo`, `* ` a inizio riga -> `- `.
++   - Espressioni matematiche e letterali come `"2*3"` o `"10 * 5 = 50"` restano intatte.
++   - Test unitari passati: `test_sanitize_answer_prose_removes_asterisks` valida sia la rimozione dei marcatori sia `assert_eq!(sanitize_answer_prose("2*3"), "2*3")`.
++
++3. **Ripristino Modifiche Non Dichiarate**:
++   - Ripristinato `productName: "LIMEN Vault v3"`, `version: "0.3.0"`, `title: "LIMEN Vault v3"` in `tauri.conf.json`.
++   - Ripristinati i comandi di build da npm a pnpm (`beforeDevCommand: "pnpm dev"`, `beforeBuildCommand: "pnpm build"`).
++   - Ripristinato il branding a `LIMEN Vault v3` in `App.tsx`.
++
++4. **Piano FASE 4 Predisposto (senza codice)**:
++   - Documento creato in `IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase4-piano.md` con Task List dettagliata conforme alla regola di progetto `.agents/AGENTS.md`.
++
++---
++
++## 2. Stato Attuale e Consegna
+ 
+ - **STATO ATTUALE**: **STOP OPERATIVO BLOCCANTE**.
+-- **Binario Release Ottimizzato**: `apps/desktop/src-tauri/target/release/limen-vault.exe` compilato e aggiornato.
++- **Patch completa**: `IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-3b2c.patch`.
+ - **ZERO chiamate OpenAI** effettuate dall'assistente.
+-- **PROSSIMO PASSO**: Prova live nell'app desktop condotta da **Cesare** sulle tre domande di validazione con `gpt-4o`:
+-  1. *"Cosa è il progetto BNXT?"*
+-  2. *"ARKAI è un'azienda o un marchio? Di cosa si occupa?"*
+-  3. *"Cos'è il progetto SCENA e quali app comprende?"*
+-- **Verifica nel Registro**: `C:\Users\user\.limen-vault\ask_timing.log` registrerà il volume di byte, le fonti citate e la prosa pulita priva di asterischi.
++- **ZERO processi terminati** senza autorizzazione.
++
+ 
+diff --git a/apps/desktop/src-tauri/src/ai.rs b/apps/desktop/src-tauri/src/ai.rs
+index 02d96f6..3b7c3d9 100644
+--- a/apps/desktop/src-tauri/src/ai.rs
++++ b/apps/desktop/src-tauri/src/ai.rs
+@@ -1117,10 +1117,12 @@ Regole fondamentali da seguire con la massima precisione:\n\
+ /// Rimuove qualsiasi riferimento a identificativi di fonte come `[S1]`, `[S2]`,
+ /// `[S1, S2]`, `[S1, S2, S5]`, `[S1; S2]`, `[S1][S2]`, `(S1)`, ecc.
+ /// Rimuove categoricamente qualsiasi asterisco ('*'):
++/// Pulisce il testo della risposta generata dal provider:
++/// - Rimuove citazioni sintetiche residue nel corpo ([S1], (S1), ecc.);
+ /// - Converte elenchi puntati con asterisco in trattini (`* punto` -> `- punto`);
+ /// - Rimuove marcatori di grassetto markdown (`**testo**` -> `testo`);
+ /// - Rimuove marcatori di corsivo con asterischi (`*testo*` -> `testo`);
+-/// - Elimina ogni eventuale asterisco residuo.
++/// - Preserva gli asterischi letterali/matematici (es. `2*3`).
+ /// Normalizza spazi multipli e punteggiatura orfana residua.
+ pub fn sanitize_answer_prose(text: &str) -> String {
+     use std::sync::OnceLock;
+@@ -1142,7 +1144,7 @@ pub fn sanitize_answer_prose(text: &str) -> String {
+         regex::Regex::new(r"\*\*([^*]+)\*\*").unwrap()
+     });
+     let re_italic = RE_ITALIC.get_or_init(|| {
+-        regex::Regex::new(r"\*([^*\n]+)\*").unwrap()
++        regex::Regex::new(r"\*([^\s*](?:[^*\n]*?[^\s*])?)\*").unwrap()
+     });
+     let re_space_punct = RE_SPACE_PUNCT.get_or_init(|| {
+         regex::Regex::new(r"[ \t]+([.,;:!?])").unwrap()
+@@ -1171,11 +1173,8 @@ pub fn sanitize_answer_prose(text: &str) -> String {
+         step3 = re_italic.replace_all(&step3, "$1").to_string();
+     }
+ 
+-    // 5. Rimuove categoricamente qualsiasi asterisco residuo
+-    let step5 = step3.replace('*', "");
+-
+-    // 6. Rimuove parentesi o quadre rimaste vuote
+-    let no_empty_parens = re_empty_parens.replace_all(&step5, "");
++    // 5. Rimuove parentesi o quadre rimaste vuote (senza cancellare asterischi letterali come 2*3)
++    let no_empty_parens = re_empty_parens.replace_all(&step3, "");
+ 
+     let lines: Vec<String> = no_empty_parens
+         .lines()
+@@ -2492,9 +2491,10 @@ mod tests {
+       let expected4 = "Riepilogo:\n- Punto 1: dettaglio tecnico\n- Punto 2: testo standard";
+       assert_eq!(sanitize_answer_prose(input4), expected4);
+ 
+-      // Test asterischi isolati o sparsi
+-      let input5 = "Formula: 10 * 5 = 50 con nota * integrativa.";
+-      assert_eq!(sanitize_answer_prose(input5), "Formula: 10 5 = 50 con nota integrativa.");
++      // Test asterischi aritmetici o letterali (es. "2*3" resta invariato)
++      let input5 = "Calcolo: 2*3 = 6 e formula 10 * 5 = 50.";
++      assert_eq!(sanitize_answer_prose(input5), "Calcolo: 2*3 = 6 e formula 10 * 5 = 50.");
++      assert_eq!(sanitize_answer_prose("2*3"), "2*3");
+   }
+ 
+   #[test]
+diff --git a/apps/desktop/src-tauri/src/bin/diagnose_fase3b2b.rs b/apps/desktop/src-tauri/src/bin/diagnose_fase3b2b.rs
+index d5e1bed..6494cbe 100644
+--- a/apps/desktop/src-tauri/src/bin/diagnose_fase3b2b.rs
++++ b/apps/desktop/src-tauri/src/bin/diagnose_fase3b2b.rs
+@@ -15,20 +15,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
+     println!("Vault: {:?}", vault_dir);
+     println!("================================================================================");
+ 
+-    // Rileva eventuale servizio locale bge-m3 già avviato
+-    let candidate_ports = [59722, 62021, 8080];
+-    let mut active_port: Option<u16> = None;
+-    for &p in &candidate_ports {
+-        if llama::check_health(p) {
+-            println!("Servizio locale bge-m3 rilevato attivo sulla porta {}", p);
+-            active_port = Some(p);
+-            break;
++    // Rileva la porta del servizio llama-server dell'app verificando modello bge-m3 e dimensioni 1024d.
++    // Non usa porte cablate. Fallisce immediatamente con errore chiaro se il servizio non è verificato.
++    let active_port = match llama::find_active_bge_m3_service() {
++        Ok(port) => {
++            println!("Servizio locale llama-server (bge-m3, 1024d) VERIFICATO e attivo sulla porta {}", port);
++            port
+         }
+-    }
+-
+-    if active_port.is_none() {
+-        println!("Nessun server locale rilevato; select_with_port_timed eseguirà ricerca ibrida/lessicale con fallback.");
+-    }
++        Err(err) => {
++            eprintln!("ERRORE FATALE: Nessun servizio llama-server verificato (bge-m3, 1024d) attivo!");
++            eprintln!("Dettaglio errore: {}", err);
++            eprintln!("La diagnosi richiede il servizio dell'app attivo. Avviare l'app LIMEN Vault o impostare LIMEN_LOCAL_PORT.");
++            return Err(err.into());
++        }
++    };
+ 
+     let queries = [
+         "Cosa è il progetto BNXT?",
+@@ -52,7 +52,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
+             tags: None,
+         };
+ 
+-        match ai::select_with_port_timed(vault_dir, &options, active_port).await {
++        match ai::select_with_port_timed(vault_dir, &options, Some(active_port)).await {
+             Ok((sources, timings)) => {
+                 let total_content_bytes: usize = sources.iter().map(|s| s.content.len()).sum();
+                 let serialized_bytes = serde_json::to_string(&sources).map(|s| s.len()).unwrap_or(0);
+diff --git a/apps/desktop/src-tauri/src/llama.rs b/apps/desktop/src-tauri/src/llama.rs
+index f0219a5..9aa2afa 100644
+--- a/apps/desktop/src-tauri/src/llama.rs
++++ b/apps/desktop/src-tauri/src/llama.rs
+@@ -554,6 +554,11 @@ pub fn pid_file_path() -> Option<PathBuf> {
+     get_models_dir().ok().map(|d| d.join("llama-server.pid"))
+ }
+ 
++/// File con la porta dell'ultimo llama-server avviato da questa app.
++pub fn port_file_path() -> Option<PathBuf> {
++    get_models_dir().ok().map(|d| d.join("llama-server.port"))
++}
++
+ fn write_pid_file(path: &Path, pid: u32) {
+     let _ = fs::write(path, pid.to_string());
+ }
+@@ -562,6 +567,111 @@ fn read_pid_file(path: &Path) -> Option<u32> {
+     fs::read_to_string(path).ok()?.trim().parse::<u32>().ok()
+ }
+ 
++fn write_port_file(path: &Path, port: u16) {
++    let _ = fs::write(path, port.to_string());
++}
++
++fn read_port_file(path: &Path) -> Option<u16> {
++    fs::read_to_string(path).ok()?.trim().parse::<u16>().ok()
++}
++
++/// Trova la porta TCP su cui un dato PID è in ascolto.
++pub fn find_port_for_pid(pid: u32) -> Option<u16> {
++    #[cfg(windows)]
++    {
++        use std::os::windows::process::CommandExt;
++        const CREATE_NO_WINDOW: u32 = 0x08000000;
++        let out = std::process::Command::new("powershell")
++            .args(["-NoProfile", "-Command", &format!("Get-NetTCPConnection -OwningProcess {} -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty LocalPort", pid)])
++            .creation_flags(CREATE_NO_WINDOW)
++            .output()
++            .ok()?;
++        let text = String::from_utf8_lossy(&out.stdout);
++        text.lines().find_map(|l| l.trim().parse::<u16>().ok())
++    }
++    #[cfg(unix)]
++    {
++        let out = std::process::Command::new("lsof")
++            .args(["-Pan", "-p", &pid.to_string(), "-iTCP", "-sTCP:LISTEN"])
++            .output()
++            .ok()?;
++        let text = String::from_utf8_lossy(&out.stdout);
++        for line in text.lines() {
++            if let Some(idx) = line.rfind(':') {
++                let rest = &line[idx + 1..];
++                if let Some(port_str) = rest.split_whitespace().next() {
++                    if let Ok(port) = port_str.parse::<u16>() {
++                        return Some(port);
++                    }
++                }
++            }
++        }
++        None
++    }
++}
++
++/// Rileva la porta del servizio llama-server attivo verificando modello (bge-m3) e dimensioni (1024).
++/// Cerca nell'ordine:
++/// 1. Variabile d'ambiente LIMEN_LOCAL_PORT
++/// 2. File llama-server.port
++/// 3. File llama-server.pid (interrogando la porta del PID)
++/// 4. Processi llama-server attivi sul sistema
++pub fn find_active_bge_m3_service() -> Result<u16, String> {
++    // 1. Variabile d'ambiente
++    if let Ok(env_val) = std::env::var("LIMEN_LOCAL_PORT") {
++        if let Ok(env_port) = env_val.trim().parse::<u16>() {
++            if check_health(env_port) && verify_dimensions(env_port).is_ok() {
++                return Ok(env_port);
++            }
++        }
++    }
++
++    // 2. File llama-server.port
++    if let Some(p_path) = port_file_path() {
++        if let Some(port) = read_port_file(&p_path) {
++            if check_health(port) && verify_dimensions(port).is_ok() {
++                return Ok(port);
++            }
++        }
++    }
++
++    // 3. File llama-server.pid
++    if let Some(p_path) = pid_file_path() {
++        if let Some(pid) = read_pid_file(&p_path) {
++            if let Some(port) = find_port_for_pid(pid) {
++                if check_health(port) && verify_dimensions(port).is_ok() {
++                    return Ok(port);
++                }
++            }
++        }
++    }
++
++    // 4. Processi llama-server attivi sul sistema
++    #[cfg(windows)]
++    {
++        use std::os::windows::process::CommandExt;
++        const CREATE_NO_WINDOW: u32 = 0x08000000;
++        let out = std::process::Command::new("powershell")
++            .args(["-NoProfile", "-Command", "Get-Process -Name 'llama-server' -ErrorAction SilentlyContinue | ForEach-Object { $p = $_.Id; Get-NetTCPConnection -OwningProcess $p -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty LocalPort }"])
++            .creation_flags(CREATE_NO_WINDOW)
++            .output()
++            .ok();
++        if let Some(o) = out {
++            let text = String::from_utf8_lossy(&o.stdout);
++            for line in text.lines() {
++                if let Ok(port) = line.trim().parse::<u16>() {
++                    if check_health(port) && verify_dimensions(port).is_ok() {
++                        return Ok(port);
++                    }
++                }
++            }
++        }
++    }
++
++    Err("Nessun servizio locale llama-server con modello bge-m3 (1024d) trovato attivo.".to_string())
++}
++
++
+ /// Decisione pura: orfano = genitore launchd (ppid 1) e riga di comando di un llama-server in modalita' embedding.
+ pub fn is_orphan_llama_server(ppid: i32, command: &str) -> bool {
+     ppid == 1 && command.contains("llama-server") && command.contains("--embedding")
+@@ -778,6 +888,9 @@ fn stop_child(s: &mut RunningState) {
+     if let Some(p) = pid_file_path() {
+         let _ = fs::remove_file(p);
+     }
++    if let Some(p) = port_file_path() {
++        let _ = fs::remove_file(p);
++    }
+     s.port = 0;
+ }
+ 
+@@ -898,6 +1011,9 @@ impl LlamaServerState {
+         if let Some(p) = pid_file_path() {
+             write_pid_file(&p, child.id());
+         }
++        if let Some(p) = port_file_path() {
++            write_port_file(&p, port);
++        }
+         s.child = Some(child);
+         s.port = port;
+         s.model_path = model_path;
+diff --git a/apps/desktop/src-tauri/tauri.conf.json b/apps/desktop/src-tauri/tauri.conf.json
+index ae61e26..62ebeaa 100644
+--- a/apps/desktop/src-tauri/tauri.conf.json
++++ b/apps/desktop/src-tauri/tauri.conf.json
+@@ -1,18 +1,18 @@
+ {
+   "$schema": "https://raw.githubusercontent.com/tauri-apps/tauri/dev/crates/tauri-config-schema/schema.json",
+-  "productName": "LIMEN Vault v4",
+-  "version": "0.4.0",
++  "productName": "LIMEN Vault v3",
++  "version": "0.3.0",
+   "identifier": "dev.arkai.limenvault",
+   "build": {
+     "frontendDist": "../dist",
+     "devUrl": "http://localhost:1420",
+-    "beforeDevCommand": "npm run dev",
+-    "beforeBuildCommand": "npm run build"
++    "beforeDevCommand": "pnpm dev",
++    "beforeBuildCommand": "pnpm build"
+   },
+   "app": {
+     "windows": [
+       {
+-        "title": "LIMEN Vault v4",
++        "title": "LIMEN Vault v3",
+         "width": 1280,
+         "height": 840,
+         "resizable": true,
+diff --git a/apps/desktop/src/App.tsx b/apps/desktop/src/App.tsx
+index a741b35..b82999f 100644
+--- a/apps/desktop/src/App.tsx
++++ b/apps/desktop/src/App.tsx
+@@ -629,7 +629,7 @@ export default function App() {
+                 {vaultLoaded && vaultName ? vaultName : 'Nessun Vault'}
+               </div>
+               <div style={{ fontSize: 10, color: 'var(--limen-text-muted)', fontWeight: 500 }}>
+-                LIMEN Vault v4 {isTauriEnv ? '(app nativa)' : '(anteprima browser)'}
++                LIMEN Vault v3 {isTauriEnv ? '(app nativa)' : '(anteprima browser)'}
+               </div>
+             </div>
+           </div>
+@@ -936,7 +936,7 @@ export default function App() {
+               }}
+             >
+               <div style={{ fontSize: 24, fontWeight: 700, margin: '0 0 8px 0', letterSpacing: '-0.02em' }}>
+-              Benvenuto in LIMEN Vault v4
++              Benvenuto in LIMEN Vault v3
+             </div>
+             <p style={{ fontSize: 14, color: '#475569', lineHeight: 1.6, margin: '0 0 28px 0' }}>
+               Un ambiente di conoscenza locale e indipendente. Crea un nuovo Vault compatibile con Obsidian oppure apri la cartella di un Vault esistente.

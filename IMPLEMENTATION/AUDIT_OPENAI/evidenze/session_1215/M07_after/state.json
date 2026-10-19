@@ -1,0 +1,25 @@
+{
+  "At": "2026-09-24T13:06:54.1233129+08:00",
+  "Case": "M07",
+  "Phase": "after",
+  "Revision": "ef2532c",
+  "SHA": "ef2532ca700c712b4c68d25fd26324702dce0782",
+  "Exe": "E:\\Projects\\vault_memai_obsi_audit_ef2532c\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+  "Hash": "CA24FE5B2AB1C7DF4C1F23BC831F90086CE2CC94F1AFF930CABE74C8976C73A1",
+  "Processes": [
+    {
+      "ProcessId": 42180,
+      "ParentProcessId": 36812,
+      "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_ef2532c\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+      "CreationDate": "2026-09-24T12:55:56.874076+08:00"
+    }
+  ],
+  "Shared": {
+    "C:\\Users\\user\\.limen-vault\\ask_timing.log": "13D8199EF73A2C81649874FB11F241A85A8DDEAB54287AF5A72EC236A73D2F47",
+    "C:\\Users\\user\\LIMEN Vault\\models\\llama-server.log": "6F9302132B364366777D89DAB61E07F28B7EB04AF938148A718D6838A2D6A39E",
+    "C:\\Users\\user\\.limen-vault\\local_model_timing.log": "D565C152F0F71FCF40B4EE236680CB2FE596F07C226766FBB1F4884F7AD0671D",
+    "C:\\Users\\user\\LIMEN Vault\\models\\llama-server.pid": "ABSENT",
+    "C:\\Users\\user\\LIMEN Vault\\models\\llama-server.port": "ABSENT",
+    "C:\\Users\\user\\.limen-vault\\ai_settings.json": "067F61B798A6CEA6FD36DB52F646FB4ABDC995B7168F33FFDD70FB9DC0223D9E"
+  }
+}

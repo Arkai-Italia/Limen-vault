@@ -1,0 +1,46 @@
+[
+  {
+    "At": "2026-09-24T12:53:52.6746696+08:00",
+    "Name": "LIMEN-AUDIT-20260924-e0afe10",
+    "Enabled": "True",
+    "Action": "Block",
+    "Direction": "Outbound",
+    "Profile": "Any",
+    "Program": "E:\\Projects\\vault_memai_obsi_audit_e0afe10\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+    "RemoteAddress": "Any",
+    "Protocol": "Any"
+  },
+  {
+    "At": "2026-09-24T12:53:53.3739944+08:00",
+    "Name": "LIMEN-AUDIT-20260924-ef2532c",
+    "Enabled": "True",
+    "Action": "Block",
+    "Direction": "Outbound",
+    "Profile": "Any",
+    "Program": "E:\\Projects\\vault_memai_obsi_audit_ef2532c\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+    "RemoteAddress": "Any",
+    "Protocol": "Any"
+  },
+  {
+    "At": "2026-09-24T12:53:53.8725974+08:00",
+    "Name": "LIMEN-AUDIT-20260924-efa0cef",
+    "Enabled": "True",
+    "Action": "Block",
+    "Direction": "Outbound",
+    "Profile": "Any",
+    "Program": "E:\\Projects\\vault_memai_obsi_audit_efa0cef\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+    "RemoteAddress": "Any",
+    "Protocol": "Any"
+  },
+  {
+    "At": "2026-09-24T12:53:54.3401928+08:00",
+    "Name": "LIMEN-AUDIT-20260924-67da90f",
+    "Enabled": "True",
+    "Action": "Block",
+    "Direction": "Outbound",
+    "Profile": "Any",
+    "Program": "E:\\Projects\\vault_memai_obsi_audit_67da90f\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+    "RemoteAddress": "Any",
+    "Protocol": "Any"
+  }
+]

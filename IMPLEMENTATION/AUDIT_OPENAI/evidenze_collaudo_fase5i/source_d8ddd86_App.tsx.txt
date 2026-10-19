@@ -1,0 +1,2065 @@
+1: import {AutomationPanel,useAutomation} from './AutomationPanel';
+2: import {labelIt, MessageIt} from './locale';
+3: import {KnowledgePanel} from './KnowledgePanel';
+4: import {ProposalPanel} from './ProposalPanel';
+5: import {SyncPanel} from './SyncPanel';
+6: import {HelpPanel} from './HelpPanel';
+7: import {normalizeVaultPath} from './platform';
+8: import {aiIpc} from './ai-ipc';
+9: import {AiPanel,AiSettings} from './AiPanel';
+10: import { DocumentReaderModal } from './DocumentReaderModal';
+11: import React, { useState, useEffect, useRef } from 'react';
+12: import { createLatestRequest } from './latest-request';
+13: import { invoke } from '@tauri-apps/api/core';
+14: import { listen } from '@tauri-apps/api/event';
+15: import {
+16:   createVaultIpc,
+17:   type VaultIntegrityReportResponse,
+18:   type SnapshotItemResponse,
+19:   type RawSourceItem,
+20:   type ProposalItem,
+21:   type BatchCompilerReport,
+22:   type SearchResultItem,
+23:   type IndexStatusReport,
+24:   type CatalogSummary,
+25:   type DocumentRecord,
+26:   type SnapshotRestoreReport,
+27: } from './vault-ipc';
+28: import {
+29:   StatusBadge,
+30:   MetricCard,
+31:   EmptyState,
+32:   VaultStatusBanner,
+33: } from '@limen-vault/ui';
+34: import {
+35:   Home,
+36:   MessageSquare,
+37:   BookOpen,
+38:   FolderArchive,
+39:   Search,
+40:   Sparkles,
+41:   FileCheck,
+42:   History,
+43:   Activity,
+44:   Settings,
+45:   PlusCircle,
+46:   FolderOpen,
+47:   ExternalLink,
+48:   AlertTriangle,
+49:   Loader2,
+50:   CheckCircle2,
+51:   XCircle,
+52:   Cloud,
+53:   ChevronRight,
+54:   RotateCw,
+55:   HelpCircle,
+56:   Upload,
+57:   FileText,
+58:   FileSpreadsheet,
+59:   Layers,
+60:   Sliders,
+61:   Download,
+62:   Check,
+63: } from 'lucide-react';
+64: 
+65: type NavTab =
+66:   | 'ask'
+67:   | 'documents'
+68:   | 'memory'
+69:   | 'advanced'
+70:   | 'home'
+71:   | 'knowledge'
+72:   | 'sources'
+73:   | 'search'
+74:   | 'outputs'
+75:   | 'proposals'
+76:   | 'snapshots'
+77:   | 'transfers'
+78:   | 'system'
+79:   | 'help'
+80:   | 'settings';
+81: 
+82: export default function App() {
+83:   const [currentTab, setCurrentTab] = useState<NavTab>('home');
+84:   const [vaultLoaded, setVaultLoaded] = useState<boolean>(false);
+85:   const [vaultState, setVaultState] = useState<'READY' | 'INITIALIZING' | 'INVALID' | 'NO_VAULT' | 'NOT_ACCESSIBLE' | 'INCOMPLETE'>('NO_VAULT');
+86:   const [customPathInput, setCustomPathInput] = useState<string>(() => {
+87:     if (typeof localStorage !== 'undefined') {
+88:       try {
+89:         return localStorage.getItem('limen_last_vault_path') || '';
+90:       } catch {
+91:         return '';
+92:       }
+93:     }
+94:     return '';
+95:   });
+96:   const [vaultPath, setVaultPath] = useState<string | null>(null);
+97:   useEffect(() => { void aiIpc.mcpStop().catch(() => {}); void aiIpc.tunnelStop().catch(() => {}); }, [vaultPath]);
+98:   const automation=useAutomation(vaultLoaded&&vaultState==='READY'?vaultPath:null);
+99:   const [vaultName, setVaultName] = useState<string | null>(null);
+100:   const [pageCount, setPageCount] = useState<number>(0);
+101:   const [sourceCount, setSourceCount] = useState<number>(0);
+102:   const [proposalCount, setProposalCount] = useState<number>(0);
+103:   const [integrityStatus, setIntegrityStatus] = useState<'valid' | 'corrupted' | 'unverified'>('unverified');
+104:   const [integrityReport, setIntegrityReport] = useState<VaultIntegrityReportResponse | null>(null);
+105:   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+106:   const [validationWarnings, setValidationWarnings] = useState<string[]>([]);
+107:   const [obsidianAvailable, setObsidianAvailable] = useState<boolean>(false);
+108:   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+109:   const [isProcessing, setIsProcessing] = useState<boolean>(false);
+110:   const [actionError, setActionError] = useState<string | null>(null);
+111:   const [isTauriEnv, setIsTauriEnv] = useState<boolean>(false);
+112:   const [snapshotNoteInput, setSnapshotNoteInput] = useState<string>('');
+113: 
+114:   const [snapshotsList, setSnapshotsList] = useState<SnapshotItemResponse[]>([]);
+115:   const [rawSourcesList, setRawSourcesList] = useState<RawSourceItem[]>([]);
+116:   const [proposalsList, setProposalsList] = useState<ProposalItem[]>([]);
+117:   const [selectedProposal, setSelectedProposal] = useState<ProposalItem | null>(null);
+118:   const [lastBatchReport, setLastBatchReport] = useState<BatchCompilerReport | null>(null);
+119:   const [searchTerm, setSearchTerm] = useState<string>('');
+120:   const [searchCategory, setSearchCategory] = useState<string>('');
+121:   const [searchClient,setSearchClient]=useState('');
+122:   const [searchProject,setSearchProject]=useState('');
+123:   const [searchTags,setSearchTags]=useState('');
+124:   const [searchStatusFilter,setSearchStatusFilter]=useState('');
+125:   const [searchLoading,setSearchLoading]=useState(false);
+126:   const [searchRevision,setSearchRevision]=useState(0);
+127:   const searchRequest=useRef(createLatestRequest<{status:IndexStatusReport,results:SearchResultItem[]}>()).current;
+128:   const [searchResults, setSearchResults] = useState<SearchResultItem[]>([]);
+129:   const [searchIndexStatus, setSearchIndexStatus] = useState<IndexStatusReport | null>(null);
+130: 
+131:   // Unified Catalog and 3-Area State
+132:   const [catalogSummary, setCatalogSummary] = useState<CatalogSummary | null>(null);
+133:   const [catalogDocuments, setCatalogDocuments] = useState<DocumentRecord[]>([]);
+134:   const [catalogFilterFormat, setCatalogFilterFormat] = useState<string>('all');
+135:   const [catalogFilterStatus, setCatalogFilterStatus] = useState<string>('all');
+136:   const [catalogSearchText, setCatalogSearchText] = useState<string>('');
+137:   const [isDragging, setIsDragging] = useState<boolean>(false);
+138:   const [advancedTab, setAdvancedTab] = useState<'proposals' | 'snapshots' | 'transfers' | 'settings' | 'system' | 'help' | 'compiler'>('proposals');
+139:   const [restoreMessage, setRestoreMessage] = useState<string | null>(null);
+140: 
+141:   // Document Reader Modal state
+142:   const [readerOpen, setReaderOpen] = useState<boolean>(false);
+143:   const [readerTarget, setReaderTarget] = useState<string | null>(null);
+144:   const [readerPassageId, setReaderPassageId] = useState<string | undefined>(undefined);
+145:   const [readerExpectedRevision, setReaderExpectedRevision] = useState<number | undefined>(undefined);
+146:   const [readerExpectedHash, setReaderExpectedHash] = useState<string | undefined>(undefined);
+147:   const [readerQuery, setReaderQuery] = useState<string | undefined>(undefined);
+148:   const [useSemanticSearch, setUseSemanticSearch] = useState<boolean>(true);
+149:   const [searchDegraded, setSearchDegraded] = useState<boolean>(false);
+150:   const [searchProvider, setSearchProvider] = useState<'local' | 'openai'>('local');
+151:   const [localServerHealthy, setLocalServerHealthy] = useState<boolean | null>(null);
+152: 
+153:   useEffect(() => {
+154:     let unlisten: (() => void) | undefined;
+155:     void listen<{ provider: 'local' | 'openai'; degraded: boolean; is_local: boolean }>('search_mode_status', (e) => {
+156:       setSearchDegraded(e.payload.degraded);
+157:       setSearchProvider(e.payload.provider);
+158:     }).then((u) => {
+159:       unlisten = u;
+160:     }).catch((err) => {
+161:       // Errore visibile: un listener negato dal sistema di permessi lascerebbe il banner muto.
+162:       console.error('[LIMEN] listen(search_mode_status) non registrato:', err);
+163:     });
+164:     return () => {
+165:       if (unlisten) unlisten();
+166:     };
+167:   }, []);
+168: 
+169:   useEffect(() => {
+170:     if (currentTab === 'search' && vaultPath && isTauriEnv) {
+171:       void aiIpc
+172:         .embeddingsGetProvider(vaultPath)
+173:         .then((p) => setSearchProvider(p.provider))
+174:         .catch(() => {});
+175:       void aiIpc
+176:         .localServerStatus()
+177:         .then((s) => setLocalServerHealthy(s.running && s.healthy))
+178:         .catch(() => {});
+179:     }
+180:   }, [currentTab, vaultPath, isTauriEnv, searchRevision]);
+181: 
+182:   const openReader = (target: string, passageId?: string, query?: string, revision?: number, hash?: string) => {
+183:     setReaderTarget(target);
+184:     setReaderPassageId(passageId);
+185:     setReaderExpectedRevision(revision);
+186:     setReaderExpectedHash(hash);
+187:     setReaderQuery(query);
+188:     setReaderOpen(true);
+189:   };
+190:   const busy = useRef(false);
+191:   const generation = useRef(0);
+192:   const ipc = useRef(createVaultIpc(invoke, () => typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window)).current;
+193:   useEffect(() => () => { generation.current++; }, []);
+194:   const begin = () => { if (busy.current) return null; busy.current=true; setIsProcessing(true); return ++generation.current; };
+195:   const finish = (ticket:number) => { if(ticket===generation.current) {busy.current=false;setIsProcessing(false);} };
+196: 
+197: 
+198:   // Detect Tauri Environment
+199:   useEffect(() => {
+200:     let cancelled = false;
+201:     const isTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
+202:     setIsTauriEnv(isTauri);
+203: 
+204:     if (isTauri) {
+205:       invoke<boolean>('check_obsidian_installed')
+206:         .then((installed) => {
+207:           if(!cancelled) setObsidianAvailable(installed);
+208:         })
+209:         .catch(() => {
+210:           if(!cancelled) setObsidianAvailable(false);
+211:         });
+212:     }
+213:     return () => {cancelled=true;};
+214:   }, []);
+215: 
+216:   const refreshSnapshotsAndIntegrity = async (target: string, ticket: number) => {
+217:     try {
+218:       const {snapshots,integrity}=await ipc.inspect(target);
+219:       if(ticket!==generation.current)return;
+220:       setSnapshotsList(snapshots);setIntegrityReport(integrity);
+221:       setIntegrityStatus(integrity.is_integrity_valid?'valid':integrity.errors.length?'unverified':'corrupted');
+222:       if(integrity.errors.length)setActionError(integrity.errors.join('; '));
+223: 
+224:     } catch(e) {
+225:       if(ticket!==generation.current)return;
+226:       setSnapshotsList([]);setIntegrityReport(null);setIntegrityStatus('unverified');
+227:       setActionError(`Aggiornamento integrità non riuscito: ${e instanceof Error?e.message:String(e)}`);
+228:     }
+229:   };
+230:   const refreshCatalog = async (target: string, ticket: number) => {
+231:     try {
+232:       const summary = await ipc.syncCatalog(target);
+233:       const list = await ipc.listCatalogDocuments(target, {
+234:         limit: 500,
+235:         format: catalogFilterFormat !== 'all' ? catalogFilterFormat : undefined,
+236:         status: catalogFilterStatus !== 'all' ? catalogFilterStatus : undefined,
+237:         filter: catalogSearchText.trim() || undefined,
+238:       });
+239:       if (ticket !== generation.current) return;
+240:       setCatalogSummary(summary);
+241:       setCatalogDocuments(list.documents);
+242:       if (summary.totalRawSources > 0 || summary.totalDocuments > 0) {
+243:         setSourceCount(summary.totalRawSources || summary.totalDocuments);
+244:       }
+245:     } catch (e) {
+246:       console.error('refreshCatalog error:', e);
+247:     }
+248:   };
+249: 
+250:   const handleUploadDocuments = async () => {
+251:     if (!vaultPath) return;
+252:     const ticket = begin();
+253:     if (ticket === null) return;
+254:     setActionError(null);
+255:     try {
+256:       await ipc.automationChooseFiles(vaultPath);
+257:       await ipc.processPendingExtractions(vaultPath);
+258:       await refreshCatalog(vaultPath, ticket);
+259:       await refreshCompiler(vaultPath, ticket);
+260:       setSearchRevision((r) => r + 1);
+261:     } catch (err) {
+262:       setActionError(`Caricamento non riuscito: ${err instanceof Error ? err.message : String(err)}`);
+263:     } finally {
+264:       finish(ticket);
+265:     }
+266:   };
+267: 
+268:   const handleRestoreSnapshot = async (snapshotId: string) => {
+269:     if (!vaultPath) return;
+270:     const ticket = begin();
+271:     if (ticket === null) return;
+272:     setActionError(null);
+273:     setRestoreMessage(null);
+274:     try {
+275:       const rep = await ipc.restoreSnapshot(vaultPath, snapshotId);
+276:       setRestoreMessage(`Copia ripristinata con successo in: ${rep.destination_path} (${rep.files_restored} file verificati SHA-256)`);
+277:     } catch (err) {
+278:       setActionError(`Ripristino non riuscito: ${err instanceof Error ? err.message : String(err)}`);
+279:     } finally {
+280:       finish(ticket);
+281:     }
+282:   };
+283: 
+284:   const handleDragOver = (e: React.DragEvent) => {
+285:     e.preventDefault();
+286:     e.stopPropagation();
+287:     setIsDragging(true);
+288:   };
+289: 
+290:   const handleDragLeave = (e: React.DragEvent) => {
+291:     e.preventDefault();
+292:     e.stopPropagation();
+293:     setIsDragging(false);
+294:   };
+295: 
+296:   const handleDrop = async (e: React.DragEvent) => {
+297:     e.preventDefault();
+298:     e.stopPropagation();
+299:     setIsDragging(false);
+300:     if (!vaultPath) return;
+301:     const files = Array.from(e.dataTransfer.files);
+302:     const filePaths: string[] = [];
+303:     for (const f of files) {
+304:       const path = (f as any).path;
+305:       if (path) filePaths.push(path);
+306:     }
+307:     if (filePaths.length > 0) {
+308:       const ticket = begin();
+309:       if (ticket === null) return;
+310:       try {
+311:         await ipc.automationImportFiles(vaultPath, filePaths);
+312:         await ipc.processPendingExtractions(vaultPath);
+313:         await refreshCatalog(vaultPath, ticket);
+314:         await refreshCompiler(vaultPath, ticket);
+315:         setSearchRevision((r) => r + 1);
+316:       } catch (err) {
+317:         setActionError(`Errore durante il caricamento: ${err instanceof Error ? err.message : String(err)}`);
+318:       } finally {
+319:         finish(ticket);
+320:       }
+321:     } else {
+322:       await handleUploadDocuments();
+323:     }
+324:   };
+325: 
+326:   const refreshCompiler = async (target:string,ticket:number) => {
+327:     try {
+328:       const sources=await ipc.listRawSources(target);
+329:       const proposals=await ipc.listProposals(target);
+330:       if(ticket!==generation.current)return;
+331:       setRawSourcesList(sources);
+332:       setProposalsList(proposals);setProposalCount(proposals.length);
+333:     }catch(e){if(ticket===generation.current){setRawSourcesList([]);setProposalsList([]);setActionError(`Aggiornamento delle fonti non riuscito: ${String(e)}`);}}
+334:   };
+335:   const handleRecheck = async () => {
+336:     if(!vaultPath)return;const ticket=begin();if(ticket===null)return;setActionError(null);
+337:     try{
+338:       await refreshSnapshotsAndIntegrity(vaultPath,ticket);
+339:       await refreshCompiler(vaultPath,ticket);
+340:       await refreshCatalog(vaultPath,ticket);
+341:     }finally{finish(ticket);}
+342:   };
+343: 
+344:   const handleBrowseFolder = async (): Promise<string | null> => {
+345:     setActionError(null);
+346:     if (!isTauriEnv) {
+347:       setActionError('Serve l’applicazione nativa LIMEN. Questa è un’anteprima nel browser.');
+348:       return null;
+349:     }
+350:     try {
+351:       const selected = await ipc.selectVaultFolder();
+352:       if (selected) {
+353:         const normalized = normalizeVaultPath(selected);
+354:         setCustomPathInput(normalized);
+355:         if (typeof localStorage !== 'undefined') {
+356:           try {
+357:             localStorage.setItem('limen_last_vault_path', normalized);
+358:           } catch {}
+359:         }
+360:         return normalized;
+361:       }
+362:       return null;
+363:     } catch (err) {
+364:       setActionError(typeof err === 'string' ? err : (err as Error).message);
+365:       return null;
+366:     }
+367:   };
+368: 
+369:   const handleCreateVault = async () => {
+370:     setActionError(null);
+371:     if (!isTauriEnv) {
+372:       setActionError('Serve l’applicazione nativa LIMEN. Questa è un’anteprima nel browser.');
+373:       return;
+374:     }
+375: 
+376:     let target = customPathInput.trim();
+377:     if (!target) {
+378:       const selected = await handleBrowseFolder();
+379:       if (!selected) return; // User cancelled
+380:       target = selected;
+381:     }
+382: 
+383:     const ticket=begin(); if(ticket===null)return;
+384:     setIntegrityReport(null);setSnapshotsList([]);setIntegrityStatus('unverified');setRawSourcesList([]);setProposalsList([]);setLastBatchReport(null);
+385:     try {
+386:       const res = await ipc.create(target);
+387:       if(ticket!==generation.current)return;
+388: 
+389:       setVaultPath(res.path);
+390:       setVaultName(res.name);
+391:       setVaultState(res.state);
+392:       setPageCount(res.page_count);
+393:       setSourceCount(res.source_count);
+394:       setProposalCount(res.proposal_count);
+395:       setValidationErrors([]);
+396:       setValidationWarnings([]);
+397:       setVaultLoaded(res.state === 'READY');
+398: 
+399:       if (res.path) {
+400:         const normalized = normalizeVaultPath(res.path);
+401:         setCustomPathInput(normalized);
+402:         if (typeof localStorage !== 'undefined') {
+403:           try {
+404:             localStorage.setItem('limen_last_vault_path', normalized);
+405:           } catch {}
+406:         }
+407:         await refreshSnapshotsAndIntegrity(res.path,ticket);
+408:         await refreshCompiler(res.path,ticket);
+409:         await refreshCatalog(res.path,ticket);
+410:       }
+411:     } catch (err) {
+412:       if(ticket!==generation.current)return;
+413:       setActionError(typeof err === 'string' ? err : (err as Error).message);
+414:       setVaultLoaded(false);
+415:       setVaultState('INVALID');
+416:     } finally {
+417:       finish(ticket);
+418:     }
+419:   };
+420: 
+421:   const handleOpenExistingVault = async () => {
+422:     setActionError(null);
+423:     if (!isTauriEnv) {
+424:       setActionError('Serve l’applicazione nativa LIMEN. Questa è un’anteprima nel browser.');
+425:       return;
+426:     }
+427: 
+428:     let target = customPathInput.trim();
+429:     if (!target) {
+430:       const selected = await handleBrowseFolder();
+431:       if (!selected) return; // User cancelled
+432:       target = selected;
+433:     }
+434: 
+435:     const ticket=begin(); if(ticket===null)return;
+436:     setIntegrityReport(null);setSnapshotsList([]);setIntegrityStatus('unverified');setRawSourcesList([]);setProposalsList([]);setLastBatchReport(null);
+437:     try {
+438:       const res = await ipc.open(target);
+439:       if(ticket!==generation.current)return;
+440: 
+441:       setVaultPath(res.status.path);
+442:       setVaultName(res.status.name);
+443:       setVaultState(res.status.state);
+444:       setPageCount(res.status.page_count);
+445:       setSourceCount(res.status.source_count);
+446:       setProposalCount(res.status.proposal_count);
+447:       setValidationErrors(res.validation.errors || []);
+448:       setValidationWarnings(res.validation.warnings || []);
+449:       setVaultLoaded(res.validation.is_valid);
+450: 
+451:       if (res.status.path && res.validation.is_valid) {
+452:         const normalized = normalizeVaultPath(res.status.path);
+453:         setCustomPathInput(normalized);
+454:         if (typeof localStorage !== 'undefined') {
+455:           try {
+456:             localStorage.setItem('limen_last_vault_path', normalized);
+457:           } catch {}
+458:         }
+459:         await refreshSnapshotsAndIntegrity(res.status.path,ticket);
+460:         await refreshCompiler(res.status.path,ticket);
+461:         await refreshCatalog(res.status.path,ticket);
+462:       }
+463:     } catch (err) {
+464:       if(ticket!==generation.current)return;
+465:       setActionError(typeof err === 'string' ? err : (err as Error).message);
+466:       setVaultLoaded(false);
+467:       setVaultState('NOT_ACCESSIBLE');
+468:     } finally {
+469:       finish(ticket);
+470:     }
+471:   };
+472: 
+473:   const handleCreateSnapshot = async () => {
+474:     if (!vaultPath) return;
+475:     setActionError(null);
+476: 
+477:     if (!isTauriEnv) {
+478:       setActionError('Apri l’applicazione nativa LIMEN per creare copie locali.');
+479:       return;
+480:     }
+481: 
+482:     const ticket=begin(); if(ticket===null)return;
+483:     try {
+484:       await ipc.createSnapshot(vaultPath,snapshotNoteInput.trim() || undefined);
+485:       if(ticket!==generation.current)return;
+486:       setSnapshotNoteInput('');
+487:       await refreshSnapshotsAndIntegrity(vaultPath,ticket);
+488:     } catch (err) {
+489:       if(ticket!==generation.current)return;
+490:       setActionError(`Creazione della copia non riuscita: ${typeof err === 'string' ? err : (err as Error).message}`);
+491:     } finally {
+492:       finish(ticket);
+493:     }
+494:   };
+495: 
+496:   const handleCompileSingleSource = async (relPath: string) => {
+497:     if (!vaultPath) return;
+498:     setActionError(null);
+499:     if (!isTauriEnv) {
+500:       setActionError('Apri l’applicazione nativa LIMEN per compilare le fonti.');
+501:       return;
+502:     }
+503:     const ticket = begin(); if (ticket === null) return;
+504:     try {
+505:       const res = await ipc.compileSource(vaultPath, relPath);
+506:       if (ticket !== generation.current) return;
+507:       if (res.status === 'error' || res.status === 'unsupported') {
+508:         setActionError(`Compilazione non riuscita per ${relPath}: ${res.error}`);
+509:       }
+510:       await refreshSnapshotsAndIntegrity(vaultPath,ticket);
+511:       await refreshCompiler(vaultPath,ticket);
+512:     } catch (err) {
+513:       if (ticket !== generation.current) return;
+514:       setActionError(`Compilazione della fonte non riuscita: ${typeof err === 'string' ? err : (err as Error).message}`);
+515:     } finally {
+516:       finish(ticket);
+517:     }
+518:   };
+519: 
+520:   const handleBatchCompile = async () => {
+521:     if (!vaultPath) return;
+522:     setActionError(null);
+523:     if (!isTauriEnv) {
+524:       setActionError('Apri l’applicazione nativa LIMEN per compilare tutte le fonti.');
+525:       return;
+526:     }
+527:     const ticket = begin(); if (ticket === null) return;
+528:     try {
+529:       const report = await ipc.batchCompileSources(vaultPath);
+530:       if (ticket !== generation.current) return;
+531:       setLastBatchReport(report);
+532:       await refreshSnapshotsAndIntegrity(vaultPath,ticket);
+533:       await refreshCompiler(vaultPath,ticket);
+534:     } catch (err) {
+535:       if (ticket !== generation.current) return;
+536:       setActionError(`Compilazione delle fonti non riuscita: ${typeof err === 'string' ? err : (err as Error).message}`);
+537:     } finally {
+538:       finish(ticket);
+539:     }
+540:   };
+541: 
+542:   useEffect(()=>{
+543:     searchRequest.invalidate();setSearchResults([]);setSearchIndexStatus(null);
+544:     if(!vaultPath||!isTauriEnv||(currentTab!=='search' && currentTab!=='ask')){setSearchLoading(false);return;}
+545:     setSearchLoading(true);setActionError(null);
+546:     const timer=setTimeout(()=>{
+547:       void searchRequest.run(async()=>{
+548:         const status=await ipc.getSearchIndexStatus(vaultPath);
+549:         const results=status.state==='ready'?await ipc.searchVaultHybrid(vaultPath,{term:searchTerm.trim()||undefined,category:searchCategory||undefined,client:searchClient.trim()||undefined,project:searchProject.trim()||undefined,tags:searchTags.split(',').map(t=>t.trim()).filter(Boolean),status:searchStatusFilter||undefined}, undefined, useSemanticSearch):[];
+550:         return {status,results};
+551:       },value=>{setSearchIndexStatus(value.status);setSearchResults(value.results);setSearchLoading(false);},error=>{setActionError(`Ricerca non riuscita: ${String(error)}`);setSearchLoading(false);});
+552:     },180);
+553:     return ()=>{clearTimeout(timer);searchRequest.invalidate();};
+554:   },[vaultPath,isTauriEnv,currentTab,searchTerm,searchCategory,searchClient,searchProject,searchTags,searchStatusFilter,searchRevision,searchRequest,useSemanticSearch,ipc]);
+555: 
+556:   const handleReindexSearch = async () => {
+557:     if (!vaultPath) return;
+558:     setActionError(null);
+559:     if (!isTauriEnv) {
+560:       setActionError('Apri l’applicazione nativa LIMEN per creare l’indice di ricerca.');
+561:       return;
+562:     }
+563:     const ticket = begin(); if (ticket === null) return;
+564:     try {
+565:       const statusReport = await ipc.indexVaultSearch(vaultPath);
+566:       if (ticket !== generation.current) return;
+567:       setSearchIndexStatus(statusReport);
+568:       setSearchRevision(value=>value+1);
+569:     } catch (err) {
+570:       if (ticket !== generation.current) return;
+571:       setActionError(`Indicizzazione non riuscita: ${typeof err === 'string' ? err : (err as Error).message}`);
+572:     } finally {
+573:       finish(ticket);
+574:     }
+575:   };
+576: 
+577:   const handleOpenObsidian = async () => {
+578:     if (!vaultPath) return;
+579:     setActionError(null);
+580: 
+581:     if (!isTauriEnv) {
+582:       setActionError('Apri l’applicazione nativa LIMEN per avviare Obsidian.');
+583:       return;
+584:     }
+585: 
+586:     try {
+587:       await ipc.obsidian(vaultPath);
+588:     } catch (err) {
+589:       setActionError(`Avvio di Obsidian non riuscito: ${typeof err === 'string' ? err : (err as Error).message}`);
+590:     }
+591:   };
+592: 
+593:   return (
+594:     <div style={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden', backgroundColor: 'var(--limen-bg-app)' }}>
+595:       {/* SIDEBAR NAVIGATION */}
+596:       <aside
+597:         style={{
+598:           width: 240,
+599:           backgroundColor: 'var(--limen-bg-sidebar)',
+600:           borderRight: '1px solid var(--limen-border-light)',
+601:           display: 'flex',
+602:           flexDirection: 'column',
+603:           justifyContent: 'space-between',
+604:           padding: '16px 12px',
+605:           userSelect: 'none',
+606:         }}
+607:       >
+608:         <div>
+609:           {/* LOGO */}
+610:           <div style={{ padding: '8px 12px 20px 12px', display: 'flex', alignItems: 'center', gap: 10 }}>
+611:             <div
+612:               style={{
+613:                 width: 24,
+614:                 height: 24,
+615:                 borderRadius: 6,
+616:                 backgroundColor: '#0f172a',
+617:                 color: '#fff',
+618:                 display: 'flex',
+619:                 alignItems: 'center',
+620:                 justifyContent: 'center',
+621:                 fontWeight: 700,
+622:                 fontSize: 12,
+623:               }}
+624:             >
+625:               L
+626:             </div>
+627:             <div>
+628:               <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '-0.01em', color: 'var(--limen-text-primary)' }}>
+629:                 {vaultLoaded && vaultName ? vaultName : 'Nessun Vault'}
+630:               </div>
+631:               <div style={{ fontSize: 10, color: 'var(--limen-text-muted)', fontWeight: 500 }}>
+632:                 LIMEN Vault v4 {isTauriEnv ? '(app nativa)' : '(anteprima browser)'}
+633:               </div>
+634:             </div>
+635:           </div>
+636: 
+637:           {/* GLOBAL CARICA DOCUMENTI BUTTON */}
+638:           {vaultPath && vaultLoaded && (
+639:             <div style={{ marginBottom: 14 }}>
+640:               <button
+641:                 id="btn-upload-documents-global"
+642:                 onClick={handleUploadDocuments}
+643:                 disabled={isProcessing}
+644:                 style={{
+645:                   display: 'flex',
+646:                   alignItems: 'center',
+647:                   justifyContent: 'center',
+648:                   gap: 8,
+649:                   backgroundColor: '#c8ff00',
+650:                   color: '#0a0c10',
+651:                   border: 'none',
+652:                   borderRadius: 8,
+653:                   padding: '10px 14px',
+654:                   fontSize: 12,
+655:                   fontWeight: 700,
+656:                   cursor: isProcessing ? 'not-allowed' : 'pointer',
+657:                   width: '100%',
+658:                   boxShadow: '0 2px 8px rgba(200, 255, 0, 0.25)',
+659:                   transition: 'all 0.15s ease',
+660:                   letterSpacing: '0.02em',
+661:                 }}
+662:               >
+663:                 <Upload size={15} />
+664:                 <span>{isProcessing ? 'CARICAMENTO…' : 'CARICA DOCUMENTI'}</span>
+665:               </button>
+666:             </div>
+667:           )}
+668: 
+669:           {/* MAIN 3-AREA NAV LIST */}
+670:           <nav style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+671:             {[
+672:               {
+673:                 id: 'ask',
+674:                 label: 'Chiedi',
+675:                 icon: <Sparkles size={16} color={currentTab === 'ask' || currentTab === 'search' ? '#0f172a' : '#64748b'} />,
+676:                 active: currentTab === 'ask' || currentTab === 'search',
+677:                 badge: undefined,
+678:               },
+679:               {
+680:                 id: 'documents',
+681:                 label: 'Documenti',
+682:                 icon: <FolderArchive size={16} color={currentTab === 'documents' || currentTab === 'sources' ? '#0f172a' : '#64748b'} />,
+683:                 active: currentTab === 'documents' || currentTab === 'sources',
+684:                 badge: String(catalogSummary?.totalRawSources ?? sourceCount),
+685:               },
+686:               {
+687:                 id: 'memory',
+688:                 label: 'Memoria',
+689:                 icon: <BookOpen size={16} color={currentTab === 'memory' || currentTab === 'knowledge' ? '#0f172a' : '#64748b'} />,
+690:                 active: currentTab === 'memory' || currentTab === 'knowledge',
+691:                 badge: String(pageCount),
+692:               },
+693:             ].map((item) => {
+694:               return (
+695:                 <button
+696:                   key={item.id}
+697:                   onClick={() => setCurrentTab(item.id as NavTab)}
+698:                   style={{
+699:                     display: 'flex',
+700:                     alignItems: 'center',
+701:                     justifyContent: 'space-between',
+702:                     padding: '9px 12px',
+703:                     borderRadius: 6,
+704:                     border: item.active ? '1px solid #cbd5e1' : '1px solid transparent',
+705:                     backgroundColor: item.active ? '#ffffff' : 'transparent',
+706:                     color: item.active ? '#0f172a' : '#475569',
+707:                     boxShadow: item.active ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+708:                     fontWeight: item.active ? 600 : 500,
+709:                     fontSize: 13,
+710:                     cursor: 'pointer',
+711:                     textAlign: 'left',
+712:                   }}
+713:                 >
+714:                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+715:                     {item.icon}
+716:                     <span>{item.label}</span>
+717:                   </div>
+718:                   {item.badge !== undefined && (
+719:                     <span style={{ fontSize: 11, fontWeight: 600, padding: '1px 6px', borderRadius: 10, backgroundColor: item.active ? '#e2e8f0' : '#f1f5f9', color: '#475569' }}>
+720:                       {item.badge}
+721:                     </span>
+722:                   )}
+723:                 </button>
+724:               );
+725:             })}
+726: 
+727:             <div style={{ margin: '8px 0', borderBottom: '1px solid var(--limen-border-light)' }} />
+728: 
+729:             {/* AVANZATE NAVIGATION */}
+730:             <button
+731:               onClick={() => setCurrentTab('advanced')}
+732:               style={{
+733:                 display: 'flex',
+734:                 alignItems: 'center',
+735:                 justifyContent: 'space-between',
+736:                 padding: '8px 12px',
+737:                 borderRadius: 6,
+738:                 border: (currentTab === 'advanced' || ['proposals', 'outputs', 'snapshots', 'transfers', 'system', 'settings', 'help'].includes(currentTab)) ? '1px solid #cbd5e1' : '1px solid transparent',
+739:                 backgroundColor: (currentTab === 'advanced' || ['proposals', 'outputs', 'snapshots', 'transfers', 'system', 'settings', 'help'].includes(currentTab)) ? '#ffffff' : 'transparent',
+740:                 color: (currentTab === 'advanced' || ['proposals', 'outputs', 'snapshots', 'transfers', 'system', 'settings', 'help'].includes(currentTab)) ? '#0f172a' : '#64748b',
+741:                 boxShadow: (currentTab === 'advanced' || ['proposals', 'outputs', 'snapshots', 'transfers', 'system', 'settings', 'help'].includes(currentTab)) ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
+742:                 fontWeight: (currentTab === 'advanced' || ['proposals', 'outputs', 'snapshots', 'transfers', 'system', 'settings', 'help'].includes(currentTab)) ? 600 : 500,
+743:                 fontSize: 13,
+744:                 cursor: 'pointer',
+745:                 textAlign: 'left',
+746:               }}
+747:             >
+748:               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+749:                 <Sliders size={16} />
+750:                 <span>Avanzate</span>
+751:               </div>
+752:             </button>
+753:           </nav>
+754:         </div>
+755: 
+756:         {/* BOTTOM QUICK LAUNCHER */}
+757:         <div style={{ paddingTop: 12, borderTop: '1px solid var(--limen-border-light)' }}>
+758:           <button
+759:             onClick={handleOpenObsidian}
+760:             disabled={!vaultLoaded || !obsidianAvailable || isProcessing}
+761:             style={{
+762:               width: '100%',
+763:               display: 'flex',
+764:               alignItems: 'center',
+765:               justifyContent: 'center',
+766:               gap: 8,
+767:               padding: '8px 12px',
+768:               borderRadius: 6,
+769:               border: '1px solid var(--limen-border-light)',
+770:               backgroundColor: vaultLoaded && obsidianAvailable ? '#ffffff' : '#f8fafc',
+771:               color: vaultLoaded && obsidianAvailable ? '#0f172a' : '#94a3b8',
+772:               fontSize: 12,
+773:               fontWeight: 600,
+774:               cursor: vaultLoaded && obsidianAvailable ? 'pointer' : 'not-allowed',
+775:             }}
+776:           >
+777:             <ExternalLink size={14} />
+778:             <span>Apri in Obsidian</span>
+779:           </button>
+780:         </div>
+781:       </aside>
+782: 
+783:       {/* RIGHT CONTENT COLUMN */}
+784:       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+785:         {/* TOP NAVBAR WITH REFRESH BUTTON IN CENTER */}
+786:         <header
+787:           style={{
+788:             height: 52,
+789:             backgroundColor: '#ffffff',
+790:             borderBottom: '1px solid var(--limen-border-light)',
+791:             display: 'flex',
+792:             alignItems: 'center',
+793:             justifyContent: 'space-between',
+794:             padding: '0 24px',
+795:             userSelect: 'none',
+796:             flexShrink: 0,
+797:             zIndex: 10,
+798:           }}
+799:         >
+800:           {/* LEFT: Current Section Breadcrumb */}
+801:           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+802:             <span style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>
+803:               {currentTab === 'home' && 'Panoramica'}
+804:               {(currentTab === 'ask' || currentTab === 'search') && 'Chiedi al Vault'}
+805:               {(currentTab === 'documents' || currentTab === 'sources') && 'Documenti Aziendali'}
+806:               {(currentTab === 'memory' || currentTab === 'knowledge') && 'Memoria Aziendale'}
+807:               {(currentTab === 'advanced' || ['proposals', 'outputs', 'snapshots', 'transfers', 'system', 'help', 'settings'].includes(currentTab)) && 'Avanzate e Manutenzione'}
+808:             </span>
+809:             {vaultPath && (
+810:               <span style={{ fontSize: 11, color: '#64748b', backgroundColor: '#f1f5f9', padding: '2px 8px', borderRadius: 4, fontFamily: 'monospace' }}>
+811:                 {vaultPath.split(/[/\\]/).filter(Boolean).pop()}
+812:               </span>
+813:             )}
+814:           </div>
+815: 
+816:           {/* CENTER: REFRESH BUTTON (RICHIESTO DALL'UTENTE) */}
+817:           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+818:             <button
+819:               onClick={handleRecheck}
+820:               disabled={isProcessing || !vaultPath}
+821:               title="Aggiorna stato, file e dati del Vault"
+822:               style={{
+823:                 display: 'inline-flex',
+824:                 alignItems: 'center',
+825:                 gap: 8,
+826:                 padding: '6px 18px',
+827:                 borderRadius: 20,
+828:                 border: '1.5px solid #cbd5e1',
+829:                 backgroundColor: isProcessing ? '#f1f5f9' : '#ffffff',
+830:                 color: isProcessing ? '#94a3b8' : '#0f172a',
+831:                 fontSize: 13,
+832:                 fontWeight: 600,
+833:                 cursor: isProcessing || !vaultPath ? 'not-allowed' : 'pointer',
+834:                 boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
+835:                 transition: 'all 0.15s ease',
+836:               }}
+837:               onMouseEnter={(e) => {
+838:                 if (!isProcessing && vaultPath) {
+839:                   e.currentTarget.style.borderColor = '#0f172a';
+840:                   e.currentTarget.style.backgroundColor = '#f8fafc';
+841:                 }
+842:               }}
+843:               onMouseLeave={(e) => {
+844:                 if (!isProcessing && vaultPath) {
+845:                   e.currentTarget.style.borderColor = '#cbd5e1';
+846:                   e.currentTarget.style.backgroundColor = '#ffffff';
+847:                 }
+848:               }}
+849:             >
+850:               <RotateCw size={15} className={isProcessing ? 'spin' : ''} color={isProcessing ? '#94a3b8' : '#0f172a'} />
+851:               <span>{isProcessing ? 'Aggiornamento...' : 'Aggiorna'}</span>
+852:             </button>
+853:           </div>
+854: 
+855:           {/* RIGHT: Status Badge */}
+856:           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+857:             {vaultLoaded ? (
+858:               <span
+859:                 style={{
+860:                   fontSize: 11,
+861:                   fontWeight: 700,
+862:                   padding: '3px 9px',
+863:                   borderRadius: 12,
+864:                   backgroundColor: vaultState === 'READY' ? '#dcfce7' : '#fee2e2',
+865:                   color: vaultState === 'READY' ? '#15803d' : '#b91c1c',
+866:                   border: '1px solid',
+867:                   borderColor: vaultState === 'READY' ? '#bbf7d0' : '#fecaca',
+868:                 }}
+869:               >
+870:                 ● {labelIt(vaultState)}
+871:               </span>
+872:             ) : (
+873:               <span style={{ fontSize: 11, color: '#94a3b8' }}>Nessun Vault</span>
+874:             )}
+875:           </div>
+876:         </header>
+877: 
+878:         {/* MAIN CONTENT AREA */}
+879:         <main style={{ flex: 1, overflowY: 'auto', padding: '24px 32px' }}>
+880:         {/* BROWSER WARNING BANNER */}
+881:         {!isTauriEnv && (
+882:           <div
+883:             style={{
+884:               backgroundColor: '#fffbe5',
+885:               border: '1px solid #fef08a',
+886:               borderRadius: 8,
+887:               padding: '12px 16px',
+888:               marginBottom: 20,
+889:               display: 'flex',
+890:               alignItems: 'center',
+891:               gap: 12,
+892:               color: '#854d0e',
+893:               fontSize: 13,
+894:             }}
+895:           >
+896:             <AlertTriangle size={18} color="#ca8a04" />
+897:             <div>
+898:               <strong>Modalità anteprima nel browser:</strong> Per usare i file locali, verificare le copie e aprire Obsidian serve l’applicazione nativa. Queste operazioni non sono disponibili nell’anteprima del browser.
+899:             </div>
+900:           </div>
+901:         )}
+902: 
+903:         {/* ACTION ERROR DISPLAY */}
+904:         {actionError && (
+905:           <div
+906:             style={{
+907:               backgroundColor: '#fef2f2',
+908:               border: '1px solid #fecaca',
+909:               borderRadius: 8,
+910:               padding: '12px 16px',
+911:               marginBottom: 20,
+912:               color: '#991b1b',
+913:               fontSize: 13,
+914:             }}
+915:           >
+916:             <strong>Errore:</strong> {<MessageIt value={actionError}/>}
+917:           </div>
+918:         )}
+919: 
+920:         {/* FIRST RUN UX BANNER IF NO VAULT */}
+921:         {!vaultLoaded ? (
+922:           currentTab === 'help' ? (
+923:             <HelpPanel
+924:               vaultPath={vaultPath}
+925:               onOpenObsidian={handleOpenObsidian}
+926:               onNavigateTab={(tab) => setCurrentTab(tab as NavTab)}
+927:             />
+928:           ) : (
+929:             <div
+930:               className="limen-card"
+931:               style={{
+932:                 maxWidth: 600,
+933:                 margin: '60px auto',
+934:                 padding: 36,
+935:                 textAlign: 'center',
+936:               }}
+937:             >
+938:               <div style={{ fontSize: 24, fontWeight: 700, margin: '0 0 8px 0', letterSpacing: '-0.02em' }}>
+939:               Benvenuto in LIMEN Vault v4
+940:             </div>
+941:             <p style={{ fontSize: 14, color: '#475569', lineHeight: 1.6, margin: '0 0 28px 0' }}>
+942:               Un ambiente di conoscenza locale e indipendente. Crea un nuovo Vault compatibile con Obsidian oppure apri la cartella di un Vault esistente.
+943:             </p>
+944: 
+945:             <div style={{ marginBottom: 20, textAlign: 'left' }}>
+946:               <label style={{ fontSize: 12, fontWeight: 600, color: '#475569', display: 'block', marginBottom: 6 }}>
+947:                 Percorso del Vault (cartella locale)
+948:               </label>
+949:               <div style={{ display: 'flex', gap: 8 }}>
+950:                 <input
+951:                   type="text"
+952:                   value={customPathInput}
+953:                   onChange={(e) => {
+954:                     const val = normalizeVaultPath(e.target.value);
+955:                     setCustomPathInput(val);
+956:                     if (typeof localStorage !== 'undefined') {
+957:                       try {
+958:                         localStorage.setItem('limen_last_vault_path', val);
+959:                       } catch {}
+960:                     }
+961:                   }}
+962:                   placeholder="Scegli la cartella del vault"
+963:                   disabled={isProcessing}
+964:                   style={{
+965:                     flex: 1,
+966:                     padding: '10px 14px',
+967:                     borderRadius: 6,
+968:                     border: '1px solid #cbd5e1',
+969:                     fontSize: 13,
+970:                     fontFamily: 'monospace',
+971:                   }}
+972:                 />
+973:                 <button
+974:                   type="button"
+975:                   onClick={handleBrowseFolder}
+976:                   disabled={isProcessing}
+977:                   style={{
+978:                     display: 'flex',
+979:                     alignItems: 'center',
+980:                     gap: 6,
+981:                     backgroundColor: '#f1f5f9',
+982:                     color: '#0f172a',
+983:                     border: '1px solid #cbd5e1',
+984:                     borderRadius: 6,
+985:                     padding: '10px 16px',
+986:                     fontSize: 13,
+987:                     fontWeight: 600,
+988:                     cursor: isProcessing ? 'not-allowed' : 'pointer',
+989:                     whiteSpace: 'nowrap',
+990:                   }}
+991:                 >
+992:                   <FolderOpen size={16} />
+993:                   <span>Sfoglia…</span>
+994:                 </button>
+995:               </div>
+996:             </div>
+997: 
+998:             <div style={{ display: 'flex', gap: 16, justifyContent: 'center' }}>
+999:               <button
+1000:                 type="button"
+1001:                 onClick={handleCreateVault}
+1002:                 disabled={isProcessing}
+1003:                 style={{
+1004:                   display: 'flex',
+1005:                   alignItems: 'center',
+1006:                   gap: 8,
+1007:                   backgroundColor: isProcessing ? '#94a3b8' : '#0f172a',
+1008:                   color: '#ffffff',
+1009:                   border: 'none',
+1010:                   borderRadius: 8,
+1011:                   padding: '12px 20px',
+1012:                   fontSize: 13,
+1013:                   fontWeight: 600,
+1014:                   cursor: isProcessing ? 'not-allowed' : 'pointer',
+1015:                 }}
+1016:               >
+1017:                 {isProcessing ? <Loader2 size={16} className="spin" /> : <PlusCircle size={16} />}
+1018:                 <span>CREA NUOVO VAULT</span>
+1019:               </button>
+1020: 
+1021:               <button
+1022:                 type="button"
+1023:                 onClick={handleOpenExistingVault}
+1024:                 disabled={isProcessing}
+1025:                 style={{
+1026:                   display: 'flex',
+1027:                   alignItems: 'center',
+1028:                   gap: 8,
+1029:                   backgroundColor: '#ffffff',
+1030:                   color: isProcessing ? '#94a3b8' : '#0f172a',
+1031:                   border: '1px solid #cbd5e1',
+1032:                   borderRadius: 8,
+1033:                   padding: '12px 20px',
+1034:                   fontSize: 13,
+1035:                   fontWeight: 600,
+1036:                   cursor: isProcessing ? 'not-allowed' : 'pointer',
+1037:                 }}
+1038:               >
+1039:                 {isProcessing ? <Loader2 size={16} className="spin" /> : <FolderOpen size={16} />}
+1040:                 <span>APRI VAULT ESISTENTE</span>
+1041:               </button>
+1042:             </div>
+1043: 
+1044:             {/* VALIDATION ERRORS IN WELCOME CARD */}
+1045:             {validationErrors.length > 0 && (
+1046:               <div style={{ marginTop: 24, textAlign: 'left', backgroundColor: '#fef2f2', padding: 16, borderRadius: 8, border: '1px solid #fecaca' }}>
+1047:                 <div style={{ fontSize: 13, fontWeight: 700, color: '#991b1b', marginBottom: 4 }}>
+1048:                   Errori di validazione del Vault ({validationErrors.length})
+1049:                 </div>
+1050:                 <div style={{ fontSize: 12, color: '#7f1d1d', marginBottom: 8 }}>
+1051:                   Trovate {validationErrors.length} note con errori di schema o struttura.
+1052:                 </div>
+1053:                 <details style={{ marginTop: 6 }}>
+1054:                   <summary style={{ fontSize: 12, fontWeight: 600, color: '#991b1b', cursor: 'pointer' }}>
+1055:                     Consulta il dettaglio tecnico…
+1056:                   </summary>
+1057:                   <ul style={{ margin: '8px 0 0 0', paddingLeft: 20, fontSize: 12, color: '#b91c1c', maxHeight: 180, overflowY: 'auto' }}>
+1058:                     {validationErrors.map((err, i) => (
+1059:                       <li key={i}>{<MessageIt value={err}/>}</li>
+1060:                     ))}
+1061:                   </ul>
+1062:                 </details>
+1063:               </div>
+1064:             )}
+1065:           </div>
+1066:           )
+1067:         ) : (
+1068:           <>
+1069:             {/* VAULT BANNER */}
+1070:             <VaultStatusBanner
+1071:               status={vaultState === 'READY' ? 'READY' : 'INVALID'}
+1072:               vaultName={vaultName}
+1073:               vaultPath={vaultPath}
+1074:               pageCount={pageCount}
+1075:               onOpenObsidian={handleOpenObsidian}
+1076:               obsidianAvailable={obsidianAvailable}
+1077:             />
+1078: 
+1079:             {/* SCREEN RENDERER */}
+1080:             {currentTab === 'home' && (
+1081:               <div>
+1082:                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 28 }}>
+1083:                   <MetricCard title="File Markdown" value={pageCount} subtitle="Tutti i file Markdown del Vault" />
+1084:                   <MetricCard title="Fonti originali" value={sourceCount} subtitle="Documenti in sola lettura" />
+1085:                   <MetricCard title="File delle proposte" value={proposalCount} subtitle="Revisioni delle bozze salvate" />
+1086:                   <MetricCard
+1087:                     title="Integrità SHA-256"
+1088:                     value={integrityReport?.is_integrity_valid ? 'Verificata' : integrityReport?.errors.length ? 'Non verificata' : integrityReport ? 'Differenze rilevate' : 'Non verificata'}
+1089:                     subtitle={
+1090:                       integrityReport?.is_integrity_valid
+1091:                         ? `Tutti i ${integrityReport.verified_files_count} file corrispondono alle impronte SHA-256`
+1092:                         : integrityReport?.errors.length
+1093:                         ? 'Verifica non completata'
+1094:                         : integrityReport
+1095:                         ? `${integrityReport.modified_files.length} modificati, ${integrityReport.missing_files.length} mancanti, ${integrityReport.added_files.length} aggiunti`
+1096:                         : 'Impronte crittografiche non verificate'
+1097:                     }
+1098:                   />
+1099:                 </div>
+1100: 
+1101:                 {/* SHA-256 DISCREPANCIES CARD IF ANY */}
+1102:                 {integrityReport && !integrityReport.is_integrity_valid && integrityReport.errors.length === 0 && (
+1103:                   <div style={{ marginBottom: 24, backgroundColor: '#fffbe5', padding: 16, borderRadius: 8, border: '1px solid #fef08a' }}>
+1104:                     <div style={{ fontSize: 13, fontWeight: 700, color: '#854d0e', marginBottom: 8 }}>
+1105:                       Differenze rilevate rispetto al manifesto SHA-256
+1106:                     </div>
+1107:                     {integrityReport.modified_files.length > 0 && (
+1108:                       <div style={{ fontSize: 12, color: '#a16207', marginBottom: 4 }}>
+1109:                         <strong>File modificati ({integrityReport.modified_files.length}):</strong> {integrityReport.modified_files.join(', ')}
+1110:                       </div>
+1111:                     )}
+1112:                     {integrityReport.missing_files.length > 0 && (
+1113:                       <div style={{ fontSize: 12, color: '#a16207', marginBottom: 4 }}>
+1114:                         <strong>File mancanti ({integrityReport.missing_files.length}):</strong> {integrityReport.missing_files.join(', ')}
+1115:                       </div>
+1116:                     )}
+1117:                     {integrityReport.added_files.length > 0 && (
+1118:                       <div style={{ fontSize: 12, color: '#a16207' }}>
+1119:                         <strong>File aggiunti non presenti nel manifesto ({integrityReport.added_files.length}):</strong> {integrityReport.added_files.join(', ')}
+1120:                       </div>
+1121:                     )}
+1122:                   </div>
+1123:                 )}
+1124: 
+1125:                 <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 24 }}>
+1126:                   <div className="limen-card" style={{ padding: 24 }}>
+1127:                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+1128:                       <h3 style={{ fontSize: 16, fontWeight: 600, margin: 0 }}>Accesso rapido</h3>
+1129:                       <span style={{ fontSize: 12, color: '#64748b' }}>Aree operative e cartelle del Vault</span>
+1130:                     </div>
+1131: 
+1132:                     {/* VAULT / RAW (20_RAW_SOURCES) CARD */}
+1133:                     <div
+1134:                       role="button"
+1135:                       tabIndex={0}
+1136:                       onClick={() => setCurrentTab('sources')}
+1137:                       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setCurrentTab('sources'); }}
+1138:                       style={{
+1139:                         display: 'flex',
+1140:                         alignItems: 'center',
+1141:                         justifyContent: 'space-between',
+1142:                         padding: '14px 16px',
+1143:                         backgroundColor: '#f1f5f9',
+1144:                         border: '1.5px solid #cbd5e1',
+1145:                         borderRadius: 10,
+1146:                         cursor: 'pointer',
+1147:                         marginBottom: 16,
+1148:                         transition: 'all 0.15s ease',
+1149:                       }}
+1150:                       onMouseEnter={(e) => {
+1151:                         e.currentTarget.style.borderColor = '#0f172a';
+1152:                         e.currentTarget.style.backgroundColor = '#e2e8f0';
+1153:                       }}
+1154:                       onMouseLeave={(e) => {
+1155:                         e.currentTarget.style.borderColor = '#cbd5e1';
+1156:                         e.currentTarget.style.backgroundColor = '#f1f5f9';
+1157:                       }}
+1158:                     >
+1159:                       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+1160:                         <div
+1161:                           style={{
+1162:                             backgroundColor: '#0f172a',
+1163:                             color: '#ffffff',
+1164:                             width: 38,
+1165:                             height: 38,
+1166:                             borderRadius: 8,
+1167:                             display: 'flex',
+1168:                             alignItems: 'center',
+1169:                             justifyContent: 'center',
+1170:                             flexShrink: 0,
+1171:                           }}
+1172:                         >
+1173:                           <FolderArchive size={20} />
+1174:                         </div>
+1175:                         <div>
+1176:                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+1177:                             <span style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>
+1178:                               Vault / RAW
+1179:                             </span>
+1180:                             <span
+1181:                               style={{
+1182:                                 fontSize: 11,
+1183:                                 fontFamily: 'monospace',
+1184:                                 backgroundColor: '#e2e8f0',
+1185:                                 padding: '1px 6px',
+1186:                                 borderRadius: 4,
+1187:                                 color: '#334155',
+1188:                                 fontWeight: 600,
+1189:                               }}
+1190:                             >
+1191:                               20_RAW_SOURCES
+1192:                             </span>
+1193:                           </div>
+1194:                           <div style={{ fontSize: 12, color: '#475569', marginTop: 2 }}>
+1195:                             Documenti originali, note grezze, brief e file di testo da compilare
+1196:                           </div>
+1197:                         </div>
+1198:                       </div>
+1199:                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+1200:                         <span
+1201:                           style={{
+1202:                             fontSize: 12,
+1203:                             fontWeight: 600,
+1204:                             padding: '4px 10px',
+1205:                             borderRadius: 12,
+1206:                             backgroundColor: sourceCount > 0 ? '#dbeafe' : '#f8fafc',
+1207:                             color: sourceCount > 0 ? '#1e40af' : '#64748b',
+1208:                             border: '1px solid',
+1209:                             borderColor: sourceCount > 0 ? '#bfdbfe' : '#e2e8f0',
+1210:                             whiteSpace: 'nowrap',
+1211:                           }}
+1212:                         >
+1213:                           {sourceCount} {sourceCount === 1 ? 'fonte' : 'fonti'}
+1214:                         </span>
+1215:                         <ChevronRight size={18} color="#64748b" />
+1216:                       </div>
+1217:                     </div>
+1218: 
+1219:                     {/* CARTELLE DELLA CONOSCENZA */}
+1220:                     <div style={{ fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+1221:                       Cartelle della Conoscenza (Note Markdown)
+1222:                     </div>
+1223:                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
+1224:                       {[
+1225:                         { id: 'clients', folder: '01_CLIENTS' },
+1226:                         { id: 'projects', folder: '02_PROJECTS' },
+1227:                         { id: 'brands', folder: '03_BRANDS' },
+1228:                         { id: 'positioning', folder: '04_POSITIONING' },
+1229:                         { id: 'packaging', folder: '05_PACKAGING_KNOWLEDGE' },
+1230:                         { id: 'methods', folder: '06_METHODS' },
+1231:                         { id: 'case_studies', folder: '07_CASE_STUDIES' },
+1232:                         { id: 'research', folder: '08_MARKET_RESEARCH' },
+1233:                         { id: 'competitors', folder: '09_COMPETITORS' },
+1234:                         { id: 'approved_outputs', folder: '10_APPROVED_OUTPUTS' },
+1235:                       ].map((cat) => (
+1236:                         <button
+1237:                           key={cat.id}
+1238:                           onClick={() => {
+1239:                             setSelectedCategory(cat.id);
+1240:                             setCurrentTab('knowledge');
+1241:                           }}
+1242:                           style={{
+1243:                             display: 'flex',
+1244:                             flexDirection: 'column',
+1245:                             alignItems: 'flex-start',
+1246:                             padding: '10px 14px',
+1247:                             backgroundColor: '#f8fafc',
+1248:                             border: '1px solid #e2e8f0',
+1249:                             borderRadius: 8,
+1250:                             textAlign: 'left',
+1251:                             cursor: 'pointer',
+1252:                             transition: 'all 0.1s ease',
+1253:                           }}
+1254:                           onMouseEnter={(e) => {
+1255:                             e.currentTarget.style.borderColor = '#94a3b8';
+1256:                             e.currentTarget.style.backgroundColor = '#f1f5f9';
+1257:                           }}
+1258:                           onMouseLeave={(e) => {
+1259:                             e.currentTarget.style.borderColor = '#e2e8f0';
+1260:                             e.currentTarget.style.backgroundColor = '#f8fafc';
+1261:                           }}
+1262:                         >
+1263:                           <span style={{ fontSize: 13, fontWeight: 600, color: '#0f172a' }}>
+1264:                             {labelIt(cat.id)}
+1265:                           </span>
+1266:                           <span style={{ fontSize: 10, fontFamily: 'monospace', color: '#64748b', marginTop: 2 }}>
+1267:                             {cat.folder}/
+1268:                           </span>
+1269:                         </button>
+1270:                       ))}
+1271:                     </div>
+1272:                   </div>
+1273: 
+1274:                   <div className="limen-card" style={{ padding: 24 }}>
+1275:                     <h3 style={{ fontSize: 16, fontWeight: 600, margin: '0 0 12px 0' }}>Integrazione AI</h3>
+1276:                     <button onClick={() => setCurrentTab('ask')} className="limen-btn-primary">Chiedi al Vault</button>
+1277:                     <p style={{ fontSize: 13, color: '#475569', lineHeight: 1.5, marginTop: 12 }}>
+1278:                       Controlla le fonti locali prima di inviare una domanda a OpenAI. Configura le credenziali e MCP in sola lettura nelle Impostazioni.
+1279:                     </p>
+1280:                   </div>
+1281:                 </div>
+1282:               </div>
+1283:             )}
+1284: 
+1285:             {/* 1. CHIEDI (RICERCA IBRIDA + DOMANDE AI CON CITAZIONI) */}
+1286:             {(currentTab === 'ask' || currentTab === 'search') && (
+1287:               <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+1288:                 {/* UNIFIED SEARCH & QUESTION BAR */}
+1289:                 <div className="limen-card" style={{ padding: 20 }}>
+1290:                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+1291:                     <div>
+1292:                       <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 4px 0', color: '#0f172a' }}>
+1293:                         Cerca nel Vault & Chiedi all’AI
+1294:                       </h3>
+1295:                       <div style={{ fontSize: 12, color: '#64748b' }}>
+1296:                         Cerca nei passaggi estratti dei documenti e nelle note aziendali con ricerca ibrida locale, oppure invia la domanda a OpenAI con citazioni verificate.
+1297:                       </div>
+1298:                     </div>
+1299:                     <button
+1300:                       onClick={handleReindexSearch}
+1301:                       disabled={isProcessing || !vaultPath}
+1302:                       style={{
+1303:                         display: 'flex',
+1304:                         alignItems: 'center',
+1305:                         gap: 6,
+1306:                         backgroundColor: isProcessing || !vaultPath ? '#94a3b8' : '#0f172a',
+1307:                         color: '#ffffff',
+1308:                         border: 'none',
+1309:                         borderRadius: 6,
+1310:                         padding: '6px 12px',
+1311:                         fontSize: 12,
+1312:                         fontWeight: 600,
+1313:                         cursor: isProcessing || !vaultPath ? 'not-allowed' : 'pointer',
+1314:                       }}
+1315:                     >
+1316:                       {isProcessing ? <Loader2 size={13} className="spin" /> : <RotateCw size={13} />}
+1317:                       <span>Aggiorna indice</span>
+1318:                     </button>
+1319:                   </div>
+1320: 
+1321:                   <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+1322:                     <div style={{ position: 'relative', flex: 1 }}>
+1323:                       <Search size={16} color="#94a3b8" style={{ position: 'absolute', left: 12, top: 12 }} />
+1324:                       <input
+1325:                         type="text"
+1326:                         placeholder="Cerca parole chiave, contratti, clienti, passaggi di documenti..."
+1327:                         value={searchTerm}
+1328:                         onChange={(e) => setSearchTerm(e.target.value)}
+1329:                         style={{
+1330:                           width: '100%',
+1331:                           padding: '10px 14px 10px 38px',
+1332:                           borderRadius: 8,
+1333:                           border: '1px solid #cbd5e1',
+1334:                           fontSize: 13,
+1335:                           outline: 'none',
+1336:                           boxSizing: 'border-box',
+1337:                         }}
+1338:                       />
+1339:                     </div>
+1340:                     <select
+1341:                       value={searchCategory}
+1342:                       onChange={(e) => setSearchCategory(e.target.value)}
+1343:                       style={{
+1344:                         padding: '10px 14px',
+1345:                         borderRadius: 8,
+1346:                         border: '1px solid #cbd5e1',
+1347:                         fontSize: 13,
+1348:                         backgroundColor: '#ffffff',
+1349:                         color: '#0f172a',
+1350:                       }}
+1351:                     >
+1352:                       <option value="">Tutte le categorie</option>
+1353:                       <option value="client">Clienti (01_CLIENTS)</option>
+1354:                       <option value="project">Progetti (02_PROJECTS)</option>
+1355:                       <option value="brand">Marchi (03_BRANDS)</option>
+1356:                       <option value="source">Originali (20_RAW_SOURCES)</option>
+1357:                       <option value="approved_output">Approvati (10_APPROVED_OUTPUTS)</option>
+1358:                       <option value="proposal">Proposte (90_PROPOSALS)</option>
+1359:                     </select>
+1360:                   </div>
+1361: 
+1362:                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+1363:                     <input
+1364:                       aria-label="Filtra per cliente"
+1365:                       placeholder="Filtro cliente..."
+1366:                       value={searchClient}
+1367:                       onChange={(e) => setSearchClient(e.target.value)}
+1368:                       style={{ padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 12 }}
+1369:                     />
+1370:                     <input
+1371:                       aria-label="Filtra per progetto"
+1372:                       placeholder="Filtro progetto..."
+1373:                       value={searchProject}
+1374:                       onChange={(e) => setSearchProject(e.target.value)}
+1375:                       style={{ padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 12 }}
+1376:                     />
+1377:                     {searchTerm && (
+1378:                       <button
+1379:                         onClick={() => setSearchTerm('')}
+1380:                         style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #e2e8f0', background: '#f1f5f9', fontSize: 11, cursor: 'pointer' }}
+1381:                       >
+1382:                         Cancella ricerca
+1383:                       </button>
+1384:                     )}
+1385:                     <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#475569', cursor: 'pointer', marginLeft: 'auto' }}>
+1386:                       <input
+1387:                         type="checkbox"
+1388:                         checked={useSemanticSearch}
+1389:                         onChange={(e) => setUseSemanticSearch(e.target.checked)}
+1390:                       />
+1391:                       <span>Ricerca Ibrida (Semantica + Lessicale)</span>
+1392:                       {useSemanticSearch && (
+1393:                         <span
+1394:                           style={{
+1395:                             fontSize: 10,
+1396:                             fontWeight: 700,
+1397:                             padding: '2px 6px',
+1398:                             borderRadius: 4,
+1399:                             backgroundColor:
+1400:                               searchProvider === 'local'
+1401:                                 ? searchDegraded || localServerHealthy === false
+1402:                                   ? '#fee2e2'
+1403:                                   : '#dcfce7'
+1404:                                 : '#e0e7ff',
+1405:                             color:
+1406:                               searchProvider === 'local'
+1407:                                 ? searchDegraded || localServerHealthy === false
+1408:                                   ? '#991b1b'
+1409:                                   : '#166534'
+1410:                                 : '#3730a3',
+1411:                           }}
+1412:                         >
+1413:                           {searchProvider === 'local'
+1414:                             ? searchDegraded || localServerHealthy === false
+1415:                               ? '⚠️ RAG LOCALE SPENTO (SOLO LESSICALE)'
+1416:                               : '🟢 RAG 100% LOCALE'
+1417:                             : '🌐 OPENAI (IN RETE)'}
+1418:                         </span>
+1419:                       )}
+1420:                     </label>
+1421:                   </div>
+1422: 
+1423:                   {searchLoading && <p style={{ fontSize: 12, color: '#64748b', margin: '10px 0 0 0' }}>Ricerca in corso…</p>}
+1424:                 </div>
+1425: 
+1426:                 {/* DEGRADED MODE WARNING BANNER IF LOCAL SERVICE DOWN */}
+1427:                 {useSemanticSearch && searchDegraded && (
+1428:                   <div
+1429:                     role="alert"
+1430:                     style={{
+1431:                       padding: '12px 16px',
+1432:                       borderRadius: 8,
+1433:                       backgroundColor: '#fffbeb',
+1434:                       border: '1px solid #fef3c7',
+1435:                       color: '#92400e',
+1436:                       fontSize: 12,
+1437:                       display: 'flex',
+1438:                       alignItems: 'center',
+1439:                       gap: 10,
+1440:                       marginBottom: 16,
+1441:                     }}
+1442:                   >
+1443:                     <span style={{ fontSize: 18 }}>⚠️</span>
+1444:                     <div>
+1445:                       <strong>Modalità degradata (solo ricerca lessicale):</strong> il servizio semantico locale non è
+1446:                       attivo o non ha risposto. I risultati sono calcolati esclusivamente tramite indice lessicale. Nessun
+1447:                       dato è uscito dal Mac.
+1448:                     </div>
+1449:                   </div>
+1450:                 )}
+1451: 
+1452:                 {/* SEARCH RESULTS PREVIEW IF QUERY PRESENT */}
+1453:                 {searchTerm.trim() && searchResults.length > 0 && (
+1454:                   <div className="limen-card" style={{ padding: 20 }}>
+1455:                     <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', marginBottom: 12 }}>
+1456:                       {searchResults.length} risultati trovati per "{searchTerm}":
+1457:                     </div>
+1458:                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+1459:                       {searchResults.slice(0, 5).map((item) => (
+1460:                         <div
+1461:                           key={item.relative_path}
+1462:                           onClick={() => openReader(item.id || item.relative_path, item.matching_passage_id, searchTerm, undefined, item.sha256)}
+1463:                           style={{
+1464:                             padding: 12,
+1465:                             borderRadius: 8,
+1466:                             border: '1px solid #e2e8f0',
+1467:                             backgroundColor: '#f8fafc',
+1468:                             cursor: 'pointer',
+1469:                           }}
+1470:                         >
+1471:                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+1472:                             <span style={{ fontWeight: 600, fontSize: 13, color: '#0f172a' }}>{item.title}</span>
+1473:                             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+1474:                               {item.matching_locator && (
+1475:                                 <span style={{ fontSize: 11, fontWeight: 600, padding: '1px 6px', borderRadius: 4, backgroundColor: 'rgba(200,255,0,0.2)', color: '#4d7c0f', border: '1px solid rgba(200,255,0,0.4)' }}>
+1476:                                   {item.matching_locator}
+1477:                                 </span>
+1478:                               )}
+1479:                               <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 5px', borderRadius: 4, backgroundColor: '#e2e8f0', color: '#334155' }}>
+1480:                                 {labelIt(item.category)}
+1481:                               </span>
+1482:                             </div>
+1483:                           </div>
+1484:                           {item.snippet && (
+1485:                             <div style={{ fontSize: 12, color: '#475569', fontStyle: 'italic', margin: '4px 0' }}>
+1486:                               "{item.snippet}"
+1487:                             </div>
+1488:                           )}
+1489:                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
+1490:                             <span style={{ fontSize: 11, color: '#64748b', fontFamily: 'monospace' }}>{item.relative_path}</span>
+1491:                             <span style={{ fontSize: 11, fontWeight: 600, color: '#0284c7' }}>Apri nel lettore →</span>
+1492:                           </div>
+1493:                         </div>
+1494:                       ))}
+1495:                     </div>
+1496:                   </div>
+1497:                 )}
+1498: 
+1499:                 {/* AI Q&A COMPONENT WITH MODEL PICKER & PASSAGE CITATIONS */}
+1500:                 <AiPanel
+1501:                   key={vaultPath}
+1502:                   vaultPath={vaultPath!}
+1503:                   onOpenDocument={(req) => openReader(req.documentId, req.passageId, undefined, req.revision, req.sha256)}
+1504:                 />
+1505:               </div>
+1506:             )}
+1507: 
+1508:             {/* 2. DOCUMENTI (INVENTARIO COMPLETO ORIGINALI + ESTRAZIONE + CARICAMENTO LIME) */}
+1509:             {(currentTab === 'documents' || currentTab === 'sources') && (
+1510:               <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+1511:                 {/* TOP STATS BANNER */}
+1512:                 <div
+1513:                   style={{
+1514:                     backgroundColor: '#0f172a',
+1515:                     color: '#ffffff',
+1516:                     borderRadius: 12,
+1517:                     padding: '20px 24px',
+1518:                     display: 'flex',
+1519:                     justifyContent: 'space-between',
+1520:                     alignItems: 'center',
+1521:                     flexWrap: 'wrap',
+1522:                     gap: 16,
+1523:                   }}
+1524:                 >
+1525:                   <div>
+1526:                     <h2 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 4px 0', color: '#ffffff' }}>Documenti Aziendali</h2>
+1527:                     <p style={{ fontSize: 12, color: '#94a3b8', margin: 0 }}>
+1528:                       Tutti i file originali acquisiti in <code>20_RAW_SOURCES</code> con testo estratto e indicizzato per la ricerca.
+1529:                     </p>
+1530:                     <div style={{ display: 'flex', gap: 14, marginTop: 10, fontSize: 12 }}>
+1531:                       <span style={{ color: '#c8ff00', fontWeight: 600 }}>
+1532:                         {catalogSummary?.totalRawSources ?? catalogDocuments.length} originali acquisiti
+1533:                       </span>
+1534:                       <span style={{ color: '#86efac' }}>
+1535:                         {catalogSummary?.readyDocuments ?? 0} pronti per la consultazione
+1536:                       </span>
+1537:                       {catalogSummary && catalogSummary.processingDocuments > 0 && (
+1538:                         <span style={{ color: '#fde047' }}>
+1539:                           {catalogSummary.processingDocuments} in estrazione
+1540:                         </span>
+1541:                       )}
+1542:                       <span style={{ color: '#cbd5e1' }}>
+1543:                         {catalogSummary?.totalPassages ?? 0} passaggi estratti
+1544:                       </span>
+1545:                     </div>
+1546:                   </div>
+1547:                   <button
+1548:                     id="btn-upload-documents-view"
+1549:                     onClick={handleUploadDocuments}
+1550:                     disabled={isProcessing}
+1551:                     style={{
+1552:                       display: 'flex',
+1553:                       alignItems: 'center',
+1554:                       gap: 8,
+1555:                       backgroundColor: '#c8ff00',
+1556:                       color: '#0a0c10',
+1557:                       border: 'none',
+1558:                       borderRadius: 8,
+1559:                       padding: '10px 18px',
+1560:                       fontSize: 13,
+1561:                       fontWeight: 700,
+1562:                       cursor: isProcessing ? 'not-allowed' : 'pointer',
+1563:                       boxShadow: '0 2px 10px rgba(200, 255, 0, 0.3)',
+1564:                     }}
+1565:                   >
+1566:                     <Upload size={16} />
+1567:                     <span>{isProcessing ? 'CARICAMENTO…' : 'CARICA DOCUMENTI'}</span>
+1568:                   </button>
+1569:                 </div>
+1570: 
+1571:                 {/* DRAG AND DROP ZONE */}
+1572:                 <div
+1573:                   onDragOver={handleDragOver}
+1574:                   onDragLeave={handleDragLeave}
+1575:                   onDrop={handleDrop}
+1576:                   onClick={handleUploadDocuments}
+1577:                   style={{
+1578:                     border: `2px dashed ${isDragging ? '#c8ff00' : '#cbd5e1'}`,
+1579:                     backgroundColor: isDragging ? 'rgba(200, 255, 0, 0.08)' : '#f8fafc',
+1580:                     borderRadius: 10,
+1581:                     padding: '24px 16px',
+1582:                     textAlign: 'center',
+1583:                     cursor: 'pointer',
+1584:                     transition: 'all 0.15s ease',
+1585:                   }}
+1586:                 >
+1587:                   <Upload size={28} style={{ margin: '0 auto 8px', color: isDragging ? '#c8ff00' : '#64748b' }} />
+1588:                   <div style={{ fontSize: 13, fontWeight: 600, color: '#0f172a' }}>
+1589:                     Trascina qui i tuoi documenti o clicca per selezionare dal Mac
+1590:                   </div>
+1591:                   <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
+1592:                     PDF, Word (.docx), Excel (.xlsx), presentazioni, scansioni, note e testi. Massimo 32 MB per file.
+1593:                   </div>
+1594:                 </div>
+1595: 
+1596:                 {/* FILTERS TOOLBAR */}
+1597:                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+1598:                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+1599:                     {[
+1600:                       { id: 'all', label: 'Tutti i formati' },
+1601:                       { id: 'pdf', label: 'PDF' },
+1602:                       { id: 'docx', label: 'Word (DOCX)' },
+1603:                       { id: 'xlsx', label: 'Excel / Fogli' },
+1604:                       { id: 'txt', label: 'Testo e Note' },
+1605:                     ].map((f) => (
+1606:                       <button
+1607:                         key={f.id}
+1608:                         onClick={() => setCatalogFilterFormat(f.id)}
+1609:                         style={{
+1610:                           padding: '6px 12px',
+1611:                           borderRadius: 6,
+1612:                           border: '1px solid',
+1613:                           borderColor: catalogFilterFormat === f.id ? '#0f172a' : '#cbd5e1',
+1614:                           backgroundColor: catalogFilterFormat === f.id ? '#0f172a' : '#ffffff',
+1615:                           color: catalogFilterFormat === f.id ? '#ffffff' : '#334155',
+1616:                           fontSize: 12,
+1617:                           fontWeight: 500,
+1618:                           cursor: 'pointer',
+1619:                         }}
+1620:                       >
+1621:                         {f.label}
+1622:                       </button>
+1623:                     ))}
+1624:                   </div>
+1625: 
+1626:                   <input
+1627:                     type="text"
+1628:                     placeholder="Filtra per nome file..."
+1629:                     value={catalogSearchText}
+1630:                     onChange={(e) => setCatalogSearchText(e.target.value)}
+1631:                     style={{
+1632:                       padding: '6px 12px',
+1633:                       borderRadius: 6,
+1634:                       border: '1px solid #cbd5e1',
+1635:                       fontSize: 12,
+1636:                       width: 220,
+1637:                     }}
+1638:                   />
+1639:                 </div>
+1640: 
+1641:                 {/* DOCUMENTS TABLE */}
+1642:                 <div className="limen-card" style={{ padding: 20 }}>
+1643:                   {catalogDocuments.length === 0 ? (
+1644:                     <EmptyState
+1645:                       title="Nessun documento trovato"
+1646:                       description={catalogSearchText || catalogFilterFormat !== 'all' ? 'Nessun file corrisponde ai filtri selezionati.' : 'Nessun file presente in 20_RAW_SOURCES. Clicca su CARICA DOCUMENTI per iniziare.'}
+1647:                       icon={<FolderArchive size={32} />}
+1648:                     />
+1649:                   ) : (
+1650:                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+1651:                       <thead>
+1652:                         <tr style={{ borderBottom: '2px solid #e2e8f0', textAlign: 'left' }}>
+1653:                           <th style={{ padding: '8px 12px', color: '#475569' }}>Documento</th>
+1654:                           <th style={{ padding: '8px 12px', color: '#475569' }}>Formato</th>
+1655:                           <th style={{ padding: '8px 12px', color: '#475569' }}>Dimensione</th>
+1656:                           <th style={{ padding: '8px 12px', color: '#475569' }}>Stato estrazione</th>
+1657:                           <th style={{ padding: '8px 12px', color: '#475569', textAlign: 'right' }}>Azioni</th>
+1658:                         </tr>
+1659:                       </thead>
+1660:                       <tbody>
+1661:                         {catalogDocuments.map((doc) => {
+1662:                           const statusLabel =
+1663:                             doc.extractionStatus === 'ready'
+1664:                               ? 'Pronto per la ricerca'
+1665:                               : doc.extractionStatus === 'processing'
+1666:                               ? 'In estrazione'
+1667:                               : doc.extractionStatus === 'unsupported'
+1668:                               ? 'Non supportato'
+1669:                               : doc.extractionStatus === 'protected'
+1670:                               ? 'Protetto da password'
+1671:                               : 'In attesa';
+1672:                           const statusColor =
+1673:                             doc.extractionStatus === 'ready'
+1674:                               ? '#059669'
+1675:                               : doc.extractionStatus === 'processing'
+1676:                               ? '#d97706'
+1677:                               : doc.extractionStatus === 'failed'
+1678:                               ? '#dc2626'
+1679:                               : '#64748b';
+1680: 
+1681:                           return (
+1682:                             <tr key={doc.documentId} style={{ borderBottom: '1px solid #f1f5f9' }}>
+1683:                               <td style={{ padding: '10px 12px' }}>
+1684:                                 <div style={{ fontWeight: 600, color: '#0f172a' }}>{doc.fileName}</div>
+1685:                                 <div style={{ fontSize: 11, fontFamily: 'monospace', color: '#64748b' }}>{doc.originalPath}</div>
+1686:                               </td>
+1687:                               <td style={{ padding: '10px 12px', color: '#64748b' }}>
+1688:                                 <span style={{ textTransform: 'uppercase', fontSize: 11, fontWeight: 700, padding: '2px 6px', borderRadius: 4, backgroundColor: '#f1f5f9', color: '#334155' }}>
+1689:                                   {doc.extension || 'file'}
+1690:                                 </span>
+1691:                               </td>
+1692:                               <td style={{ padding: '10px 12px', color: '#475569' }}>
+1693:                                 {(doc.fileSize / 1024).toFixed(1)} KB
+1694:                               </td>
+1695:                               <td style={{ padding: '10px 12px' }}>
+1696:                                 <span style={{ fontSize: 11, fontWeight: 600, color: statusColor, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+1697:                                   <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: statusColor }} />
+1698:                                   {statusLabel}
+1699:                                 </span>
+1700:                                 {doc.passages && doc.passages.length > 0 && (
+1701:                                   <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>
+1702:                                     {doc.passages.length} passaggi estratti
+1703:                                   </div>
+1704:                                 )}
+1705:                               </td>
+1706:                               <td style={{ padding: '10px 12px', textAlign: 'right' }}>
+1707:                                 <div style={{ display: 'inline-flex', gap: 6 }}>
+1708:                                   <button
+1709:                                     onClick={() => openReader(doc.documentId, undefined, undefined, doc.revision, doc.contentHash)}
+1710:                                     style={{
+1711:                                       padding: '4px 10px',
+1712:                                       borderRadius: 4,
+1713:                                       border: '1px solid #cbd5e1',
+1714:                                       backgroundColor: '#f8fafc',
+1715:                                       fontSize: 11,
+1716:                                       fontWeight: 600,
+1717:                                       cursor: 'pointer',
+1718:                                     }}
+1719:                                   >
+1720:                                     Leggi nel Vault
+1721:                                   </button>
+1722:                                   <button
+1723:                                     onClick={async () => {
+1724:                                       if (!vaultPath) return;
+1725:                                       try {
+1726:                                         await ipc.openOriginal(vaultPath, doc.documentId);
+1727:                                       } catch (err) {
+1728:                                         setActionError(String(err));
+1729:                                       }
+1730:                                     }}
+1731:                                     style={{
+1732:                                       padding: '4px 10px',
+1733:                                       borderRadius: 4,
+1734:                                       border: '1px solid #cbd5e1',
+1735:                                       backgroundColor: '#ffffff',
+1736:                                       fontSize: 11,
+1737:                                       fontWeight: 500,
+1738:                                       cursor: 'pointer',
+1739:                                     }}
+1740:                                   >
+1741:                                     Apri originale
+1742:                                   </button>
+1743:                                   <button
+1744:                                     onClick={async () => {
+1745:                                       if (!vaultPath) return;
+1746:                                       try {
+1747:                                         await ipc.revealInFinder(vaultPath, doc.documentId);
+1748:                                       } catch (err) {
+1749:                                         setActionError(String(err));
+1750:                                       }
+1751:                                     }}
+1752:                                     style={{
+1753:                                       padding: '4px 8px',
+1754:                                       borderRadius: 4,
+1755:                                       border: '1px solid #e2e8f0',
+1756:                                       backgroundColor: '#f8fafc',
+1757:                                       fontSize: 11,
+1758:                                       cursor: 'pointer',
+1759:                                     }}
+1760:                                     title="Mostra nel Finder"
+1761:                                   >
+1762:                                     Finder
+1763:                                   </button>
+1764:                                 </div>
+1765:                               </td>
+1766:                             </tr>
+1767:                           );
+1768:                         })}
+1769:                       </tbody>
+1770:                     </table>
+1771:                   )}
+1772:                 </div>
+1773:               </div>
+1774:             )}
+1775: 
+1776:             {/* 3. MEMORIA (CATEGORIE AZIENDALI 01-10 + NOTE CONDIVISE) */}
+1777:             {(currentTab === 'memory' || currentTab === 'knowledge') && (
+1778:               <div>
+1779:                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 20, borderBottom: '1px solid #e2e8f0', paddingBottom: 12 }}>
+1780:                   {['clients', 'projects', 'brands', 'positioning', 'packaging', 'methods', 'case_studies', 'research', 'competitors', 'approved_outputs'].map((cat) => (
+1781:                     <button
+1782:                       key={cat}
+1783:                       onClick={() => setSelectedCategory(cat)}
+1784:                       style={{
+1785:                         padding: '6px 12px',
+1786:                         borderRadius: 6,
+1787:                         border: 'none',
+1788:                         backgroundColor: selectedCategory === cat ? '#0f172a' : '#f1f5f9',
+1789:                         color: selectedCategory === cat ? '#ffffff' : '#475569',
+1790:                         fontSize: 12,
+1791:                         fontWeight: 600,
+1792:                         cursor: 'pointer',
+1793:                         textTransform: 'capitalize',
+1794:                       }}
+1795:                     >
+1796:                       {cat === 'all' ? 'Tutte le note' : labelIt(cat)}
+1797:                     </button>
+1798:                   ))}
+1799:                 </div>
+1800: 
+1801:                 <KnowledgePanel vaultPath={vaultPath!} category={selectedCategory} />
+1802:               </div>
+1803:             )}
+1804: 
+1805:             {/* 4. AVANZATE (PROPOSTE, SNAPSHOT & RECUPERO, TRASFERIMENTI, IMPOSTAZIONI, COMPILATORE, SISTEMA, GUIDA) */}
+1806:             {(currentTab === 'advanced' || ['proposals', 'outputs', 'snapshots', 'transfers', 'system', 'settings', 'help'].includes(currentTab)) && (
+1807:               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+1808:                 {/* SEGMENTED SUB-NAVIGATION */}
+1809:                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', borderBottom: '1px solid #e2e8f0', paddingBottom: 10 }}>
+1810:                   {[
+1811:                     { id: 'proposals', label: 'Bozze e Proposte' },
+1812:                     { id: 'snapshots', label: 'Copie locali e Ripristino' },
+1813:                     { id: 'transfers', label: 'Trasferimenti' },
+1814:                     { id: 'settings', label: 'Collegamenti AI & MCP' },
+1815:                     { id: 'compiler', label: 'Compilatore manuale' },
+1816:                     { id: 'system', label: 'Stato di Sistema' },
+1817:                     { id: 'help', label: 'Guida Vault' },
+1818:                   ].map((sub) => {
+1819:                     const active = (advancedTab === sub.id) || (currentTab === sub.id);
+1820:                     return (
+1821:                       <button
+1822:                         key={sub.id}
+1823:                         onClick={() => {
+1824:                           setAdvancedTab(sub.id as any);
+1825:                           setCurrentTab('advanced');
+1826:                         }}
+1827:                         style={{
+1828:                           padding: '6px 12px',
+1829:                           borderRadius: 6,
+1830:                           border: active ? '1px solid #0f172a' : '1px solid #e2e8f0',
+1831:                           backgroundColor: active ? '#0f172a' : '#ffffff',
+1832:                           color: active ? '#ffffff' : '#334155',
+1833:                           fontSize: 12,
+1834:                           fontWeight: 600,
+1835:                           cursor: 'pointer',
+1836:                         }}
+1837:                       >
+1838:                         {sub.label}
+1839:                       </button>
+1840:                     );
+1841:                   })}
+1842:                 </div>
+1843: 
+1844:                 {/* SUBTAB: PROPOSALS */}
+1845:                 {(advancedTab === 'proposals' || currentTab === 'proposals' || currentTab === 'outputs') && vaultPath && (
+1846:                   <div>
+1847:                     <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+1848:                       <button
+1849:                         onClick={() => setCurrentTab('outputs')}
+1850:                         style={{ padding: '6px 12px', borderRadius: 6, backgroundColor: currentTab === 'outputs' ? '#0f172a' : '#f1f5f9', color: currentTab === 'outputs' ? '#fff' : '#334155', fontSize: 12, border: 'none', cursor: 'pointer' }}
+1851:                       >
+1852:                         Risposte AI salvate (80_AI_OUTPUTS)
+1853:                       </button>
+1854:                       <button
+1855:                         onClick={() => setCurrentTab('proposals')}
+1856:                         style={{ padding: '6px 12px', borderRadius: 6, backgroundColor: currentTab === 'proposals' || currentTab === 'advanced' ? '#0f172a' : '#f1f5f9', color: currentTab === 'proposals' || currentTab === 'advanced' ? '#fff' : '#334155', fontSize: 12, border: 'none', cursor: 'pointer' }}
+1857:                       >
+1858:                         Proposte manuali (90_PROPOSALS)
+1859:                       </button>
+1860:                     </div>
+1861:                     <ProposalPanel key={vaultPath + (currentTab === 'outputs' ? 'outputs' : 'proposals')} vaultPath={vaultPath} kind={currentTab === 'outputs' ? 'output' : 'proposal'} />
+1862:                   </div>
+1863:                 )}
+1864: 
+1865:                 {/* SUBTAB: SNAPSHOTS & RESTORE */}
+1866:                 {(advancedTab === 'snapshots' || currentTab === 'snapshots') && (
+1867:                   <div className="limen-card" style={{ padding: 24 }}>
+1868:                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+1869:                       <div>
+1870:                         <h3 style={{ fontSize: 16, fontWeight: 600, margin: '0 0 4px 0' }}>Copie locali e Ripristino guidato</h3>
+1871:                         <div style={{ fontSize: 12, color: '#64748b' }}>
+1872:                           Copie immutabili verificate SHA-256 in <code>00_SYSTEM/SNAPSHOTS/</code>. Il ripristino ricrea il Vault in una cartella separata senza sovrascritture distruttive.
+1873:                         </div>
+1874:                       </div>
+1875: 
+1876:                       <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+1877:                         <input
+1878:                           type="text"
+1879:                           placeholder="Nota facoltativa..."
+1880:                           value={snapshotNoteInput}
+1881:                           onChange={(e) => setSnapshotNoteInput(e.target.value)}
+1882:                           disabled={isProcessing}
+1883:                           style={{ padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 12, width: 200 }}
+1884:                         />
+1885:                         <button
+1886:                           onClick={handleCreateSnapshot}
+1887:                           disabled={isProcessing || !vaultPath}
+1888:                           style={{
+1889:                             display: 'flex',
+1890:                             alignItems: 'center',
+1891:                             gap: 6,
+1892:                             backgroundColor: isProcessing || !vaultPath ? '#94a3b8' : '#0f172a',
+1893:                             color: '#ffffff',
+1894:                             border: 'none',
+1895:                             borderRadius: 6,
+1896:                             padding: '8px 14px',
+1897:                             fontSize: 12,
+1898:                             fontWeight: 600,
+1899:                             cursor: isProcessing || !vaultPath ? 'not-allowed' : 'pointer',
+1900:                           }}
+1901:                         >
+1902:                           {isProcessing ? <Loader2 size={14} className="spin" /> : <PlusCircle size={14} />}
+1903:                           <span>CREA COPIA LOCALE</span>
+1904:                         </button>
+1905:                       </div>
+1906:                     </div>
+1907: 
+1908:                     {restoreMessage && (
+1909:                       <div style={{ marginBottom: 16, backgroundColor: '#f0fdf4', padding: 12, borderRadius: 6, border: '1px solid #bbf7d0', fontSize: 12, color: '#166534' }}>
+1910:                         {restoreMessage}
+1911:                       </div>
+1912:                     )}
+1913: 
+1914:                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+1915:                       <thead>
+1916:                         <tr style={{ borderBottom: '2px solid #e2e8f0', textAlign: 'left' }}>
+1917:                           <th style={{ padding: '8px 12px', color: '#475569' }}>ID copia</th>
+1918:                           <th style={{ padding: '8px 12px', color: '#475569' }}>Data</th>
+1919:                           <th style={{ padding: '8px 12px', color: '#475569' }}>Nota</th>
+1920:                           <th style={{ padding: '8px 12px', color: '#475569' }}>File</th>
+1921:                           <th style={{ padding: '8px 12px', color: '#475569' }}>Integrità SHA-256</th>
+1922:                           <th style={{ padding: '8px 12px', color: '#475569', textAlign: 'right' }}>Azione</th>
+1923:                         </tr>
+1924:                       </thead>
+1925:                       <tbody>
+1926:                         {snapshotsList.map((snap) => (
+1927:                           <tr key={snap.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+1928:                             <td style={{ padding: '10px 12px', fontWeight: 600, fontFamily: 'monospace' }}>{snap.id}</td>
+1929:                             <td style={{ padding: '10px 12px', color: '#64748b' }}>
+1930:                               {snap.created_at ? new Date(snap.created_at).toLocaleString("it-IT") : 'N/A'}
+1931:                             </td>
+1932:                             <td style={{ padding: '10px 12px', color: '#334155' }}>{snap.note || 'Copia locale'}</td>
+1933:                             <td style={{ padding: '10px 12px', color: '#475569' }}>{snap.manifest_file_count} file</td>
+1934:                             <td style={{ padding: '10px 12px' }}>
+1935:                               <StatusBadge
+1936:                                 status={snap.integrity_status === 'valid' ? 'READY' : 'INVALID'}
+1937:                                 label={snap.integrity_status === 'valid' ? 'Verificata (SHA-256)' : 'Incompleta'}
+1938:                               />
+1939:                             </td>
+1940:                             <td style={{ padding: '10px 12px', textAlign: 'right' }}>
+1941:                               <button
+1942:                                 onClick={() => handleRestoreSnapshot(snap.id)}
+1943:                                 disabled={isProcessing || snap.integrity_status !== 'valid'}
+1944:                                 style={{
+1945:                                   padding: '4px 10px',
+1946:                                   borderRadius: 4,
+1947:                                   border: '1px solid #cbd5e1',
+1948:                                   backgroundColor: '#f8fafc',
+1949:                                   fontSize: 11,
+1950:                                   fontWeight: 600,
+1951:                                   cursor: snap.integrity_status === 'valid' ? 'pointer' : 'not-allowed',
+1952:                                 }}
+1953:                               >
+1954:                                 RIPRISTINA IN CARTELLA SEPARATA
+1955:                               </button>
+1956:                             </td>
+1957:                           </tr>
+1958:                         ))}
+1959:                       </tbody>
+1960:                     </table>
+1961:                   </div>
+1962:                 )}
+1963: 
+1964:                 {/* SUBTAB: TRANSFERS */}
+1965:                 {(advancedTab === 'transfers' || currentTab === 'transfers') && <SyncPanel vaultPath={vaultPath!} />}
+1966: 
+1967:                 {/* SUBTAB: SETTINGS */}
+1968:                 {(advancedTab === 'settings' || currentTab === 'settings') && (
+1969:                   <>
+1970:                     <AiSettings key={vaultPath} vaultPath={vaultPath!} />
+1971:                     <div className="limen-card" style={{ padding: 24, maxWidth: 640 }}>
+1972:                       <h3 style={{ fontSize: 16, fontWeight: 600, margin: '0 0 16px 0' }}>Impostazioni del Vault</h3>
+1973:                       <label style={{ fontSize: 12, fontWeight: 600, color: '#475569', display: 'block', marginBottom: 6 }}>
+1974:                         Cartella locale del Vault
+1975:                       </label>
+1976:                       <input
+1977:                         type="text"
+1978:                         value={vaultPath || ''}
+1979:                         onChange={(e) => setVaultPath(e.target.value)}
+1980:                         style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: 13 }}
+1981:                       />
+1982:                     </div>
+1983:                   </>
+1984:                 )}
+1985: 
+1986:                 {/* SUBTAB: COMPILER */}
+1987:                 {advancedTab === 'compiler' && (
+1988:                   <div className="limen-card" style={{ padding: 24 }}>
+1989:                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+1990:                       <div>
+1991:                         <h3 style={{ fontSize: 16, fontWeight: 600, margin: 0 }}>Compilatore Markdown Manuale</h3>
+1992:                         <div style={{ fontSize: 12, color: '#64748b' }}>Compila file di testo e Markdown in bozze <code>90_PROPOSALS/</code></div>
+1993:                       </div>
+1994:                       <button onClick={handleBatchCompile} disabled={isProcessing || !vaultPath} style={{ padding: '8px 14px', borderRadius: 6, backgroundColor: '#0f172a', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+1995:                         COMPILA FONTI TESTO
+1996:                       </button>
+1997:                     </div>
+1998:                   </div>
+1999:                 )}
+2000: 
+2001:                 {/* SUBTAB: SYSTEM */}
+2002:                 {(advancedTab === 'system' || currentTab === 'system') && (
+2003:                   <div className="limen-card" style={{ padding: 24 }}>
+2004:                     <h3 style={{ fontSize: 16, fontWeight: 600, margin: '0 0 16px 0' }}>Stato del sistema locale</h3>
+2005:                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+2006:                       <tbody>
+2007:                         <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+2008:                           <td style={{ padding: '10px 0', color: '#64748b' }}>Cartella del Vault</td>
+2009:                           <td style={{ padding: '10px 0', color: '#0f172a', fontWeight: 600 }}>{vaultPath}</td>
+2010:                         </tr>
+2011:                         <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+2012:                           <td style={{ padding: '10px 0', color: '#64748b' }}>Applicazione Obsidian</td>
+2013:                           <td style={{ padding: '10px 0', color: obsidianAvailable ? '#047857' : '#b91c1c', fontWeight: 600 }}>
+2014:                             {obsidianAvailable ? 'Rilevata e disponibile' : 'Non installata o non rilevata'}
+2015:                           </td>
+2016:                         </tr>
+2017:                         <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+2018:                           <td style={{ padding: '10px 0', color: '#64748b' }}>Motore delle copie locali</td>
+2019:                           <td style={{ padding: '10px 0', color: '#047857', fontWeight: 600 }}>Attivo, con verifica SHA-256</td>
+2020:                         </tr>
+2021:                         <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+2022:                           <td style={{ padding: '10px 0', color: '#64748b' }}>Ambiente di esecuzione</td>
+2023:                           <td style={{ padding: '10px 0', color: '#0f172a', fontWeight: 600 }}>{isTauriEnv ? 'Applicazione nativa macOS' : 'Anteprima nel browser'}</td>
+2024:                         </tr>
+2025:                       </tbody>
+2026:                     </table>
+2027:                   </div>
+2028:                 )}
+2029: 
+2030:                 {/* SUBTAB: HELP */}
+2031:                 {(advancedTab === 'help' || currentTab === 'help') && (
+2032:                   <HelpPanel
+2033:                     vaultPath={vaultPath}
+2034:                     onOpenObsidian={handleOpenObsidian}
+2035:                     onNavigateTab={(tab) => setCurrentTab(tab as NavTab)}
+2036:                   />
+2037:                 )}
+2038:               </div>
+2039:             )}
+2040:           </>
+2041:         )}
+2042:       </main>
+2043:       </div>
+2044: 
+2045:       <DocumentReaderModal
+2046:         isOpen={readerOpen}
+2047:         onClose={() => {
+2048:           setReaderOpen(false);
+2049:           setReaderTarget(null);
+2050:           setReaderPassageId(undefined);
+2051:           setReaderExpectedRevision(undefined);
+2052:           setReaderExpectedHash(undefined);
+2053:           setReaderQuery(undefined);
+2054:         }}
+2055:         vaultPath={vaultPath || ''}
+2056:         documentId={readerTarget}
+2057:         initialPassageId={readerPassageId}
+2058:         expectedRevision={readerExpectedRevision}
+2059:         expectedHash={readerExpectedHash}
+2060:         highlightQuery={readerQuery}
+2061:         ipc={ipc}
+2062:       />
+2063:     </div>
+2064:   );
+2065: }

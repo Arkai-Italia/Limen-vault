@@ -270,6 +270,18 @@ export function AiPanel({
     }
   }
 
+  useEffect(() => {
+    if (typeof window !== 'undefined' && ((import.meta as any).env?.DEV || (window as any).__TAURI_DEBUG__)) {
+      (window as any).__limenAsk = async (q: string) => {
+        setPrompt(q);
+        await executeAsk(q);
+      };
+    }
+    return () => {
+      delete (window as any).__limenAsk;
+    };
+  }, [vaultPath, isLocalMode, model, drafts]);
+
   function resetLocalConversationState() {
     if (isBusy && previewData?.ticket) {
       void aiIpc.cancel(previewData.ticket);
@@ -287,12 +299,23 @@ export function AiPanel({
   }
 
   const handleCancelActiveRequest = async () => {
-    if (previewData?.ticket) {
-      await aiIpc.cancel(previewData.ticket).catch(() => {});
+    const cancelledSeq = ++seq.current;
+    if (unlistenChunkRef.current) {
+      unlistenChunkRef.current();
+      unlistenChunkRef.current = null;
     }
+    if (unlistenEndRef.current) {
+      unlistenEndRef.current();
+      unlistenEndRef.current = null;
+    }
+    isRunningRef.current = false;
     setIsStreaming(false);
     setLoadingStep(null);
+    setActivePrompt('');
     setError(null);
+    if (previewData?.ticket) {
+      aiIpc.cancel(previewData.ticket).catch(() => {});
+    }
   };
 
   async function handleSaveDraft(turnIdx: number) {
@@ -555,8 +578,8 @@ export function AiPanel({
         setTechError(errStr);
       }
     } finally {
-      isRunningRef.current = false;
       if (currentSeq === seq.current) {
+        isRunningRef.current = false;
         setLoadingStep(null);
         setIsStreaming(false);
         if (unlistenChunkRef.current) {
@@ -1118,7 +1141,7 @@ export function AiPanel({
           </div>
         )}
 
-        {consentGranted === false && (
+        {!isLocalMode && consentGranted === false && (
           <div
             style={{
               padding: 16,

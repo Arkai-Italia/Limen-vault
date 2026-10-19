@@ -1,0 +1,205 @@
+{"at":"2026-09-24T05:27:40.559Z","caseStart":"2026-09-24T05:23:33.573Z","elapsedMs":246986}
+Window: "LIMEN Vault v4", App: limen-vault.exe.
+	0 window LIMEN Vault v4 Secondary Actions: Raise
+		1 pane
+			13 pane LIMEN Vault v3
+				27 pane (disabled)
+				14 region LIMEN Vault v3 - Web content
+					15 region
+						16 region
+							17 region
+								18 region
+								19 region
+									20 region
+										21 region
+											22 region
+												23 region
+												28 document LIMEN Vault v3 Value: http://localhost:1420/ ID: RootWebArea
+													29 group ID: root
+														30 complementary
+															31 text L
+															32 text E:\VAULT WIN TEST
+															33 text LIMEN Vault v4
+															34 text (app nativa)
+															67 button CARICA DOCUMENTI ID: btn-upload-documents-global
+																68 graphic
+															35 navigation
+																36 button Chiedi
+																	37 graphic
+																38 button Documenti 376
+																	39 graphic
+																40 button Memoria 378
+																	41 graphic
+																42 button Avanzate
+																	43 graphic
+															44 button (disabled) Apri in Obsidian
+																45 graphic
+														46 header
+															116 text Avanzate e Manutenzione
+															69 text VAULT WIN TEST DEV
+															48 button Aggiorna Description: Aggiorna stato, file e dati del Vault
+																49 graphic
+															70 text ●
+															71 text Pronto
+														51 main
+															72 text PRONTO
+															73 text E:\VAULT WIN TEST
+															74 text E:\VAULT WIN TEST DEV
+															75 text •
+															76 text 378
+															77 text File Markdown
+															78 button (disabled) Apri in Obsidian (Non disponibile) Description: Obsidian non rilevato su questo Mac
+															117 button Bozze e Proposte
+															118 button Copie locali e Ripristino
+															119 button Trasferimenti
+															120 button Collegamenti AI & MCP
+															121 button Compilatore manuale
+															122 button Stato di Sistema
+															123 button Guida Vault
+															142 heading Motore semantico
+															143 text RAG 100% LOCALE
+															144 text Configura il fornitore per il calcolo dei vettori semantici e la ricerca ibrida. Con il motore locale, nessun dato esce dal computer e il funzionamento è a rete zero.
+															145 radio button (selectable, settable, string) OpenAI (in rete) Modello text-embedding-3-small (1536 dim). Richiede chiave API configurata nel Gestore credenziali e connessione internet.
+															146 text OpenAI (in rete)
+															147 text Modello
+															148 text text-embedding-3-small
+															149 text (1536 dim). Richiede chiave API configurata nel Gestore credenziali e connessione internet.
+															150 radio button (selectable, settable, string) Locale (bge-m3, nessun dato esce dal computer) Modello bge-m3-Q8_0.gguf (1024 dim) eseguito dal motore integrato. Funzionamento 100% offline a rete zero.
+															151 text Locale (bge-m3, nessun dato esce dal computer)
+															152 text Modello
+															153 text bge-m3-Q8_0.gguf
+															154 text (1024 dim) eseguito dal motore integrato. Funzionamento 100% offline a rete zero.
+															155 text Modello locale (bge-m3-Q8_0.gguf)
+															156 text INSTALLATO (SHA-256 OK)
+															214 text Percorso:
+															215 text 
+															216 text C:\Users\user\LIMEN Vault\models\bge-m3-Q8_0.gguf
+															217 text Dimensione:
+															218 text 
+															219 text 605.2 MB
+															220 text (634.553.760 byte)
+															221 text ✓ Dopo lo scaricamento, il funzionamento è a rete zero. Nessun dato lascia mai questo computer.
+															222 button VERIFICA INTEGRITÀ
+															223 button SOSTITUISCI FILE GGUF DA DISCO…
+															160 text Servizio locale di calcolo
+															161 text IN AVVIO…
+															162 text Il servizio è spento. Si avvia automaticamente su richiesta quando serve un embedding semantico, oppure puoi avviarlo manualmente.
+															163 button (disabled) AVVIO IN CORSO…
+															164 button AGGIORNA STATO
+															224 text Cache semantica del Vault
+															225 text 23482 passaggi indicizzati (1024 dim)
+								24 region
+						25 region
+						26 region
+		2 title bar (settable, string) Value: LIMEN Vault v4
+			3 menu bar System ID: MenuBar
+				4 menu item System
+			5 button Minimize
+			6 button Maximize
+			7 button Close
+		8 menu bar Application ID: MenuBar
+			9 menu item File
+			10 menu item Modifica
+			11 menu item Finestra
+			12 menu item Aiuto
+
+Document text: ```
+L
+E:\VAULT WIN TEST
+LIMEN Vault v4 (app nativa)
+￼
+CARICA DOCUMENTI
+￼
+Chiedi
+￼
+Documenti
+376
+￼
+Memoria
+378
+￼
+Avanzate
+￼
+Apri in Obsidian
+Avanzate e Manutenzione
+VAULT WIN TEST DEV
+￼
+Aggiorna
+● Pronto
+PRONTO
+E:\VAULT WIN TEST
+E:\VAULT WIN TEST DEV • 378 File Markdown
+Apri in Obsidian
+(Non disponibile)
+Bozze e Proposte
+Copie locali e Ripristino
+Trasferimenti
+Collegamenti AI & MCP
+Compilatore manuale
+Stato di Sistema
+Guida Vault
+Motore semantico
+RAG 100% LOCALE
+Configura il fornitore per il calcolo dei vettori semantici e la ricerca ibrida. Con il motore locale, nessun dato esce dal computer e il funzionamento è a rete zero.
+￼
+OpenAI (in rete)
+Modello text-embedding-3-small (1536 dim). Richiede chiave API configurata nel Gestore credenziali e connessione internet.
+￼
+Locale (bge-m3, nessun dato esce dal computer)
+Modello bge-m3-Q8_0.gguf (1024 dim) eseguito dal motore integrato. Funzionamento 100% offline a rete zero.
+Modello locale (bge-m3-Q8_0.gguf)
+INSTALLATO (SHA-256 OK)
+Percorso: C:\Users\user\LIMEN Vault\models\bge-m3-Q8_0.gguf
+Dimensione: 605.2 MB (634.553.760 byte)
+✓ Dopo lo scaricamento, il funzionamento è a rete zero. Nessun dato lascia mai questo computer.
+VERIFICA INTEGRITÀ
+SOSTITUISCI FILE GGUF DA DISCO…
+Servizio locale di calcolo
+IN AVVIO…
+Il servizio è spento. Si avvia automaticamente su richiesta quando serve un embedding semantico, oppure puoi avviarlo manualmente.
+AVVIO IN CORSO…
+AGGIORNA STATO
+Cache semantica del Vault
+23482 passaggi indicizzati (1024 dim)
+✓ Le dimensioni della cache (1024d) sono perfettamente allineate con il fornitore attivo (local, 1024d).
+Generazione risposte e consenso OpenAI
+Imposta il consenso all’invio e scegli il modello OpenAI una volta sola nelle Impostazioni. Le domande nella scheda Chiedi utilizzeranno automaticamente questa configurazione.
+￼
+Consenti l'invio a OpenAI dei passaggi pertinenti per generare le risposte
+✓ Consenso attivo: l’app può inviare i passaggi dei documenti pertinenti a OpenAI per comporre le risposte.
+Modello OpenAI predefinito
+￼
+￼
+Impostazioni OpenAI & Consenso
+￼
+Consenti l'invio a OpenAI dei passaggi pertinenti per generare le risposte
+Quando attivo, le domande inviate nella scheda Chiedi genereranno la risposta tramite le API di OpenAI inviando solo i passaggi estratti dal Vault.
+Modello OpenAI predefinito
+Modello OpenAI predefinito
+Chiave API OpenAI (memorizzata nel Gestore credenziali)
+Chiave API OpenAI
+Salva chiave
+Verifica Gestore credenziali
+Rimuovi chiave
+Gestore credenziali non verificato
+Collegamenti AI & Tunnel
+Condivisione in sola lettura per client esterni ed MCP. Il computer e questa app devono restare accesi.
+Attiva MCP locale
+Revoca MCP
+ChatGPT Business · tunnel privato
+Collegamento facoltativo per condividere fonti approvate e indicizzate del Vault selezionato. Questo computer e questa app devono restare accesi. Occorre una configurazione corrispondente di tunnel, spazio di lavoro e organizzazione nell’account OpenAI.
+ID tunnel
+ID tunnel Business
+ID organizzazione
+ID organizzazione Business
+Chiave di esecuzione del tunnel
+Chiave di esecuzione del tunnel
+SALVA CHIAVE TUNNEL
+AVVIA TUNNEL BUSINESS
+ARRESTA TUNNEL BUSINESS
+○ Tunnel arrestato
+L’arresto impedisce nuove letture locali. Scollega anche il plugin in ChatGPT per revocare il collegamento remoto. Il tunnel non si avvia automaticamente all’accesso.
+Impostazioni del Vault
+Cartella locale del Vault
+E:\VAULT WIN TEST DEV
+```

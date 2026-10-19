@@ -1,0 +1,32 @@
+2026-09-24T09:45:04.8143995+08:00
+warning: unable to access 'C:\Users\user/.config/git/ignore': Permission denied
+warning: unable to access 'C:\Users\user/.config/git/ignore': Permission denied
+?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/diff-20b27f2-HEAD.patch
+?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-1.patch
+?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-2-b.patch
+?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-2.patch
+?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-2L-b.patch
+?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-2L.patch
+?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-3b1.patch
+?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-3b2.patch
+?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-3b2b.patch
+?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-3b2c.patch
+?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-4.patch
+?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-4c.patch
+?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-5.patch
+?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-5b.patch
+?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase2-preliminary-stash.patch
+?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/faseH1-piano.md
+?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/screenshots-ux/
+1037060a5cb0194236cb3c03cc47f6c924dad977
+
+Id        : 20772
+Path      : E:\Projects\vault_memai_obsi\apps\desktop\src-tauri\target\release\limen-vault.exe
+StartTime : 24/09/2026 09:35:27
+
+Id        : 31524
+Path      : E:\Projects\vault_memai_obsi\apps\desktop\src-tauri\target\release\native\llama-server.exe
+StartTime : 24/09/2026 09:36:57
+
+31524
+52944

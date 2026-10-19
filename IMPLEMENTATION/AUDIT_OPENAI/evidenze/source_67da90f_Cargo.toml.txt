@@ -1,0 +1,45 @@
+1: [package]
+2: name = "limen-vault"
+3: version = "0.3.0"
+4: description = "LIMEN Vault Desktop macOS Application"
+5: authors = ["LIMEN"]
+6: edition = "2021"
+7: default-run = "limen-vault"
+8: 
+9: [build-dependencies]
+10: tauri-build = { version = "2.0.0", features = [] }
+11: 
+12: [dependencies]
+13: tauri = { version = "2.1.1", features = [] }
+14: tauri-plugin-dialog = "2"
+15: serde = { version = "1.0", features = ["derive"] }
+16: serde_json = "1.0"
+17: urlencoding = "2.1"
+18: serde_yaml = "0.9"
+19: cap-std = "4"
+20: libc = "0.2"
+21: chrono = { version = "0.4", default-features = false, features = ["clock"] }
+22: sha2 = "0.10"
+23: regex = "1"
+24: unicode-normalization = "0.1"
+25: reqwest = { version = "0.13", features = ["blocking", "json"] }
+26: tiny_http = "0.12"
+27: tokio = { version = "1", features = ["time", "macros"] }
+28: getrandom = "0.3"
+29: calamine = "0.26"
+30: zip = { version = "2.4", default-features = false, features = ["deflate"] }
+31: quick-xml = "0.31"
+32: 
+33: [target.'cfg(target_os = "macos")'.dependencies]
+34: security-framework = "3"
+35: 
+36: [target.'cfg(target_os = "windows")'.dependencies]
+37: windows-sys = { version = "0.59.0", features = ["Win32_Storage_FileSystem", "Win32_Foundation", "Win32_Security_Credentials", "Win32_System_JobObjects", "Win32_System_Threading", "Win32_System_IO"] }
+38: 
+39: [dev-dependencies]
+40: tempfile = "3"
+41: 
+42: 
+43: [features]
+44: default = ["custom-protocol"]
+45: custom-protocol = ["tauri/custom-protocol"]

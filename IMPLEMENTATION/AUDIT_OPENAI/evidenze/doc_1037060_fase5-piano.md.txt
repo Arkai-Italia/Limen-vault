@@ -1,0 +1,161 @@
+1: # Piano di Implementazione FASE 5 — Streaming della Risposta e Ottimizzazioni
+2: 
+3: **Data**: 23 Settembre 2026  
+4: **Ambiente**: LIMEN Vault v4 (versione 0.4.0, Windows 11 Pro, Tauri / Rust)  
+5: **Modello Predefinito Tassativo**: **`gpt-4o`**  
+6: **Direttiva Approvata**: **Opzione A** (Strict JSON Schema mantenuto su Responses API, testo emesso progressivamente in streaming, citazioni certificate e convalidate crittograficamente a fine flusso).
+7: 
+8: ---
+9: 
+10: ## 1. Analisi delle Prestazioni Attuali e Metriche Mancanti
+11: 
+12: Nei registri effettivi di `C:\Users\user\.limen-vault\ask_timing.log`:
+13: - **Preparazione locale del contesto (Preview)**: **1,0 – 2,5 s**
+14:   - Lettura indice e cache: 17 – 23 ms
+15:   - Embedding vettore della query (`bge-m3` locale): 72 – 91 ms
+16:   - **Ricerca ibrida (search)**: **0,8 – 1,9 s** (frazione dominante del tempo locale)
+17:   - Lettura documenti e catalog: 4 – 330 ms
+18:   - Estrazione multi-passaggio e hash SHA-256: 0 – 240 ms
+19: - **Chiamata remota OpenAI (`gpt-4o`)**: **3,6 – 6,2 s** (fino a 8,3 – 9,0 s con modelli alternativi)
+20: - **Tempo totale visto da UI**: **5,8 – 10,3 s**
+21: 
+22: ### Chiarimento sul Tempo di Comparsa del Testo
+23: Nessuna previsione a priori sui secondi di comparsa del testo è ammessa:  
+24: **Al tempo di preparazione locale va sommato il tempo necessario a OpenAI per restituire il primo frammento (Time to First Token / TTFT remoto), che finora non è mai stato misurato.**  
+25: Nella FASE 5 verrà integrata nel backend la misurazione esatta del tempo trascorso tra l'invio della richiesta HTTP a OpenAI e la ricezione del primo frammento utile (`t_first_chunk_ms`), registrandola formalmente in `ask_timing.log` per consentire a Cesare di quantificarla con precisione.
+26: 
+27: ---
+28: 
+29: ## 2. Le Sei Correzioni e Specifiche Operative della FASE 5
+30: 
+31: ### 1. Punto b) — Riferimenti Errati, Prima Misurare nel Registro
+32: - **Correzione di attribuzione**: In `search.rs` non viene calcolato alcun vettore; le righe 440–510 indicizzate in precedenza gestiscono il frontmatter. Il calcolo della similarità semantica avviene interamente in `apps/desktop/src-tauri/src/embeddings.rs` (funzioni `rank_document_semantic` e `cosine_similarity`).
+33: - **Misurazione preliminare nel log**: Prima di intraprendere qualunque ottimizzazione del codice di ricerca, viene aggiunta nel registro `ask_timing.log` la divisione puntuale del tempo di ricerca nelle sue 4 componenti effettive:
+34:   1. **Ricerca per parole (`search_words_ms`)**: tempo della ricerca lessicale BM25 in `search::search_vault_filtered`;
+35:   2. **Similarità semantica (`search_sem_ms`)**: tempo del calcolo vettoriale in `embeddings::rank_document_semantic` su tutti i passaggi del catalogo;
+36:   3. **Fusione e ordinamento (`search_fuse_ms`)**: tempo di unione, normalizzazione min-max e ranking RRF in `embeddings.rs`;
+37:   4. **Filtro di ammissibilità (`search_admit_ms`)**: tempo del filtro Punto E (`filter_candidates_punto_e` in `ai.rs`).
+38: - **Regola di cautela vincolante**: Si ottimizzerà esclusivamente la componente che le misurazioni di Cesare indicheranno come collo di bottiglia, e solo a condizione di **non alterare in alcun modo i risultati** (stesse identiche fonti per BNXT, ARKAI e SCENA verificate sulla porta del servizio dell'app).
+39: 
+40: ### 2. Punto c) — Fonti Mostrate Subito
+41: - Non appena la fase locale di `preview` è completata (~1–2 s), l'interfaccia mostra immediatamente nella scheda "Chiedi" l'elenco dei documenti consultati a supporto della domanda (con titolo pulito e leggibile tramite `cleanTitle`), con l'etichetta *"Fonti consultate dal Vault per questa domanda (in attesa di risposta…)"*.
+42: - Mentre il testo in streaming si compone, l'utente può già visualizzare l'elenco delle fonti estratte.
+43: - Al termine dello streaming, i documenti effettivamente citati dal modello vengono evidenziati con il badge *"CITATA"* e compare l'etichetta trasparente definitiva:  
+44:   **"Basata su N documenti citati tra M consultati"**.
+45: 
+46: ### 3. Controllo di Integrità Post-Risposta (`verify_post`)
+47: - Il controllo `verify_post` resta tassativo e obbligatorio prima di considerare valida la sessione.
+48: - Con lo streaming, il testo è già apparso progressivamente a schermo: se `verify_post` fallisce (poiché uno dei documenti o passaggi è mutato su disco durante i secondi della chiamata), **il testo mostrato viene immediatamente sostituito da un avviso chiaro**:  
+49:   > *"Un documento è cambiato durante la generazione: la risposta è stata annullata, riprova"*
+50: - Nessuna citazione viene mostrata (`citations: []`).
+51: - Un test unitario dedicato convalidi questa sostituzione protettiva.
+52: 
+53: ### 4. Pulizia Durante lo Streaming (`sanitize_answer_prose`)
+54: - Frammenti successivi dello stream SSE possono spezzare sigle o marcatori (es. `"[S"` nel frammento 1 e `"1]"` nel frammento 2, oppure `"*"` e `"*BNXT**"`).
+55: - Per evitare che frammenti grezzi appaiano temporaneamente all'utente, viene implementato `StreamProseSanitizer` dotato di **sliding tail buffer**:
+56:   - Trattiene la porzione terminale ambigua (fino a 10 caratteri) se coincide con un prefisso di sigla (`[`, `[S`, `(`) o di marcatore (`*`, `**`);
+57:   - Emette verso la UI solo il testo certo e già pulito tramite `sanitize_answer_prose`;
+58:   - A fine stream svuota l'eventuale residuo garantendo la totale assenza di sigle grezze o asterischi markdown.
+59: - Test dedicati:
+60:   - Frammenti spezzati `"[S"` + `"1]"` $\rightarrow$ non mostrano mai `[S1]`;
+61:   - Frammenti spezzati `"**"` + `"BNXT**"` $\rightarrow$ non mostrano mai asterischi.
+62: 
+63: ### 5. Risposte Interrotte
+64: - Se lo streaming si interrompe (errore di rete, chiusura connessione, annullamento dell'utente o limite di token raggiunto prima della chiusura JSON):
+65:   - Il testo parziale generato fino a quel momento resta visibile all'utente, accompagnato da un avviso esplicito e semplice di interruzione;
+66:   - **Zero citazioni**: nessuna fonte viene contrassegnata come citata (`citations: []`) per prevenire attribuzioni parziali o non verificate.
+67: - Questa regola viene formalmente sancita nel rapporto di implementazione.
+68: 
+69: ### 6. Schema Responses API Rigoroso
+70: - L'app utilizza e mantiene la Responses API di OpenAI (`text.format` JSON schema):
+71: ```json
+72: {
+73:   "model": "gpt-4o",
+74:   "store": false,
+75:   "max_output_tokens": 1500,
+76:   "input": [
+77:     { "role": "system", "content": "..." },
+78:     { "role": "user", "content": "..." }
+79:   ],
+80:   "text": {
+81:     "format": {
+82:       "type": "json_schema",
+83:       "name": "vault_answer",
+84:       "strict": true,
+85:       "schema": {
+86:         "type": "object",
+87:         "properties": {
+88:           "answer": { "type": "string" },
+89:           "citation_ids": {
+90:             "type": "array",
+91:             "items": {
+92:               "type": "string",
+93:               "enum": ["S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8"]
+94:             }
+95:           }
+96:         },
+97:         "required": ["answer", "citation_ids"],
+98:         "additionalProperties": false
+99:       }
+100:     }
+101:   }
+102: }
+103: ```
+104: - Lo streaming SSE consuma esattamente lo stesso schema, preservando i controlli di `parse_response` (stato presente, esattamente un output_text, citazioni validate, conteggio token input, output e reasoning).
+105: 
+106: ---
+107: 
+108: ## 3. Todo List e Task List Tracciabile FASE 5
+109: 
+110: > [!IMPORTANT]
+111: > **Modello Tassativo da Usare**: **`gpt-4o`** per tutte le sessioni e misurazioni di questa fase.
+112: 
+113: ### Componente 1: Misurazione Dettagliata Ricerca nel Registro (`ask_timing.log`)
+114: - [x] **1.1** Estendere `SearchPhaseTimings` in `embeddings.rs` per misurare separatamente `t_words_ms`, `t_sem_ms`, `t_fuse_ms`. *(Completato: misurazione separata in `hybrid_search_vault_with_vector_filtered_timed` e propagazione)*
+115: - [x] **1.2** Misurare `t_admit_ms` in `ai.rs` durante l'esecuzione del filtro Punto E. *(Completato: misurato attorno a `filter_candidates_punto_e` in `select_with_port_timed`)*
+116: - [x] **1.3** Aggiornare `PreviewTimingBreakdown` e la formattazione di `log_ask_timing_detailed` in `ai.rs` per riportare nel log la scomposizione esatta della ricerca (parole, semantica, fusione, ammissibilità). *(Completato: campi `search_words_ms`, `search_sem_ms`, `search_fuse_ms`, `search_admit_ms` e quadratura)*
+117: - [x] **1.4** Misurare e registrare `t_first_chunk_ms` (Time to First Token remoto di OpenAI) al primo frammento SSE utile. *(Completato: integrato in `AskTimingBreakdown` e `AskTimingLogEntry`, misurazione in `ask_stream`)*
+118: 
+119: ### Componente 2: Parser Incrementale e Sanitizer con Sliding Tail Buffer
+120: - [x] **2.1** Implementare `StreamProseSanitizer` in `ai.rs` con sliding tail buffer per trattenere prefissi ambigui (`[`, `[S`, `*`, `**`). *(Completato: buffer circolare a coda mobile con calcolo parità asterischi e tag di citazione)*
+121: - [x] **2.2** Test unitari dedicati per `StreamProseSanitizer`: convalidare che `"[S"` + `"1]"` non mostri sigle e `"**"` + `"BNXT**"` non mostri asterischi. *(Completato: `test_stream_prose_sanitizer_split_citations` e `test_stream_prose_sanitizer_split_bold_asterisks` superati)*
+122: - [x] **2.3** Implementare `JsonStreamAnswerParser` per estrarre incrementale la stringa `answer` decodificando gli escape JSON (`\n`, `\"`, `\uXXXX`). *(Completato: parser a macchina a stati con buffer unicode e decodifica escape su confini di chunk)*
+123: - [x] **2.4** Test unitari dedicati per `JsonStreamAnswerParser` (chunk spezzati, caratteri speciali, terminazione stream). *(Completato: `test_json_stream_answer_parser_decodes_escapes_and_unicode` superato)*
+124: 
+125: ### Componente 3: Chiamata Streaming SSE e Controllo `verify_post`
+126: - [x] **3.1** Modificare `ask_streaming` in `ai.rs` per consumare lo stream SSE di OpenAI mantenendo Strict Schema su Responses API con modello `gpt-4o`. *(Completato: implementato `ask_stream` con SSE reader e misurazione `t_first_chunk_ms`)*
+127: - [x] **3.2** Integrare l'emissione di eventi Tauri `limen://ai-stream-chunk` verso la finestra attiva. *(Completato: emit via `tauri::Emitter` con payload ticket, frammento sanitizzato e flag stream)*
+128: - [x] **3.3** Implementare la gestione di `verify_post` a fine stream: se fallisce, emissione evento con cancellazione testo, messaggio di annullamento e zero citazioni. *(Completato: payload `verify_post_failed` emesso con testo sostitutivo esatto)*
+129: - [x] **3.4** Test unitario dedicato che simula il fallimento di `verify_post` post-streaming. *(Completato: `test_verify_post_failure_replaces_text_with_cancellation_message` superato)*
+130: - [x] **3.5** Gestione risposte interrotte: preservazione testo parziale con avviso esplicito e zero citazioni. *(Completato: payload `interrupted` ed emissione gestiti, `test_interrupted_stream_preserves_partial_text_with_zero_citations` superato)*
+131: 
+132: ### Componente 4: Frontend Desktop (React / TypeScript)
+133: - [x] **4.1** In `apps/desktop/src/AiPanel.tsx`: Mostrare immediatamente le fonti consultate non appena la Preview è completata con titoli leggibili/puliti. *(Completato: blocco fonti consultate mostrato subito alla ricezione della preview)*
+134: - [x] **4.2** In `apps/desktop/src/ai-ipc.ts`: Aggiungere listener eventi streaming Tauri e collegarli in `apps/desktop/src/AiPanel.tsx`. *(Completato: payload `AiStreamChunkPayload` e `AiStreamEndPayload`, listener registrati e puliti su unmount)*
+135: - [x] **4.3** In `apps/desktop/src/AiPanel.tsx`: Visualizzare testo in streaming con cursore attivo; all'evento finale accendere i badge *"CITATA"* e l'etichetta *"Basata su N documenti citati tra M consultati"*. *(Completato: cursore pulsante durante lo streaming, badge CITATA e conteggio trasparente post-stream)*
+136: - [x] **4.4** In `apps/desktop/src/AiPanel.tsx`: Gestire in UI la sostituzione del testo in caso di errore `verify_post` e l'avviso in caso di stream interrotto. *(Completato: messaggio di annullamento esatto su disallineamento sorgenti e banner per stream interrotto)*
+137: - [x] **4.5** Modello predefinito `gpt-4o` (selezione modelli FASE 4 da account e salvataggio in `ai_settings.json` invariati; se vuoto, valore iniziale proposto `gpt-4o`). *(Completato: fallback gpt-4o iniziale mantenendo la selezione e persistenza)*
+138: 
+139: ### Componente 5: Verifica, Test e Consegna (FASE 5)
+140: - [x] **5.1** Esecuzione test suite completa in parallelo salvata in `cargo-test-fase-5-parallel.log`. *(Completato: 150/150 test lib e 18/18 test bin superati)*
+141: - [x] **5.2** Esecuzione test suite sequenziale salvata in `cargo-test-fase-5-single.log`. *(Completato: superata con `--test-threads=1`)*
+142: - [x] **5.3** Verifica statica frontend con `npx tsc --noEmit`. *(Completato: 0 errori TypeScript)*
+143: - [x] **5.4** Commit git e generazione `IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-5.patch`.
+144: - [x] **5.5** Aggiornamento di `SESSION_HANDOVER_WINDOWS_BUILD.md`.
+145: 
+146: ### Componente 6: FASE 5b — Correzione Quattro Difetti in ask_stream
+147: - [x] **6.1** Caratteri UTF-8 spezzati: buffer di decodifica `Utf8ChunkDecoder` che trattiene sequenze multibyte incomplete sui confini dei chunk di rete senza emettere replacement char ``. *(Completato con `test_utf8_chunk_decoder_split_multibyte_character`: "è" spezzato in 2 chunk da 1 byte produce "è")*
+148: - [x] **6.2** `verify_post` rifiuta OGNI errore (inclusi "Document access denied" e "Generated source obsolete or modified"): annullamento risposta, testo sostituito da avviso chiaro, zero citazioni. *(Completato con `test_verify_post_rejects_document_access_denied_and_obsolete_source`)*
+149: - [x] **6.3** Nessuno stato inventato: senza evento finale `response.completed` dal provider, trattata come risposta incompleta (`status: "incomplete"`), testo parziale con avviso esplicito, zero citazioni. *(Completato con `test_missing_response_completed_treated_as_interrupted_with_zero_citations`)*
+150: - [x] **6.4** Errore di rete durante lo streaming: trattato come interruzione con preservazione testo parziale, zero citazioni e motivo registrato nel log di timing `ask_timing.log`. *(Completato con `test_streaming_network_error_treated_as_interrupted_with_reason`)*
+151: - [x] **6.5** Rimozione ramo non usato `choices[0].delta.content` (formato Chat Completions, non usato con Responses API).
+152: - [x] **6.6** Suite completa 154 test lib + 18 test integrazione = 172 test verdi sia in parallelo che sequenziali (`--test-threads=1`).
+153: - [x] **6.7** Commit git, generazione `fase-5b.patch`, aggiornamento `SESSION_HANDOVER_WINDOWS_BUILD.md`.
+154: - [x] **6.8** STOP operativo per la prova di Cesare.
+155: 
+156: ---
+157: 
+158: ## 4. Regole Operative Tassative
+159: - **ZERO chiamate a OpenAI eseguite dall'assistente**.
+160: - **ZERO processi arrestati o riavviati**.
+161: 

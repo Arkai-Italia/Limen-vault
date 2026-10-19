@@ -1,0 +1,206 @@
+Window: "LIMEN Vault v4", App: limen-vault.exe.
+	0 window LIMEN Vault v4 Secondary Actions: Raise
+		1 pane
+			2 pane LIMEN Vault v3
+				3 pane (disabled)
+				4 region LIMEN Vault v3 - Web content
+					5 region
+						6 region
+							7 region
+								8 region
+								9 region
+									10 region
+										11 region
+											12 region
+												13 region
+												28 document LIMEN Vault v3 Value: http://localhost:1420/ ID: RootWebArea
+													29 group ID: root
+														30 complementary
+															31 text L
+															32 text E:\VAULT WIN TEST
+															33 text LIMEN Vault v4
+															34 text (app nativa)
+															64 button CARICA DOCUMENTI ID: btn-upload-documents-global
+																65 graphic
+															35 navigation
+																36 button Chiedi
+																	37 graphic
+																38 button Documenti 376
+																	39 graphic
+																40 button Memoria 378
+																	41 graphic
+																42 button Avanzate
+																	43 graphic
+															44 button (disabled) Apri in Obsidian
+																45 graphic
+														46 header
+															518 text Avanzate e Manutenzione
+															66 text VAULT WIN TEST DEV
+															48 button Aggiorna Description: Aggiorna stato, file e dati del Vault
+																49 graphic
+															67 text ●
+															68 text Pronto
+														51 main
+															69 text PRONTO
+															70 text E:\VAULT WIN TEST
+															71 text E:\VAULT WIN TEST DEV
+															72 text •
+															73 text 378
+															74 text File Markdown
+															75 button (disabled) Apri in Obsidian (Non disponibile) Description: Obsidian non rilevato su questo Mac
+															519 button Bozze e Proposte
+															520 button Copie locali e Ripristino
+															521 button Trasferimenti
+															522 button Collegamenti AI & MCP
+															523 button Compilatore manuale
+															524 button Stato di Sistema
+															525 button Guida Vault
+															526 heading Motore semantico
+															527 text RAG 100% LOCALE
+															528 text Configura il fornitore per il calcolo dei vettori semantici e la ricerca ibrida. Con il motore locale, nessun dato esce dal computer e il funzionamento è a rete zero.
+															529 radio button (selectable, settable, string) OpenAI (in rete) Modello text-embedding-3-small (1536 dim). Richiede chiave API configurata nel Gestore credenziali e connessione internet.
+															530 text OpenAI (in rete)
+															531 text Modello
+															532 text text-embedding-3-small
+															533 text (1536 dim). Richiede chiave API configurata nel Gestore credenziali e connessione internet.
+															534 radio button (selectable, settable, string) Locale (bge-m3, nessun dato esce dal computer) Modello bge-m3-Q8_0.gguf (1024 dim) eseguito dal motore integrato. Funzionamento 100% offline a rete zero.
+															535 text Locale (bge-m3, nessun dato esce dal computer)
+															536 text Modello
+															537 text bge-m3-Q8_0.gguf
+															538 text (1024 dim) eseguito dal motore integrato. Funzionamento 100% offline a rete zero.
+															539 text Modello locale (bge-m3-Q8_0.gguf)
+															540 text INSTALLATO (SHA-256 OK)
+															598 text Percorso:
+															599 text 
+															600 text C:\Users\user\LIMEN Vault\models\bge-m3-Q8_0.gguf
+															601 text Dimensione:
+															602 text 
+															603 text 605.2 MB
+															604 text (634.553.760 byte)
+															605 text ✓ Dopo lo scaricamento, il funzionamento è a rete zero. Nessun dato lascia mai questo computer.
+															606 button VERIFICA INTEGRITÀ
+															607 button SOSTITUISCI FILE GGUF DA DISCO…
+															544 text Servizio locale di calcolo
+															545 text IN AVVIO…
+															608 text Ultimo errore:
+															609 text 
+															610 text llama-server terminato con stato: exit code: 0xffffffff
+															547 button (disabled) AVVIO IN CORSO…
+															548 button AGGIORNA STATO
+															611 text Cache semantica del Vault
+															612 text 23482 passaggi indicizzati (1024 dim)
+								14 region
+						15 region
+						16 region
+		17 title bar (settable, string) Value: LIMEN Vault v4
+			18 menu bar System ID: MenuBar
+				19 menu item System
+			20 button Minimize
+			21 button Maximize
+			22 button Close
+		23 menu bar Application ID: MenuBar
+			24 menu item File
+			25 menu item Modifica
+			26 menu item Finestra
+			27 menu item Aiuto
+
+Document text: ```
+L
+E:\VAULT WIN TEST
+LIMEN Vault v4 (app nativa)
+￼
+CARICA DOCUMENTI
+￼
+Chiedi
+￼
+Documenti
+376
+￼
+Memoria
+378
+￼
+Avanzate
+￼
+Apri in Obsidian
+Avanzate e Manutenzione
+VAULT WIN TEST DEV
+￼
+Aggiorna
+● Pronto
+PRONTO
+E:\VAULT WIN TEST
+E:\VAULT WIN TEST DEV • 378 File Markdown
+Apri in Obsidian
+(Non disponibile)
+Bozze e Proposte
+Copie locali e Ripristino
+Trasferimenti
+Collegamenti AI & MCP
+Compilatore manuale
+Stato di Sistema
+Guida Vault
+Motore semantico
+RAG 100% LOCALE
+Configura il fornitore per il calcolo dei vettori semantici e la ricerca ibrida. Con il motore locale, nessun dato esce dal computer e il funzionamento è a rete zero.
+￼
+OpenAI (in rete)
+Modello text-embedding-3-small (1536 dim). Richiede chiave API configurata nel Gestore credenziali e connessione internet.
+￼
+Locale (bge-m3, nessun dato esce dal computer)
+Modello bge-m3-Q8_0.gguf (1024 dim) eseguito dal motore integrato. Funzionamento 100% offline a rete zero.
+Modello locale (bge-m3-Q8_0.gguf)
+INSTALLATO (SHA-256 OK)
+Percorso: C:\Users\user\LIMEN Vault\models\bge-m3-Q8_0.gguf
+Dimensione: 605.2 MB (634.553.760 byte)
+✓ Dopo lo scaricamento, il funzionamento è a rete zero. Nessun dato lascia mai questo computer.
+VERIFICA INTEGRITÀ
+SOSTITUISCI FILE GGUF DA DISCO…
+Servizio locale di calcolo
+IN AVVIO…
+Ultimo errore: llama-server terminato con stato: exit code: 0xffffffff
+AVVIO IN CORSO…
+AGGIORNA STATO
+Cache semantica del Vault
+23482 passaggi indicizzati (1024 dim)
+✓ Le dimensioni della cache (1024d) sono perfettamente allineate con il fornitore attivo (local, 1024d).
+Generazione risposte e consenso OpenAI
+Imposta il consenso all’invio e scegli il modello OpenAI una volta sola nelle Impostazioni. Le domande nella scheda Chiedi utilizzeranno automaticamente questa configurazione.
+￼
+Consenti l'invio a OpenAI dei passaggi pertinenti per generare le risposte
+✓ Consenso attivo: l’app può inviare i passaggi dei documenti pertinenti a OpenAI per comporre le risposte.
+Modello OpenAI predefinito
+￼
+￼
+Impostazioni OpenAI & Consenso
+￼
+Consenti l'invio a OpenAI dei passaggi pertinenti per generare le risposte
+Quando attivo, le domande inviate nella scheda Chiedi genereranno la risposta tramite le API di OpenAI inviando solo i passaggi estratti dal Vault.
+Modello OpenAI predefinito
+Modello OpenAI predefinito
+Chiave API OpenAI (memorizzata nel Gestore credenziali)
+Chiave API OpenAI
+Salva chiave
+Verifica Gestore credenziali
+Rimuovi chiave
+Gestore credenziali non verificato
+Collegamenti AI & Tunnel
+Condivisione in sola lettura per client esterni ed MCP. Il computer e questa app devono restare accesi.
+Attiva MCP locale
+Revoca MCP
+ChatGPT Business · tunnel privato
+Collegamento facoltativo per condividere fonti approvate e indicizzate del Vault selezionato. Questo computer e questa app devono restare accesi. Occorre una configurazione corrispondente di tunnel, spazio di lavoro e organizzazione nell’account OpenAI.
+ID tunnel
+ID tunnel Business
+ID organizzazione
+ID organizzazione Business
+Chiave di esecuzione del tunnel
+Chiave di esecuzione del tunnel
+SALVA CHIAVE TUNNEL
+AVVIA TUNNEL BUSINESS
+ARRESTA TUNNEL BUSINESS
+○ Tunnel arrestato
+L’arresto impedisce nuove letture locali. Scollega anche il plugin in ChatGPT per revocare il collegamento remoto. Il tunnel non si avvia automaticamente all’accesso.
+Impostazioni del Vault
+Cartella locale del Vault
+E:\VAULT WIN TEST DEV
+```

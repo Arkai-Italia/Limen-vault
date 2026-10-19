@@ -1,0 +1,44 @@
+{
+  "At": "2026-09-24T11:32:23.4187827+08:00",
+  "ElevatedAdmin": false,
+  "Processes": [
+    {
+      "ProcessId": 30548,
+      "ExecutablePath": "E:\\Projects\\vault_memai_obsi\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+      "CreationDate": "2026-09-24T11:24:35.913169+08:00"
+    }
+  ],
+  "Worktrees": [
+    "E:/Projects/vault_memai_obsi               840c446 [windows-build]",
+    "E:/Projects/vault_memai_obsi_audit_67da90f 67da90f (detached HEAD)",
+    "E:/Projects/vault_memai_obsi_audit_e0afe10 e0afe10 (detached HEAD)",
+    "E:/Projects/vault_memai_obsi_audit_ef2532c ef2532c (detached HEAD)",
+    "E:/Projects/vault_memai_obsi_audit_efa0cef efa0cef (detached HEAD)"
+  ],
+  "Revisions": [
+    {
+      "Path": "E:\\Projects\\vault_memai_obsi_audit_e0afe10",
+      "SHA": "e0afe105507b592b6eb34c5c0eac24b77ba14264",
+      "Status": [],
+      "Target": "E:\\Projects\\vault_memai_obsi_audit_e0afe10\\apps\\desktop\\src-tauri\\target"
+    },
+    {
+      "Path": "E:\\Projects\\vault_memai_obsi_audit_ef2532c",
+      "SHA": "ef2532ca700c712b4c68d25fd26324702dce0782",
+      "Status": [],
+      "Target": "E:\\Projects\\vault_memai_obsi_audit_ef2532c\\apps\\desktop\\src-tauri\\target"
+    },
+    {
+      "Path": "E:\\Projects\\vault_memai_obsi_audit_efa0cef",
+      "SHA": "efa0cefab5da83e8de3b3418a92285438c63fb36",
+      "Status": [],
+      "Target": "E:\\Projects\\vault_memai_obsi_audit_efa0cef\\apps\\desktop\\src-tauri\\target"
+    },
+    {
+      "Path": "E:\\Projects\\vault_memai_obsi_audit_67da90f",
+      "SHA": "67da90f5aeb4af6817f20b8e7f64a1de1daa3662",
+      "Status": [],
+      "Target": "E:\\Projects\\vault_memai_obsi_audit_67da90f\\apps\\desktop\\src-tauri\\target"
+    }
+  ]
+}

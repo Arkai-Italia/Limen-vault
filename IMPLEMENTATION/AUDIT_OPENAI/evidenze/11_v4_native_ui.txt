@@ -1,0 +1,153 @@
+Osservazione nativa precedente alla chiusura esterna della finestra; raccolta circa 10:18 UTC+8, 24/09/2026. Archiviazione successiva.
+{"app":"process:E:\\Projects\\vault_memai_obsi\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe","id":33427230,"title":"LIMEN Vault v4"}
+Window: "LIMEN Vault v4", App: limen-vault.exe.
+	0 window LIMEN Vault v4 Secondary Actions: Raise
+		1 pane
+			2 pane LIMEN Vault v3
+				3 pane (disabled)
+				4 region LIMEN Vault v3 - Web content
+					5 region
+						6 region
+							7 region
+								8 region
+								9 region
+									10 region
+										11 region
+											12 region
+												13 region
+												14 document LIMEN Vault v3 Value: http://localhost:1420/ ID: RootWebArea
+													15 group ID: root
+														16 complementary
+															17 text L
+															18 text E:\VAULT WIN TEST
+															19 text LIMEN Vault v4
+															20 text (app nativa)
+															21 button CARICA DOCUMENTI ID: btn-upload-documents-global
+																22 graphic
+															23 navigation
+																24 button Chiedi
+																	25 graphic
+																26 button Documenti 376
+																	27 graphic
+																28 button Memoria 378
+																	29 graphic
+																30 button Avanzate
+																	31 graphic
+															32 button (disabled) Apri in Obsidian
+																33 graphic
+														34 header
+															35 text Chiedi al Vault
+															36 text VAULT WIN TEST DEV
+															37 button Aggiorna Description: Aggiorna stato, file e dati del Vault
+																38 graphic
+															39 text ●
+															40 text Pronto
+														41 main
+															42 text PRONTO
+															43 text E:\VAULT WIN TEST
+															44 text E:\VAULT WIN TEST DEV
+															45 text •
+															46 text 378
+															47 text File Markdown
+															48 button (disabled) Apri in Obsidian (Non disponibile) Description: Obsidian non rilevato su questo Mac
+															49 heading Cerca nel Vault & Chiedi all’AI
+															50 text Cerca nei passaggi estratti dei documenti e nelle note aziendali con ricerca ibrida locale, oppure invia la domanda a OpenAI con citazioni verificate.
+															51 button Aggiorna indice
+																52 graphic
+															53 graphic
+															54 edit (settable, string) Cerca parole chiave, contratti, clienti, passaggi di documenti... Description: Cerca parole chiave, contratti, clienti, passaggi di documenti...
+															55 combo box (settable, string) Value: Tutte le categorie
+															56 edit (settable, string) Filtra per cliente Description: Filtro cliente...
+															57 edit (settable, string) Filtra per progetto Description: Filtro progetto...
+															58 check box (settable, string) Ricerca Ibrida (Semantica + Lessicale) 🟢 RAG 100% LOCALE
+															59 text Ricerca Ibrida (Semantica + Lessicale)
+															60 text 🟢 RAG 100% LOCALE
+															61 graphic
+															62 heading Chiedi al Vault
+															63 text Fai una domanda per ottenere una risposta in prosa sintetizzata direttamente dai tuoi documenti.
+															64 text Modello:
+															65 combo box (settable, string) Seleziona modello AI Value: gpt-4o ID: ai-model-select
+															66 edit (settable, string) Domanda al Vault Description: Es. Cosa è il progetto BNXT e quali requisiti prevede? Value: cosa e' il progetto bnxt ?
+															67 button Chiedi
+															68 check box (settable, string) Includi bozze e note non approvate
+															69 text Premere Invio per inviare
+															70 button Fonti consultate dal Vault per questa domanda (8)
+																71 graphic
+																72 graphic
+																73 heading Fonti consultate dal Vault per questa domanda (8)
+															74 group
+																75 graphic
+																76 text 32f2a4081d13410e-BNXT CRM
+																77 text raw_source
+																78 text CITATA
+																79 text Paragrafi 1-13, Paragrafi 52-68
+															80 group
+																81 graphic
+																82 text a86061ba2701d614-_Progetto - BNXT AUDIT VICENZA
+																83 text raw_source
+																84 text Paragrafi 1-8
+															85 group
+																86 graphic
+																87 text d70f1c7b1d36f912-STEFANO APP
+																88 text raw_source
+																89 text CITATA
+																90 text Paragrafi 224-234, Paragrafi 235-243
+															91 group
+																92 graphic
+																93 text 4245a51312c5c1f2-2026-04-07 - Workflow app iPhone nativa con Xcode
+																94 text raw_source
+																95 text Paragrafi 6-11, Paragrafi 12-25
+															96 group
+																97 graphic
+																98 text 5a54c2ce2f581cf2-verifica-walkthrough-ux-email-whatsapp-2026-09-10
+																99 text raw_source
+																100 text Paragrafi 1-3, Paragrafo 4
+															101 group
+																102 graphic
+																103 text 1e755ab82023a095-verifica-impl-plan-ux-email-whatsapp-2026-09-10
+																104 text raw_source
+																105 text Paragrafi 1-3, Paragrafo 4
+															106 group
+																107 graphic
+																108 text 957b10627e45aa38-_INDICE
+																109 text raw_source
+																110 text Paragrafi 1-2
+															111 group
+																112 graphic
+																113 text abaef2b48c6e5b70-audit-localizzazione-EN-baseline-6f2f2b8
+																114 text raw_source
+																115 text Paragrafi 1-4, Paragrafo 5, Paragrafo 6
+															116 text Basata su
+															117 text 2
+															118 text document
+															119 text i citati
+															120 text tra
+															121 text 8
+															122 text consultat
+															123 text i
+															124 text Il progetto BNXT si concentra sullo sviluppo di un CRM specificamente progettato per un'azienda operante nel settore dell'abbigliamento per motociclisti. L'obiettivo principale è creare un sistema gestionale completo (CRM/CLM) che includa: - Ingestion di lead da diversi canali come WhatsApp, email, sito web, eventi e inserimento manuale. - Pipeline commerciale con gestione di preventivi e offerte in formato PDF. - Conversione automatica dei preventivi in ordini. - Monitoraggio della produzione direttamente dalle fabbriche attraverso un tracker aggiornato. - Gestione tramite un'applicazione web progressiva (PWA) per il controllo mobile. Inoltre, il progetto prevede l'integrazione di WhatsApp Business per l'ingestione automatica dei lead, e la possibilità di espansione per includere più numeri per funzioni diverse come vendite, produzione e supporto post-vendita. BNXT1, il brand associato al progetto, è un'azienda italiana che produce abbigliamento tecnico da moto su misura, con un focus su competizioni come il Rally Dakar e l'enduro off-road, offrendo prodotti come giacche, pantaloni e maglie specifiche per tali contesti. Il progetto è parte di un'implementazione più ampia che include anche audit e verifiche UX per garantire l'efficacia e la qualità del sistema.
+															125 button Salva risposta come bozza
+															126 text Risposta generata con OpenAI (
+															127 text gpt-4o-2024-08-06
+															128 text )
+															129 details
+																130 disclosure triangle Dettagli tecnici
+																	131 text Dettagli tecnici
+								132 region
+						133 region
+						134 region
+		135 title bar (settable, string) Value: LIMEN Vault v4
+			136 menu bar System ID: MenuBar
+				137 menu item System
+			138 button Minimize
+			139 button Maximize
+			140 button Close
+		141 menu bar Application ID: MenuBar
+			142 menu item File
+			143 menu item Modifica
+			144 menu item Finestra
+			145 menu item Aiuto
+
+Document text: ```
+cosa e' il progetto bnxt ?
+```

@@ -1,0 +1,18 @@
+2026-09-24T09:43:20.3934972+08:00
+
+Id        : 20772
+Path      : E:\Projects\vault_memai_obsi\apps\desktop\src-tauri\target\release\limen-vault.exe
+StartTime : 24/09/2026 09:35:27
+
+Id        : 31524
+Path      : E:\Projects\vault_memai_obsi\apps\desktop\src-tauri\target\release\native\llama-server.exe
+StartTime : 24/09/2026 09:36:57
+
+shared_pid=31524 shared_port=52944
+FOREIGN_REGISTERED port=52944 pid=31524 healthy=true
+FRESH_APP_STATUS LocalServerReport { running: false, port: 0, pid: None, model: "bge-m3-Q8_0.gguf", healthy: false, last_error: None }
+HARNESS orphan reaping disabled
+DURING_START own_port=59297 own_health=true mutex_busy=true
+STATUS_UNBLOCKED_AFTER_MS=33074 report=LocalServerReport { running: false, port: 0, pid: None, model: "bge-m3-Q8_0.gguf", healthy: false, last_error: None }
+START_FAILED_RESULT Err("Controllo dimensioni vettore fallito: Risposta JSON non valida: expected value at line 1 column 1 (corpo: invalid-json)") elapsed_ms=35077
+FOREIGN_STILL_HEALTHY true

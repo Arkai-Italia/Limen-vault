@@ -1,0 +1,331 @@
+{
+  "At": "2026-09-24T13:41:58.7508754+08:00",
+  "RequiredCases": 18,
+  "ObservedCases": 18,
+  "ExtraReplay": "M03R; M10_repeat_ui",
+  "MissingCases": [],
+  "LinksChecked": 225,
+  "MissingLinks": [],
+  "DumpCount": 9,
+  "Dumps": [
+    {
+      "Name": "M03_process.dmp",
+      "Length": 629075838
+    },
+    {
+      "Name": "M03R_process.dmp",
+      "Length": 647145646
+    },
+    {
+      "Name": "M04_process.dmp",
+      "Length": 654894782
+    },
+    {
+      "Name": "M07_process.dmp",
+      "Length": 645390478
+    },
+    {
+      "Name": "M08_process.dmp",
+      "Length": 668586014
+    },
+    {
+      "Name": "M11_process.dmp",
+      "Length": 649808174
+    },
+    {
+      "Name": "M12_process.dmp",
+      "Length": 664009742
+    },
+    {
+      "Name": "M15_process.dmp",
+      "Length": 631888670
+    },
+    {
+      "Name": "M16_process.dmp",
+      "Length": 644595038
+    }
+  ],
+  "Screenshots": [
+    {
+      "File": "E01_ui.jpg",
+      "ValidImage": true,
+      "Format": "JPEG",
+      "Width": 1282,
+      "Height": 872
+    },
+    {
+      "File": "E02_panel.jpg",
+      "ValidImage": true,
+      "Format": "JPEG",
+      "Width": 1282,
+      "Height": 872
+    },
+    {
+      "File": "E02_ui.jpg",
+      "ValidImage": true,
+      "Format": "JPEG",
+      "Width": 1282,
+      "Height": 872
+    },
+    {
+      "File": "M01_ui.jpg",
+      "ValidImage": true,
+      "Format": "JPEG",
+      "Width": 1282,
+      "Height": 872
+    },
+    {
+      "File": "M02_panel.jpg",
+      "ValidImage": true,
+      "Format": "JPEG",
+      "Width": 1282,
+      "Height": 872
+    },
+    {
+      "File": "M02_ui.jpg",
+      "ValidImage": true,
+      "Format": "JPEG",
+      "Width": 1282,
+      "Height": 872
+    },
+    {
+      "File": "M03_panel.jpg",
+      "ValidImage": true,
+      "Format": "JPEG",
+      "Width": 1282,
+      "Height": 872
+    },
+    {
+      "File": "M03_ui.jpg",
+      "ValidImage": true,
+      "Format": "JPEG",
+      "Width": 1282,
+      "Height": 872
+    },
+    {
+      "File": "M03R_panel.jpg",
+      "ValidImage": true,
+      "Format": "JPEG",
+      "Width": 1282,
+      "Height": 872
+    },
+    {
+      "File": "M03R_recovered_ui.jpg",
+      "ValidImage": true,
+      "Format": "JPEG",
+      "Width": 1282,
+      "Height": 872
+    },
+    {
+      "File": "M03R_ui.jpg",
+      "ValidImage": true,
+      "Format": "JPEG",
+      "Width": 1282,
+      "Height": 872
+    },
+    {
+      "File": "M04_panel.jpg",
+      "ValidImage": true,
+      "Format": "JPEG",
+      "Width": 1282,
+      "Height": 872
+    },
+    {
+      "File": "M04_ui.jpg",
+      "ValidImage": true,
+      "Format": "JPEG",
+      "Width": 1282,
+      "Height": 872
+    },
+    {
+      "File": "M05_ui.jpg",
+      "ValidImage": true,
+      "Format": "JPEG",
+      "Width": 1282,
+      "Height": 872
+    },
+    {
+      "File": "M06_panel.jpg",
+      "ValidImage": true,
+      "Format": "JPEG",
+      "Width": 1282,
+      "Height": 872
+    },
+    {
+      "File": "M06_ui.jpg",
+      "ValidImage": true,
+      "Format": "JPEG",
+      "Width": 1282,
+      "Height": 872
+    },
+    {
+      "File": "M07_panel.jpg",
+      "ValidImage": true,
+      "Format": "JPEG",
+      "Width": 1282,
+      "Height": 872
+    },
+    {
+      "File": "M07_recovered_ui.jpg",
+      "ValidImage": true,
+      "Format": "JPEG",
+      "Width": 1282,
+      "Height": 872
+    },
+    {
+      "File": "M07_ui.jpg",
+      "ValidImage": true,
+      "Format": "JPEG",
+      "Width": 1282,
+      "Height": 872
+    },
+    {
+      "File": "M08_panel.jpg",
+      "ValidImage": true,
+      "Format": "JPEG",
+      "Width": 1282,
+      "Height": 872
+    },
+    {
+      "File": "M08_recovered_ui.jpg",
+      "ValidImage": true,
+      "Format": "JPEG",
+      "Width": 1282,
+      "Height": 872
+    },
+    {
+      "File": "M08_ui.jpg",
+      "ValidImage": true,
+      "Format": "JPEG",
+      "Width": 1282,
+      "Height": 872
+    },
+    {
+      "File": "M09_ui.jpg",
+      "ValidImage": true,
+      "Format": "JPEG",
+      "Width": 1282,
+      "Height": 872
+    },
+    {
+      "File": "M10_panel.jpg",
+      "ValidImage": true,
+      "Format": "JPEG",
+      "Width": 1282,
+      "Height": 872
+    },
+    {
+      "File": "M10_repeat_ui.jpg",
+      "ValidImage": true,
+      "Format": "JPEG",
+      "Width": 1282,
+      "Height": 872
+    },
+    {
+      "File": "M10_ui.jpg",
+      "ValidImage": true,
+      "Format": "JPEG",
+      "Width": 1282,
+      "Height": 872
+    },
+    {
+      "File": "M11_panel.jpg",
+      "ValidImage": true,
+      "Format": "JPEG",
+      "Width": 1282,
+      "Height": 872
+    },
+    {
+      "File": "M11_recovered_ui.jpg",
+      "ValidImage": true,
+      "Format": "JPEG",
+      "Width": 1282,
+      "Height": 872
+    },
+    {
+      "File": "M11_ui.jpg",
+      "ValidImage": true,
+      "Format": "JPEG",
+      "Width": 1282,
+      "Height": 872
+    },
+    {
+      "File": "M12_panel.jpg",
+      "ValidImage": true,
+      "Format": "JPEG",
+      "Width": 1282,
+      "Height": 872
+    },
+    {
+      "File": "M12_recovered_ui.jpg",
+      "ValidImage": true,
+      "Format": "JPEG",
+      "Width": 1282,
+      "Height": 872
+    },
+    {
+      "File": "M12_ui.jpg",
+      "ValidImage": true,
+      "Format": "JPEG",
+      "Width": 1282,
+      "Height": 872
+    },
+    {
+      "File": "M13_ui.jpg",
+      "ValidImage": true,
+      "Format": "JPEG",
+      "Width": 1282,
+      "Height": 872
+    },
+    {
+      "File": "M14_panel.jpg",
+      "ValidImage": true,
+      "Format": "JPEG",
+      "Width": 1282,
+      "Height": 872
+    },
+    {
+      "File": "M14_ui.jpg",
+      "ValidImage": true,
+      "Format": "JPEG",
+      "Width": 1282,
+      "Height": 872
+    },
+    {
+      "File": "M15_panel.jpg",
+      "ValidImage": true,
+      "Format": "JPEG",
+      "Width": 1282,
+      "Height": 872
+    },
+    {
+      "File": "M15_ui.jpg",
+      "ValidImage": true,
+      "Format": "JPEG",
+      "Width": 1282,
+      "Height": 872
+    },
+    {
+      "File": "M16_panel.jpg",
+      "ValidImage": true,
+      "Format": "JPEG",
+      "Width": 1282,
+      "Height": 872
+    },
+    {
+      "File": "M16_ui.jpg",
+      "ValidImage": true,
+      "Format": "JPEG",
+      "Width": 1282,
+      "Height": 872
+    }
+  ],
+  "UniqueLoggedTimingRecords": 15,
+  "CasesWithoutInternalMetrics": [
+    "M09",
+    "M10",
+    "M11",
+    "M12"
+  ],
+  "SourceCodeContentDiffEmpty": true
+}

@@ -1,0 +1,862 @@
+1: import React, { useEffect, useState, useRef } from 'react';
+2: import { listen } from '@tauri-apps/api/event';
+3: import {
+4:   aiIpc,
+5:   type EmbeddingsProviderReport,
+6:   type LocalModelReport,
+7:   type LocalServerReport,
+8:   type LocalModelProgress,
+9: } from './ai-ipc';
+10: 
+11: const fieldStyle: React.CSSProperties = {
+12:   padding: '8px 12px',
+13:   border: '1px solid #cbd5e1',
+14:   borderRadius: 6,
+15:   fontSize: 13,
+16: };
+17: 
+18: const buttonPrimary: React.CSSProperties = {
+19:   ...fieldStyle,
+20:   cursor: 'pointer',
+21:   background: '#0f172a',
+22:   color: '#ffffff',
+23:   fontWeight: 600,
+24: };
+25: 
+26: const buttonSecondary: React.CSSProperties = {
+27:   ...fieldStyle,
+28:   cursor: 'pointer',
+29:   background: '#f8fafc',
+30:   color: '#1e293b',
+31:   fontWeight: 500,
+32: };
+33: 
+34: function formatBytes(bytes: number): string {
+35:   if (bytes === 0) return '0 B';
+36:   const k = 1024;
+37:   const sizes = ['B', 'KB', 'MB', 'GB'];
+38:   const i = Math.floor(Math.log(bytes) / Math.log(k));
+39:   return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
+40: }
+41: 
+42: export function SemanticEngineSettings({ vaultPath }: { vaultPath: string }) {
+43:   const [providerReport, setProviderReport] = useState<EmbeddingsProviderReport | null>(null);
+44:   const [modelReport, setModelReport] = useState<LocalModelReport | null>(null);
+45:   const [serverReport, setServerReport] = useState<LocalServerReport | null>(null);
+46: 
+47:   const [loading, setLoading] = useState(false);
+48:   const [downloading, setDownloading] = useState(false);
+49:   const [downloadProgress, setDownloadProgress] = useState<LocalModelProgress | null>(null);
+50: 
+51:   const [startingServer, setStartingServer] = useState(false);
+52:   const isStarting = startingServer || Boolean(serverReport?.starting);
+53:   const [stoppingServer, setStoppingServer] = useState(false);
+54:   const [pickingModelFile, setPickingModelFile] = useState(false);
+55:   const [verifyingIntegrity, setVerifyingIntegrity] = useState(false);
+56:   const [refreshing, setRefreshing] = useState(false);
+57:   const [optimisticProvider, setOptimisticProvider] = useState<'openai' | 'local' | null>(null);
+58: 
+59:   const [reindexing, setReindexing] = useState(false);
+60:   const [reindexPercent, setReindexPercent] = useState<number | null>(null);
+61:   const [reindexCounts, setReindexCounts] = useState<{ processed: number; total: number } | null>(null);
+62: 
+63:   const [openaiConsent, setOpenaiConsent] = useState<boolean>(false);
+64:   const [selectedOpenaiModel, setSelectedOpenaiModel] = useState<string>(
+65:     typeof localStorage !== 'undefined' ? localStorage.getItem('limen_openai_model') || 'gpt-4o-mini' : 'gpt-4o-mini'
+66:   );
+67: 
+68:   const [error, setError] = useState<string | null>(null);
+69:   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+70: 
+71:   const isMounted = useRef(true);
+72: 
+73:   const refreshAll = async () => {
+74:     if (!vaultPath) return;
+75:     setRefreshing(true);
+76:     try {
+77:       const [prov, model, srv, consent] = await Promise.all([
+78:         aiIpc.embeddingsGetProvider(vaultPath),
+79:         aiIpc.localModelStatus(),
+80:         aiIpc.localServerStatus(),
+81:         aiIpc.getConsent(vaultPath).catch(() => false),
+82:       ]);
+83:       if (isMounted.current) {
+84:         setProviderReport(prov);
+85:         setModelReport(model);
+86:         setServerReport(srv);
+87:         setOpenaiConsent(consent);
+88:         setOptimisticProvider(null);
+89:       }
+90:     } catch (err) {
+91:       if (isMounted.current) {
+92:         setError(`Errore nel caricamento delle impostazioni semantiche: ${String(err)}`);
+93:       }
+94:     } finally {
+95:       if (isMounted.current) {
+96:         setRefreshing(false);
+97:       }
+98:     }
+99:   };
+100: 
+101:   const handleToggleConsent = async (granted: boolean) => {
+102:     setOpenaiConsent(granted);
+103:     try {
+104:       await aiIpc.setConsent(vaultPath, granted);
+105:       setSuccessMessage(granted ? 'Consenso all’invio dei passaggi a OpenAI accordato.' : 'Consenso revocato.');
+106:     } catch (err) {
+107:       setError(`Impossibile aggiornare il consenso: ${String(err)}`);
+108:     }
+109:   };
+110: 
+111:   const handleSelectOpenaiModel = (modelName: string) => {
+112:     setSelectedOpenaiModel(modelName);
+113:     if (typeof localStorage !== 'undefined') {
+114:       localStorage.setItem('limen_openai_model', modelName);
+115:     }
+116:     setSuccessMessage(`Modello OpenAI predefinito impostato su ${modelName}.`);
+117:   };
+118: 
+119:   useEffect(() => {
+120:     isMounted.current = true;
+121:     void refreshAll();
+122: 
+123:     let unlistenDownload: (() => void) | undefined;
+124:     let unlistenSync: (() => void) | undefined;
+125: 
+126:     void listen<LocalModelProgress>('local_model_download_progress', (e) => {
+127:       if (isMounted.current) {
+128:         setDownloadProgress(e.payload);
+129:       }
+130:     }).then((unlisten) => {
+131:       unlistenDownload = unlisten;
+132:     }).catch((err) => {
+133:       // Errore visibile: un listener negato dai permessi Tauri lascerebbe l'avanzamento fermo senza spiegazione.
+134:       console.error('[LIMEN] listen non registrato:', err);
+135:     });
+136: 
+137:     void listen<{ percent: number; processed: number; total: number }>('embeddings_sync_progress', (e) => {
+138:       if (isMounted.current) {
+139:         setReindexPercent(e.payload.percent);
+140:         setReindexCounts({ processed: e.payload.processed, total: e.payload.total });
+141:         // Primo evento (0 elaborati): il backend ha appena avviato il servizio locale su richiesta.
+142:         // Senza questa rilettura il badge restava su SPENTO per tutta la durata del ricalcolo (collaudo 20/09/2026).
+143:         if (e.payload.processed === 0) {
+144:           void refreshAll();
+145:         }
+146:       }
+147:     }).then((unlisten) => {
+148:       unlistenSync = unlisten;
+149:     }).catch((err) => {
+150:       // Errore visibile: un listener negato dai permessi Tauri lascerebbe l'avanzamento fermo senza spiegazione.
+151:       console.error('[LIMEN] listen non registrato:', err);
+152:     });
+153: 
+154:     return () => {
+155:       isMounted.current = false;
+156:       if (unlistenDownload) unlistenDownload();
+157:       if (unlistenSync) unlistenSync();
+158:     };
+159:   }, [vaultPath]);
+160: 
+161:   useEffect(() => {
+162:     if (!serverReport?.starting) return;
+163:     const interval = setInterval(() => {
+164:       void refreshAll();
+165:     }, 1000);
+166:     return () => clearInterval(interval);
+167:   }, [serverReport?.starting]);
+168: 
+169:   const handleSelectProvider = async (provider: 'openai' | 'local') => {
+170:     if (loading || downloading || reindexing) return;
+171:     setOptimisticProvider(provider);
+172:     setError(null);
+173:     setSuccessMessage(null);
+174:     setLoading(true);
+175:     try {
+176:       const updated = await aiIpc.embeddingsSetProvider(vaultPath, provider);
+177:       setProviderReport(updated);
+178:       setSuccessMessage(`Fornitore semantico aggiornato a: ${provider === 'local' ? 'Locale (bge-m3)' : 'OpenAI'}`);
+179:       await refreshAll();
+180:     } catch (err) {
+181:       setOptimisticProvider(null);
+182:       setError(`Impossibile impostare il fornitore: ${String(err)}`);
+183:     } finally {
+184:       setLoading(false);
+185:     }
+186:   };
+187: 
+188:   const handleDownloadModel = async () => {
+189:     if (downloading || loading) return;
+190:     setError(null);
+191:     setSuccessMessage(null);
+192:     setDownloading(true);
+193:     setDownloadProgress(null);
+194:     try {
+195:       const rep = await aiIpc.localModelDownload();
+196:       setModelReport(rep);
+197:       setSuccessMessage('Modello bge-m3-Q8_0.gguf scaricato e verificato con successo (SHA-256 integro).');
+198:     } catch (err) {
+199:       setError(`Download del modello fallito: ${String(err)}`);
+200:     } finally {
+201:       setDownloading(false);
+202:       setDownloadProgress(null);
+203:       await refreshAll();
+204:     }
+205:   };
+206: 
+207:   const handlePickModelFile = async () => {
+208:     if (pickingModelFile || loading || downloading) return;
+209:     setError(null);
+210:     setSuccessMessage(null);
+211:     setPickingModelFile(true);
+212:     try {
+213:       const rep = await aiIpc.localModelPickAndInstall();
+214:       setModelReport(rep);
+215:       if (rep.sha256Ok) {
+216:         setSuccessMessage('Modello selezionato installato con successo e SHA-256 verificato.');
+217:       } else {
+218:         setError('Modello selezionato installato ma la verifica SHA-256 non è valida.');
+219:       }
+220:     } catch (err) {
+221:       setError(`Installazione del file fallita: ${String(err)}`);
+222:     } finally {
+223:       setPickingModelFile(false);
+224:       await refreshAll();
+225:     }
+226:   };
+227: 
+228:   const handleVerifyIntegrity = async () => {
+229:     if (verifyingIntegrity || loading || downloading) return;
+230:     setError(null);
+231:     setSuccessMessage(null);
+232:     setVerifyingIntegrity(true);
+233:     try {
+234:       const rep = await aiIpc.localModelVerifyIntegrity();
+235:       setModelReport(rep);
+236:       if (rep.sha256Ok) {
+237:         setSuccessMessage('Verifica integrità completata: SHA-256 integro e cache allineata.');
+238:       } else {
+239:         setError('Verifica integrità fallita: SHA-256 non corrispondente al modello bge-m3-Q8_0.');
+240:       }
+241:     } catch (err) {
+242:       setError(`Errore durante la verifica di integrità: ${String(err)}`);
+243:     } finally {
+244:       setVerifyingIntegrity(false);
+245:       await refreshAll();
+246:     }
+247:   };
+248: 
+249:   const handleStartServer = async () => {
+250:     if (isStarting || loading) return;
+251:     setError(null);
+252:     setSuccessMessage(null);
+253:     setStartingServer(true);
+254:     try {
+255:       const rep = await aiIpc.localServerStart();
+256:       setServerReport(rep);
+257:       if (rep.healthy) {
+258:         setSuccessMessage(`Servizio locale avviato con successo sulla porta ${rep.port}.`);
+259:       } else {
+260:         setError(`Servizio avviato ma non sano: ${rep.lastError || 'nessuna risposta da /health'}`);
+261:       }
+262:     } catch (err) {
+263:       setError(`Avvio del servizio locale non riuscito: ${String(err)}`);
+264:     } finally {
+265:       setStartingServer(false);
+266:       await refreshAll();
+267:     }
+268:   };
+269: 
+270:   const handleStopServer = async () => {
+271:     if (stoppingServer || loading) return;
+272:     setError(null);
+273:     setSuccessMessage(null);
+274:     setStoppingServer(true);
+275:     try {
+276:       const rep = await aiIpc.localServerStop();
+277:       setServerReport(rep);
+278:       setSuccessMessage('Servizio locale arrestato.');
+279:     } catch (err) {
+280:       setError(`Arresto del servizio non riuscito: ${String(err)}`);
+281:     } finally {
+282:       setStoppingServer(false);
+283:       await refreshAll();
+284:     }
+285:   };
+286: 
+287:   const handleReindexCache = async () => {
+288:     setError(null);
+289:     setSuccessMessage(null);
+290:     setReindexing(true);
+291:     setReindexPercent(0);
+292:     setReindexCounts(null);
+293:     try {
+294:       await aiIpc.embeddingsSyncVault(vaultPath);
+295:       setSuccessMessage('Cache semantica ricalcolata e allineata con successo al 100%.');
+296:     } catch (err) {
+297:       setError(`Ricalcolo cache fallito o interrotto: ${String(err)}`);
+298:     } finally {
+299:       setReindexing(false);
+300:       setReindexPercent(null);
+301:       setReindexCounts(null);
+302:       await refreshAll();
+303:     }
+304:   };
+305: 
+306:   const handleCancelReindex = async () => {
+307:     try {
+308:       await aiIpc.embeddingsCancelSync();
+309:       setError('Ricalcolo cache annullato dall’utente. I progressi calcolati sono salvati e riprendibili.');
+310:     } catch (err) {
+311:       setError(`Errore durante l’annullamento: ${String(err)}`);
+312:     }
+313:   };
+314: 
+315:   const effectiveProvider = optimisticProvider ?? providerReport?.provider ?? 'local';
+316:   const isLocal = effectiveProvider === 'local';
+317: 
+318:   return (
+319:     <div className="limen-card" style={{ padding: 24, marginTop: 20 }}>
+320:       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+321:         <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Motore semantico</h3>
+322:         <span
+323:           style={{
+324:             fontSize: 11,
+325:             fontWeight: 700,
+326:             padding: '3px 8px',
+327:             borderRadius: 4,
+328:             backgroundColor: isLocal ? 'rgba(34, 197, 94, 0.15)' : 'rgba(59, 130, 246, 0.15)',
+329:             color: isLocal ? '#15803d' : '#1d4ed8',
+330:             border: `1px solid ${isLocal ? 'rgba(34, 197, 94, 0.3)' : 'rgba(59, 130, 246, 0.3)'}`,
+331:           }}
+332:         >
+333:           {isLocal ? 'RAG 100% LOCALE' : 'OPENAI (RETE)'}
+334:         </span>
+335:       </div>
+336: 
+337:       <p style={{ fontSize: 13, color: '#475569', margin: '0 0 16px 0' }}>
+338:         Configura il fornitore per il calcolo dei vettori semantici e la ricerca ibrida. Con il motore locale, nessun
+339:         dato esce dal computer e il funzionamento è a rete zero.
+340:       </p>
+341: 
+342:       {/* 1. SCELTA DEL FORNITORE */}
+343:       <div
+344:         style={{
+345:           display: 'grid',
+346:           gridTemplateColumns: '1fr 1fr',
+347:           gap: 12,
+348:           marginBottom: 20,
+349:         }}
+350:       >
+351:         <label
+352:           style={{
+353:             display: 'flex',
+354:             flexDirection: 'column',
+355:             gap: 6,
+356:             padding: 14,
+357:             borderRadius: 8,
+358:             border: `2px solid ${!isLocal ? '#0f172a' : '#e2e8f0'}`,
+359:             backgroundColor: !isLocal ? '#f8fafc' : '#ffffff',
+360:             cursor: 'pointer',
+361:           }}
+362:         >
+363:           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+364:             <input
+365:               type="radio"
+366:               name="embeddingsProvider"
+367:               checked={!isLocal}
+368:               onChange={() => handleSelectProvider('openai')}
+369:               disabled={loading || downloading || reindexing}
+370:             />
+371:             <span style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>OpenAI (in rete)</span>
+372:           </div>
+373:           <span style={{ fontSize: 12, color: '#64748b', marginLeft: 24 }}>
+374:             Modello <code>text-embedding-3-small</code> (1536 dim). Richiede chiave API configurata nel Gestore credenziali e
+375:             connessione internet.
+376:           </span>
+377:         </label>
+378: 
+379:         <label
+380:           style={{
+381:             display: 'flex',
+382:             flexDirection: 'column',
+383:             gap: 6,
+384:             padding: 14,
+385:             borderRadius: 8,
+386:             border: `2px solid ${isLocal ? '#15803d' : '#e2e8f0'}`,
+387:             backgroundColor: isLocal ? 'rgba(34, 197, 94, 0.04)' : '#ffffff',
+388:             cursor: 'pointer',
+389:           }}
+390:         >
+391:           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+392:             <input
+393:               type="radio"
+394:               name="embeddingsProvider"
+395:               checked={isLocal}
+396:               onChange={() => handleSelectProvider('local')}
+397:               disabled={loading || downloading || reindexing}
+398:             />
+399:             <span style={{ fontWeight: 700, fontSize: 14, color: isLocal ? '#15803d' : '#0f172a' }}>
+400:               Locale (bge-m3, nessun dato esce dal computer)
+401:             </span>
+402:           </div>
+403:           <span style={{ fontSize: 12, color: '#64748b', marginLeft: 24 }}>
+404:             Modello <code>bge-m3-Q8_0.gguf</code> (1024 dim) eseguito dal motore integrato. Funzionamento 100% offline a
+405:             rete zero.
+406:           </span>
+407:         </label>
+408:       </div>
+409: 
+410:       {/* 2. STATO DEL MODELLO LOCALE */}
+411:       <div
+412:         style={{
+413:           border: '1px solid #e2e8f0',
+414:           borderRadius: 8,
+415:           padding: 16,
+416:           backgroundColor: '#f8fafc',
+417:           marginBottom: 16,
+418:         }}
+419:       >
+420:         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+421:           <span style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>Modello locale (bge-m3-Q8_0.gguf)</span>
+422:           <span
+423:             style={{
+424:               fontSize: 11,
+425:               fontWeight: 600,
+426:               padding: '2px 8px',
+427:               borderRadius: 4,
+428:               backgroundColor: modelReport === null || verifyingIntegrity ? '#fef3c7' : modelReport.installed && modelReport.sha256Ok ? '#dcfce7' : '#fee2e2',
+429:               color: modelReport === null || verifyingIntegrity ? '#92400e' : modelReport.installed && modelReport.sha256Ok ? '#166534' : '#991b1b',
+430:             }}
+431:           >
+432:             {verifyingIntegrity
+433:               ? 'VERIFICA IN CORSO…'
+434:               : modelReport === null
+435:               ? 'CONTROLLO IN CORSO…'
+436:               : modelReport.installed && modelReport.sha256Ok
+437:               ? 'INSTALLATO (SHA-256 OK)'
+438:               : modelReport.installed
+439:               ? 'INTEGRITÀ NON VALIDA'
+440:               : 'NON INSTALLATO'}
+441:           </span>
+442:         </div>
+443: 
+444:         {modelReport?.installed ? (
+445:           <div style={{ fontSize: 12, color: '#475569', display: 'flex', flexDirection: 'column', gap: 4 }}>
+446:             <div>
+447:               <strong>Percorso:</strong> <code style={{ fontSize: 11 }}>{modelReport.path.replace(/\//g, '\\')}</code>
+448:             </div>
+449:             <div>
+450:               <strong>Dimensione:</strong> {formatBytes(modelReport.bytes)} (634.553.760 byte)
+451:             </div>
+452:             <div style={{ color: '#166534', fontWeight: 500, marginTop: 4 }}>
+453:               ✓ Dopo lo scaricamento, il funzionamento è a rete zero. Nessun dato lascia mai questo computer.
+454:             </div>
+455:             <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
+456:               <button
+457:                 style={{
+458:                   ...buttonSecondary,
+459:                   backgroundColor: verifyingIntegrity ? '#fef3c7' : '#f8fafc',
+460:                   color: verifyingIntegrity ? '#92400e' : '#1e293b',
+461:                   borderColor: verifyingIntegrity ? '#f59e0b' : '#cbd5e1',
+462:                   cursor: loading || downloading || verifyingIntegrity || pickingModelFile ? 'not-allowed' : 'pointer',
+463:                 }}
+464:                 disabled={loading || downloading || verifyingIntegrity || pickingModelFile}
+465:                 onClick={handleVerifyIntegrity}
+466:               >
+467:                 {verifyingIntegrity ? 'VERIFICA IN CORSO…' : 'VERIFICA INTEGRITÀ'}
+468:               </button>
+469:               <button
+470:                 style={{
+471:                   ...buttonSecondary,
+472:                   backgroundColor: pickingModelFile ? '#fef3c7' : '#f8fafc',
+473:                   color: pickingModelFile ? '#92400e' : '#1e293b',
+474:                   borderColor: pickingModelFile ? '#f59e0b' : '#cbd5e1',
+475:                   cursor: loading || downloading || verifyingIntegrity || pickingModelFile ? 'not-allowed' : 'pointer',
+476:                 }}
+477:                 disabled={loading || downloading || verifyingIntegrity || pickingModelFile}
+478:                 onClick={handlePickModelFile}
+479:               >
+480:                 {pickingModelFile ? 'SELEZIONE E VERIFICA IN CORSO…' : 'SOSTITUISCI FILE GGUF DA DISCO…'}
+481:               </button>
+482:             </div>
+483:           </div>
+484:         ) : (
+485:           <div>
+486:             <p style={{ fontSize: 12, color: '#64748b', margin: '0 0 10px 0' }}>
+487:               Il modello non è presente sul computer. È richiesto un download una tantum di 635 MB dal repository gpustack,
+488:               oppure puoi selezionare manualmente un file GGUF precedentemente scaricato.
+489:             </p>
+490: 
+491:             {downloading ? (
+492:               <div style={{ marginTop: 10 }}>
+493:                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
+494:                   <span>Scaricamento in corso da HuggingFace…</span>
+495:                   <span>{downloadProgress ? `${downloadProgress.percent.toFixed(1)}%` : 'Avvio…'}</span>
+496:                 </div>
+497:                 <div
+498:                   style={{
+499:                     height: 8,
+500:                     borderRadius: 4,
+501:                     backgroundColor: '#e2e8f0',
+502:                     overflow: 'hidden',
+503:                     marginBottom: 10,
+504:                   }}
+505:                 >
+506:                   <div
+507:                     style={{
+508:                       height: '100%',
+509:                       backgroundColor: '#15803d',
+510:                       width: `${downloadProgress?.percent || 0}%`,
+511:                       transition: 'width 0.2s',
+512:                     }}
+513:                   />
+514:                 </div>
+515:                 <button
+516:                   style={{ ...buttonSecondary, color: '#b91c1c', border: '1px solid #fecaca' }}
+517:                   onClick={() => setDownloading(false)}
+518:                 >
+519:                   ANNULLA SCARICAMENTO
+520:                 </button>
+521:               </div>
+522:             ) : (
+523:               <div style={{ display: 'flex', gap: 10 }}>
+524:                 <button
+525:                   style={buttonPrimary}
+526:                   disabled={loading || downloading || pickingModelFile}
+527:                   onClick={handleDownloadModel}
+528:                 >
+529:                   SCARICA MODELLO (635 MB)
+530:                 </button>
+531:                 <button
+532:                   style={{
+533:                     ...buttonSecondary,
+534:                     backgroundColor: pickingModelFile ? '#fef3c7' : '#f8fafc',
+535:                     color: pickingModelFile ? '#92400e' : '#1e293b',
+536:                     borderColor: pickingModelFile ? '#f59e0b' : '#cbd5e1',
+537:                     cursor: loading || downloading || pickingModelFile ? 'not-allowed' : 'pointer',
+538:                   }}
+539:                   disabled={loading || downloading || pickingModelFile}
+540:                   onClick={handlePickModelFile}
+541:                 >
+542:                   {pickingModelFile ? 'SELEZIONE E VERIFICA IN CORSO…' : 'SELEZIONA FILE GGUF DA DISCO…'}
+543:                 </button>
+544:               </div>
+545:             )}
+546:           </div>
+547:         )}
+548:       </div>
+549: 
+550:       {/* 3. STATO DEL SERVIZIO LOCALE (llama-server) */}
+551:       <div
+552:         style={{
+553:           border: '1px solid #e2e8f0',
+554:           borderRadius: 8,
+555:           padding: 16,
+556:           backgroundColor: '#f8fafc',
+557:           marginBottom: 16,
+558:         }}
+559:       >
+560:         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+561:           <span style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>Servizio locale di calcolo</span>
+562:           <span
+563:             style={{
+564:               fontSize: 11,
+565:               fontWeight: 600,
+566:               padding: '2px 8px',
+567:               borderRadius: 4,
+568:               backgroundColor:
+569:                 isStarting
+570:                   ? '#fef3c7'
+571:                   : serverReport?.running && serverReport.healthy
+572:                   ? '#dcfce7'
+573:                   : serverReport?.lastError
+574:                   ? '#fee2e2'
+575:                   : '#f1f5f9',
+576:               color:
+577:                 isStarting
+578:                   ? '#92400e'
+579:                   : serverReport?.running && serverReport.healthy
+580:                   ? '#166534'
+581:                   : serverReport?.lastError
+582:                   ? '#991b1b'
+583:                   : '#64748b',
+584:             }}
+585:           >
+586:             {isStarting
+587:               ? 'IN AVVIO…'
+588:               : serverReport?.running && serverReport.healthy
+589:               ? `ATTIVO (PORTA ${serverReport.port})`
+590:               : serverReport?.lastError
+591:               ? 'ERRORE'
+592:               : 'SPENTO'}
+593:           </span>
+594:         </div>
+595: 
+596:         <div style={{ fontSize: 12, color: '#475569', marginBottom: 12 }}>
+597:           {isStarting ? (
+598:             <div style={{ color: '#92400e' }}>
+599:               Avvio del servizio locale in corso in background. Controllo di salute in attesa...
+600:             </div>
+601:           ) : serverReport?.running && serverReport.healthy ? (
+602:             <div>
+603:               Il servizio è in ascolto su loopback <code>http://127.0.0.1:{serverReport.port}</code> con modello{' '}
+604:               <strong>{serverReport.model}</strong>. Controllo di salute <code>/health</code> superato.
+605:             </div>
+606:           ) : serverReport?.lastError ? (
+607:             <div style={{ color: '#b91c1c' }}>
+608:               <strong>Ultimo errore:</strong> {serverReport.lastError}
+609:             </div>
+610:           ) : (
+611:             <div>
+612:               Il servizio è spento. Si avvia automaticamente su richiesta quando serve un embedding semantico, oppure
+613:               puoi avviarlo manualmente.
+614:             </div>
+615:           )}
+616:         </div>
+617: 
+618:         <div style={{ display: 'flex', gap: 10 }}>
+619:           {serverReport?.running ? (
+620:             <button
+621:               style={{
+622:                 ...buttonSecondary,
+623:                 color: '#b91c1c',
+624:                 border: '1px solid #fecaca',
+625:                 backgroundColor: stoppingServer ? '#fee2e2' : '#f8fafc',
+626:                 cursor: loading || isStarting || stoppingServer ? 'not-allowed' : 'pointer',
+627:               }}
+628:               disabled={loading || isStarting || stoppingServer}
+629:               onClick={handleStopServer}
+630:             >
+631:               {stoppingServer ? 'ARRESTO IN CORSO…' : 'ARRESTA SERVIZIO LOCALE'}
+632:             </button>
+633:           ) : (
+634:             <button
+635:               style={{
+636:                 ...buttonSecondary,
+637:                 backgroundColor: isStarting ? '#fef3c7' : '#f8fafc',
+638:                 color: isStarting ? '#92400e' : '#1e293b',
+639:                 borderColor: isStarting ? '#f59e0b' : '#cbd5e1',
+640:                 cursor: loading || isStarting || stoppingServer || !modelReport?.installed ? 'not-allowed' : 'pointer',
+641:               }}
+642:               disabled={loading || isStarting || stoppingServer || !modelReport?.installed}
+643:               onClick={handleStartServer}
+644:             >
+645:               {isStarting ? 'AVVIO IN CORSO…' : 'AVVIA SERVIZIO LOCALE'}
+646:             </button>
+647:           )}
+648:           <button
+649:             style={{
+650:               ...buttonSecondary,
+651:               cursor: loading || refreshing ? 'not-allowed' : 'pointer',
+652:             }}
+653:             onClick={refreshAll}
+654:             disabled={loading || refreshing}
+655:           >
+656:             {refreshing ? 'AGGIORNAMENTO…' : 'AGGIORNA STATO'}
+657:           </button>
+658:         </div>
+659:       </div>
+660: 
+661:       {/* 4. DISALLINEAMENTO DIMENSIONI E MIGRAZIONE CACHE */}
+662:       {providerReport && (
+663:         <div
+664:           style={{
+665:             border: `1px solid ${providerReport.needsReindex ? '#f59e0b' : '#e2e8f0'}`,
+666:             borderRadius: 8,
+667:             padding: 16,
+668:             backgroundColor: providerReport.needsReindex ? 'rgba(245, 158, 11, 0.06)' : '#ffffff',
+669:             marginBottom: 16,
+670:           }}
+671:         >
+672:           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+673:             <span style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>Cache semantica del Vault</span>
+674:             <span style={{ fontSize: 12, color: '#64748b' }}>
+675:               {providerReport.cacheEntries === 0
+676:                 ? 'Nessun passaggio indicizzato'
+677:                 : `${providerReport.cacheEntries} passaggi indicizzati (${providerReport.cacheDimensions} dim)`}
+678:             </span>
+679:           </div>
+680: 
+681:           {providerReport.needsReindex ? (
+682:             <div>
+683:               <div style={{ fontSize: 13, color: '#92400e', marginBottom: 10 }}>
+684:                 {providerReport.cacheEntries === 0 ? (
+685:                   <>
+686:                     ⚠️ <strong>Cache semantica assente:</strong> nessun vettore è ancora stato calcolato per questo Vault.
+687:                     <br />
+688:                     I <strong>{providerReport.totalPassages}</strong> passaggi del vault devono essere calcolati per attivare
+689:                     la ricerca semantica.
+690:                   </>
+691:                 ) : providerReport.cacheDimensions !== providerReport.dimensions ? (
+692:                   <>
+693:                     ⚠️ <strong>Disallineamento dimensioni vettore rilevato:</strong> la cache attuale memorizza vettori a{' '}
+694:                     <strong>{providerReport.cacheDimensions}</strong> dimensioni, mentre il fornitore scelto (
+695:                     <strong>{providerReport.provider}</strong>) genera vettori a{' '}
+696:                     <strong>{providerReport.dimensions}</strong> dimensioni.
+697:                     <br />
+698:                     I <strong>{providerReport.totalPassages}</strong> passaggi del vault devono essere ricalcolati per attivare
+699:                     la ricerca semantica.
+700:                     <br />
+701:                     <em>Nota di sicurezza: la cache attuale rimane attiva finché il nuovo calcolo non è completato al 100%.</em>
+702:                   </>
+703:                 ) : (
+704:                   <>
+705:                     ⚠️ <strong>Cache semantica incompleta:</strong>{' '}
+706:                     <strong>{providerReport.totalPassages - providerReport.matchedPassages}</strong> passaggi su{' '}
+707:                     {providerReport.totalPassages} non sono ancora indicizzati (documenti nuovi o modificati).
+708:                   </>
+709:                 )}
+710:                 <br />
+711:                 Durata indicativa: circa 0,1 s per passaggio con GPU Metal su Apple Silicon (misurato con bge-m3 su M2),
+712:                 fino a 7 volte di più senza GPU. L’avanzamento è mostrato qui sotto durante il calcolo.
+713:               </div>
+714: 
+715:               {reindexing ? (
+716:                 <div style={{ marginTop: 10 }}>
+717:                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
+718:                     <span>
+719:                       Ricalcolo cache in corso…
+720:                       {reindexCounts ? ` ${reindexCounts.processed}/${reindexCounts.total} passaggi` : ''}
+721:                     </span>
+722:                     <span>{reindexPercent !== null ? `${reindexPercent.toFixed(1)}%` : 'Elaborazione…'}</span>
+723:                   </div>
+724:                   <div
+725:                     style={{
+726:                       height: 8,
+727:                       borderRadius: 4,
+728:                       backgroundColor: '#e2e8f0',
+729:                       overflow: 'hidden',
+730:                       marginBottom: 10,
+731:                     }}
+732:                   >
+733:                     <div
+734:                       style={{
+735:                         height: '100%',
+736:                         backgroundColor: '#d97706',
+737:                         width: `${reindexPercent || 0}%`,
+738:                         transition: 'width 0.2s',
+739:                       }}
+740:                     />
+741:                   </div>
+742:                   <button
+743:                     style={{ ...buttonSecondary, color: '#b91c1c', border: '1px solid #fecaca' }}
+744:                     onClick={handleCancelReindex}
+745:                   >
+746:                     ANNULLA (I progressi parziali vengono conservati)
+747:                   </button>
+748:                 </div>
+749:               ) : (
+750:                 <button
+751:                   style={{ ...buttonPrimary, backgroundColor: '#d97706' }}
+752:                   disabled={loading || reindexing || (isLocal && !modelReport?.installed)}
+753:                   onClick={handleReindexCache}
+754:                 >
+755:                   RICALCOLA CACHE SEMANTICA ({providerReport.dimensions} DIM)
+756:                 </button>
+757:               )}
+758:             </div>
+759:           ) : (
+760:             <div style={{ fontSize: 12, color: '#166534' }}>
+761:               ✓ Le dimensioni della cache ({providerReport.cacheDimensions}d) sono perfettamente allineate con il
+762:               fornitore attivo ({providerReport.provider}, {providerReport.dimensions}d).
+763:             </div>
+764:           )}
+765:         </div>
+766:       )}
+767: 
+768:       {/* 5. CONSENSO ED ELABORAZIONE OPENAI */}
+769:       <div
+770:         style={{
+771:           border: '1px solid #cbd5e1',
+772:           borderRadius: 8,
+773:           padding: 18,
+774:           backgroundColor: '#ffffff',
+775:           marginBottom: 16,
+776:         }}
+777:       >
+778:         <div style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', marginBottom: 6 }}>
+779:           Generazione risposte e consenso OpenAI
+780:         </div>
+781:         <p style={{ fontSize: 12, color: '#475569', margin: '0 0 14px 0', lineHeight: 1.5 }}>
+782:           Imposta il consenso all’invio e scegli il modello OpenAI una volta sola nelle Impostazioni.
+783:           Le domande nella scheda <strong>Chiedi</strong> utilizzeranno automaticamente questa configurazione.
+784:         </p>
+785: 
+786:         <div style={{ marginBottom: 16, padding: 12, backgroundColor: '#f8fafc', borderRadius: 6, border: '1px solid #e2e8f0' }}>
+787:           <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontWeight: 600, fontSize: 13, color: '#0f172a' }}>
+788:             <input
+789:               type="checkbox"
+790:               checked={openaiConsent}
+791:               onChange={(e) => void handleToggleConsent(e.target.checked)}
+792:               style={{ width: 16, height: 16, cursor: 'pointer' }}
+793:             />
+794:             <span>Consenti l'invio a OpenAI dei passaggi pertinenti per generare le risposte</span>
+795:           </label>
+796:           <div style={{ fontSize: 11, color: '#64748b', marginTop: 4, marginLeft: 26 }}>
+797:             {openaiConsent
+798:               ? '✓ Consenso attivo: l’app può inviare i passaggi dei documenti pertinenti a OpenAI per comporre le risposte.'
+799:               : '✕ Consenso disattivato: la scheda Chiedi mostrerà un avviso prima di inviare dati a OpenAI.'}
+800:           </div>
+801:         </div>
+802: 
+803:         <div>
+804:           <label style={{ fontSize: 12, fontWeight: 600, color: '#475569', display: 'block', marginBottom: 6 }}>
+805:             Modello OpenAI predefinito
+806:           </label>
+807:           <select
+808:             value={selectedOpenaiModel}
+809:             onChange={(e) => handleSelectOpenaiModel(e.target.value)}
+810:             style={{
+811:               padding: '8px 12px',
+812:               borderRadius: 6,
+813:               border: '1px solid #cbd5e1',
+814:               fontSize: 13,
+815:               backgroundColor: '#ffffff',
+816:               minWidth: 260,
+817:             }}
+818:           >
+819:             <option value="gpt-4o-mini">gpt-4o-mini (veloce, consigliato)</option>
+820:             <option value="gpt-4o">gpt-4o (massima qualità)</option>
+821:             <option value="gpt-4-turbo">gpt-4-turbo</option>
+822:             <option value="o3-mini">o3-mini (ragionamento avanzato)</option>
+823:             <option value="o1-mini">o1-mini</option>
+824:           </select>
+825:         </div>
+826:       </div>
+827: 
+828:       {/* FEEDBACK MESSAGES */}
+829:       {error && (
+830:         <div
+831:           role="alert"
+832:           style={{
+833:             padding: 10,
+834:             borderRadius: 6,
+835:             backgroundColor: '#fee2e2',
+836:             color: '#991b1b',
+837:             fontSize: 12,
+838:             marginTop: 10,
+839:           }}
+840:         >
+841:           {error}
+842:         </div>
+843:       )}
+844: 
+845:       {successMessage && (
+846:         <div
+847:           role="status"
+848:           style={{
+849:             padding: 10,
+850:             borderRadius: 6,
+851:             backgroundColor: '#dcfce7',
+852:             color: '#166534',
+853:             fontSize: 12,
+854:             marginTop: 10,
+855:           }}
+856:         >
+857:           {successMessage}
+858:         </div>
+859:       )}
+860:     </div>
+861:   );
+862: }

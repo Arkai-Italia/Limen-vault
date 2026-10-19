@@ -1,0 +1,11 @@
+{
+  "At": "2026-09-24T19:09:19.2964528+08:00",
+  "Processes": [],
+  "ViteListeners": [],
+  "RepoSHA": "56c9bcf175570a8ad961a3dc22fdab6749c2c47d",
+  "RepoTrackedChanges": [],
+  "WorktreeSHA": "d8ddd86ec04e3ff17cf13c2e1fb41ee4b29e8eac",
+  "WorktreeTrackedChanges": [
+    " M apps/desktop/src-tauri/Cargo.toml"
+  ]
+}

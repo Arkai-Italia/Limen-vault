@@ -1,0 +1,92 @@
+{"start":"2026-09-24T04:30:49.222Z","elapsedMs":72657}
+Window: "LIMEN Vault v4", App: limen-vault.exe.
+	0 window LIMEN Vault v4 Secondary Actions: Raise
+		1 pane
+			2 pane LIMEN Vault v3
+				3 pane (disabled)
+				4 region LIMEN Vault v3 - Web content
+					5 region
+						6 region
+							7 region
+								8 region
+								9 region
+									10 region
+										11 region
+											12 region
+												13 region
+												28 document LIMEN Vault v3 Value: http://localhost:1420/ ID: RootWebArea
+													29 group ID: root
+														30 complementary
+															31 text L
+															32 text E:\VAULT WIN TEST
+															33 text LIMEN Vault v4
+															34 text (app nativa)
+															64 button CARICA DOCUMENTI ID: btn-upload-documents-global
+																65 graphic
+															35 navigation
+																36 button Chiedi
+																	37 graphic
+																38 button Documenti 376
+																	39 graphic
+																40 button Memoria 378
+																	41 graphic
+																42 button Avanzate
+																	43 graphic
+															44 button (disabled) Apri in Obsidian
+																45 graphic
+														46 header
+															613 text Chiedi al Vault
+															66 text VAULT WIN TEST DEV
+															48 button Aggiorna Description: Aggiorna stato, file e dati del Vault
+																49 graphic
+															67 text ●
+															68 text Pronto
+														51 main
+															69 text PRONTO
+															70 text E:\VAULT WIN TEST
+															71 text E:\VAULT WIN TEST DEV
+															72 text •
+															73 text 378
+															74 text File Markdown
+															75 button (disabled) Apri in Obsidian (Non disponibile) Description: Obsidian non rilevato su questo Mac
+															614 heading Cerca nel Vault & Chiedi all’AI
+															615 text Cerca nei passaggi estratti dei documenti e nelle note aziendali con ricerca ibrida locale, oppure invia la domanda a OpenAI con citazioni verificate.
+															616 button Aggiorna indice
+																617 graphic
+															618 graphic
+															619 edit (settable, string) Cerca parole chiave, contratti, clienti, passaggi di documenti... Description: Cerca parole chiave, contratti, clienti, passaggi di documenti...
+															620 combo box (settable, string) Value: Tutte le categorie
+															621 edit (settable, string) Filtra per cliente Description: Filtro cliente...
+															622 edit (settable, string) Filtra per progetto Description: Filtro progetto...
+															623 check box (settable, string) Ricerca Ibrida (Semantica + Lessicale) 🟢 RAG 100% LOCALE
+															624 text Ricerca Ibrida (Semantica + Lessicale)
+															625 text 🟢 RAG 100% LOCALE
+															627 graphic
+															628 heading Chiedi al Vault
+															629 text Fai una domanda per ottenere una risposta in prosa sintetizzata direttamente dai tuoi documenti.
+															630 text Modello:
+															631 combo box (settable, string) Seleziona modello AI Value: gpt-4o ID: ai-model-select
+															632 edit (settable, string) Domanda al Vault Description: Es. Cosa è il progetto BNXT e quali requisiti prevede? Value: Cosa è il progetto BNXT?
+															633 button (disabled) Chiedi Description: Generazione in corso...
+															634 check box (settable, string) Includi bozze e note non approvate
+															635 text Premere Invio per inviare
+															636 graphic
+															637 text Selezione passaggi pertinenti dal Vault…
+								14 region
+						15 region
+						16 region
+		17 title bar (settable, string) Value: LIMEN Vault v4
+			18 menu bar System ID: MenuBar
+				19 menu item System
+			20 button Minimize
+			21 button Maximize
+			22 button Close
+		23 menu bar Application ID: MenuBar
+			24 menu item File
+			25 menu item Modifica
+			26 menu item Finestra
+			27 menu item Aiuto
+
+Document text: ```
+Cosa è il progetto BNXT?
+```

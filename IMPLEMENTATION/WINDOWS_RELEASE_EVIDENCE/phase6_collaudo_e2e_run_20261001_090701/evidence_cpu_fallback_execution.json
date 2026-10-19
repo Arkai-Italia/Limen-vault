@@ -1,0 +1,17 @@
+{
+  "ServerArgs": [
+    "-m",
+    "C:\\Users\\user\\LIMEN Vault\\models\\Ministral-3-8B-Instruct-2512-Q5_K_M.gguf",
+    "-ngl",
+    "0",
+    "--device",
+    "none",
+    "-c",
+    "2048",
+    "-t",
+    "4"
+  ],
+  "DurationSec": 75.933,
+  "Answer": "La **CPU** (Central Processing Unit) è il componente elettronico di un computer che esegue le istruzioni del software, elaborando dati e controllando",
+  "Success": true
+}

@@ -1,0 +1,1051 @@
+    1: #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+    2: mod compiler;
+    3: use limen_vault::search;
+    4: mod snapshots;
+    5: mod vault;
+    6: 
+    7: use snapshots::*;
+    8: use std::{
+    9:     path::{Path, PathBuf},
+   10:     process::Command,
+   11: };
+   12: use tauri::Manager;
+   13: use vault::*;
+   14: 
+   15: #[tauri::command]
+   16: async fn automation_status(vault_path:String)->Result<limen_vault::automation::Report,String>{tauri::async_runtime::spawn_blocking(move||limen_vault::automation::status(Path::new(&vault_path))).await.map_err(|e|e.to_string())?}
+   17: #[tauri::command]
+   18: async fn automation_configure(vault_path:String,config:limen_vault::automation::Config)->Result<limen_vault::automation::Report,String>{tauri::async_runtime::spawn_blocking(move||limen_vault::automation::configure(Path::new(&vault_path),config)).await.map_err(|e|e.to_string())?}
+   19: #[tauri::command]
+   20: async fn automation_run(vault_path:String)->Result<limen_vault::automation::Report,String>{tauri::async_runtime::spawn_blocking(move||limen_vault::automation::run(Path::new(&vault_path))).await.map_err(|e|e.to_string())?}
+   21: #[tauri::command]
+   22: async fn automation_retry(vault_path:String)->Result<limen_vault::automation::Report,String>{tauri::async_runtime::spawn_blocking(move||limen_vault::automation::retry(Path::new(&vault_path))).await.map_err(|e|e.to_string())?}
+   23: #[tauri::command]
+   24: async fn automation_choose_files(vault_path:String,app:tauri::AppHandle)->Result<Vec<limen_vault::automation::ImportReceipt>,String>{
+   25:     use tauri_plugin_dialog::DialogExt;
+   26:     tauri::async_runtime::spawn_blocking(move||{
+   27:         let selected=app.dialog().file().set_title("Carica documenti in LIMEN").blocking_pick_files().unwrap_or_default();
+   28:         let vault = Path::new(&vault_path);
+   29:         let mut paths = Vec::new();
+   30:         for file in selected {
+   31:             let path_buf = file.into_path().map_err(|e|e.to_string())?;
+   32:             paths.push(path_buf);
+   33:         }
+   34:         let path_refs: Vec<&Path> = paths.iter().map(|p| p.as_path()).collect();
+   35:         Ok(limen_vault::automation::import_paths(vault, &path_refs))
+   36:     }).await.map_err(|e|e.to_string())?
+   37: }
+   38: 
+   39: #[tauri::command]
+   40: async fn automation_import_files(vault_path: String, paths: Vec<String>) -> Result<Vec<limen_vault::automation::ImportReceipt>, String> {
+   41:     tauri::async_runtime::spawn_blocking(move || {
+   42:         let vault = Path::new(&vault_path);
+   43:         let path_bufs: Vec<std::path::PathBuf> = paths.into_iter().map(std::path::PathBuf::from).collect();
+   44:         let path_refs: Vec<&Path> = path_bufs.iter().map(|p| p.as_path()).collect();
+   45:         Ok(limen_vault::automation::import_paths(vault, &path_refs))
+   46:     }).await.map_err(|e| e.to_string())?
+   47: }
+   48: 
+   49: #[tauri::command]
+   50: async fn tunnel_start(config: limen_vault::tunnel::Config, app:tauri::AppHandle, state:tauri::State<'_,limen_vault::tunnel::TunnelState>)->Result<serde_json::Value,String>{let state=state.inner().clone();let resources=app.path().resource_dir().map_err(|e|e.to_string())?;let data=app.path().app_data_dir().map_err(|e|e.to_string())?;tauri::async_runtime::spawn_blocking(move||state.start(config,&resources,&data)).await.map_err(|e|e.to_string())?}
+   51: #[tauri::command]
+   52: async fn tunnel_status(state:tauri::State<'_,limen_vault::tunnel::TunnelState>)->Result<serde_json::Value,String>{let s=state.inner().clone();tauri::async_runtime::spawn_blocking(move||s.status()).await.map_err(|e|e.to_string())?}
+   53: #[tauri::command]
+   54: async fn tunnel_stop(state:tauri::State<'_,limen_vault::tunnel::TunnelState>)->Result<(),String>{let s=state.inner().clone();tauri::async_runtime::spawn_blocking(move||s.stop()).await.map_err(|e|e.to_string())?}
+   55: #[tauri::command]
+   56: async fn tunnel_save_key(key:String)->Result<(),String>{tauri::async_runtime::spawn_blocking(move||limen_vault::tunnel::save_key(&key)).await.map_err(|e|e.to_string())?}
+   57: #[tauri::command]
+   58: fn tunnel_config(app:tauri::AppHandle)->Result<Option<limen_vault::tunnel::Config>,String>{limen_vault::tunnel::config(&app.path().app_data_dir().map_err(|e|e.to_string())?)}
+   59: 
+   60: #[tauri::command]
+   61: async fn list_knowledge(vault_path:String,folder:String)->Result<Vec<serde_json::Value>,String>{tauri::async_runtime::spawn_blocking(move||limen_vault::knowledge::list(Path::new(&vault_path),&folder)).await.map_err(|e|e.to_string())?}
+   62: 
+   63: #[tauri::command]
+   64: async fn m7_execute(vault_path: String, request: limen_vault::proposals::Request) -> Result<serde_json::Value, String> {
+   65:     tauri::async_runtime::spawn_blocking(move || limen_vault::proposals::execute(Path::new(&vault_path), request)).await.map_err(|e|e.to_string())?
+   66: }
+   67: 
+   68: #[tauri::command]
+   69: fn get_default_vault_path() -> Result<String, String> {
+   70:     std::env::var("HOME")
+   71:         .map(|h| {
+   72:             Path::new(&h)
+   73:                 .join("Documents/VAULT")
+   74:                 .to_string_lossy()
+   75:                 .into()
+   76:         })
+   77:         .map_err(|e| e.to_string())
+   78: }
+   79: 
+   80: #[tauri::command]
+   81: fn create_vault(
+   82:     target_path: String,
+   83:     vault_name: Option<String>,
+   84:     app_handle: tauri::AppHandle,
+   85: ) -> Result<VaultStatusResponse, String> {
+   86:     let template = app_handle
+   87:         .path()
+   88:         .resource_dir()
+   89:         .map_err(|e| e.to_string())?
+   90:         .join("vault-template");
+   91:     vault::create(Path::new(&target_path), vault_name, &template)
+   92: }
+   93: 
+   94: #[tauri::command]
+   95: fn open_vault(
+   96:     target_path: String,
+   97:     llama_state: tauri::State<'_, limen_vault::llama::LlamaServerState>,
+   98: ) -> OpenVaultResponse {
+   99:     let p = Path::new(&target_path);
+  100:     let res = vault::open(p);
+  101:     if res.validation.is_valid {
+  102:         let _ = limen_vault::catalog::sync_catalog(p);
+  103:         let _ = limen_vault::catalog::process_pending_extractions(p);
+  104:         let rep = limen_vault::embeddings::get_embeddings_provider(p, 0);
+  105:         if rep.provider == "local" {
+  106:             let _ = limen_vault::ai::save_embeddings_provider_setting("local");
+  107:             llama_state.on_app_startup();
+  108:         }
+  109:     }
+  110:     res
+  111: }
+  112: 
+  113: #[tauri::command]
+  114: fn validate_vault(target_path: String) -> ValidationResultResponse {
+  115:     perform_vault_validation(Path::new(&target_path))
+  116: }
+  117: 
+  118: #[tauri::command]
+  119: async fn verify_vault_integrity(
+  120:     target_path: String,
+  121: ) -> Result<VaultIntegrityReportResponse, String> {
+  122:     tauri::async_runtime::spawn_blocking(move || {
+  123:         snapshots::verify_manifest_integrity(Path::new(&target_path))
+  124:     })
+  125:     .await
+  126:     .map_err(|e| e.to_string())
+  127: }
+  128: 
+  129: #[tauri::command]
+  130: async fn create_snapshot(
+  131:     target_path: String,
+  132:     note: Option<String>,
+  133: ) -> Result<SnapshotItemResponse, String> {
+  134:     tauri::async_runtime::spawn_blocking(move || {
+  135:         snapshots::create_snapshot(Path::new(&target_path), note)
+  136:     })
+  137:     .await
+  138:     .map_err(|e| e.to_string())?
+  139: }
+  140: 
+  141: #[tauri::command]
+  142: async fn list_snapshots(target_path: String) -> Result<Vec<SnapshotItemResponse>, String> {
+  143:     tauri::async_runtime::spawn_blocking(move || snapshots::list_snapshots(Path::new(&target_path)))
+  144:         .await
+  145:         .map_err(|e| e.to_string())?
+  146: }
+  147: 
+  148: #[tauri::command]
+  149: async fn snapshot_restore(
+  150:     vault_path: String,
+  151:     snapshot_id: String,
+  152:     destination_path: Option<String>,
+  153: ) -> Result<snapshots::SnapshotRestoreReport, String> {
+  154:     tauri::async_runtime::spawn_blocking(move || {
+  155:         let dest_buf = destination_path.as_deref().map(Path::new);
+  156:         snapshots::restore_snapshot(Path::new(&vault_path), &snapshot_id, dest_buf)
+  157:     })
+  158:     .await
+  159:     .map_err(|e| e.to_string())?
+  160: }
+  161: 
+  162: #[tauri::command]
+  163: async fn list_proposals(vault_path: String) -> Result<Vec<compiler::ProposalItem>, String> {
+  164:     tauri::async_runtime::spawn_blocking(move || compiler::list_proposals(Path::new(&vault_path)))
+  165:         .await
+  166:         .map_err(|e| e.to_string())?
+  167: }
+  168: 
+  169: #[tauri::command]
+  170: async fn list_raw_sources(vault_path: String) -> Result<Vec<compiler::RawSourceItem>, String> {
+  171:     tauri::async_runtime::spawn_blocking(move || compiler::list_raw_sources(Path::new(&vault_path)))
+  172:         .await
+  173:         .map_err(|e| e.to_string())?
+  174: }
+  175: 
+  176: #[tauri::command]
+  177: async fn compile_source(
+  178:     vault_path: String,
+  179:     relative_source_path: String,
+  180: ) -> Result<compiler::CompilationItemResult, String> {
+  181:     tauri::async_runtime::spawn_blocking(move || {
+  182:         compiler::compile_source(Path::new(&vault_path), &relative_source_path)
+  183:     })
+  184:     .await
+  185:     .map_err(|e| e.to_string())?
+  186: }
+  187: 
+  188: #[tauri::command]
+  189: async fn batch_compile_sources(
+  190:     vault_path: String,
+  191: ) -> Result<compiler::BatchCompilerReport, String> {
+  192:     tauri::async_runtime::spawn_blocking(move || {
+  193:         compiler::batch_compile_sources(Path::new(&vault_path))
+  194:     })
+  195:     .await
+  196:     .map_err(|e| e.to_string())?
+  197: }
+  198: 
+  199: #[tauri::command]
+  200: async fn index_vault_search(vault_path: String) -> Result<search::IndexStatusReport, String> {
+  201:     tauri::async_runtime::spawn_blocking(move || search::index_vault_search(Path::new(&vault_path)))
+  202:         .await
+  203:         .map_err(|e| e.to_string())?
+  204: }
+  205: 
+  206: #[tauri::command]
+  207: async fn search_vault(
+  208:     vault_path: String,
+  209:     query: search::SearchQuery,
+  210: ) -> Result<Vec<search::SearchResultItem>, String> {
+  211:     tauri::async_runtime::spawn_blocking(move || {
+  212:         search::search_vault(Path::new(&vault_path), query)
+  213:     })
+  214:     .await
+  215:     .map_err(|e| e.to_string())?
+  216: }
+  217: 
+  218: #[tauri::command]
+  219: async fn get_search_index_status(vault_path: String) -> Result<search::IndexStatusReport, String> {
+  220:     tauri::async_runtime::spawn_blocking(move || {
+  221:         search::get_search_index_status(Path::new(&vault_path))
+  222:     })
+  223:     .await
+  224:     .map_err(|e| e.to_string())?
+  225: }
+  226: 
+  227: fn obsidian_path() -> Option<PathBuf> {
+  228:     let mut paths = vec![PathBuf::from("/Applications/Obsidian.app")];
+  229:     if let Ok(home) = std::env::var("HOME") {
+  230:         paths.push(Path::new(&home).join("Applications/Obsidian.app"));
+  231:     }
+  232:     if let Some(p) = paths.into_iter().find(|p| p.is_dir()) {
+  233:         return Some(p);
+  234:     }
+  235:     let output = Command::new("/usr/bin/mdfind")
+  236:         .arg("kMDItemCFBundleIdentifier == 'md.obsidian'")
+  237:         .output()
+  238:         .ok()?;
+  239:     String::from_utf8_lossy(&output.stdout)
+  240:         .lines()
+  241:         .map(PathBuf::from)
+  242:         .find(|p| p.extension().is_some_and(|e| e == "app") && p.is_dir())
+  243: }
+  244: 
+  245: #[tauri::command]
+  246: fn check_obsidian_installed() -> bool {
+  247:     obsidian_path().is_some()
+  248: }
+  249: 
+  250: #[tauri::command]
+  251: fn open_obsidian(vault_path: String) -> Result<(), String> {
+  252:     let app = obsidian_path().ok_or("OBSIDIAN_NOT_INSTALLED")?;
+  253:     let path = Path::new(&vault_path)
+  254:         .canonicalize()
+  255:         .map_err(|e| e.to_string())?;
+  256:     if !path.is_dir() {
+  257:         return Err("Vault path is not a directory".into());
+  258:     }
+  259:     let registered = std::env::var("HOME")
+  260:         .ok()
+  261:         .and_then(|home| {
+  262:             std::fs::read_to_string(
+  263:                 Path::new(&home).join("Library/Application Support/obsidian/obsidian.json"),
+  264:             )
+  265:             .ok()
+  266:         })
+  267:         .and_then(|raw| serde_json::from_str::<serde_json::Value>(&raw).ok())
+  268:         .is_some_and(|registry| obsidian_registered(&registry, &path));
+  269:     let uri = if registered {
+  270:         format!(
+  271:             "obsidian://open?path={}",
+  272:             urlencoding::encode(&path.to_string_lossy())
+  273:         )
+  274:     } else {
+  275:         "obsidian://choose-vault".to_string()
+  276:     };
+  277:     let output = Command::new("/usr/bin/open")
+  278:         .arg("-a")
+  279:         .arg(app)
+  280:         .arg(uri)
+  281:         .output()
+  282:         .map_err(|e| e.to_string())?;
+  283:     if output.status.success() && !registered {
+  284:         Err(format!("OBSIDIAN_REGISTRATION_REQUIRED: In Obsidian, use Open folder as vault → Open and select {}. This is required once; then press Open in Obsidian again.", path.display()))
+  285:     } else if output.status.success() {
+  286:         Ok(())
+  287:     } else {
+  288:         Err(String::from_utf8_lossy(&output.stderr).into())
+  289:     }
+  290: }
+  291: 
+  292: fn obsidian_registered(registry: &serde_json::Value, target: &Path) -> bool {
+  293:     registry
+  294:         .get("vaults")
+  295:         .and_then(serde_json::Value::as_object)
+  296:         .is_some_and(|vaults| {
+  297:             vaults
+  298:                 .values()
+  299:                 .filter_map(|v| v.get("path").and_then(serde_json::Value::as_str))
+  300:                 .any(|p| Path::new(p).canonicalize().is_ok_and(|p| p == target))
+  301:         })
+  302: }
+  303: 
+  304: fn main() {
+  305:     // Un llama-server rimasto orfano da un'istanza uccisa (kill -9/crash) viene terminato subito all'avvio.
+  306:     let _ = limen_vault::llama::reap_orphan_server();
+  307:     let args:Vec<String>=std::env::args().collect();
+  308:     if args.get(1).is_some_and(|s|s=="--mcp-stdio") {
+  309:         if args.len()!=3 { eprintln!("Usage: limen-vault --mcp-stdio VAULT");std::process::exit(2); }
+  310:         if let Err(e)=limen_vault::mcp::stdio(PathBuf::from(&args[2])) {eprintln!("{e}");std::process::exit(1);}
+  311:         return;
+  312:     }
+  313: 
+  314:     let llama_state = limen_vault::llama::LlamaServerState::default();
+  315:     // Avvio in background all'apertura dell'app se il modello locale è installato e il fornitore scelto è Locale
+  316:     llama_state.on_app_startup();
+  317: 
+  318:     tauri::Builder::default()
+  319:         .plugin(tauri_plugin_dialog::init())
+  320:         .menu(|app| {
+  321:             use tauri::menu::{Menu, MenuItemKind};
+  322:             // Keep native menu roles and keyboard shortcuts; localize labels only.
+  323:             fn translate(item: MenuItemKind<tauri::Wry>) -> tauri::Result<()> {
+  324:                 fn label(text: &str) -> &str {
+  325:                     match text {
+  326:                         "File" => "File", "Edit" => "Modifica", "View" => "Vista",
+  327:                         "Window" => "Finestra", "Help" => "Aiuto",
+  328:                         "Undo" => "Annulla", "Redo" => "Ripeti", "Cut" => "Taglia",
+  329:                         "Copy" => "Copia", "Paste" => "Incolla", "Select All" => "Seleziona tutto",
+  330:                         "Minimize" => "Riduci a icona", "Zoom" | "Maximize" => "Ingrandisci",
+  331:                         "Close Window" | "Close" => "Chiudi finestra",
+  332:                         "Enter Full Screen" | "Toggle Full Screen" | "Fullscreen" => "Schermo intero",
+  333:                         "Services" => "Servizi", "Hide Others" => "Nascondi le altre",
+  334:                         "Show All" => "Mostra tutto",
+  335:                         t if t.starts_with("About ") || t == "About" => "Informazioni su LIMEN Vault",
+  336:                         t if t.starts_with("Hide ") || t == "Hide" => "Nascondi LIMEN Vault",
+  337:                         t if t.starts_with("Quit ") || t == "Quit" => "Esci da LIMEN Vault",
+  338:                         _ => text,
+  339:                     }
+  340:                 }
+  341:                 match item {
+  342:                     MenuItemKind::Submenu(menu) => {
+  343:                         menu.set_text(label(&menu.text()?))?;
+  344:                         for child in menu.items()? { translate(child)?; }
+  345:                     }
+  346:                     MenuItemKind::Predefined(item) => item.set_text(label(&item.text()?))?,
+  347:                     _ => {}
+  348:                 }
+  349:                 Ok(())
+  350:             }
+  351:             let menu = Menu::default(app)?;
+  352:             for item in menu.items()? { translate(item)?; }
+  353:             Ok(menu)
+  354:         })
+  355:         .manage(std::sync::Arc::new(limen_vault::ai::AiState::default()))
+  356:         .manage(std::sync::Arc::new(limen_vault::sync::State::default()))
+  357:         .manage(limen_vault::mcp::McpState::default())
+  358:         .manage(limen_vault::tunnel::TunnelState::default())
+  359:         .manage(llama_state)
+  360:         .manage(std::sync::Arc::new(limen_vault::automation::AutomationScheduler::default()))
+  361:         .invoke_handler(tauri::generate_handler![automation_status,automation_configure,automation_run,automation_retry,automation_choose_files,automation_import_files,sync_revoke_publication,sync_select_notes,sync_list_releases,sync_get_status,sync_save_config,sync_save_key,sync_disconnect,sync_test_connection,sync_plan_transfer,sync_execute_transfer,sync_cancel_transfer,
+  362:             get_default_vault_path,
+  363:             create_vault,
+  364:             open_vault,
+  365:             validate_vault,
+  366:             check_obsidian_installed,
+  367:             open_obsidian,
+  368:             verify_vault_integrity,
+  369:             create_snapshot,
+  370:             list_snapshots,
+  371:             snapshot_restore,
+  372:             list_raw_sources,
+  373:             list_proposals,
+  374:             m7_execute,
+  375:             tunnel_start,tunnel_stop,tunnel_status,tunnel_save_key,tunnel_config,list_knowledge,
+  376:             compile_source,
+  377:             batch_compile_sources,
+  378:             index_vault_search,
+  379:             search_vault,
+  380:             get_search_index_status,
+  381:             ai_list_models,ai_get_selected_model,ai_save_selected_model,search_read_document,ai_key_status,ai_save_key,ai_delete_key,ai_get_consent,ai_set_consent,ai_preview,ai_ask,ai_ask_stream,ai_cancel,ai_read_source,mcp_start,mcp_stop,mcp_status,
+  382:             catalog_sync,catalog_list_documents,catalog_process_extractions,catalog_get_document,catalog_get_by_path,catalog_verify_document_passage,catalog_read_verified_text,catalog_read_text,catalog_read_passage,catalog_open_original,catalog_reveal_in_finder,catalog_get_summary,
+  383:             embeddings_get_status,embeddings_sync_vault,search_vault_hybrid,
+  384:             embeddings_get_provider,embeddings_set_provider,
+  385:             local_model_status,local_model_download,local_model_select_file,local_model_pick_and_install,local_model_verify_integrity,select_vault_folder,
+  386:             local_server_start,local_server_stop,local_server_status,embeddings_cancel_sync
+  387:         ])
+  388:         .build(tauri::generate_context!())
+  389:         .expect("error while building tauri application")
+  390:         .run(|app,event| { if matches!(event,tauri::RunEvent::ExitRequested{..}|tauri::RunEvent::Exit) {let _=app.state::<limen_vault::tunnel::TunnelState>().stop();let _=app.state::<limen_vault::llama::LlamaServerState>().stop();} });
+  391: }
+  392: 
+  393: #[cfg(test)]
+  394: mod tests {
+  395:     use super::*;
+  396:     use std::fs;
+  397: 
+  398:     #[test]
+  399:     fn obsidian_registration_matches_canonical_path() {
+  400:         let tmp = tempfile::tempdir().unwrap();
+  401:         let path = tmp.path().canonicalize().unwrap();
+  402:         let registry = serde_json::json!({"vaults":{"test":{"path":tmp.path(),"open":true}}});
+  403:         assert!(obsidian_registered(&registry, &path));
+  404:         assert!(!obsidian_registered(&serde_json::json!({}), &path));
+  405:         assert!(!obsidian_registered(&registry, &path.join("different")));
+  406:     }
+  407:     #[test]
+  408:     fn test_rust_vault_validation() {
+  409:         let temp = tempfile::tempdir().unwrap();
+  410:         let tmp = temp.path().to_path_buf();
+  411: 
+  412:         for folder in REQUIRED_VAULT_FOLDERS.iter() {
+  413:             fs::create_dir_all(tmp.join(folder)).unwrap();
+  414:         }
+  415: 
+  416:         fs::write(tmp.join("00_SYSTEM").join("HOME.md"), "# Home").unwrap();
+  417:         fs::write(tmp.join("00_SYSTEM").join("VAULT_RULES.md"), "# Rules").unwrap();
+  418:         fs::write(
+  419:             tmp.join("00_SYSTEM").join("VAULT_MANIFEST.json"),
+  420:             r#"{"schema_version": 1, "vault_id": "test", "vault_name": "Test", "created_at": "2026-09-11T00:00:00Z", "updated_at": "2026-09-11T00:00:00Z", "files": []}"#,
+  421:         )
+  422:         .unwrap();
+  423: 
+  424:         let val = perform_vault_validation(&tmp);
+  425:         assert!(val.is_valid, "Validation errors: {:?}", val.errors);
+  426:         assert_eq!(val.checked_folders_count, 15);
+  427: 
+  428:         let _ = fs::remove_dir_all(&tmp);
+  429:     }
+  430: 
+  431:     #[test]
+  432:     fn test_rust_invalid_yaml_rejection() {
+  433:         let temp = tempfile::tempdir().unwrap();
+  434:         let tmp = temp.path().to_path_buf();
+  435: 
+  436:         for folder in REQUIRED_VAULT_FOLDERS.iter() {
+  437:             fs::create_dir_all(tmp.join(folder)).unwrap();
+  438:         }
+  439: 
+  440:         fs::write(tmp.join("00_SYSTEM").join("HOME.md"), "# Home").unwrap();
+  441:         fs::write(tmp.join("00_SYSTEM").join("VAULT_RULES.md"), "# Rules").unwrap();
+  442:         fs::write(
+  443:             tmp.join("00_SYSTEM").join("VAULT_MANIFEST.json"),
+  444:             r#"{"schema_version": 1, "vault_id": "test", "vault_name": "Test", "created_at": "2026-09-11T00:00:00Z", "updated_at": "2026-09-11T00:00:00Z", "files": []}"#,
+  445:         )
+  446:         .unwrap();
+  447: 
+  448:         // Write file with bad YAML syntax in frontmatter
+  449:         fs::write(
+  450:             tmp.join("01_CLIENTS").join("bad_yaml.md"),
+  451:             "---\ntitle: \"Unclosed string\ninvalid: [bad list\n---\n# Content",
+  452:         )
+  453:         .unwrap();
+  454: 
+  455:         let val = perform_vault_validation(&tmp);
+  456:         assert!(
+  457:             !val.is_valid,
+  458:             "Vault with bad YAML frontmatter must be invalid"
+  459:         );
+  460:         assert!(val.errors.iter().any(|e| e.contains("Invalid YAML syntax")));
+  461: 
+  462:         let _ = fs::remove_dir_all(&tmp);
+  463:     }
+  464: }
+  465: 
+  466: #[tauri::command]
+  467: async fn ai_list_models()->Result<Vec<String>,String>{
+  468:  let key=tauri::async_runtime::spawn_blocking(limen_vault::keychain::load).await.map_err(|_|"Portachiavi non disponibile")??.filter(|k|!k.is_empty()).ok_or("Configura la chiave API OpenAI in Impostazioni per vedere i modelli disponibili")?;
+  469:  limen_vault::ai::list_models(key).await
+  470: }
+  471: #[tauri::command]
+  472: async fn ai_get_selected_model() -> Result<Option<String>, String> {
+  473:     tauri::async_runtime::spawn_blocking(limen_vault::ai::load_selected_model)
+  474:         .await
+  475:         .map_err(|e| e.to_string())
+  476: }
+  477: #[tauri::command]
+  478: async fn ai_save_selected_model(model: String) -> Result<(), String> {
+  479:     tauri::async_runtime::spawn_blocking(move || limen_vault::ai::save_selected_model(&model))
+  480:         .await
+  481:         .map_err(|e| e.to_string())?
+  482: }
+  483: #[tauri::command]
+  484: async fn search_read_document(vault_path:String,document_id:String,sha256:String)->Result<String,String>{
+  485:  tauri::async_runtime::spawn_blocking(move||limen_vault::search::read_indexed_document(Path::new(&vault_path),&document_id,&sha256).map(|(_,text)|text)).await.map_err(|_|"Lettura documento interrotta")?
+  486: }
+  487: #[tauri::command]
+  488: async fn ai_key_status()->Result<bool,String>{tauri::async_runtime::spawn_blocking(||limen_vault::keychain::load().map(|v|v.is_some())).await.map_err(|_|"Keychain worker failed")?}
+  489: #[tauri::command]
+  490: async fn ai_save_key(key:String)->Result<(),String>{tauri::async_runtime::spawn_blocking(move||limen_vault::keychain::save(&key)).await.map_err(|_|"Keychain worker failed")?}
+  491: #[tauri::command]
+  492: async fn ai_delete_key()->Result<(),String>{tauri::async_runtime::spawn_blocking(limen_vault::keychain::delete).await.map_err(|_|"Keychain worker failed")?}
+  493: #[tauri::command]
+  494: async fn ai_get_consent(vault_path: String) -> Result<bool, String> {
+  495:     let p = PathBuf::from(vault_path);
+  496:     tauri::async_runtime::spawn_blocking(move || Ok(limen_vault::ai::get_openai_consent(&p)))
+  497:         .await
+  498:         .map_err(|e| e.to_string())?
+  499: }
+  500: 
+  501: #[tauri::command]
+  502: async fn ai_set_consent(vault_path: String, granted: bool) -> Result<(), String> {
+  503:     let p = PathBuf::from(vault_path);
+  504:     tauri::async_runtime::spawn_blocking(move || limen_vault::ai::set_openai_consent(&p, granted))
+  505:         .await
+  506:         .map_err(|e| e.to_string())?
+  507: }
+  508: 
+  509: #[tauri::command]
+  510: async fn ai_preview(
+  511:     vault_path: String,
+  512:     options: limen_vault::ai::Options,
+  513:     state: tauri::State<'_, std::sync::Arc<limen_vault::ai::AiState>>,
+  514:     llama_state: tauri::State<'_, limen_vault::llama::LlamaServerState>,
+  515: ) -> Result<limen_vault::ai::Preview, String> {
+  516:     let t_entry = std::time::Instant::now();
+  517:     let state = state.inner().clone();
+  518:     let llama = llama_state.inner().clone();
+  519:     let prep_timeout = limen_vault::llama::service_preparation_timeout();
+  520: 
+  521:     let (port, pid, is_ready, service_status, fallback_reason) = match tokio::time::timeout(
+  522:         prep_timeout + std::time::Duration::from_millis(500),
+  523:         tauri::async_runtime::spawn_blocking(move || {
+  524:             llama.get_or_adopt_or_start_service_with_timeout(prep_timeout)
+  525:         }),
+  526:     )
+  527:     .await
+  528:     {
+  529:         Ok(Ok(res)) => res,
+  530:         Ok(Err(e)) => (
+  531:             None,
+  532:             None,
+  533:             false,
+  534:             "fallito".to_string(),
+  535:             Some(format!("Errore nel task di ispezione del servizio locale: {e}")),
+  536:         ),
+  537:         Err(_) => {
+  538:             let reason = format!(
+  539:                 "Tempo limite per la preparazione del servizio locale superato ({} s): ripiego sulla ricerca per parole.",
+  540:                 prep_timeout.as_secs()
+  541:             );
+  542:             (None, None, false, "in avvio".to_string(), Some(reason))
+  543:         }
+  544:     };
+  545:     let t_service_prep_ms = t_entry.elapsed().as_millis() as u64;
+  546: 
+  547:     state
+  548:         .preview_with_service_info(
+  549:             PathBuf::from(vault_path),
+  550:             options,
+  551:             port,
+  552:             pid,
+  553:             is_ready,
+  554:             Some(service_status),
+  555:             fallback_reason,
+  556:             Some(t_entry),
+  557:             t_service_prep_ms,
+  558:         )
+  559:         .await
+  560: }
+  561: #[tauri::command]
+  562: async fn ai_ask(
+  563:     ticket: String,
+  564:     ui_elapsed_ms: Option<u64>,
+  565:     state: tauri::State<'_, std::sync::Arc<limen_vault::ai::AiState>>,
+  566: ) -> Result<serde_json::Value, String> {
+  567:     let state = state.inner().clone();
+  568:     limen_vault::ai::execute_guarded_ask(state, ticket, move |pending, cancel| async move {
+  569:         let key = tauri::async_runtime::spawn_blocking(limen_vault::keychain::load)
+  570:             .await
+  571:             .map_err(|_| "Keychain worker failed".to_string())
+  572:             .and_then(|r| r)
+  573:             .and_then(|k| k.ok_or("Configure API key in Settings".into()))?;
+  574:         limen_vault::ai::ask(pending, key, cancel, ui_elapsed_ms).await
+  575:     }).await
+  576: }
+  577: #[tauri::command]
+  578: async fn ai_ask_stream(
+  579:     window: tauri::Window,
+  580:     ticket: String,
+  581:     ui_elapsed_ms: Option<u64>,
+  582:     state: tauri::State<'_, std::sync::Arc<limen_vault::ai::AiState>>,
+  583: ) -> Result<serde_json::Value, String> {
+  584:     let state = state.inner().clone();
+  585:     let ticket_clone = ticket.clone();
+  586:     limen_vault::ai::execute_guarded_ask_stream_worker(state, ticket, move |pending, cancel| async move {
+  587:         let key = tauri::async_runtime::spawn_blocking(limen_vault::keychain::load)
+  588:             .await
+  589:             .map_err(|_| "Keychain worker failed".to_string())
+  590:             .and_then(|r| r)
+  591:             .and_then(|k| k.ok_or("Configure API key in Settings".into()))?;
+  592:         limen_vault::ai::ask_stream(Some(window), ticket_clone, pending, key, cancel, ui_elapsed_ms).await
+  593:     }).await
+  594: }
+  595: #[tauri::command]
+  596: fn ai_cancel(ticket:String,state:tauri::State<'_,std::sync::Arc<limen_vault::ai::AiState>>){state.cancel(&ticket);}
+  597: #[tauri::command]
+  598: async fn ai_read_source(vault_path:String,document_id:String,sha256:String,include_drafts:bool)->Result<limen_vault::ai::Source,String>{
+  599:  tauri::async_runtime::spawn_blocking(move||limen_vault::ai::read_source(Path::new(&vault_path),&document_id,&sha256,include_drafts)).await.map_err(|_|"Source worker failed")?
+  600: }
+  601: #[tauri::command]
+  602: fn mcp_status(state:tauri::State<'_,limen_vault::mcp::McpState>)->serde_json::Value{state.status()}
+  603: #[tauri::command]
+  604: fn mcp_stop(state:tauri::State<'_,limen_vault::mcp::McpState>){state.stop();}
+  605: #[tauri::command]
+  606: fn mcp_start(vault_path:String,include_drafts:bool,state:tauri::State<'_,limen_vault::mcp::McpState>)->Result<limen_vault::mcp::ConnectionInfo,String>{state.start(PathBuf::from(vault_path),include_drafts)}
+  607: 
+  608: #[tauri::command]
+  609: fn sync_get_status(app:tauri::AppHandle,state:tauri::State<'_,std::sync::Arc<limen_vault::sync::State>>)->Result<serde_json::Value,String>{let mut v=limen_vault::sync::status(&app.path().app_data_dir().map_err(|e|e.to_string())?);let p=state.progress();if !p.is_null(){v["status"]=p["status"].clone();v["progress"]=p;}Ok(v)}
+  610: #[tauri::command]
+  611: async fn sync_save_key(token:String)->Result<(),String>{tauri::async_runtime::spawn_blocking(move||limen_vault::sync::save_key(token)).await.map_err(|e|e.to_string())?}
+  612: #[tauri::command]
+  613: fn sync_save_config(app:tauri::AppHandle,config:serde_json::Value)->Result<(),String>{limen_vault::sync::save_config(&app.path().app_data_dir().map_err(|e|e.to_string())?,config)}
+  614: #[tauri::command]
+  615: async fn sync_disconnect(app:tauri::AppHandle)->Result<(),String>{let p=app.path().app_data_dir().map_err(|e|e.to_string())?;tauri::async_runtime::spawn_blocking(move||limen_vault::sync::disconnect(&p)).await.map_err(|e|e.to_string())?}
+  616: #[tauri::command]
+  617: async fn sync_test_connection(app:tauri::AppHandle)->Result<serde_json::Value,String>{let p=app.path().app_data_dir().map_err(|e|e.to_string())?;tauri::async_runtime::spawn_blocking(move||limen_vault::sync::test_connection(&p)).await.map_err(|e|e.to_string())?}
+  618: #[tauri::command]
+  619: async fn sync_plan_transfer(app:tauri::AppHandle,state:tauri::State<'_,std::sync::Arc<limen_vault::sync::State>>,vault_path:String,operation:String,release_id:Option<String>)->Result<serde_json::Value,String>{let p=app.path().app_data_dir().map_err(|e|e.to_string())?;let state=state.inner().clone();tauri::async_runtime::spawn_blocking(move||state.plan(&p,Path::new(&vault_path),&operation,release_id.as_deref())).await.map_err(|e|e.to_string())?}
+  620: #[tauri::command]
+  621: async fn sync_execute_transfer(app:tauri::AppHandle,state:tauri::State<'_,std::sync::Arc<limen_vault::sync::State>>,vault_path:String,operation_id:String)->Result<serde_json::Value,String>{let p=app.path().app_data_dir().map_err(|e|e.to_string())?;let state=state.inner().clone();tauri::async_runtime::spawn_blocking(move||state.execute(&p,&operation_id,Path::new(&vault_path))).await.map_err(|e|e.to_string())?}
+  622: #[tauri::command]
+  623: fn sync_cancel_transfer(state:tauri::State<'_,std::sync::Arc<limen_vault::sync::State>>,operation_id:String){state.cancel(&operation_id);}
+  624: 
+  625: #[tauri::command]
+  626: async fn sync_list_releases(app:tauri::AppHandle)->Result<serde_json::Value,String>{let p=app.path().app_data_dir().map_err(|e|e.to_string())?;tauri::async_runtime::spawn_blocking(move||limen_vault::sync::list_releases(&p)).await.map_err(|e|e.to_string())?}
+  627: 
+  628: #[tauri::command]
+  629: async fn sync_select_notes(app:tauri::AppHandle,state:tauri::State<'_,std::sync::Arc<limen_vault::sync::State>>,operation_id:String,paths:Vec<String>)->Result<String,String>{let p=app.path().app_data_dir().map_err(|e|e.to_string())?;let state=state.inner().clone();tauri::async_runtime::spawn_blocking(move||state.select(&p,&operation_id,&paths)).await.map_err(|e|e.to_string())?}
+  630: 
+  631: #[tauri::command]
+  632: async fn sync_revoke_publication(app:tauri::AppHandle)->Result<serde_json::Value,String>{let p=app.path().app_data_dir().map_err(|e|e.to_string())?;tauri::async_runtime::spawn_blocking(move||limen_vault::sync::revoke_publication(&p)).await.map_err(|e|e.to_string())?}
+  633: 
+  634: #[tauri::command]
+  635: async fn catalog_sync(vault_path: String) -> Result<limen_vault::catalog::CatalogSummary, String> {
+  636:     tauri::async_runtime::spawn_blocking(move || {
+  637:         limen_vault::catalog::sync_catalog_from_vault(Path::new(&vault_path))?;
+  638:         limen_vault::catalog::catalog_summary(Path::new(&vault_path))
+  639:     })
+  640:     .await
+  641:     .map_err(|e| e.to_string())?
+  642: }
+  643: 
+  644: #[tauri::command]
+  645: async fn catalog_list_documents(
+  646:     vault_path: String,
+  647:     options: Option<limen_vault::catalog::CatalogListOptions>,
+  648: ) -> Result<limen_vault::catalog::CatalogListResponse, String> {
+  649:     tauri::async_runtime::spawn_blocking(move || {
+  650:         limen_vault::catalog::list_documents(Path::new(&vault_path), options.unwrap_or_default())
+  651:     })
+  652:     .await
+  653:     .map_err(|e| e.to_string())?
+  654: }
+  655: 
+  656: #[tauri::command]
+  657: async fn catalog_process_extractions(vault_path: String) -> Result<usize, String> {
+  658:     tauri::async_runtime::spawn_blocking(move || {
+  659:         limen_vault::catalog::process_pending_extractions(Path::new(&vault_path))
+  660:     })
+  661:     .await
+  662:     .map_err(|e| e.to_string())?
+  663: }
+  664: 
+  665: #[tauri::command]
+  666: async fn catalog_get_document(
+  667:     vault_path: String,
+  668:     document_id: String,
+  669: ) -> Result<limen_vault::catalog::DocumentRecord, String> {
+  670:     tauri::async_runtime::spawn_blocking(move || {
+  671:         limen_vault::catalog::get_document(Path::new(&vault_path), &document_id)
+  672:     })
+  673:     .await
+  674:     .map_err(|e| e.to_string())?
+  675: }
+  676: 
+  677: #[tauri::command]
+  678: async fn catalog_get_by_path(
+  679:     vault_path: String,
+  680:     rel_path: String,
+  681: ) -> Result<limen_vault::catalog::DocumentRecord, String> {
+  682:     tauri::async_runtime::spawn_blocking(move || {
+  683:         limen_vault::catalog::get_document_by_path(Path::new(&vault_path), &rel_path)
+  684:     })
+  685:     .await
+  686:     .map_err(|e| e.to_string())?
+  687: }
+  688: 
+  689: #[tauri::command]
+  690: async fn catalog_verify_document_passage(
+  691:     vault_path: String,
+  692:     document_id: String,
+  693:     passage_id: Option<String>,
+  694:     expected_hash: Option<String>,
+  695:     expected_revision: Option<u64>,
+  696: ) -> Result<limen_vault::catalog::DocumentVerificationReport, String> {
+  697:     tauri::async_runtime::spawn_blocking(move || {
+  698:         limen_vault::catalog::verify_document_passage_integrity(
+  699:             Path::new(&vault_path),
+  700:             &document_id,
+  701:             passage_id.as_deref(),
+  702:             expected_hash.as_deref(),
+  703:             expected_revision,
+  704:         )
+  705:     })
+  706:     .await
+  707:     .map_err(|e| e.to_string())?
+  708: }
+  709: 
+  710: #[tauri::command]
+  711: async fn catalog_read_verified_text(
+  712:     vault_path: String,
+  713:     document_id: String,
+  714:     expected_revision: Option<u64>,
+  715: ) -> Result<String, String> {
+  716:     tauri::async_runtime::spawn_blocking(move || {
+  717:         limen_vault::catalog::read_verified_document_text(
+  718:             Path::new(&vault_path),
+  719:             &document_id,
+  720:             expected_revision,
+  721:         )
+  722:     })
+  723:     .await
+  724:     .map_err(|e| e.to_string())?
+  725: }
+  726: 
+  727: #[tauri::command]
+  728: async fn catalog_read_text(vault_path: String, document_id: String) -> Result<String, String> {
+  729:     tauri::async_runtime::spawn_blocking(move || {
+  730:         limen_vault::catalog::read_document_text(Path::new(&vault_path), &document_id)
+  731:     })
+  732:     .await
+  733:     .map_err(|e| e.to_string())?
+  734: }
+  735: 
+  736: #[tauri::command]
+  737: async fn catalog_read_passage(
+  738:     vault_path: String,
+  739:     document_id: String,
+  740:     passage_id: String,
+  741: ) -> Result<limen_vault::catalog::DocumentPassage, String> {
+  742:     tauri::async_runtime::spawn_blocking(move || {
+  743:         limen_vault::catalog::read_passage(Path::new(&vault_path), &document_id, &passage_id)
+  744:     })
+  745:     .await
+  746:     .map_err(|e| e.to_string())?
+  747: }
+  748: 
+  749: #[tauri::command]
+  750: async fn catalog_open_original(vault_path: String, document_id: String) -> Result<(), String> {
+  751:     tauri::async_runtime::spawn_blocking(move || {
+  752:         limen_vault::catalog::open_original(Path::new(&vault_path), &document_id)
+  753:     })
+  754:     .await
+  755:     .map_err(|e| e.to_string())?
+  756: }
+  757: 
+  758: #[tauri::command]
+  759: async fn catalog_reveal_in_finder(vault_path: String, document_id: String) -> Result<(), String> {
+  760:     tauri::async_runtime::spawn_blocking(move || {
+  761:         limen_vault::catalog::reveal_in_finder(Path::new(&vault_path), &document_id)
+  762:     })
+  763:     .await
+  764:     .map_err(|e| e.to_string())?
+  765: }
+  766: 
+  767: #[tauri::command]
+  768: async fn catalog_get_summary(
+  769:     vault_path: String,
+  770: ) -> Result<limen_vault::catalog::CatalogSummary, String> {
+  771:     tauri::async_runtime::spawn_blocking(move || {
+  772:         limen_vault::catalog::catalog_summary(Path::new(&vault_path))
+  773:     })
+  774:     .await
+  775:     .map_err(|e| e.to_string())?
+  776: }
+  777: 
+  778: #[tauri::command]
+  779: async fn embeddings_get_status(
+  780:     vault_path: String,
+  781: ) -> Result<limen_vault::embeddings::EmbeddingsStatusReport, String> {
+  782:     tauri::async_runtime::spawn_blocking(move || {
+  783:         limen_vault::embeddings::embeddings_status(Path::new(&vault_path))
+  784:     })
+  785:     .await
+  786:     .map_err(|e| e.to_string())?
+  787: }
+  788: 
+  789: #[tauri::command]
+  790: async fn embeddings_get_provider(
+  791:     vault_path: String,
+  792:     llama_state: tauri::State<'_, limen_vault::llama::LlamaServerState>,
+  793: ) -> Result<limen_vault::embeddings::EmbeddingsProviderReport, String> {
+  794:     let port = llama_state.status().port;
+  795:     tauri::async_runtime::spawn_blocking(move || {
+  796:         Ok(limen_vault::embeddings::get_embeddings_provider(Path::new(&vault_path), port))
+  797:     })
+  798:     .await
+  799:     .map_err(|e| e.to_string())?
+  800: }
+  801: 
+  802: #[tauri::command]
+  803: async fn embeddings_set_provider(
+  804:     vault_path: String,
+  805:     provider: String,
+  806:     llama_state: tauri::State<'_, limen_vault::llama::LlamaServerState>,
+  807: ) -> Result<limen_vault::embeddings::EmbeddingsProviderReport, String> {
+  808:     let port = llama_state.status().port;
+  809:     let llama_clone = llama_state.inner().clone();
+  810:     let rep = tauri::async_runtime::spawn_blocking(move || {
+  811:         limen_vault::embeddings::set_embeddings_provider(Path::new(&vault_path), &provider, port)
+  812:     })
+  813:     .await
+  814:     .map_err(|e| e.to_string())??;
+  815: 
+  816:     if rep.provider == "local" {
+  817:         llama_clone.on_app_startup();
+  818:     }
+  819:     Ok(rep)
+  820: }
+  821: 
+  822: #[tauri::command]
+  823: async fn local_model_status() -> Result<limen_vault::llama::LocalModelReport, String> {
+  824:     let t0 = std::time::Instant::now();
+  825:     let rep = tauri::async_runtime::spawn_blocking(limen_vault::llama::local_model_status)
+  826:         .await
+  827:         .map_err(|e| e.to_string())?;
+  828:     let elapsed = t0.elapsed().as_millis() as u64;
+  829:     limen_vault::llama::log_local_model_timing(
+  830:         "PANEL_OPEN_STATUS",
+  831:         elapsed,
+  832:         &format!("installed={}, sha256_ok={}", rep.installed, rep.sha256_ok),
+  833:     );
+  834:     Ok(rep)
+  835: }
+  836: 
+  837: #[tauri::command]
+  838: async fn local_model_download(
+  839:     app: tauri::AppHandle,
+  840: ) -> Result<limen_vault::llama::LocalModelReport, String> {
+  841:     let app_handle = app.clone();
+  842:     limen_vault::llama::download_model_with_progress(move |downloaded, total, percent| {
+  843:         use tauri::Emitter;
+  844:         let _ = app_handle.emit(
+  845:             "local_model_download_progress",
+  846:             serde_json::json!({
+  847:                 "downloaded": downloaded,
+  848:                 "total": total,
+  849:                 "percent": percent,
+  850:             }),
+  851:         );
+  852:     })
+  853:     .await
+  854: }
+  855: 
+  856: #[tauri::command]
+  857: async fn local_model_select_file(
+  858:     file_path: String,
+  859: ) -> Result<limen_vault::llama::LocalModelReport, String> {
+  860:     tauri::async_runtime::spawn_blocking(move || {
+  861:         limen_vault::llama::install_model_from_file(Path::new(&file_path))
+  862:     })
+  863:     .await
+  864:     .map_err(|e| e.to_string())?
+  865: }
+  866: 
+  867: #[tauri::command]
+  868: async fn select_vault_folder(
+  869:     app: tauri::AppHandle,
+  870: ) -> Result<Option<String>, String> {
+  871:     use tauri_plugin_dialog::DialogExt;
+  872:     tauri::async_runtime::spawn_blocking(move || {
+  873:         let folder = app
+  874:             .dialog()
+  875:             .file()
+  876:             .set_title("Seleziona cartella del Vault LIMEN")
+  877:             .blocking_pick_folder();
+  878:         match folder {
+  879:             Some(f) => {
+  880:                 let path_buf = f.into_path().map_err(|e| e.to_string())?;
+  881:                 let path_str = path_buf.to_string_lossy().to_string();
+  882:                 let normalized = path_str.replace('/', "\\");
+  883:                 Ok(Some(normalized))
+  884:             }
+  885:             None => Ok(None),
+  886:         }
+  887:     })
+  888:     .await
+  889:     .map_err(|e| e.to_string())?
+  890: }
+  891: 
+  892: #[tauri::command]
+  893: async fn local_model_pick_and_install(
+  894:     app: tauri::AppHandle,
+  895: ) -> Result<limen_vault::llama::LocalModelReport, String> {
+  896:     use tauri_plugin_dialog::DialogExt;
+  897:     let t0 = std::time::Instant::now();
+  898:     let rep = tauri::async_runtime::spawn_blocking(move || {
+  899:         let file = app
+  900:             .dialog()
+  901:             .file()
+  902:             .set_title("Seleziona file modello GGUF (bge-m3-Q8_0.gguf)")
+  903:             .add_filter("Modello GGUF", &["gguf"])
+  904:             .blocking_pick_file();
+  905:         match file {
+  906:             Some(f) => {
+  907:                 let path_buf = f.into_path().map_err(|e| e.to_string())?;
+  908:                 limen_vault::llama::install_model_from_file(&path_buf)
+  909:             }
+  910:             None => Err("Selezione file annullata".into()),
+  911:         }
+  912:     })
+  913:     .await
+  914:     .map_err(|e| e.to_string())??;
+  915:     let elapsed = t0.elapsed().as_millis() as u64;
+  916:     limen_vault::llama::log_local_model_timing(
+  917:         "FILE_SELECTION_TOTAL_WITH_DIALOG",
+  918:         elapsed,
+  919:         &format!("installed={}, sha256_ok={}", rep.installed, rep.sha256_ok),
+  920:     );
+  921:     Ok(rep)
+  922: }
+  923: 
+  924: #[tauri::command]
+  925: async fn local_model_verify_integrity() -> Result<limen_vault::llama::LocalModelReport, String> {
+  926:     let t0 = std::time::Instant::now();
+  927:     let rep = tauri::async_runtime::spawn_blocking(|| {
+  928:         limen_vault::llama::local_model_status_with_recheck(true)
+  929:     })
+  930:     .await
+  931:     .map_err(|e| e.to_string())?;
+  932:     let elapsed = t0.elapsed().as_millis() as u64;
+  933:     limen_vault::llama::log_local_model_timing(
+  934:         "MANUAL_VERIFY",
+  935:         elapsed,
+  936:         &format!("installed={}, sha256_ok={}", rep.installed, rep.sha256_ok),
+  937:     );
+  938:     Ok(rep)
+  939: }
+  940: 
+  941: #[tauri::command]
+  942: async fn local_server_start(
+  943:     state: tauri::State<'_, limen_vault::llama::LlamaServerState>,
+  944: ) -> Result<limen_vault::llama::LocalServerReport, String> {
+  945:     let state = state.inner().clone();
+  946:     state.reset_auto_start_failure();
+  947:     tauri::async_runtime::spawn_blocking(move || state.start())
+  948:         .await
+  949:         .map_err(|e| e.to_string())?
+  950: }
+  951: 
+  952: #[tauri::command]
+  953: async fn local_server_stop(
+  954:     state: tauri::State<'_, limen_vault::llama::LlamaServerState>,
+  955: ) -> Result<limen_vault::llama::LocalServerReport, String> {
+  956:     let state = state.inner().clone();
+  957:     tauri::async_runtime::spawn_blocking(move || state.stop())
+  958:         .await
+  959:         .map_err(|e| e.to_string())?
+  960: }
+  961: 
+  962: #[tauri::command]
+  963: async fn local_server_status(
+  964:     state: tauri::State<'_, limen_vault::llama::LlamaServerState>,
+  965: ) -> Result<limen_vault::llama::LocalServerReport, String> {
+  966:     Ok(state.status())
+  967: }
+  968: 
+  969: #[tauri::command]
+  970: async fn embeddings_cancel_sync() -> Result<(), String> {
+  971:     limen_vault::embeddings::cancel_sync();
+  972:     Ok(())
+  973: }
+  974: 
+  975: #[tauri::command]
+  976: async fn embeddings_sync_vault(
+  977:     app: tauri::AppHandle,
+  978:     vault_path: String,
+  979:     api_key: Option<String>,
+  980:     model: Option<String>,
+  981:     llama_state: tauri::State<'_, limen_vault::llama::LlamaServerState>,
+  982: ) -> Result<limen_vault::embeddings::EmbeddingsStatusReport, String> {
+  983:     let rep = limen_vault::embeddings::get_embeddings_provider(Path::new(&vault_path), 0);
+  984:     let port = if rep.provider == "local" {
+  985:         Some(llama_state.ensure_running()?)
+  986:     } else {
+  987:         None
+  988:     };
+  989: 
+  990:     // Avanzamento reale per la barra "Ricalcolo cache in corso": un evento all'avvio e uno per lotto.
+  991:     let app_handle = app.clone();
+  992:     let on_progress = move |processed: usize, total: usize| {
+  993:         use tauri::Emitter;
+  994:         let percent = if total == 0 { 100.0 } else { (processed as f64 / total as f64) * 100.0 };
+  995:         let _ = app_handle.emit(
+  996:             "embeddings_sync_progress",
+  997:             serde_json::json!({ "processed": processed, "total": total, "percent": percent }),
+  998:         );
+  999:     };
+ 1000: 
+ 1001:     limen_vault::embeddings::sync_embeddings_with_progress(
+ 1002:         Path::new(&vault_path),
+ 1003:         api_key.as_deref().unwrap_or(""),
+ 1004:         model.as_deref(),
+ 1005:         port,
+ 1006:         Some(&on_progress),
+ 1007:     )
+ 1008:     .await
+ 1009: }
+ 1010: 
+ 1011: #[tauri::command]
+ 1012: async fn search_vault_hybrid(
+ 1013:     app: tauri::AppHandle,
+ 1014:     vault_path: String,
+ 1015:     query: search::SearchQuery,
+ 1016:     api_key: Option<String>,
+ 1017:     use_semantic: Option<bool>,
+ 1018:     llama_state: tauri::State<'_, limen_vault::llama::LlamaServerState>,
+ 1019: ) -> Result<Vec<search::SearchResultItem>, String> {
+ 1020:     let rep = limen_vault::embeddings::get_embeddings_provider(Path::new(&vault_path), 0);
+ 1021:     let is_local = rep.provider == "local";
+ 1022: 
+ 1023:     let active_port = if is_local && use_semantic.unwrap_or(true) && query.term.as_ref().map(|t| !t.trim().is_empty()).unwrap_or(false) {
+ 1024:         let status = llama_state.status();
+ 1025:         if status.healthy && status.port > 0 {
+ 1026:             Some(status.port)
+ 1027:         } else {
+ 1028:             None
+ 1029:         }
+ 1030:     } else {
+ 1031:         None
+ 1032:     };
+ 1033: 
+ 1034:     let (items, degraded) = limen_vault::embeddings::hybrid_search_vault_with_port(
+ 1035:         Path::new(&vault_path),
+ 1036:         query,
+ 1037:         api_key,
+ 1038:         use_semantic.unwrap_or(true),
+ 1039:         active_port,
+ 1040:     )
+ 1041:     .await?;
+ 1042: 
+ 1043:     use tauri::Emitter;
+ 1044:     let _ = app.emit("search_mode_status", serde_json::json!({
+ 1045:         "provider": rep.provider,
+ 1046:         "degraded": degraded,
+ 1047:         "is_local": is_local,
+ 1048:     }));
+ 1049: 
+ 1050:     Ok(items)
+ 1051: }

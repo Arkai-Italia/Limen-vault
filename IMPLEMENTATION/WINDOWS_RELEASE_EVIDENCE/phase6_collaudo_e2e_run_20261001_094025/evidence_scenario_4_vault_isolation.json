@@ -1,0 +1,11 @@
+{
+  "Level": "Isolamento e verifica architettura",
+  "Description": "Verifica cambio vault durante operazione e assenza corruzioni tra indici",
+  "OperationActiveConfirmed": true,
+  "InSessionSwitchSupported": false,
+  "ArchitectureBehavior": "L’applicazione opera come ambiente Single-Vault alla volta: la schermata principale mantiene il vault corrente bloccando interferenze concorrenti.",
+  "VaultB_Marker_Beta_Found": true,
+  "VaultB_Marker_Arkai_Absent": true,
+  "CrossPollutionDetected": false,
+  "Outcome": "PASS"
+}

@@ -1,0 +1,19 @@
+{
+  "Level": "Prova applicativa con verifica semantica fatti",
+  "Description": "Risposta locale GPU Ministral 3 8B: verifica fatti sintetici noti, assenza loop e sequenze anomale di #",
+  "Prompt": "Quali sono i tre principi cardine di ARKAI e dove si svolgono le elaborazioni secondo i documenti del vault?",
+  "AnswerLength": 677,
+  "AnswerSnippet": "I tre principi cardine di ARKAI, secondo il documento fornito, sono:\n\n- La sovranità dei dati assoluta per l'utente, che garantisce che le informazioni appartengano esclusivamente all'utente senza alcuna condivisione esterna.\n- La crittografia verificabile delle memorie su disco, che assicura che lo storage locale sia protetto e tracciabile in modo sicuro.\n- L'elaborazione semantica a rete zero e ",
+  "DurationSec": "10.1",
+  "FactsReported": {
+    "SovranitaDati": true,
+    "CrittografiaVerificabile": true,
+    "ElaborazioneSenzaTelemetria": true,
+    "EdgeGpuLocale": true
+  },
+  "AllExpectedFactsPresent": true,
+  "HashCount": 0,
+  "AnomalousLoopDetected": false,
+  "DefectHashStatus": "Non riprodotto nella fixture con contesto strutturato conforme",
+  "Outcome": "PASS"
+}

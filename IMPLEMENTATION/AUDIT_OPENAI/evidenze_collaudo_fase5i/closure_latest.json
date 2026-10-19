@@ -1,0 +1,13 @@
+{
+  "At": "2026-09-24T19:18:34.8681449+08:00",
+  "Processes": [],
+  "Firewall": [
+    {
+      "Name": "LIMEN-COLLAUDO-20260924-d8ddd86",
+      "Enabled": 1,
+      "Direction": 2,
+      "Action": 4
+    }
+  ],
+  "RemovalFile": false
+}

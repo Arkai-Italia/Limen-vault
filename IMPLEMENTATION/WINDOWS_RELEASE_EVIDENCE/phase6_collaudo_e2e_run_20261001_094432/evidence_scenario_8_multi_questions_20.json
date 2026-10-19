@@ -1,0 +1,177 @@
+{
+  "Level": "Prova applicativa di robustezza sequenziale estesa",
+  "Description": "Esecuzione sequenziale di 20 domande consecutive su Ministral 3 8B con tracciamento puntuale dei turni",
+  "TotalAttempted": 20,
+  "TotalSuccessful": 9,
+  "TotalFailed": 11,
+  "SuccessRatePercent": "45.0",
+  "Q12_Q13_Identical": true,
+  "Results": [
+    {
+      "QuestionIndex": 1,
+      "Prompt": "1. Chi è ARKAI secondo il documento?",
+      "AnswerLength": 87,
+      "AnswerSnippet": "Secondo il documento fornito, ARKAI è una piattaforma di intelligenza aumentata locale....",
+      "FullAnswer": "Secondo il documento fornito, ARKAI è una piattaforma di intelligenza aumentata locale.",
+      "DurationSec": "1.0",
+      "HashCount": 0,
+      "LoopDetected": false,
+      "Status": "SUCCESS"
+    },
+    {
+      "QuestionIndex": 2,
+      "Prompt": "2. Qual è il primo principio cardine di ARKAI?",
+      "AnswerLength": 91,
+      "AnswerSnippet": "Il primo principio cardine di ARKAI, secondo il documento fornito, è la sovranità dei dati....",
+      "FullAnswer": "Il primo principio cardine di ARKAI, secondo il documento fornito, è la sovranità dei dati.",
+      "DurationSec": "1.0",
+      "HashCount": 0,
+      "LoopDetected": false,
+      "Status": "SUCCESS"
+    },
+    {
+      "QuestionIndex": 3,
+      "Prompt": "3. Qual è il secondo principio cardine di ARKAI?",
+      "AnswerLength": 113,
+      "AnswerSnippet": "Secondo il documento fornito, il secondo principio cardine di ARKAI è la crittografia verificabile delle memorie....",
+      "FullAnswer": "Secondo il documento fornito, il secondo principio cardine di ARKAI è la crittografia verificabile delle memorie.",
+      "DurationSec": "1.0",
+      "HashCount": 0,
+      "LoopDetected": false,
+      "Status": "SUCCESS"
+    },
+    {
+      "QuestionIndex": 4,
+      "Prompt": "4. Qual è il terzo principio cardine di ARKAI?",
+      "AnswerLength": 110,
+      "AnswerSnippet": "Secondo il documento fornito, il terzo principio cardine di ARKAI è l'elaborazione semantica senza telemetria....",
+      "FullAnswer": "Secondo il documento fornito, il terzo principio cardine di ARKAI è l'elaborazione semantica senza telemetria.",
+      "DurationSec": "1.0",
+      "HashCount": 0,
+      "LoopDetected": false,
+      "Status": "SUCCESS"
+    },
+    {
+      "QuestionIndex": 5,
+      "Prompt": "5. Dove si svolgono le elaborazioni del sistema?",
+      "AnswerLength": 102,
+      "AnswerSnippet": "Secondo il documento fornito, le elaborazioni del sistema ARKAI si svolgono a rete zero su GPU locale....",
+      "FullAnswer": "Secondo il documento fornito, le elaborazioni del sistema ARKAI si svolgono a rete zero su GPU locale.",
+      "DurationSec": "1.0",
+      "HashCount": 0,
+      "LoopDetected": false,
+      "Status": "SUCCESS"
+    },
+    {
+      "QuestionIndex": 6,
+      "Prompt": "6. Quale hardware locale viene utilizzato?",
+      "AnswerLength": 249,
+      "AnswerSnippet": "Secondo il documento fornito, le elaborazioni di ARKAI avvengono su GPU locale, specificamente utilizzando il modello Ministral per le elaborazioni ve...",
+      "FullAnswer": "Secondo il documento fornito, le elaborazioni di ARKAI avvengono su GPU locale, specificamente utilizzando il modello Ministral per le elaborazioni vettoriali e generative. Non sono presenti altre specifiche hardware dettagliate nel profilo fornito.",
+      "DurationSec": "2.0",
+      "HashCount": 0,
+      "LoopDetected": false,
+      "Status": "SUCCESS"
+    },
+    {
+      "QuestionIndex": 7,
+      "Prompt": "7. Che modello viene eseguito per le risposte?",
+      "AnswerLength": 346,
+      "AnswerSnippet": "Secondo il documento fornito, le elaborazioni generative e vettoriali di ARKAI vengono eseguite utilizzando il modello Ministral su GPU locale. Non so...",
+      "FullAnswer": "Secondo il documento fornito, le elaborazioni generative e vettoriali di ARKAI vengono eseguite utilizzando il modello Ministral su GPU locale. Non sono presenti ulteriori dettagli specifici sul modello esatto utilizzato per generare le risposte, ma si tratta del framework o modello sottostante che supporta l'elaborazione semantica del sistema.",
+      "DurationSec": "2.0",
+      "HashCount": 0,
+      "LoopDetected": false,
+      "Status": "SUCCESS"
+    },
+    {
+      "QuestionIndex": 8,
+      "Prompt": "8. Spiega la sovranità dei dati.",
+      "AnswerLength": 747,
+      "AnswerSnippet": "Secondo il documento fornito sul profilo architettura ARKAI, la sovranità dei dati si riferisce a un principio fondamentale della piattaforma, che gar...",
+      "FullAnswer": "Secondo il documento fornito sul profilo architettura ARKAI, la sovranità dei dati si riferisce a un principio fondamentale della piattaforma, che garantisce ai suoi utenti il pieno controllo e la proprietà esclusiva dei propri dati.\n\nIn particolare, ARKAI assicura che:\n- I dati non vengano mai trasmessi o memorizzati su server esterni, ma rimangano interamente locali al dispositivo dell'utente.\n- L'elaborazione avviene in un ambiente a rete zero (zero-trust), eliminando qualsiasi rischio di esposizione o accesso non autorizzato da parte di terze parti.\n- La piattaforma promuove un modello di autonomia tecnologica, dove l'utente decide come, quando e dove i dati vengono processati, senza dipendere da infrastrutture cloud o centralizzate.",
+      "DurationSec": "5.0",
+      "HashCount": 0,
+      "LoopDetected": false,
+      "Status": "SUCCESS"
+    },
+    {
+      "QuestionIndex": 9,
+      "Prompt": "9. Cosa significa crittografia verificabile delle memorie?",
+      "AnswerLength": 908,
+      "AnswerSnippet": "Secondo il documento fornito sul profilo architettura di ARKAI, il termine crittografia verificabile delle memorie si riferisce a un meccanismo che ga...",
+      "FullAnswer": "Secondo il documento fornito sul profilo architettura di ARKAI, il termine crittografia verificabile delle memorie si riferisce a un meccanismo che garantisce:\n\n- La protezione integrale dei dati memorizzati localmente, assicurando che siano accessibili solo all’utente autorizzato.\n- La verificabilità che i dati non siano stati alterati o compromessi durante il processo di elaborazione, grazie a tecniche crittografiche che permettono di attestare l’autenticità e l’integrità delle informazioni.\n- La trasparenza nel trattamento dei dati, consentendo all’utente di verificare che le operazioni di elaborazione (come quelle vettoriali o generative) siano state eseguite correttamente senza violazioni o manipolazioni.\n\nIn sintesi, questa funzionalità integra sicurezza e affidabilità nel ciclo di vita dei dati, assicurando che l’utente possa fidarsi dell’integrità delle proprie memorie e processi locali.",
+      "DurationSec": "6.0",
+      "HashCount": 0,
+      "LoopDetected": false,
+      "Status": "SUCCESS"
+    },
+    {
+      "QuestionIndex": 10,
+      "Prompt": "10. Cosa garantisce l'assenza di telemetria?",
+      "Error": "Impossibile avviare la generazione per la domanda [Turno 13]: \"10. Cosa garantisce l'assenza di telemetria?\"",
+      "Status": "ERROR"
+    },
+    {
+      "QuestionIndex": 11,
+      "Prompt": "11. Qual è lo scopo del vault locale?",
+      "Error": "Impossibile avviare la generazione per la domanda [Turno 13]: \"11. Qual è lo scopo del vault locale?\"",
+      "Status": "ERROR"
+    },
+    {
+      "QuestionIndex": 12,
+      "Prompt": "12. Come vengono trattati i file Obsidian?",
+      "Error": "Impossibile avviare la generazione per la domanda [Turno 13]: \"12. Come vengono trattati i file Obsidian?\"",
+      "Status": "ERROR"
+    },
+    {
+      "QuestionIndex": 13,
+      "Prompt": "13. Quali categorie di note sono previste?",
+      "Error": "Impossibile avviare la generazione per la domanda [Turno 13]: \"13. Quali categorie di note sono previste?\"",
+      "Status": "ERROR"
+    },
+    {
+      "QuestionIndex": 14,
+      "Prompt": "14. In quale cartella si trova il profilo di ARKAI?",
+      "Error": "Impossibile avviare la generazione per la domanda [Turno 13]: \"14. In quale cartella si trova il profilo di ARKAI?\"",
+      "Status": "ERROR"
+    },
+    {
+      "QuestionIndex": 15,
+      "Prompt": "15. Qual è il tipo di documento assegnato al profilo ARKAI?",
+      "Error": "Impossibile avviare la generazione per la domanda [Turno 13]: \"15. Qual è il tipo di documento assegnato al profilo ARKAI?\"",
+      "Status": "ERROR"
+    },
+    {
+      "QuestionIndex": 16,
+      "Prompt": "16. Qual è lo stato di approvazione della nota?",
+      "Error": "Impossibile avviare la generazione per la domanda [Turno 13]: \"16. Qual è lo stato di approvazione della nota?\"",
+      "Status": "ERROR"
+    },
+    {
+      "QuestionIndex": 17,
+      "Prompt": "17. Riassumi i vantaggi dell'approccio edge.",
+      "Error": "Impossibile avviare la generazione per la domanda [Turno 13]: \"17. Riassumi i vantaggi dell'approccio edge.\"",
+      "Status": "ERROR"
+    },
+    {
+      "QuestionIndex": 18,
+      "Prompt": "18. Perché la privacy è garantita a rete zero?",
+      "Error": "Impossibile avviare la generazione per la domanda [Turno 13]: \"18. Perché la privacy è garantita a rete zero?\"",
+      "Status": "ERROR"
+    },
+    {
+      "QuestionIndex": 19,
+      "Prompt": "19. Che ruolo ha l'indice semantico?",
+      "Error": "Impossibile avviare la generazione per la domanda [Turno 13]: \"19. Che ruolo ha l'indice semantico?\"",
+      "Status": "ERROR"
+    },
+    {
+      "QuestionIndex": 20,
+      "Prompt": "20. Concludi con una sintesi generale di ARKAI.",
+      "Error": "Impossibile avviare la generazione per la domanda [Turno 13]: \"20. Concludi con una sintesi generale di ARKAI.\"",
+      "Status": "ERROR"
+    }
+  ],
+  "Outcome": "PARTIAL"
+}

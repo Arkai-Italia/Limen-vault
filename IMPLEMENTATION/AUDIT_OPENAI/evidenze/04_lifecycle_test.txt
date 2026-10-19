@@ -1,0 +1,16 @@
+2026-09-24T09:39:25.4659832+08:00
+
+Id        : 20772
+Path      : E:\Projects\vault_memai_obsi\apps\desktop\src-tauri\target\release\limen-vault.exe
+StartTime : 24/09/2026 09:35:27
+
+Id        : 31524
+Path      : E:\Projects\vault_memai_obsi\apps\desktop\src-tauri\target\release\native\llama-server.exe
+StartTime : 24/09/2026 09:36:57
+
+31524
+52944
+external_port=52944 external_health=true default_status=LocalServerReport { running: false, port: 0, pid: None, model: "bge-m3-Q8_0.gguf", healthy: false, last_error: None } elapsed_ms=0
+harmless_child_pid=21512 exits_naturally_after_ms=2400
+mutex_blocked_after_1200ms=true
+stop_child_returned_ms=2426 child_exit=natural shared_files=untouched

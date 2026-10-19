@@ -1,0 +1,715 @@
+[
+  {
+    "folder": "C01R2_after",
+    "at": "2026-09-24T15:39:11.7894080+08:00",
+    "case": "C01R2",
+    "phase": "after",
+    "sha": "6b0427122288651bce14051bd9e86fd371656e18",
+    "exeHash": "3172F6AC4BF9F6D71E0DD2F032EBAF641AD36DB169DE7C54FD4EF4F8E972283A",
+    "processes": [
+      {
+        "ProcessId": 30928,
+        "ParentProcessId": 12528,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_collaudo_6b04271\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+        "CreationDate": "2026-09-24T15:37:03.952141+08:00"
+      }
+    ],
+    "pidFile": "ABSENT",
+    "portFile": "54658",
+    "perRunLogs": 14
+  },
+  {
+    "folder": "C01R2_before",
+    "at": "2026-09-24T15:36:41.2246905+08:00",
+    "case": "C01R2",
+    "phase": "before",
+    "sha": "6b0427122288651bce14051bd9e86fd371656e18",
+    "exeHash": "3172F6AC4BF9F6D71E0DD2F032EBAF641AD36DB169DE7C54FD4EF4F8E972283A",
+    "processes": [],
+    "pidFile": "ABSENT",
+    "portFile": "54658",
+    "perRunLogs": 14
+  },
+  {
+    "folder": "C01R_after",
+    "at": "2026-09-24T15:36:16.2538687+08:00",
+    "case": "C01R",
+    "phase": "after",
+    "sha": "6b0427122288651bce14051bd9e86fd371656e18",
+    "exeHash": "3172F6AC4BF9F6D71E0DD2F032EBAF641AD36DB169DE7C54FD4EF4F8E972283A",
+    "processes": [
+      {
+        "ProcessId": 36580,
+        "ParentProcessId": 12620,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_collaudo_6b04271\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+        "CreationDate": "2026-09-24T15:34:44.700909+08:00"
+      }
+    ],
+    "pidFile": "ABSENT",
+    "portFile": "54658",
+    "perRunLogs": 14
+  },
+  {
+    "folder": "C01R_before",
+    "at": "2026-09-24T15:34:26.1650576+08:00",
+    "case": "C01R",
+    "phase": "before",
+    "sha": "6b0427122288651bce14051bd9e86fd371656e18",
+    "exeHash": "3172F6AC4BF9F6D71E0DD2F032EBAF641AD36DB169DE7C54FD4EF4F8E972283A",
+    "processes": [],
+    "pidFile": "37568",
+    "portFile": "54658",
+    "perRunLogs": 14
+  },
+  {
+    "folder": "C01_after",
+    "at": "2026-09-24T15:21:30.5764095+08:00",
+    "case": "C01",
+    "phase": "after",
+    "sha": "6b0427122288651bce14051bd9e86fd371656e18",
+    "exeHash": "3172F6AC4BF9F6D71E0DD2F032EBAF641AD36DB169DE7C54FD4EF4F8E972283A",
+    "processes": [
+      {
+        "ProcessId": 11228,
+        "ParentProcessId": 38436,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_collaudo_6b04271\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+        "CreationDate": "2026-09-24T15:17:52.762914+08:00"
+      },
+      {
+        "ProcessId": 40000,
+        "ParentProcessId": 11228,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_collaudo_6b04271\\apps\\desktop\\src-tauri\\target\\release\\native\\llama-server.exe",
+        "CreationDate": "2026-09-24T15:19:58.762101+08:00"
+      }
+    ],
+    "pidFile": "40000",
+    "portFile": "49928",
+    "perRunLogs": 11
+  },
+  {
+    "folder": "C01_auto_failed",
+    "at": "2026-09-24T15:19:30.7185517+08:00",
+    "case": "C01",
+    "phase": "auto_failed",
+    "sha": "6b0427122288651bce14051bd9e86fd371656e18",
+    "exeHash": "3172F6AC4BF9F6D71E0DD2F032EBAF641AD36DB169DE7C54FD4EF4F8E972283A",
+    "processes": [
+      {
+        "ProcessId": 11228,
+        "ParentProcessId": 38436,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_collaudo_6b04271\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+        "CreationDate": "2026-09-24T15:17:52.762914+08:00"
+      }
+    ],
+    "pidFile": "ABSENT",
+    "portFile": "61565",
+    "perRunLogs": 10
+  },
+  {
+    "folder": "C01_before",
+    "at": "2026-09-24T15:17:51.4635134+08:00",
+    "case": "C01",
+    "phase": "before",
+    "sha": "6b0427122288651bce14051bd9e86fd371656e18",
+    "exeHash": "3172F6AC4BF9F6D71E0DD2F032EBAF641AD36DB169DE7C54FD4EF4F8E972283A",
+    "processes": [],
+    "pidFile": "28704",
+    "portFile": "61565",
+    "perRunLogs": 10
+  },
+  {
+    "folder": "C02_after",
+    "at": "2026-09-24T15:22:54.3589681+08:00",
+    "case": "C02",
+    "phase": "after",
+    "sha": "6b0427122288651bce14051bd9e86fd371656e18",
+    "exeHash": "3172F6AC4BF9F6D71E0DD2F032EBAF641AD36DB169DE7C54FD4EF4F8E972283A",
+    "processes": [
+      {
+        "ProcessId": 11228,
+        "ParentProcessId": 38436,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_collaudo_6b04271\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+        "CreationDate": "2026-09-24T15:17:52.762914+08:00"
+      },
+      {
+        "ProcessId": 40000,
+        "ParentProcessId": 11228,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_collaudo_6b04271\\apps\\desktop\\src-tauri\\target\\release\\native\\llama-server.exe",
+        "CreationDate": "2026-09-24T15:19:58.762101+08:00"
+      },
+      {
+        "ProcessId": 27004,
+        "ParentProcessId": 15976,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_67da90f\\apps\\desktop\\src-tauri\\target\\release\\native\\llama-server.exe",
+        "CreationDate": "2026-09-24T15:21:57.613504+08:00"
+      }
+    ],
+    "pidFile": "40000",
+    "portFile": "49928",
+    "perRunLogs": 11
+  },
+  {
+    "folder": "C02_before",
+    "at": "2026-09-24T15:21:31.3668149+08:00",
+    "case": "C02",
+    "phase": "before",
+    "sha": "6b0427122288651bce14051bd9e86fd371656e18",
+    "exeHash": "3172F6AC4BF9F6D71E0DD2F032EBAF641AD36DB169DE7C54FD4EF4F8E972283A",
+    "processes": [
+      {
+        "ProcessId": 11228,
+        "ParentProcessId": 38436,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_collaudo_6b04271\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+        "CreationDate": "2026-09-24T15:17:52.762914+08:00"
+      },
+      {
+        "ProcessId": 40000,
+        "ParentProcessId": 11228,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_collaudo_6b04271\\apps\\desktop\\src-tauri\\target\\release\\native\\llama-server.exe",
+        "CreationDate": "2026-09-24T15:19:58.762101+08:00"
+      }
+    ],
+    "pidFile": "40000",
+    "portFile": "49928",
+    "perRunLogs": 11
+  },
+  {
+    "folder": "C03_after",
+    "at": "2026-09-24T15:31:33.0709445+08:00",
+    "case": "C03",
+    "phase": "after",
+    "sha": "6b0427122288651bce14051bd9e86fd371656e18",
+    "exeHash": "3172F6AC4BF9F6D71E0DD2F032EBAF641AD36DB169DE7C54FD4EF4F8E972283A",
+    "processes": [
+      {
+        "ProcessId": 38820,
+        "ParentProcessId": 41832,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_collaudo_6b04271\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+        "CreationDate": "2026-09-24T15:26:14.869869+08:00"
+      }
+    ],
+    "pidFile": "ABSENT",
+    "portFile": "ABSENT",
+    "perRunLogs": 13
+  },
+  {
+    "folder": "C03_before",
+    "at": "2026-09-24T15:28:23.2389256+08:00",
+    "case": "C03",
+    "phase": "before",
+    "sha": "6b0427122288651bce14051bd9e86fd371656e18",
+    "exeHash": "3172F6AC4BF9F6D71E0DD2F032EBAF641AD36DB169DE7C54FD4EF4F8E972283A",
+    "processes": [
+      {
+        "ProcessId": 38820,
+        "ParentProcessId": 41832,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_collaudo_6b04271\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+        "CreationDate": "2026-09-24T15:26:14.869869+08:00"
+      }
+    ],
+    "pidFile": "27004",
+    "portFile": "62362",
+    "perRunLogs": 11
+  },
+  {
+    "folder": "C03_first_failure",
+    "at": "2026-09-24T15:30:22.0842716+08:00",
+    "case": "C03",
+    "phase": "first_failure",
+    "sha": "6b0427122288651bce14051bd9e86fd371656e18",
+    "exeHash": "3172F6AC4BF9F6D71E0DD2F032EBAF641AD36DB169DE7C54FD4EF4F8E972283A",
+    "processes": [
+      {
+        "ProcessId": 38820,
+        "ParentProcessId": 41832,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_collaudo_6b04271\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+        "CreationDate": "2026-09-24T15:26:14.869869+08:00"
+      }
+    ],
+    "pidFile": "ABSENT",
+    "portFile": "ABSENT",
+    "perRunLogs": 12
+  },
+  {
+    "folder": "C04_after",
+    "at": "2026-09-24T15:33:53.8069590+08:00",
+    "case": "C04",
+    "phase": "after",
+    "sha": "6b0427122288651bce14051bd9e86fd371656e18",
+    "exeHash": "3172F6AC4BF9F6D71E0DD2F032EBAF641AD36DB169DE7C54FD4EF4F8E972283A",
+    "processes": [
+      {
+        "ProcessId": 38820,
+        "ParentProcessId": 41832,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_collaudo_6b04271\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+        "CreationDate": "2026-09-24T15:26:14.869869+08:00"
+      },
+      {
+        "ProcessId": 37568,
+        "ParentProcessId": 39180,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_67da90f\\apps\\desktop\\src-tauri\\target\\release\\native\\llama-server.exe",
+        "CreationDate": "2026-09-24T15:31:34.600132+08:00"
+      }
+    ],
+    "pidFile": "37568",
+    "portFile": "54658",
+    "perRunLogs": 14
+  },
+  {
+    "folder": "C04_before",
+    "at": "2026-09-24T15:31:33.8047771+08:00",
+    "case": "C04",
+    "phase": "before",
+    "sha": "6b0427122288651bce14051bd9e86fd371656e18",
+    "exeHash": "3172F6AC4BF9F6D71E0DD2F032EBAF641AD36DB169DE7C54FD4EF4F8E972283A",
+    "processes": [
+      {
+        "ProcessId": 38820,
+        "ParentProcessId": 41832,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_collaudo_6b04271\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+        "CreationDate": "2026-09-24T15:26:14.869869+08:00"
+      }
+    ],
+    "pidFile": "ABSENT",
+    "portFile": "ABSENT",
+    "perRunLogs": 13
+  },
+  {
+    "folder": "C04_fixture_failed",
+    "at": "2026-09-24T15:32:46.2077747+08:00",
+    "case": "C04",
+    "phase": "fixture_failed",
+    "sha": "6b0427122288651bce14051bd9e86fd371656e18",
+    "exeHash": "3172F6AC4BF9F6D71E0DD2F032EBAF641AD36DB169DE7C54FD4EF4F8E972283A",
+    "processes": [
+      {
+        "ProcessId": 38820,
+        "ParentProcessId": 41832,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_collaudo_6b04271\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+        "CreationDate": "2026-09-24T15:26:14.869869+08:00"
+      },
+      {
+        "ProcessId": 37568,
+        "ParentProcessId": 39180,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_67da90f\\apps\\desktop\\src-tauri\\target\\release\\native\\llama-server.exe",
+        "CreationDate": "2026-09-24T15:31:34.600132+08:00"
+      }
+    ],
+    "pidFile": "37568",
+    "portFile": "54658",
+    "perRunLogs": 14
+  },
+  {
+    "folder": "C04_registered_before_attempt",
+    "at": "2026-09-24T15:32:07.7663000+08:00",
+    "case": "C04",
+    "phase": "registered_before_attempt",
+    "sha": "6b0427122288651bce14051bd9e86fd371656e18",
+    "exeHash": "3172F6AC4BF9F6D71E0DD2F032EBAF641AD36DB169DE7C54FD4EF4F8E972283A",
+    "processes": [
+      {
+        "ProcessId": 38820,
+        "ParentProcessId": 41832,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_collaudo_6b04271\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+        "CreationDate": "2026-09-24T15:26:14.869869+08:00"
+      },
+      {
+        "ProcessId": 37568,
+        "ParentProcessId": 39180,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_67da90f\\apps\\desktop\\src-tauri\\target\\release\\native\\llama-server.exe",
+        "CreationDate": "2026-09-24T15:31:34.600132+08:00"
+      }
+    ],
+    "pidFile": "37568",
+    "portFile": "54658",
+    "perRunLogs": 13
+  },
+  {
+    "folder": "C05PS_after",
+    "at": "2026-09-24T15:51:58.6243201+08:00",
+    "case": "C05PS",
+    "phase": "after",
+    "sha": "6b0427122288651bce14051bd9e86fd371656e18",
+    "exeHash": "3172F6AC4BF9F6D71E0DD2F032EBAF641AD36DB169DE7C54FD4EF4F8E972283A",
+    "processes": [],
+    "pidFile": "ABSENT",
+    "portFile": "ABSENT",
+    "perRunLogs": 16
+  },
+  {
+    "folder": "C05PS_before",
+    "at": "2026-09-24T15:51:22.5788009+08:00",
+    "case": "C05PS",
+    "phase": "before",
+    "sha": "6b0427122288651bce14051bd9e86fd371656e18",
+    "exeHash": "3172F6AC4BF9F6D71E0DD2F032EBAF641AD36DB169DE7C54FD4EF4F8E972283A",
+    "processes": [],
+    "pidFile": "ABSENT",
+    "portFile": "ABSENT",
+    "perRunLogs": 16
+  },
+  {
+    "folder": "C05_after",
+    "at": "2026-09-24T15:25:19.9950673+08:00",
+    "case": "C05",
+    "phase": "after",
+    "sha": "6b0427122288651bce14051bd9e86fd371656e18",
+    "exeHash": "3172F6AC4BF9F6D71E0DD2F032EBAF641AD36DB169DE7C54FD4EF4F8E972283A",
+    "processes": [
+      {
+        "ProcessId": 27004,
+        "ParentProcessId": 15976,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_67da90f\\apps\\desktop\\src-tauri\\target\\release\\native\\llama-server.exe",
+        "CreationDate": "2026-09-24T15:21:57.613504+08:00"
+      },
+      {
+        "ProcessId": 15492,
+        "ParentProcessId": 3840,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_collaudo_6b04271\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+        "CreationDate": "2026-09-24T15:23:56.37057+08:00"
+      }
+    ],
+    "pidFile": "27004",
+    "portFile": "62362",
+    "perRunLogs": 11
+  },
+  {
+    "folder": "C05_before",
+    "at": "2026-09-24T15:23:55.7170662+08:00",
+    "case": "C05",
+    "phase": "before",
+    "sha": "6b0427122288651bce14051bd9e86fd371656e18",
+    "exeHash": "3172F6AC4BF9F6D71E0DD2F032EBAF641AD36DB169DE7C54FD4EF4F8E972283A",
+    "processes": [
+      {
+        "ProcessId": 27004,
+        "ParentProcessId": 15976,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_67da90f\\apps\\desktop\\src-tauri\\target\\release\\native\\llama-server.exe",
+        "CreationDate": "2026-09-24T15:21:57.613504+08:00"
+      }
+    ],
+    "pidFile": "27004",
+    "portFile": "62362",
+    "perRunLogs": 11
+  },
+  {
+    "folder": "C06_after",
+    "at": "2026-09-24T15:28:22.6385037+08:00",
+    "case": "C06",
+    "phase": "after",
+    "sha": "6b0427122288651bce14051bd9e86fd371656e18",
+    "exeHash": "3172F6AC4BF9F6D71E0DD2F032EBAF641AD36DB169DE7C54FD4EF4F8E972283A",
+    "processes": [
+      {
+        "ProcessId": 38820,
+        "ParentProcessId": 41832,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_collaudo_6b04271\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+        "CreationDate": "2026-09-24T15:26:14.869869+08:00"
+      }
+    ],
+    "pidFile": "27004",
+    "portFile": "62362",
+    "perRunLogs": 11
+  },
+  {
+    "folder": "C06_before",
+    "at": "2026-09-24T15:26:14.3383009+08:00",
+    "case": "C06",
+    "phase": "before",
+    "sha": "6b0427122288651bce14051bd9e86fd371656e18",
+    "exeHash": "3172F6AC4BF9F6D71E0DD2F032EBAF641AD36DB169DE7C54FD4EF4F8E972283A",
+    "processes": [
+      {
+        "ProcessId": 27004,
+        "ParentProcessId": 15976,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_67da90f\\apps\\desktop\\src-tauri\\target\\release\\native\\llama-server.exe",
+        "CreationDate": "2026-09-24T15:21:57.613504+08:00"
+      }
+    ],
+    "pidFile": "27004",
+    "portFile": "62362",
+    "perRunLogs": 11
+  },
+  {
+    "folder": "C06_external_stopped",
+    "at": "2026-09-24T15:27:28.8315605+08:00",
+    "case": "C06",
+    "phase": "external_stopped",
+    "sha": "6b0427122288651bce14051bd9e86fd371656e18",
+    "exeHash": "3172F6AC4BF9F6D71E0DD2F032EBAF641AD36DB169DE7C54FD4EF4F8E972283A",
+    "processes": [
+      {
+        "ProcessId": 38820,
+        "ParentProcessId": 41832,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_collaudo_6b04271\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+        "CreationDate": "2026-09-24T15:26:14.869869+08:00"
+      }
+    ],
+    "pidFile": "27004",
+    "portFile": "62362",
+    "perRunLogs": 11
+  },
+  {
+    "folder": "C07R_after",
+    "at": "2026-09-24T15:46:16.6641034+08:00",
+    "case": "C07R",
+    "phase": "after",
+    "sha": "6b0427122288651bce14051bd9e86fd371656e18",
+    "exeHash": "3172F6AC4BF9F6D71E0DD2F032EBAF641AD36DB169DE7C54FD4EF4F8E972283A",
+    "processes": [
+      {
+        "ProcessId": 26684,
+        "ParentProcessId": 32928,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_collaudo_6b04271\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+        "CreationDate": "2026-09-24T15:42:42.36133+08:00"
+      }
+    ],
+    "pidFile": "ABSENT",
+    "portFile": "ABSENT",
+    "perRunLogs": 15
+  },
+  {
+    "folder": "C07R_before",
+    "at": "2026-09-24T15:42:25.0049564+08:00",
+    "case": "C07R",
+    "phase": "before",
+    "sha": "6b0427122288651bce14051bd9e86fd371656e18",
+    "exeHash": "3172F6AC4BF9F6D71E0DD2F032EBAF641AD36DB169DE7C54FD4EF4F8E972283A",
+    "processes": [],
+    "pidFile": "ABSENT",
+    "portFile": "54658",
+    "perRunLogs": 14
+  },
+  {
+    "folder": "C07R_before_overlap",
+    "at": "2026-09-24T15:44:34.0805701+08:00",
+    "case": "C07R",
+    "phase": "before_overlap",
+    "sha": "6b0427122288651bce14051bd9e86fd371656e18",
+    "exeHash": "3172F6AC4BF9F6D71E0DD2F032EBAF641AD36DB169DE7C54FD4EF4F8E972283A",
+    "processes": [
+      {
+        "ProcessId": 26684,
+        "ParentProcessId": 32928,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_collaudo_6b04271\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+        "CreationDate": "2026-09-24T15:42:42.36133+08:00"
+      }
+    ],
+    "pidFile": "ABSENT",
+    "portFile": "ABSENT",
+    "perRunLogs": 15
+  },
+  {
+    "folder": "C07R_concurrent",
+    "at": "2026-09-24T15:45:50.4893996+08:00",
+    "case": "C07R",
+    "phase": "concurrent",
+    "sha": "6b0427122288651bce14051bd9e86fd371656e18",
+    "exeHash": "3172F6AC4BF9F6D71E0DD2F032EBAF641AD36DB169DE7C54FD4EF4F8E972283A",
+    "processes": [
+      {
+        "ProcessId": 26684,
+        "ParentProcessId": 32928,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_collaudo_6b04271\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+        "CreationDate": "2026-09-24T15:42:42.36133+08:00"
+      }
+    ],
+    "pidFile": "ABSENT",
+    "portFile": "ABSENT",
+    "perRunLogs": 15
+  },
+  {
+    "folder": "C07_after",
+    "at": "2026-09-24T15:41:22.1723722+08:00",
+    "case": "C07",
+    "phase": "after",
+    "sha": "6b0427122288651bce14051bd9e86fd371656e18",
+    "exeHash": "3172F6AC4BF9F6D71E0DD2F032EBAF641AD36DB169DE7C54FD4EF4F8E972283A",
+    "processes": [
+      {
+        "ProcessId": 10820,
+        "ParentProcessId": 18164,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_collaudo_6b04271\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+        "CreationDate": "2026-09-24T15:39:27.66323+08:00"
+      }
+    ],
+    "pidFile": "ABSENT",
+    "portFile": "54658",
+    "perRunLogs": 14
+  },
+  {
+    "folder": "C07_before",
+    "at": "2026-09-24T15:39:12.4883639+08:00",
+    "case": "C07",
+    "phase": "before",
+    "sha": "6b0427122288651bce14051bd9e86fd371656e18",
+    "exeHash": "3172F6AC4BF9F6D71E0DD2F032EBAF641AD36DB169DE7C54FD4EF4F8E972283A",
+    "processes": [
+      {
+        "ProcessId": 30928,
+        "ParentProcessId": 12528,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_collaudo_6b04271\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+        "CreationDate": "2026-09-24T15:37:03.952141+08:00"
+      }
+    ],
+    "pidFile": "ABSENT",
+    "portFile": "54658",
+    "perRunLogs": 14
+  },
+  {
+    "folder": "C08_after",
+    "at": "2026-09-24T15:48:39.2389853+08:00",
+    "case": "C08",
+    "phase": "after",
+    "sha": "6b0427122288651bce14051bd9e86fd371656e18",
+    "exeHash": "3172F6AC4BF9F6D71E0DD2F032EBAF641AD36DB169DE7C54FD4EF4F8E972283A",
+    "processes": [
+      {
+        "ProcessId": 26684,
+        "ParentProcessId": 32928,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_collaudo_6b04271\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+        "CreationDate": "2026-09-24T15:42:42.36133+08:00"
+      }
+    ],
+    "pidFile": "ABSENT",
+    "portFile": "ABSENT",
+    "perRunLogs": 16
+  },
+  {
+    "folder": "C08_before",
+    "at": "2026-09-24T15:46:45.9528663+08:00",
+    "case": "C08",
+    "phase": "before",
+    "sha": "6b0427122288651bce14051bd9e86fd371656e18",
+    "exeHash": "3172F6AC4BF9F6D71E0DD2F032EBAF641AD36DB169DE7C54FD4EF4F8E972283A",
+    "processes": [
+      {
+        "ProcessId": 26684,
+        "ParentProcessId": 32928,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_collaudo_6b04271\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+        "CreationDate": "2026-09-24T15:42:42.36133+08:00"
+      }
+    ],
+    "pidFile": "ABSENT",
+    "portFile": "ABSENT",
+    "perRunLogs": 15
+  },
+  {
+    "folder": "C09_adopted_after",
+    "at": "2026-09-24T15:26:13.6883043+08:00",
+    "case": "C09_adopted",
+    "phase": "after",
+    "sha": "6b0427122288651bce14051bd9e86fd371656e18",
+    "exeHash": "3172F6AC4BF9F6D71E0DD2F032EBAF641AD36DB169DE7C54FD4EF4F8E972283A",
+    "processes": [
+      {
+        "ProcessId": 27004,
+        "ParentProcessId": 15976,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_67da90f\\apps\\desktop\\src-tauri\\target\\release\\native\\llama-server.exe",
+        "CreationDate": "2026-09-24T15:21:57.613504+08:00"
+      }
+    ],
+    "pidFile": "27004",
+    "portFile": "62362",
+    "perRunLogs": 11
+  },
+  {
+    "folder": "C09_adopted_before",
+    "at": "2026-09-24T15:25:52.2192607+08:00",
+    "case": "C09_adopted",
+    "phase": "before",
+    "sha": "6b0427122288651bce14051bd9e86fd371656e18",
+    "exeHash": "3172F6AC4BF9F6D71E0DD2F032EBAF641AD36DB169DE7C54FD4EF4F8E972283A",
+    "processes": [
+      {
+        "ProcessId": 27004,
+        "ParentProcessId": 15976,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_67da90f\\apps\\desktop\\src-tauri\\target\\release\\native\\llama-server.exe",
+        "CreationDate": "2026-09-24T15:21:57.613504+08:00"
+      },
+      {
+        "ProcessId": 15492,
+        "ParentProcessId": 3840,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_collaudo_6b04271\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+        "CreationDate": "2026-09-24T15:23:56.37057+08:00"
+      }
+    ],
+    "pidFile": "27004",
+    "portFile": "62362",
+    "perRunLogs": 11
+  },
+  {
+    "folder": "C09_owned_after",
+    "at": "2026-09-24T15:23:22.9358568+08:00",
+    "case": "C09_owned",
+    "phase": "after",
+    "sha": "6b0427122288651bce14051bd9e86fd371656e18",
+    "exeHash": "3172F6AC4BF9F6D71E0DD2F032EBAF641AD36DB169DE7C54FD4EF4F8E972283A",
+    "processes": [
+      {
+        "ProcessId": 27004,
+        "ParentProcessId": 15976,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_67da90f\\apps\\desktop\\src-tauri\\target\\release\\native\\llama-server.exe",
+        "CreationDate": "2026-09-24T15:21:57.613504+08:00"
+      }
+    ],
+    "pidFile": "ABSENT",
+    "portFile": "ABSENT",
+    "perRunLogs": 11
+  },
+  {
+    "folder": "C09_owned_before",
+    "at": "2026-09-24T15:22:55.0265069+08:00",
+    "case": "C09_owned",
+    "phase": "before",
+    "sha": "6b0427122288651bce14051bd9e86fd371656e18",
+    "exeHash": "3172F6AC4BF9F6D71E0DD2F032EBAF641AD36DB169DE7C54FD4EF4F8E972283A",
+    "processes": [
+      {
+        "ProcessId": 11228,
+        "ParentProcessId": 38436,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_collaudo_6b04271\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+        "CreationDate": "2026-09-24T15:17:52.762914+08:00"
+      },
+      {
+        "ProcessId": 40000,
+        "ParentProcessId": 11228,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_collaudo_6b04271\\apps\\desktop\\src-tauri\\target\\release\\native\\llama-server.exe",
+        "CreationDate": "2026-09-24T15:19:58.762101+08:00"
+      },
+      {
+        "ProcessId": 27004,
+        "ParentProcessId": 15976,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_67da90f\\apps\\desktop\\src-tauri\\target\\release\\native\\llama-server.exe",
+        "CreationDate": "2026-09-24T15:21:57.613504+08:00"
+      }
+    ],
+    "pidFile": "40000",
+    "portFile": "49928",
+    "perRunLogs": 11
+  },
+  {
+    "folder": "SESSION_after",
+    "at": "2026-09-24T15:49:44.5110116+08:00",
+    "case": "SESSION",
+    "phase": "after",
+    "sha": "6b0427122288651bce14051bd9e86fd371656e18",
+    "exeHash": "3172F6AC4BF9F6D71E0DD2F032EBAF641AD36DB169DE7C54FD4EF4F8E972283A",
+    "processes": [],
+    "pidFile": "ABSENT",
+    "portFile": "ABSENT",
+    "perRunLogs": 16
+  },
+  {
+    "folder": "SESSION_before",
+    "at": "2026-09-24T15:16:46.8225562+08:00",
+    "case": "SESSION",
+    "phase": "before",
+    "sha": "6b0427122288651bce14051bd9e86fd371656e18",
+    "exeHash": "3172F6AC4BF9F6D71E0DD2F032EBAF641AD36DB169DE7C54FD4EF4F8E972283A",
+    "processes": [],
+    "pidFile": "28704",
+    "portFile": "61565",
+    "perRunLogs": 10
+  }
+]

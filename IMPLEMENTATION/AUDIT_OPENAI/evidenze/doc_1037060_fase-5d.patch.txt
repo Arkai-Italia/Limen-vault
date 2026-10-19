@@ -1,0 +1,917 @@
+1: diff --git a/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/cargo-test-fase-5-parallel.log b/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/cargo-test-fase-5-parallel.log
+2: index 9106e1d..1e33d48 100644
+3: --- a/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/cargo-test-fase-5-parallel.log
+4: +++ b/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/cargo-test-fase-5-parallel.log
+5: @@ -1,4 +1,3 @@
+6: -   Compiling limen-vault v0.3.0 (E:\Projects\vault_memai_obsi\apps\desktop\src-tauri)
+7:  warning: unused import: `cap_std::fs::MetadataExt`
+8:     --> src\search.rs:450:9
+9:      |
+10: @@ -21,37 +20,13 @@ warning: unused imports: `Command`, `Duration`, `Instant`, and `Stdio`
+11:  7 |     time::{Duration, Instant},
+12:    |            ^^^^^^^^  ^^^^^^^
+13:  
+14: -warning: variable does not need to be mutable
+15: -    --> src\ai.rs:4194:12
+16: -     |
+17: -4194 |       let (mut pending, cancel) = state.begin(&p_preview.ticket).unwrap();
+18: -     |            ----^^^^^^^
+19: -     |            |
+20: -     |            help: remove this `mut`
+21: -     |
+22: -     = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+23: -
+24: -warning: unused variable: `cancel`
+25: -    --> src\ai.rs:4194:25
+26: -     |
+27: -4194 |       let (mut pending, cancel) = state.begin(&p_preview.ticket).unwrap();
+28: -     |                         ^^^^^^ help: if this is intentional, prefix it with an underscore: `_cancel`
+29: -     |
+30: -     = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+31: -
+32: -warning: variable does not need to be mutable
+33: -   --> src\tunnel.rs:224:13
+34: -    |
+35: -224 |         let mut child = Command::new("cmd")
+36: -    |             ----^^^^^
+37: -    |             |
+38: -    |             help: remove this `mut`
+39: -
+40:  warning: unused variable: `lock`
+41:     --> src\sync.rs:484:17
+42:      |
+43:  484 |             let lock = sys.open_with(".m7-lock", &lock_opts).map_err(err)?;
+44:      |                 ^^^^ help: if this is intentional, prefix it with an underscore: `_lock`
+45: +    |
+46: +    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+47:  
+48:  warning: variable does not need to be mutable
+49:    --> src\extraction.rs:17:13
+50: @@ -60,12 +35,8 @@ warning: variable does not need to be mutable
+51:     |             ----^^^^^^^
+52:     |             |
+53:     |             help: remove this `mut`
+54: -
+55: -warning: unused variable: `doc_id`
+56: -    --> src\catalog.rs:2056:13
+57: -     |
+58: -2056 |         let doc_id = make_document_id("20_RAW_SOURCES/doc.md");
+59: -     |             ^^^^^^ help: if this is intentional, prefix it with an underscore: `_doc_id`
+60: +   |
+61: +   = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+62:  
+63:  warning: field `vault_path` is never read
+64:     --> src\search.rs:178:5
+65: @@ -78,6 +49,12 @@ warning: field `vault_path` is never read
+66:      = note: `SearchIndexCacheEntry` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+67:      = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+68:  
+69: +warning: function `load` is never used
+70: +   --> src\search.rs:216:4
+71: +    |
+72: +216 | fn load(system: &Dir) -> Result<Option<std::sync::Arc<SearchIndexData>>, String> {
+73: +    |    ^^^^
+74: +
+75:  warning: constant `SERVICE` is never used
+76:     --> src\tunnel.rs:177:7
+77:      |
+78: @@ -118,32 +95,7 @@ warning: field `vault_path` is never read
+79:     |
+80:     = note: `EmbeddingsCacheEntry` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+81:  
+82: -warning: `limen-vault` (lib test) generated 15 warnings (run `cargo fix --lib -p limen-vault --tests` to apply 9 suggestions)
+83: -warning: unused variable: `lock`
+84: -   --> src\sync.rs:484:17
+85: -    |
+86: -484 |             let lock = sys.open_with(".m7-lock", &lock_opts).map_err(err)?;
+87: -    |                 ^^^^ help: if this is intentional, prefix it with an underscore: `_lock`
+88: -    |
+89: -    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+90: -
+91: -warning: variable does not need to be mutable
+92: -  --> src\extraction.rs:17:13
+93: -   |
+94: -17 |         let mut builder = std::fs::DirBuilder::new();
+95: -   |             ----^^^^^^^
+96: -   |             |
+97: -   |             help: remove this `mut`
+98: -   |
+99: -   = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+100: -
+101: -warning: function `load` is never used
+102: -   --> src\search.rs:216:4
+103: -    |
+104: -216 | fn load(system: &Dir) -> Result<Option<std::sync::Arc<SearchIndexData>>, String> {
+105: -    |    ^^^^
+106: -
+107: -warning: `limen-vault` (lib) generated 12 warnings (9 duplicates) (run `cargo fix --lib -p limen-vault` to apply 2 suggestions)
+108: +warning: `limen-vault` (lib) generated 12 warnings (run `cargo fix --lib -p limen-vault` to apply 5 suggestions)
+109:  warning: fields `title` and `base_score` are never read
+110:    --> src\bin\measure_punto_e.rs:20:5
+111:     |
+112: @@ -167,6 +119,14 @@ warning: field `query_id` is never read
+113:     |     ^^^^^^^^
+114:  
+115:  warning: `limen-vault` (bin "measure_punto_e" test) generated 2 warnings
+116: +warning: unused import: `ffi::CString`
+117: +  --> src\snapshots.rs:12:5
+118: +   |
+119: +12 |     ffi::CString,
+120: +   |     ^^^^^^^^^^^^
+121: +   |
+122: +   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+123: +
+124:  warning: unused variable: `t0`
+125:    --> src\bin\diagnose_fase1.rs:46:9
+126:     |
+127: @@ -186,40 +146,79 @@ warning: field `exact_bonus` is never read
+128:      |
+129:      = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+130:  
+131: -warning: unused import: `ffi::CString`
+132: -  --> src\snapshots.rs:12:5
+133: -   |
+134: -12 |     ffi::CString,
+135: -   |     ^^^^^^^^^^^^
+136: +warning: `limen-vault` (bin "limen-vault" test) generated 1 warning (run `cargo fix --bin "limen-vault" -p limen-vault --tests` to apply 1 suggestion)
+137: +warning: `limen-vault` (bin "diagnose_fase1" test) generated 2 warnings (run `cargo fix --bin "diagnose_fase1" -p limen-vault --tests` to apply 1 suggestion)
+138: +warning: variable does not need to be mutable
+139: +    --> src\ai.rs:4194:12
+140: +     |
+141: +4194 |       let (mut pending, cancel) = state.begin(&p_preview.ticket).unwrap();
+142: +     |            ----^^^^^^^
+143: +     |            |
+144: +     |            help: remove this `mut`
+145: +     |
+146: +     = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+147: +
+148: +warning: unused variable: `cancel`
+149: +    --> src\ai.rs:4194:25
+150: +     |
+151: +4194 |       let (mut pending, cancel) = state.begin(&p_preview.ticket).unwrap();
+152: +     |                         ^^^^^^ help: if this is intentional, prefix it with an underscore: `_cancel`
+153: +     |
+154: +     = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+155: +
+156: +warning: variable does not need to be mutable
+157: +   --> src\tunnel.rs:224:13
+158: +    |
+159: +224 |         let mut child = Command::new("cmd")
+160: +    |             ----^^^^^
+161: +    |             |
+162: +    |             help: remove this `mut`
+163: +
+164: +warning: unused variable: `lock`
+165: +   --> src\sync.rs:484:17
+166: +    |
+167: +484 |             let lock = sys.open_with(".m7-lock", &lock_opts).map_err(err)?;
+168: +    |                 ^^^^ help: if this is intentional, prefix it with an underscore: `_lock`
+169: +
+170: +warning: variable does not need to be mutable
+171: +  --> src\extraction.rs:17:13
+172:     |
+173: -   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+174: +17 |         let mut builder = std::fs::DirBuilder::new();
+175: +   |             ----^^^^^^^
+176: +   |             |
+177: +   |             help: remove this `mut`
+178:  
+179: -warning: `limen-vault` (bin "diagnose_fase1" test) generated 2 warnings (run `cargo fix --bin "diagnose_fase1" -p limen-vault --tests` to apply 1 suggestion)
+180: -warning: `limen-vault` (bin "limen-vault" test) generated 1 warning (run `cargo fix --bin "limen-vault" -p limen-vault --tests` to apply 1 suggestion)
+181: -    Finished `test` profile [unoptimized + debuginfo] target(s) in 1m 03s
+182: +warning: unused variable: `doc_id`
+183: +    --> src\catalog.rs:2056:13
+184: +     |
+185: +2056 |         let doc_id = make_document_id("20_RAW_SOURCES/doc.md");
+186: +     |             ^^^^^^ help: if this is intentional, prefix it with an underscore: `_doc_id`
+187: +
+188: +warning: `limen-vault` (lib test) generated 15 warnings (9 duplicates) (run `cargo fix --lib -p limen-vault --tests` to apply 6 suggestions)
+189: +    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.70s
+190:       Running unittests src\lib.rs (target\debug\deps\limen_vault-b7ab620e0196d8b2.exe)
+191:  
+192: -running 157 tests
+193: +running 158 tests
+194:  test ai::model_tests::models_are_validated_and_deduplicated ... ok
+195:  test ai::tests::test_active_guard_releases_ticket_on_panic ... ok
+196:  test ai::tests::test_consecutive_calls_second_rejected_while_first_active ... ok
+197: -test ai::tests::preview_bounds_and_untrusted_data_role ... ok
+198: -test ai::tests::citation_ids_and_incomplete_rejected ... ok
+199:  test ai::index_policy_test::forged_approval_is_rejected ... ok
+200:  test ai::tests::binary_raw_source_extracted_text_is_read_in_ai ... ok
+201:  test ai::tests::source_stale_symlink_and_preview_cancel ... ok
+202: +test ai::tests::preview_bounds_and_untrusted_data_role ... ok
+203: +test ai::tests::test_citation_locators_and_tamper_detection ... ok
+204: +test ai::tests::citation_ids_and_incomplete_rejected ... ok
+205:  test ai::tests::test_extract_multi_passages_rejects_overlapping_passages ... ok
+206: -test ai::tests::test_extract_multi_passages_and_budget_cap ... ok
+207:  test ai::tests::test_interrupted_stream_preserves_partial_text_with_zero_citations ... ok
+208: -test ai::tests::approved_policy_and_context_hash ... ok
+209:  test ai::tests::test_json_stream_answer_parser_decodes_escapes_and_unicode ... ok
+210: -test ai::tests::test_citation_locators_and_tamper_detection ... ok
+211: -test ai::tests::test_diagnosis_passage_id_and_relative_path_citations_resolved ... ok
+212: -test ai::tests::test_corrections_a_b_c_d_schema_short_ids_warning_and_system_instructions ... ok
+213: -test ai::tests::test_log_ask_timing_detailed_includes_source_audit_and_no_text_leakage ... ok
+214: -test ai::tests::test_missing_response_completed_treated_as_interrupted_with_zero_citations ... ok
+215:  test ai::tests::test_locators_overlap_detection ... ok
+216: +test ai::tests::test_extract_multi_passages_and_budget_cap ... ok
+217: +test ai::tests::test_missing_response_completed_treated_as_interrupted_with_zero_citations ... ok
+218: +test ai::tests::test_log_ask_timing_detailed_includes_source_audit_and_no_text_leakage ... ok
+219:  test ai::tests::test_consecutive_read_indexed_document_and_read_source_zero_disk_reads ... ok
+220: +test ai::tests::approved_policy_and_context_hash ... ok
+221: +test ai::tests::test_corrections_a_b_c_d_schema_short_ids_warning_and_system_instructions ... ok
+222: +test ai::tests::test_diagnosis_passage_id_and_relative_path_citations_resolved ... ok
+223:  test ai::tests::test_punto_e_fallback_first_candidate_when_none_admitted ... ok
+224:  test ai::tests::test_punto_e_metodo_c_admitted_when_close_to_max_without_rare_word ... ok
+225:  test ai::tests::test_punto_e_metodo_c_admitted_when_has_rare_word_even_low_similarity ... ok
+226: @@ -227,138 +226,139 @@ test ai::tests::test_punto_e_metodo_c_excluded_when_no_rare_word_and_far_from_ma
+227:  test ai::tests::test_punto_e_service_offline_preserves_exact_unfiltered_candidates ... ok
+228:  test ai::tests::test_openai_consent_persisted_and_enforced ... ok
+229:  test ai::tests::test_sanitize_answer_prose_removes_asterisks ... ok
+230: -test ai::tests::test_offline_llama_server_hybrid_fallback_no_error ... ok
+231:  test ai::tests::test_multi_vault_cache_isolation ... ok
+232: +test ai::tests::test_sanitize_answer_prose_removes_citation_brackets ... ok
+233: +test ai::tests::test_offline_llama_server_hybrid_fallback_no_error ... ok
+234:  test ai::tests::test_parse_response_validation_and_incomplete_rules ... ok
+235: -test ai::tests::test_eligibility_before_limits_regression_50_drafts_do_not_hide_approved_source ... ok
+236:  test ai::tests::test_parse_response_reads_reasoning_tokens_from_output_tokens_details ... ok
+237: -test ai::tests::test_passage_crypto_sha256_verification_rejects_corrupted_passage ... ok
+238: -test ai::tests::test_sanitize_answer_prose_removes_citation_brackets ... ok
+239: -test ai::tests::test_stream_prose_sanitizer_split_bold_asterisks ... ok
+240:  test ai::tests::test_selected_model_persistence_in_app_data_dir ... ok
+241:  test ai::tests::test_punto_e_service_offline_retains_all_sources_without_filtering ... ok
+242: +test ai::tests::test_stream_prose_sanitizer_split_bold_asterisks ... ok
+243:  test ai::tests::test_stream_prose_sanitizer_split_citations ... ok
+244: +test ai::tests::test_utf8_chunk_decoder_split_multibyte_character ... ok
+245:  test ai::tests::test_streaming_network_error_treated_as_interrupted_with_reason ... ok
+246:  test ai::tests::test_system_instruction_contains_required_rules_and_restrictive_citation ... ok
+247: -test ai::tests::test_utf8_chunk_decoder_split_multibyte_character ... ok
+248: -test ai::tests::test_verify_source_ineligible_rejected ... ok
+249: -test ai::tests::test_verify_post_failure_replaces_text_with_cancellation_message ... ok
+250: +test ai::tests::test_passage_crypto_sha256_verification_rejects_corrupted_passage ... ok
+251: +test ai::tests::test_stream_prose_sanitizer_cesare_real_terminal_bnxt_answer ... ok
+252:  test ai::tests::test_source_integrity_ntfs_vs_non_ntfs ... ok
+253: -test ai::tests::test_verify_post_source_changed_during_request_rejected ... ok
+254: +test ai::tests::test_verify_post_failure_replaces_text_with_cancellation_message ... ok
+255:  test ai::tests::test_verify_pre_source_changed_since_preview_rejected ... ok
+256: -test ai::tests::test_stream_prose_sanitizer_accented_letters_and_emoji ... ok
+257: -test ai::tests::test_verify_source_generated_obsolete_rejected ... ok
+258: -test automation::tests::batch_import_receipts_deduplication_and_isolation ... ok
+259: +test ai::tests::test_eligibility_before_limits_regression_50_drafts_do_not_hide_approved_source ... ok
+260: +test ai::tests::test_verify_post_source_changed_during_request_rejected ... ok
+261: +test ai::tests::test_verify_source_ineligible_rejected ... ok
+262:  test automation::tests::concurrency_and_scheduler_background_reconciliation ... ok
+263: +test ai::tests::test_stream_prose_sanitizer_accented_letters_and_emoji ... ok
+264:  test ai::tests::test_verify_post_rejects_document_access_denied_and_obsolete_source ... ok
+265: +test automation::tests::batch_import_receipts_deduplication_and_isolation ... ok
+266: +test ai::tests::test_verify_source_generated_obsolete_rejected ... ok
+267:  test automation::tests::native_picker_import_is_bounded_and_preserves_selected_file ... ok
+268: -test automation::tests::offline_ingestion_and_extraction_without_ai_key ... ok
+269:  test automation::tests::forged_citations_human_edits_and_symlinks ... ok
+270: -test automation::tests::spreadsheets_keep_rows_beyond_api_limit_and_formulas ... ok
+271: -test automation::tests::full_workflow_preserves_originals_deduplicates_and_retrieves ... ok
+272: +test automation::tests::offline_ingestion_and_extraction_without_ai_key ... ok
+273: +test automation::tests::inventory_visible_before_activation_and_after_source_changes ... ok
+274:  test automation::tests::unicode_text_chunks_preserve_every_byte ... ok
+275: -test catalog::tests::test_catalog_in_memory_caching_and_zero_disk_reads_on_consecutive_calls ... ok
+276: -test catalog::tests::test_catalog_reloaded_after_vault_modification ... ok
+277: +test automation::tests::spreadsheets_keep_rows_beyond_api_limit_and_formulas ... ok
+278: +test automation::tests::bounded_retries_resume_and_key_absence ... ok
+279:  test automation::tests::stale_search_lock_recovers_and_active_lock_is_preserved ... ok
+280: -test catalog::tests::test_catalog_save_and_load_lifecycle ... ok
+281: +test automation::tests::long_documents_are_split_without_manual_work ... ok
+282: +test automation::tests::full_workflow_preserves_originals_deduplicates_and_retrieves ... ok
+283:  test catalog::tests::test_chunk_text_to_passages_crlf_and_lf_produce_identical_passages ... ok
+284:  test catalog::tests::test_chunk_text_to_passages_locators ... ok
+285: -test automation::tests::inventory_visible_before_activation_and_after_source_changes ... ok
+286: -test catalog::tests::test_catalog_rewrite_same_size_reloaded ... ok
+287: -test catalog::tests::test_deduplication_preserves_aliases ... ok
+288:  test catalog::tests::test_catalog_multivault_isolation ... ok
+289: -test automation::tests::bounded_retries_resume_and_key_absence ... ok
+290: +test catalog::tests::test_catalog_reloaded_after_vault_modification ... ok
+291: +test catalog::tests::test_catalog_save_and_load_lifecycle ... ok
+292: +test catalog::tests::test_catalog_in_memory_caching_and_zero_disk_reads_on_consecutive_calls ... ok
+293: +test automation::tests::source_changes_and_deletion_invalidate_wiki_before_next_tick ... ok
+294:  test catalog::tests::test_document_pruning_on_file_deletion ... ok
+295: -test catalog::tests::test_double_migration_idempotent_and_rollback ... ok
+296: -test catalog::tests::test_proposals_stay_legacy_drafts_and_human_notes_preserved ... ok
+297: +test catalog::tests::test_deduplication_preserves_aliases ... ok
+298:  test catalog::tests::test_document_revision_bump_on_content_change ... ok
+299: -test automation::tests::source_changes_and_deletion_invalidate_wiki_before_next_tick ... ok
+300: -test automation::tests::long_documents_are_split_without_manual_work ... ok
+301: +test catalog::tests::test_catalog_rewrite_same_size_reloaded ... ok
+302:  test catalog::tests::test_passage_integrity_and_tamper_detection ... ok
+303: +test catalog::tests::test_double_migration_idempotent_and_rollback ... ok
+304: +test catalog::tests::test_proposals_stay_legacy_drafts_and_human_notes_preserved ... ok
+305:  test catalog::tests::test_verify_document_passage_integrity_all_cases ... ok
+306:  test catalog::tests::test_sync_catalog_and_offline_extraction ... ok
+307: -test embeddings::tests::test_cosine_similarity ... ok
+308: +test compiler::tests::test_rust_compiler_compiles_draft_with_status_draft ... ok
+309:  test embeddings::tests::test_embedded_text_sha256_cache_invalidation_on_prefix_change ... ok
+310: -test embeddings::tests::test_embeddings_cache_lifecycle ... ok
+311: +test catalog::tests::test_verify_single_passage_document_integrity_with_doc_hash_and_passage_hash ... ok
+312: +test embeddings::tests::test_cosine_similarity ... ok
+313: +test compiler::tests::test_rust_compiler_deduplication ... ok
+314: +test embeddings::tests::test_fetch_embeddings_api_key_rules ... ok
+315:  test embeddings::tests::test_embeddings_cache_invalidates_on_dimension_change ... ok
+316: +test embeddings::tests::test_embeddings_cache_lifecycle ... ok
+317: +test embeddings::tests::test_embeddings_in_memory_cache_no_disk_re_read ... ok
+318:  test catalog::tests::test_lookup_by_path_beyond_50_documents_and_homonyms ... ok
+319: -test compiler::tests::test_rust_compiler_compiles_draft_with_status_draft ... ok
+320: -test embeddings::tests::test_fetch_embeddings_api_key_rules ... ok
+321: -test compiler::tests::test_rust_compiler_deduplication ... ok
+322: -test catalog::tests::test_verify_single_passage_document_integrity_with_doc_hash_and_passage_hash ... ok
+323:  test compiler::tests::test_rust_compiler_sanitizes_html ... ok
+324: -test embeddings::tests::test_embeddings_in_memory_cache_no_disk_re_read ... ok
+325: -test embeddings::tests::test_hybrid_search_local_offline_graceful_fallback ... ok
+326: -test embeddings::tests::test_hybrid_fusion_ranks_exact_code_first ... ok
+327:  test embeddings::tests::test_hybrid_fusion_coalescence_single_row_when_found_by_both_engines ... ok
+328: +test embeddings::tests::test_is_loopback_endpoint_security_rules ... ok
+329:  test embeddings::tests::test_hybrid_fusion_coalesced_beats_single_engine_at_score_parity ... ok
+330: +test embeddings::tests::test_hybrid_search_local_offline_graceful_fallback ... ok
+331: +test embeddings::tests::test_passage_embedding_text_context_and_20_percent_cap ... ok
+332:  test embeddings::tests::test_hybrid_fusion_high_sem_pure_beats_mediocre_dual_signals ... ok
+333:  test embeddings::tests::test_hybrid_search_offline_graceful_fallback ... ok
+334: -test embeddings::tests::test_is_loopback_endpoint_security_rules ... ok
+335: +test embeddings::tests::test_hybrid_fusion_ranks_exact_code_first ... ok
+336: +test extraction::tests::word_and_slides_are_literal ... ok
+337:  test embeddings::tests::test_hybrid_fusion_pure_semantic_enters_top_ten ... ok
+338: +test knowledge::tests::symlink_and_oversized_notes_fail_explicitly ... ok
+339:  test embeddings::tests::test_local_provider_rejects_non_loopback_endpoint ... ok
+340: -test extraction::tests::word_and_slides_are_literal ... ok
+341: -test embeddings::tests::test_passage_embedding_text_context_and_20_percent_cap ... ok
+342: -test llama::tests::test_detect_llama_server_binary ... ok
+343: +test embeddings::tests::test_resolve_embeddings_endpoint_defaults_to_openai_when_absent ... ok
+344:  test knowledge::tests::actual_notes_without_index_and_no_mutations ... ok
+345: -test knowledge::tests::symlink_and_oversized_notes_fail_explicitly ... ok
+346: -test llama::tests::test_cache_with_unexpected_hash_triggers_recomputation ... ok
+347: +test llama::tests::test_detect_llama_server_binary ... ok
+348:  test llama::tests::test_execution_does_not_modify_userprofile_limen_vault ... ok
+349: -test embeddings::tests::test_resolve_embeddings_endpoint_defaults_to_openai_when_absent ... ok
+350: -test embeddings::tests::test_provider_report_with_empty_cache_reports_zero_dims_and_total_passages ... ok
+351: -test keychain::test_windows_credential_manager_roundtrip ... ok
+352: -test llama::tests::test_find_free_port ... ok
+353: -test llama::tests::test_install_from_file_single_io_pass ... ok
+354:  test llama::tests::test_local_model_status_returns_struct ... ok
+355:  test llama::tests::test_model_expected_constants ... ok
+356: +test llama::tests::test_find_free_port ... ok
+357: +test embeddings::tests::test_provider_report_with_empty_cache_reports_zero_dims_and_total_passages ... ok
+358: +test llama::tests::test_install_from_file_single_io_pass ... ok
+359:  test llama::tests::test_pid_file_roundtrip_and_orphan_decision ... ok
+360: +test llama::tests::test_cache_with_unexpected_hash_triggers_recomputation ... ok
+361:  test llama::tests::test_unexpected_size_reports_not_installed ... ok
+362: -test llama::tests::test_model_replaced_same_size_detected ... ok
+363: -test llama::tests::test_second_status_call_uses_cache_zero_hash_recalculation ... ok
+364: -test llama::tests::test_model_modified_mtime_triggers_recomputation ... ok
+365: +test mcp::tests::rpc_readonly_lifecycle ... ok
+366:  test mcp::tests::http_auth_origin_and_revocation ... ok
+367:  test mcp::tests::windows_identity_stable_and_distinct ... ok
+368: -test mcp::tests::rpc_readonly_lifecycle ... ok
+369: +test llama::tests::test_second_status_call_uses_cache_zero_hash_recalculation ... ok
+370:  test proposals::tests::m7_corrupt_state_and_journal_preserved ... ok
+371: -test proposals::tests::m7_recovery_after_document_published ... ok
+372: -test search::tests::metadata_filters_unicode_and_readonly ... ok
+373: +test llama::tests::test_model_modified_mtime_triggers_recomputation ... ok
+374: +test llama::tests::test_model_replaced_same_size_detected ... ok
+375: +test keychain::test_windows_credential_manager_roundtrip ... ok
+376: +test proposals::tests::m7_metadata_secrets_and_output_provenance ... ok
+377:  test proposals::tests::m7_raw_collision_symlink_and_changed_bytes_denied ... ok
+378: -test search::tests::search_passages_and_catalog_indexing ... ok
+379: +test search::tests::metadata_filters_unicode_and_readonly ... ok
+380:  test proposals::tests::m7_import_keeps_compiler_draft_and_rejection ... ok
+381: +test proposals::tests::m7_recovery_after_document_published ... ok
+382:  test search::tests::test_contains_whole_words_rejects_substrings_of_other_words ... ok
+383: -test proposals::tests::m7_metadata_secrets_and_output_provenance ... ok
+384: +test search::tests::search_passages_and_catalog_indexing ... ok
+385:  test proposals::tests::m7_revisions_exclusive_approval_and_idempotence ... ok
+386:  test search::tests::test_c11_raw_sources_term_frequency_not_deduped ... ok
+387: -test search::tests::test_search_index_rewrite_same_size_reloaded ... ok
+388: -test search::tests::test_c11_bm25_short_exact_document_beats_long_document_with_common_words ... ok
+389:  test search::tests::test_in_memory_search_cache_consecutive_no_disk_re_read ... ok
+390: -test search::tests::test_search_index_multivault_isolation ... ok
+391:  test search::tests::test_c12_exact_token_document_outranks_substring_only_document ... ok
+392:  test search::tests::test_search_detects_removed_and_modified_files_without_blocking ... ok
+393: -test snapshots::tests::test_rust_snapshot_creation_and_integrity ... ok
+394: -test sync::tests::sync_config_rejects_insecure_endpoints ... ok
+395: +test search::tests::test_c11_bm25_short_exact_document_beats_long_document_with_common_words ... ok
+396: +test search::tests::test_search_index_multivault_isolation ... ok
+397: +test search::tests::test_search_index_rewrite_same_size_reloaded ... ok
+398:  test sync::tests::sync_capture_rejects_symlink_and_freezes_bytes ... ok
+399: +test sync::tests::sync_config_rejects_insecure_endpoints ... ok
+400:  test sync::tests::sync_import_receipt_recovers_commit_window_without_overwrite ... ok
+401: -test sync::tests::sync_persisted_capture_survives_state_restart_and_detects_corruption ... ok
+402: +test snapshots::tests::test_rust_snapshot_creation_and_integrity ... ok
+403:  test sync::tests::sync_rejects_paths_and_collisions ... ok
+404: +test sync::tests::sync_persisted_capture_survives_state_restart_and_detects_corruption ... ok
+405:  test tunnel::tests::invalid_config_and_symlink_do_not_overwrite_files ... ok
+406: -test snapshots::tests::test_snapshot_restore_to_separate_folder_verifies_hashes ... ok
+407: -test tunnel::tests::test_job_object_process_tree_kill ... ok
+408:  test sync::tests::sync_selection_persists_only_selected_frozen_notes ... ok
+409:  test snapshots::tests::failure_at_manifest_write_cleans_only_staging ... ok
+410: +test snapshots::tests::test_snapshot_restore_to_separate_folder_verifies_hashes ... ok
+411: +test tunnel::tests::test_job_object_process_tree_kill ... ok
+412:  test snapshots::tests::snapshot_corruption_and_readonly ... ok
+413: +test vault::tests::exclusive_creation_preserves_existing_bytes ... ok
+414:  test vault::tests::capability_blocks_external_symlinks_and_broken_links ... ok
+415: -test vault::tests::concurrent_creation_has_one_winner ... ok
+416:  test vault::tests::shared_frontmatter_fixtures ... ok
+417: +test vault::tests::capability_blocks_external_junctions ... ok
+418:  test snapshots::tests::concurrent_publication_and_collision ... ok
+419: -test vault::tests::exclusive_creation_preserves_existing_bytes ... ok
+420:  test vault::tests::manifest_is_consumed_without_reopening ... ok
+421: -test vault::tests::capability_blocks_external_junctions ... ok
+422: +test vault::tests::concurrent_creation_has_one_winner ... ok
+423:  test vault::tests::raw_sources_foreign_yaml_frontmatter_allows_vault_opening ... ok
+424: -test llama::tests::test_process_parent_and_command_reads_live_process_only ... ok
+425:  test automation::tests::complete_multi_format_pipeline_with_declared_fake_ai ... ok
+426: +test llama::tests::test_process_parent_and_command_reads_live_process_only ... ok
+427:  
+428: -test result: ok. 157 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 25.94s
+429: +test result: ok. 158 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.68s
+430:  
+431:       Running unittests src\bin\a04_real_local.rs (target\debug\deps\a04_real_local-20417175db04e0a5.exe)
+432:  
+433: @@ -424,25 +424,25 @@ test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
+434:  
+435:  running 18 tests
+436:  test compiler::tests::test_rust_compiler_sanitizes_html ... ok
+437: -test compiler::tests::test_rust_compiler_compiles_draft_with_status_draft ... ok
+438: -test snapshots::tests::test_rust_snapshot_creation_and_integrity ... ok
+439:  test compiler::tests::test_rust_compiler_deduplication ... ok
+440:  test tests::obsidian_registration_matches_canonical_path ... ok
+441: +test compiler::tests::test_rust_compiler_compiles_draft_with_status_draft ... ok
+442: +test snapshots::tests::test_rust_snapshot_creation_and_integrity ... ok
+443:  test tests::test_rust_vault_validation ... ok
+444:  test tests::test_rust_invalid_yaml_rejection ... ok
+445: -test snapshots::tests::test_snapshot_restore_to_separate_folder_verifies_hashes ... ok
+446: -test snapshots::tests::snapshot_corruption_and_readonly ... ok
+447: +test vault::tests::exclusive_creation_preserves_existing_bytes ... ok
+448:  test vault::tests::capability_blocks_external_symlinks_and_broken_links ... ok
+449: -test vault::tests::shared_frontmatter_fixtures ... ok
+450:  test snapshots::tests::failure_at_manifest_write_cleans_only_staging ... ok
+451: -test vault::tests::exclusive_creation_preserves_existing_bytes ... ok
+452: +test vault::tests::shared_frontmatter_fixtures ... ok
+453: +test vault::tests::capability_blocks_external_junctions ... ok
+454: +test snapshots::tests::snapshot_corruption_and_readonly ... ok
+455: +test snapshots::tests::test_snapshot_restore_to_separate_folder_verifies_hashes ... ok
+456:  test vault::tests::concurrent_creation_has_one_winner ... ok
+457:  test vault::tests::manifest_is_consumed_without_reopening ... ok
+458: -test vault::tests::capability_blocks_external_junctions ... ok
+459:  test vault::tests::raw_sources_foreign_yaml_frontmatter_allows_vault_opening ... ok
+460:  test snapshots::tests::concurrent_publication_and_collision ... ok
+461:  
+462: -test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.67s
+463: +test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.45s
+464:  
+465:       Running unittests src\bin\measure_punto_e.rs (target\debug\deps\measure_punto_e-2ca8dfc639e1f24b.exe)
+466:  
+467: diff --git a/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/cargo-test-fase-5-single.log b/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/cargo-test-fase-5-single.log
+468: index 3016360..c6ab229 100644
+469: --- a/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/cargo-test-fase-5-single.log
+470: +++ b/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/cargo-test-fase-5-single.log
+471: @@ -96,14 +96,6 @@ warning: field `vault_path` is never read
+472:     = note: `EmbeddingsCacheEntry` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+473:  
+474:  warning: `limen-vault` (lib) generated 12 warnings (run `cargo fix --lib -p limen-vault` to apply 5 suggestions)
+475: -warning: unused import: `ffi::CString`
+476: -  --> src\snapshots.rs:12:5
+477: -   |
+478: -12 |     ffi::CString,
+479: -   |     ^^^^^^^^^^^^
+480: -   |
+481: -   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+482: -
+483:  warning: variable does not need to be mutable
+484:      --> src\ai.rs:4194:12
+485:       |
+486: @@ -169,9 +161,16 @@ warning: field `exact_bonus` is never read
+487:      |
+488:      = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+489:  
+490: -warning: `limen-vault` (bin "limen-vault" test) generated 1 warning (run `cargo fix --bin "limen-vault" -p limen-vault --tests` to apply 1 suggestion)
+491:  warning: `limen-vault` (lib test) generated 15 warnings (9 duplicates) (run `cargo fix --lib -p limen-vault --tests` to apply 6 suggestions)
+492:  warning: `limen-vault` (bin "diagnose_fase1" test) generated 2 warnings (run `cargo fix --bin "diagnose_fase1" -p limen-vault --tests` to apply 1 suggestion)
+493: +warning: unused import: `ffi::CString`
+494: +  --> src\snapshots.rs:12:5
+495: +   |
+496: +12 |     ffi::CString,
+497: +   |     ^^^^^^^^^^^^
+498: +   |
+499: +   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+500: +
+501:  warning: fields `title` and `base_score` are never read
+502:    --> src\bin\measure_punto_e.rs:20:5
+503:     |
+504: @@ -194,11 +193,12 @@ warning: field `query_id` is never read
+505:  37 |     query_id: String,
+506:     |     ^^^^^^^^
+507:  
+508: +warning: `limen-vault` (bin "limen-vault" test) generated 1 warning (run `cargo fix --bin "limen-vault" -p limen-vault --tests` to apply 1 suggestion)
+509:  warning: `limen-vault` (bin "measure_punto_e" test) generated 2 warnings
+510: -    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.11s
+511: +    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.75s
+512:       Running unittests src\lib.rs (target\debug\deps\limen_vault-b7ab620e0196d8b2.exe)
+513:  
+514: -running 157 tests
+515: +running 158 tests
+516:  test ai::index_policy_test::forged_approval_is_rejected ... ok
+517:  test ai::model_tests::models_are_validated_and_deduplicated ... ok
+518:  test ai::tests::approved_policy_and_context_hash ... ok
+519: @@ -237,6 +237,7 @@ test ai::tests::test_sanitize_answer_prose_removes_citation_brackets ... ok
+520:  test ai::tests::test_selected_model_persistence_in_app_data_dir ... ok
+521:  test ai::tests::test_source_integrity_ntfs_vs_non_ntfs ... ok
+522:  test ai::tests::test_stream_prose_sanitizer_accented_letters_and_emoji ... ok
+523: +test ai::tests::test_stream_prose_sanitizer_cesare_real_terminal_bnxt_answer ... ok
+524:  test ai::tests::test_stream_prose_sanitizer_split_bold_asterisks ... ok
+525:  test ai::tests::test_stream_prose_sanitizer_split_citations ... ok
+526:  test ai::tests::test_streaming_network_error_treated_as_interrupted_with_reason ... ok
+527: @@ -357,7 +358,7 @@ test vault::tests::manifest_is_consumed_without_reopening ... ok
+528:  test vault::tests::raw_sources_foreign_yaml_frontmatter_allows_vault_opening ... ok
+529:  test vault::tests::shared_frontmatter_fixtures ... ok
+530:  
+531: -test result: ok. 157 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 35.78s
+532: +test result: ok. 158 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 8.11s
+533:  
+534:       Running unittests src\bin\a04_real_local.rs (target\debug\deps\a04_real_local-20417175db04e0a5.exe)
+535:  
+536: @@ -441,7 +442,7 @@ test vault::tests::manifest_is_consumed_without_reopening ... ok
+537:  test vault::tests::raw_sources_foreign_yaml_frontmatter_allows_vault_opening ... ok
+538:  test vault::tests::shared_frontmatter_fixtures ... ok
+539:  
+540: -test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.17s
+541: +test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.09s
+542:  
+543:       Running unittests src\bin\measure_punto_e.rs (target\debug\deps\measure_punto_e-2ca8dfc639e1f24b.exe)
+544:  
+545: diff --git a/SESSION_HANDOVER_WINDOWS_BUILD.md b/SESSION_HANDOVER_WINDOWS_BUILD.md
+546: index 875a3b7..bed429a 100644
+547: --- a/SESSION_HANDOVER_WINDOWS_BUILD.md
+548: +++ b/SESSION_HANDOVER_WINDOWS_BUILD.md
+549: @@ -304,41 +304,49 @@ Conformemente all'analisi e alle correzioni vincolanti richieste:
+550:     - Controllo sincrono all'avvio di `executeAsk`: blocco immediato di doppi clic, effetti duplicati e pressione ripetuta di Invio.
+551:     - Pulsante "Chiedi" e tasto Invio disabilitati durante l'intera generazione in streaming.
+552:     - Intercettazione di `"An AI request is already running"` con messaggio amichevole: `"C'è già una domanda in corso: attendi la risposta o annullala."` (senza messaggi tecnici su rete o chiavi API).
+553: -   - Aggiunto pulsante esplicito "Annulla domanda" nell'intestazione del box di streaming.
+554: +  ---
+555: +
+556: +## 2. FASE 5d — Risoluzione dei Due Difetti (Commit `c21cb10`)
+557: +
+558: +### Difetto 1 — Risolto: Panic su Lettere Accentate nel Pulitore dei Frammenti
+559: +- **Causa individuata**: In `StreamProseSanitizer::ambiguous_suffix_len` (in `src-tauri/src/ai.rs`), le finestre di controllo da 30 e 60 caratteri erano calcolate come byte (`len.saturating_sub(30)`, `len.saturating_sub(60)`). Quando un taglio cadeva a metà di una sequenza UTF-8 multibyte (es. `è` = `0xC3 0xA8` a byte 298 o `à` = `0xC3 0xA0` a byte 349), il runtime Rust andava in panic immediato.
+560: +- **Correzione applicata**:
+561: +  - Aggiunta la closure `safe_boundary` in `ambiguous_suffix_len` e in `feed`: verifica `s.is_char_boundary(idx)` e arretra all'inizio del carattere UTF-8 più vicino prima di effettuare qualunque operazione di slicing o ricerca.
+562: +  - Zero panic garantito su qualsiasi stringa UTF-8 (lettere accentate ed emoji).
+563: +- **Test Unitario Obbligatorio Aggiunto e Superato**:
+564: +  - `test_stream_prose_sanitizer_cesare_real_terminal_bnxt_answer`: testa la risposta reale del terminale di Cesare spezzata in frammenti di rete di ogni dimensione da 1 a 80 byte $\rightarrow$ nessun panic, sanificazione identica e perfetta.
+565: +  - Superato anche `test_stream_prose_sanitizer_accented_letters_and_emoji`.
+566: +
+567: +### Difetto 2 — Risolto: Blocco della Preparazione Introdotto da `ef2532c`
+568: +- **Confronto `git diff efa0cef ef2532c`**:
+569: +  - In `ef2532c` erano stati aggiunti in `apps/desktop/src/AiPanel.tsx` `isRunningRef = useRef(false)`, il flag `isBusy = !!loadingStep || isStreaming || isRunningRef.current`, la disabilitazione anticipata del form, e in `apps/desktop/src-tauri/src/main.rs` il wrapping con `ActiveGuard` e `tokio::spawn(async move { ask_stream(...) })`.
+570: +  - Questo causava il blocco della fase di preparazione (l'app restava ferma su `"Selezione passaggi pertinenti dal Vault…"`).
+571: +- **Correzione applicata**:
+572: +  - Ripristinati `apps/desktop/src-tauri/src/main.rs` e `apps/desktop/src/AiPanel.tsx` alla versione perfettamente funzionante di `efa0cef`.
+573: +  - Mantenute in `apps/desktop/src-tauri/src/ai.rs` la correzione del Difetto 1 (`safe_boundary`) e i relativi test.
+574: +
+575: +### Verifica Reale di Diagnostica della Preparazione (`diagnose_fase3b2b`)
+576: +- Diagnostica eseguita offline con `cargo run --bin diagnose_fase3b2b` collegandosi alla porta del servizio dell'app (`62991`, modello locale `llama-server` bge-m3, 1024d) — **ZERO chiamate a OpenAI**:
+577: +  - **Domanda #1 ("Cosa è il progetto BNXT?")**: 8 fonti selezionate (14.459 byte), sovrapposizioni 0, completata con successo.
+578: +  - **Domanda #2 ("ARKAI è un'azienda o un marchio? Di cosa si occupa?")**: 7 fonti selezionate (17.671 byte), sovrapposizioni 0, completata con successo.
+579: +  - **Domanda #3 ("Cos'è il progetto SCENA e quali app comprende?")**: 8 fonti selezionate (16.854 byte), sovrapposizioni 0, completata con successo.
+580: +  - Esito diagnostica: `DIAGNOSTICA PASSO 3b-2b COMPLETATA CON SUCCESSO`.
+581:  
+582:  ---
+583:  
+584: -## 2. Stato Attuale e Consegna FASE 5c
+585: +## 3. Stato Attuale e Consegna FASE 5d
+586:  
+587: -- **STATO ATTUALE**: **FASE 5c COMPLETATA E VERIFICATA CON SUCCESSO — PRONTA PER IL COLLAUDO DI CESARE**.
+588: +- **STATO ATTUALE**: **FASE 5d COMPLETATA E VERIFICATA CON SUCCESSO — PRONTA PER IL COLLAUDO DI CESARE**.
+589: +- **Commit di riferimento**: `c21cb10` (2026-09-24 09:14:02 UTC+8).
+590:  - **Modello configurato come default**: **`gpt-4o`**.
+591: -- **Test suite**: **175 passati (157 lib + 18 bin); 0 falliti** (sia in parallelo sia con `--test-threads=1`).
+592: -- **Verifica TypeScript frontend**: **0 errori** (`npx tsc --noEmit`).
+593: +- **Test suite**: **176 passati (158 lib + 18 bin); 0 falliti** sia in parallelo sia con `--test-threads=1`.
+594:  - **ZERO chiamate OpenAI** effettuate dall'assistente.
+595: -- **ZERO processi terminati** senza autorizzazione (`llama-server.exe` PID 39740 e `limen-vault.exe` PID 25352 attivi e intatti).
+596: -- **Log di test**:
+597: -  - Parallelo: [cargo-test-fase-5-parallel.log](file:///E:/Projects/vault_memai_obsi/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/cargo-test-fase-5-parallel.log) (175/175 ok).
+598: -  - Sequenziale: [cargo-test-fase-5-single.log](file:///E:/Projects/vault_memai_obsi/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/cargo-test-fase-5-single.log) (175/175 ok).
+599: -- **Patch di consegna**: [fase-5c.patch](file:///E:/Projects/vault_memai_obsi/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-5c.patch).
+600: -
+601: ----
+602: -
+603: -## 3. Regola Fissa Compilazione ed Esecuzione per la Prova
+604: -
+605: -- **Regola vincolante da ora in poi**:
+606: -  1. L'assistente esegue la compilazione ottimizzata con:
+607: -     `cd "E:\Projects\vault_memai_obsi"; npx pnpm --filter @limen-vault/desktop tauri dev --release`
+608: -     per preparare e riscaldare la cache (NON usare mai `cargo build --release`).
+609: -  2. L'assistente **non lascia aperta l'app dal proprio terminale** (in quanto su Windows i processi figli dei subtask/terminali dell'assistente non aprono finestre interattive sulla sessione desktop di Cesare). L'assistente chiude solo il task/processo avviato in quella stessa sessione e ne dichiara il PID.
+610: -  3. **Cesare avvia l'app direttamente dal suo terminale**: grazie alla compilazione release già completata dall'assistente, l'avvio interattivo di Cesare richiede solo pochissimi secondi.
+611: -  4. **Divieto assoluto di terminazione processi**: nessun `Stop-Process`, `taskkill` o chiusura finestre su `limen-vault`, `llama-server`, `cargo` o `node`. Se un processo dovesse mai bloccare una compilazione, l'assistente deve fermarsi e segnalare a Cesare il PID e la motivazione.
+612: -- **Stato al termine della FASE 5c**:
+613: -  - Compilazione ottimizzata eseguita con successo sul commit `ef2532c`.
+614: -  - Processo assistente chiuso: PID **5340** terminato.
+615: -  - Cesare può ora avviare l'app con:  
+616: -    `cd "E:\Projects\vault_memai_obsi"; npx pnpm --filter @limen-vault/desktop tauri dev --release`
+617: -
+618: -
+619: -
+620: -
+621: -
+622: +- **ZERO terminazioni di processi di sistema o di Cesare** (`llama-server.exe` PID 39740 e `limen-vault.exe` PID 25352 intatti).
+623: +- **File di prova e log salvati**:
+624: +  - Log test parallelo: [cargo-test-fase-5-parallel.log](file:///E:/Projects/vault_memai_obsi/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/cargo-test-fase-5-parallel.log) (176/176 ok).
+625: +  - Log test sequenziale: [cargo-test-fase-5-single.log](file:///E:/Projects/vault_memai_obsi/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/cargo-test-fase-5-single.log) (176/176 ok).
+626: +  - Patch FASE 5d (`git diff e0afe10 HEAD`): [fase-5d.patch](file:///E:/Projects/vault_memai_obsi/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-5d.patch).
+627: +  - Patch confronto `efa0cef` vs `ef2532c` (`git diff efa0cef ef2532c`): [diff-efa0cef-ef2532c.patch](file:///E:/Projects/vault_memai_obsi/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/diff-efa0cef-ef2532c.patch).
+628: +
+629: +- **Comando per l'avvio da parte di Cesare**:
+630: +  `cd "E:\Projects\vault_memai_obsi"; npx pnpm --filter @limen-vault/desktop tauri dev --release`
+631: diff --git a/apps/desktop/src-tauri/src/ai.rs b/apps/desktop/src-tauri/src/ai.rs
+632: index 6fd2b77..750eb18 100644
+633: --- a/apps/desktop/src-tauri/src/ai.rs
+634: +++ b/apps/desktop/src-tauri/src/ai.rs
+635: @@ -4510,6 +4510,43 @@ mod tests {
+636:        }
+637:    }
+638:  
+639: +  #[test]
+640: +  fn test_stream_prose_sanitizer_cesare_real_terminal_bnxt_answer() {
+641: +      let text = "Il progetto BNXT riguarda lo sviluppo di un sistema CRM (Customer Relationship Management) dedicato a un'azienda specializzata nell'abbigliamento tecnico per motociclisti, come BNXT1, un brand italiano noto per prodotti su misura nel segmento rally e off-road";
+642: +      let expected = sanitize_answer_prose(text);
+643: +      let bytes = text.as_bytes();
+644: +
+645: +      // Spezza in frammenti di ogni lunghezza da 1 a 80 byte -> nessun panic
+646: +      for chunk_size in 1..=80 {
+647: +          let mut utf8_decoder = Utf8ChunkDecoder::new();
+648: +          let mut sanitizer = StreamProseSanitizer::new();
+649: +
+650: +          let mut offset = 0;
+651: +          while offset < bytes.len() {
+652: +              let end = std::cmp::min(offset + chunk_size, bytes.len());
+653: +              let byte_chunk = &bytes[offset..end];
+654: +              let decoded_chunk = utf8_decoder.decode(byte_chunk);
+655: +              if !decoded_chunk.is_empty() {
+656: +                  let _delta = sanitizer.feed(&decoded_chunk);
+657: +              }
+658: +              offset = end;
+659: +          }
+660: +
+661: +          let remaining = utf8_decoder.flush();
+662: +          if !remaining.is_empty() {
+663: +              let _delta = sanitizer.feed(&remaining);
+664: +          }
+665: +          let _flush = sanitizer.flush();
+666: +
+667: +          assert_eq!(
+668: +              sanitizer.get_accumulated(),
+669: +              expected,
+670: +              "Failed for chunk_size={} on Cesare's real terminal answer",
+671: +              chunk_size
+672: +          );
+673: +      }
+674: +  }
+675: +
+676:    #[test]
+677:    fn test_consecutive_calls_second_rejected_while_first_active() {
+678:        let state = Arc::new(AiState::default());
+679: diff --git a/apps/desktop/src-tauri/src/main.rs b/apps/desktop/src-tauri/src/main.rs
+680: index 7f5928d..d14a675 100644
+681: --- a/apps/desktop/src-tauri/src/main.rs
+682: +++ b/apps/desktop/src-tauri/src/main.rs
+683: @@ -512,17 +512,6 @@ async fn ai_preview(
+684:      };
+685:      state.preview_with_port(PathBuf::from(vault_path), options, port).await
+686:  }
+687: -struct ActiveGuard {
+688: -    state: std::sync::Arc<limen_vault::ai::AiState>,
+689: -    ticket: String,
+690: -}
+691: -
+692: -impl Drop for ActiveGuard {
+693: -    fn drop(&mut self) {
+694: -        self.state.finish(&self.ticket);
+695: -    }
+696: -}
+697: -
+698:  #[tauri::command]
+699:  async fn ai_ask(
+700:      ticket: String,
+701: @@ -531,24 +520,18 @@ async fn ai_ask(
+702:  ) -> Result<serde_json::Value, String> {
+703:      let state = state.inner().clone();
+704:      let (pending, cancel) = state.begin(&ticket)?;
+705: -    let _guard = ActiveGuard {
+706: -        state: state.clone(),
+707: -        ticket: ticket.clone(),
+708: -    };
+709:      let key = tauri::async_runtime::spawn_blocking(limen_vault::keychain::load)
+710:          .await
+711:          .map_err(|_| "Keychain worker failed".to_string())
+712:          .and_then(|r| r)
+713:          .and_then(|k| k.ok_or("Configure API key in Settings".into()));
+714: -    match key {
+715: +    let result = match key {
+716:          Ok(key) => limen_vault::ai::ask(pending, key, cancel, ui_elapsed_ms).await,
+717: -        Err(e) => {
+718: -            limen_vault::ai::log_keychain_error(&pending, &e, ui_elapsed_ms);
+719: -            Err(e)
+720: -        }
+721: -    }
+722: +        Err(e) => Err(e),
+723: +    };
+724: +    state.finish(&ticket);
+725: +    result
+726:  }
+727: -
+728:  #[tauri::command]
+729:  async fn ai_ask_stream(
+730:      window: tauri::Window,
+731: @@ -558,60 +541,17 @@ async fn ai_ask_stream(
+732:  ) -> Result<serde_json::Value, String> {
+733:      let state = state.inner().clone();
+734:      let (pending, cancel) = state.begin(&ticket)?;
+735: -    let _guard = ActiveGuard {
+736: -        state: state.clone(),
+737: -        ticket: ticket.clone(),
+738: -    };
+739:      let key = tauri::async_runtime::spawn_blocking(limen_vault::keychain::load)
+740:          .await
+741:          .map_err(|_| "Keychain worker failed".to_string())
+742:          .and_then(|r| r)
+743:          .and_then(|k| k.ok_or("Configure API key in Settings".into()));
+744: -
+745: -    let key = match key {
+746: -        Ok(k) => k,
+747: -        Err(e) => {
+748: -            limen_vault::ai::log_keychain_error(&pending, &e, ui_elapsed_ms);
+749: -            return Err(e);
+750: -        }
+751: +    let result = match key {
+752: +        Ok(key) => limen_vault::ai::ask_stream(Some(window), ticket.clone(), pending, key, cancel, ui_elapsed_ms).await,
+753: +        Err(e) => Err(e),
+754:      };
+755: -
+756: -    let win_clone = window.clone();
+757: -    let ticket_clone = ticket.clone();
+758: -    let handle = tokio::spawn(async move {
+759: -        limen_vault::ai::ask_stream(Some(win_clone), ticket_clone, pending, key, cancel, ui_elapsed_ms).await
+760: -    });
+761: -
+762: -    match handle.await {
+763: -        Ok(stream_res) => stream_res,
+764: -        Err(join_err) => {
+765: -            let panic_msg = if join_err.is_panic() {
+766: -                "Panic durante l'esecuzione dello streaming in ai_ask_stream"
+767: -            } else {
+768: -                "Task di streaming interrotto inaspettatamente"
+769: -            };
+770: -            limen_vault::ai::log_internal_error(&ticket, panic_msg);
+771: -            let user_msg = "Errore interno durante la generazione della risposta, riprova".to_string();
+772: -            use tauri::Emitter;
+773: -            let _ = window.emit("limen://ai-stream-end", limen_vault::ai::AiStreamEndPayload {
+774: -                ticket: ticket.clone(),
+775: -                answer: user_msg.clone(),
+776: -                citations: vec![],
+777: -                cited_indices: vec![],
+778: -                status: "error".into(),
+779: -                incomplete: true,
+780: -                incomplete_reason: Some(user_msg.clone()),
+781: -                warning: None,
+782: -                error: Some(user_msg.clone()),
+783: -                cancelled: true,
+784: -                tokens_used: None,
+785: -                tokens_prompt: None,
+786: -                tokens_completion: None,
+787: -                tokens_reasoning: None,
+788: -            });
+789: -            Err(user_msg)
+790: -        }
+791: -    }
+792: +    state.finish(&ticket);
+793: +    result
+794:  }
+795:  #[tauri::command]
+796:  fn ai_cancel(ticket:String,state:tauri::State<'_,std::sync::Arc<limen_vault::ai::AiState>>){state.cancel(&ticket);}
+797: diff --git a/apps/desktop/src/AiPanel.tsx b/apps/desktop/src/AiPanel.tsx
+798: index baa13c3..036e86b 100644
+799: --- a/apps/desktop/src/AiPanel.tsx
+800: +++ b/apps/desktop/src/AiPanel.tsx
+801: @@ -76,8 +76,6 @@ export function AiPanel({
+802:    const seq = useRef(0);
+803:    const unlistenChunkRef = useRef<UnlistenFn | null>(null);
+804:    const unlistenEndRef = useRef<UnlistenFn | null>(null);
+805: -  const isRunningRef = useRef(false);
+806: -  const isBusy = !!loadingStep || isStreaming;
+807:  
+808:    // Carica i modelli disponibili e il modello selezionato memorizzato (default: gpt-4o)
+809:    useEffect(() => {
+810: @@ -131,7 +129,7 @@ export function AiPanel({
+811:        setConsentGranted(true);
+812:        setError(null);
+813:        // Automatically trigger answer request if prompt is not empty
+814: -      if (!isBusy && prompt.trim()) {
+815: +      if (prompt.trim()) {
+816:          void executeAsk(prompt.trim());
+817:        }
+818:      } catch (e) {
+819: @@ -141,8 +139,7 @@ export function AiPanel({
+820:    }
+821:  
+822:    async function executeAsk(queryText: string) {
+823: -    if (!queryText || isRunningRef.current || loadingStep || isStreaming) return;
+824: -    isRunningRef.current = true;
+825: +    if (!queryText || loadingStep || isStreaming) return;
+826:      const currentModel = model || 'gpt-4o';
+827:  
+828:      const currentSeq = ++seq.current;
+829: @@ -168,7 +165,6 @@ export function AiPanel({
+830:      setConsentGranted(hasConsent);
+831:  
+832:      if (!hasConsent) {
+833: -      isRunningRef.current = false;
+834:        return; // Inline consent banner will be shown
+835:      }
+836:  
+837: @@ -270,18 +266,11 @@ export function AiPanel({
+838:          });
+839:        } else if (errStr.includes('Consenso')) {
+840:          setConsentGranted(false);
+841: -      } else if (errStr.includes('An AI request is already running') || errStr.includes('già una domanda in corso')) {
+842: -        setError("C'è già una domanda in corso: attendi la risposta o annullala.");
+843: -        setTechError(null);
+844: -      } else if (errStr.includes('Errore interno durante la generazione della risposta')) {
+845: -        setError('Errore interno durante la generazione della risposta, riprova.');
+846: -        setTechError(null);
+847:        } else {
+848:          setError('Impossibile completare la risposta. Verifica la connessione o la chiave API.');
+849:          setTechError(errStr);
+850:        }
+851:      } finally {
+852: -      isRunningRef.current = false;
+853:        if (currentSeq === seq.current) {
+854:          setLoadingStep(null);
+855:          setIsStreaming(false);
+856: @@ -360,7 +349,7 @@ export function AiPanel({
+857:                onKeyDown={e => {
+858:                  if (e.key === 'Enter' && !e.shiftKey) {
+859:                    e.preventDefault();
+860: -                  if (!isBusy && prompt.trim() && model) void executeAsk(prompt.trim());
+861: +                  if (prompt.trim() && model) executeAsk(prompt.trim());
+862:                  }
+863:                }}
+864:                style={{
+865: @@ -379,11 +368,11 @@ export function AiPanel({
+866:                  right: 10,
+867:                  bottom: 14,
+868:                  padding: '8px 16px',
+869: -                opacity: (!model || !prompt.trim() || isBusy) ? 0.6 : 1,
+870: +                opacity: (!model || !prompt.trim() || !!loadingStep) ? 0.6 : 1,
+871:                }}
+872: -              disabled={isBusy || !prompt.trim() || !model}
+873: -              onClick={() => !isBusy && prompt.trim() && model && void executeAsk(prompt.trim())}
+874: -              title={!model ? "Seleziona un modello per abilitare l'invio" : isBusy ? "Generazione in corso..." : undefined}
+875: +              disabled={!!loadingStep || !prompt.trim() || !model}
+876: +              onClick={() => prompt.trim() && model && executeAsk(prompt.trim())}
+877: +              title={!model ? "Seleziona un modello per abilitare l'invio" : undefined}
+878:              >
+879:                Chiedi
+880:              </button>
+881: @@ -612,33 +601,9 @@ export function AiPanel({
+882:        {/* Box di generazione progressiva in streaming */}
+883:        {isStreaming && (
+884:          <div className="limen-card" style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
+885: -          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, color: '#2563eb', fontSize: 13, fontWeight: 600 }}>
+886: -            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+887: -              <Sparkles size={16} className="animate-spin" />
+888: -              <span>Generazione in streaming con OpenAI ({model || 'gpt-4o'})…</span>
+889: -            </div>
+890: -            {previewData?.ticket && (
+891: -              <button
+892: -                type="button"
+893: -                onClick={() => {
+894: -                  if (previewData?.ticket) {
+895: -                    void aiIpc.cancel(previewData.ticket);
+896: -                  }
+897: -                }}
+898: -                style={{
+899: -                  padding: '4px 10px',
+900: -                  borderRadius: 6,
+901: -                  border: '1px solid #fca5a5',
+902: -                  backgroundColor: '#fef2f2',
+903: -                  color: '#dc2626',
+904: -                  fontSize: 12,
+905: -                  fontWeight: 600,
+906: -                  cursor: 'pointer',
+907: -                }}
+908: -              >
+909: -                Annulla domanda
+910: -              </button>
+911: -            )}
+912: +          <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#2563eb', fontSize: 13, fontWeight: 600 }}>
+913: +            <Sparkles size={16} className="animate-spin" />
+914: +            <span>Generazione in streaming con OpenAI ({model || 'gpt-4o'})…</span>
+915:            </div>
+916:            <div style={{ fontSize: 15, lineHeight: 1.7, color: '#0f172a', whiteSpace: 'pre-wrap' }}>
+917:              {streamingText || <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Elaborazione in corso e attesa token…</span>}

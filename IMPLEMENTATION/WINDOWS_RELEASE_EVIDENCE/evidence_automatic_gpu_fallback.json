@@ -1,0 +1,11 @@
+{
+  "GpuFailureSimulated": true,
+  "GpuErrorMessage": "Processo terminato con codice di errore 1",
+  "FallbackTriggered": true,
+  "FallbackNgl": "0",
+  "CpuServerHealthy": true,
+  "InferenceDurationSec": "78.4",
+  "AnswerReceived": "Sì.",
+  "LogSnippet": "[FALLBACK] Avvio GPU (-ngl 999999) non riuscito: Processo terminato con codice di errore 1. Esecuzione del ripiego controllato su CPU (-ngl 0)...",
+  "Outcome": "PASS"
+}

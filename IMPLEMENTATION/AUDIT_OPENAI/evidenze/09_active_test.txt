@@ -1,0 +1,8 @@
+
+thread 'main' (26568) panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\active_harness.rs:55:4:
+audit injected panic after begin, before finish
+active_after_panic=1
+active_after_cancel=1
+second_request=An AI request is already running
+explicit_finish_recovers=true
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

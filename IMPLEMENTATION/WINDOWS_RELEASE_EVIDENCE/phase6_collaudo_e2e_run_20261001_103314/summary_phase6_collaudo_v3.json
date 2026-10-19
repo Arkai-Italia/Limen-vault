@@ -1,0 +1,377 @@
+{
+  "TestRunId": "phase6_run_20261001_103314",
+  "DateISO": "2026-10-01T02:33:14.910Z",
+  "FormulaStatoUfficiale": "Tutti gli scenari applicativi superati con successo [PASS].",
+  "AllScenariosPassed": true,
+  "Traceability": {
+    "TestRunId": "phase6_run_20261001_103314",
+    "TimestampISO": "2026-10-01T02:33:14.910Z",
+    "GitCommit": "193363c18ec8de9d81de1a73a640bc5bd0175ca9",
+    "Installer": {
+      "Path": "E:\\Projects\\vault_memai_obsi\\USER INSTALL WINDOWS\\LIMEN-Vault-v6Mini-0.6.0-windows-x64-setup.exe",
+      "Sha256": "da8dc6bb042342ddde93109faccbec4921c0cbf5fa593f1003594a26e076dc80",
+      "SizeBytes": 63057753
+    },
+    "InstalledExecutable": {
+      "Path": "C:\\Users\\user\\AppData\\Local\\LIMEN Vault v6Mini\\limen-vault.exe",
+      "Sha256": "9949fc538d1a27e0c16259ed2f168516132ef811af7d15aa0e9cbb872fa4ef9f",
+      "SizeBytes": 23714816
+    },
+    "LlamaServer": {
+      "Path": "C:\\Users\\user\\AppData\\Local\\LIMEN Vault v6Mini\\native\\llama-server.exe",
+      "Sha256": "45438f026845b4611474e3a7a21b486cab83d3ac39ca60d591ceb88300d8ee4c",
+      "SizeBytes": 8177392
+    },
+    "Models": {
+      "BgeM3": {
+        "Path": "C:\\Users\\user\\LIMEN Vault\\models\\bge-m3-Q8_0.gguf",
+        "SizeBytes": 634553760
+      },
+      "Ministral3_8B": {
+        "Path": "C:\\Users\\user\\LIMEN Vault\\models\\Ministral-3-8B-Instruct-2512-Q5_K_M.gguf",
+        "SizeBytes": 6059268512
+      }
+    }
+  },
+  "Scenarios": {
+    "Scenario1_AutoIndexing": {
+      "Level": "Verificato sulla fixture",
+      "Description": "Apertura tramite UI di vault senza indice -> creazione automatica dell’indice e stato “Indice: Pronto”",
+      "ObservedIndexingBanner": false,
+      "IndexFileCreated": true,
+      "UIStatusReady": true,
+      "IndexFilePath": "C:\\Users\\user\\.gemini\\antigravity-ide\\brain\\0507c37e-8563-4e38-92a4-12844e0fa9c1\\scratch\\isolated_e2e\\Vault_A\\00_SYSTEM\\SEARCH_INDEX.json",
+      "IndexSizeBytes": 19802,
+      "IndexingDurationSec": "2.9",
+      "Outcome": "PASS"
+    },
+    "Scenario2_ReopenNoRebuild": {
+      "Level": "Prova applicativa con riscontro fisico",
+      "Description": "Riapertura effettiva dello stesso vault: disponibilità ricerca, indice valido, assenza di ricostruzione superflua",
+      "IndexFile": "C:\\Users\\user\\.gemini\\antigravity-ide\\brain\\0507c37e-8563-4e38-92a4-12844e0fa9c1\\scratch\\isolated_e2e\\Vault_A\\00_SYSTEM\\SEARCH_INDEX.json",
+      "IndexMtimeBefore": 1790821999945.841,
+      "IndexMtimeAfter": 1790821999945.841,
+      "NoUnnecessaryRebuild": true,
+      "SearchFunctioningPostReopen": true,
+      "Outcome": "PASS"
+    },
+    "Scenario3_DocumentUpdate": {
+      "Level": "Prova applicativa con verifica semantica contenuti",
+      "Description": "Aggiunta, modifica e rimozione di una nota con verifica dei contenuti ricercabili",
+      "NoteAddedFound": true,
+      "NoteModifiedReplacedPrevious": true,
+      "NoteRemovedAbsent": true,
+      "RequiredManualMaintenanceCommand": false,
+      "NoteOnAutomation": "Rilevazione automatica perfettamente operante tramite normale percorso applicativo.",
+      "Outcome": "PASS"
+    },
+    "Scenario4_VaultConcurrencyAndIsolation": {
+      "Level": "Isolamento e verifica architettura",
+      "Description": "Verifica cambio vault durante operazione e assenza corruzioni tra indici",
+      "OperationActiveConfirmed": true,
+      "InSessionSwitchSupported": false,
+      "ArchitectureBehavior": "L’applicazione opera come ambiente Single-Vault alla volta: la schermata principale mantiene il vault corrente bloccando interferenze concorrenti.",
+      "VaultB_Marker_Beta_Found": true,
+      "VaultB_Marker_Arkai_Absent": true,
+      "CrossPollutionDetected": false,
+      "Outcome": "PASS"
+    },
+    "Scenario5_QuestionFixture": {
+      "Level": "Prova applicativa con verifica semantica fatti",
+      "Description": "Risposta locale GPU Ministral 3 8B: verifica fatti sintetici noti, assenza loop e sequenze anomale di #",
+      "Prompt": "Quali sono i tre principi cardine di ARKAI e dove si svolgono le elaborazioni secondo i documenti del vault?",
+      "AnswerLength": 677,
+      "AnswerSnippet": "I tre principi cardine di ARKAI, secondo il documento fornito, sono:\n\n- La sovranità dei dati assoluta per l'utente, che garantisce che le informazioni appartengano esclusivamente all'utente senza alcuna condivisione esterna.\n- La crittografia verificabile delle memorie su disco, che assicura che lo storage locale sia protetto e tracciabile in modo sicuro.\n- L'elaborazione semantica a rete zero e ",
+      "DurationSec": "10.1",
+      "FactsReported": {
+        "SovranitaDati": true,
+        "CrittografiaVerificabile": true,
+        "ElaborazioneSenzaTelemetria": true,
+        "EdgeGpuLocale": true
+      },
+      "AllExpectedFactsPresent": true,
+      "HashCount": 0,
+      "AnomalousLoopDetected": false,
+      "DefectHashStatus": "Non riprodotto nella fixture con contesto strutturato conforme",
+      "Outcome": "PASS"
+    },
+    "Scenario6_Cancellation": {
+      "Level": "Prova applicativa con misura tempi e verifica socket",
+      "Description": "Annullamento prima del contenuto e durante streaming attivo, misura ripristino UI e assenza token residui",
+      "PreStreamCancel": {
+        "CancelButtonDetected": true,
+        "UIResetTimeMs": 109,
+        "FollowUpClean": true
+      },
+      "ActiveStreamCancel": {
+        "StreamingActiveConfirmed": true,
+        "UIResetTimeMs": 107,
+        "IncompleteMessageRendered": false,
+        "FollowUpClean": true
+      },
+      "Outcome": "PASS"
+    },
+    "Scenario7_FallbackAndResilience": {
+      "Level": "Prova applicativa con fallback GPU->CPU ed evidenza server",
+      "Description": "Controllo limitato dell’interfaccia e prova effettiva di inferenza su CPU in assenza di accelerazione GPU",
+      "PartA_LimitedInterfaceCheck": {
+        "ButtonsCount": 24,
+        "Responsive": true,
+        "NoFatalErrorBanner": true,
+        "Note": "Verifica limitata alla presenza di pulsanti e assenza di crash React nel DOM."
+      },
+      "PartB_ControlledCpuFallback": {
+        "ServerArgs": [
+          "-m",
+          "C:\\Users\\user\\LIMEN Vault\\models\\Ministral-3-8B-Instruct-2512-Q5_K_M.gguf",
+          "-ngl",
+          "0",
+          "--device",
+          "none",
+          "-c",
+          "2048",
+          "-t",
+          "4"
+        ],
+        "DurationSec": 69.68,
+        "Answer": "La **CPU** (Central Processing Unit) è il componente elettronico di un computer che esegue le operazioni di elaborazione dei dati e delle istruzioni",
+        "Success": true
+      },
+      "Outcome": "PASS"
+    },
+    "Scenario8_Session20Questions": {
+      "Level": "Prova applicativa di robustezza sequenziale estesa",
+      "Description": "Esecuzione sequenziale di 20 domande consecutive su Ministral 3 8B con tracciamento puntuale dei turni",
+      "TotalAttempted": 20,
+      "TotalSuccessful": 20,
+      "TotalFailed": 0,
+      "SuccessRatePercent": "100.0",
+      "Q12_Q13_Identical": false,
+      "Q12_Length": 645,
+      "Q13_Length": 200,
+      "Results": [
+        {
+          "QuestionIndex": 1,
+          "Prompt": "1. Chi è ARKAI secondo il documento?",
+          "AnswerLength": 906,
+          "AnswerSnippet": "Secondo il documento fornito, ARKAI è una piattaforma di intelligenza aumentata locale con le seguenti caratteristiche fondamentali:\n\n- Progettata per...",
+          "FullAnswer": "Secondo il documento fornito, ARKAI è una piattaforma di intelligenza aumentata locale con le seguenti caratteristiche fondamentali:\n\n- Progettata per operare interamente in modalità edge, cioè direttamente sui dispositivi personali dell'utente.\n- Si basa su tre principi cardine:\n- Sovranità dei dati assoluta: le informazioni appartengono esclusivamente all’utente, senza condivisione esterna.\n- Crittografia verificabile delle memorie: lo storage locale è protetto e tracciabile in modo sicuro.\n- Elaborazione semantica a rete zero e senza telemetria: tutte le operazioni (vettoriali e generative) avvengono offline, senza inviare dati o log verso server remoti.\n\nIn sintesi, ARKAI è una memoria aumentata personale, sicura, crittografata e completamente indipendente dal cloud, che utilizza una GPU locale (NVIDIA) con il modello generativo Ministral 3 8B Instruct per elaborazioni ad alte prestazioni.",
+          "DurationSec": "6.0",
+          "HashCount": 0,
+          "LoopDetected": false,
+          "Status": "SUCCESS"
+        },
+        {
+          "QuestionIndex": 2,
+          "Prompt": "2. Qual è il primo principio cardine di ARKAI?",
+          "AnswerLength": 82,
+          "AnswerSnippet": "Il primo principio cardine di ARKAI è la sovranità dei dati assoluta per l'utente....",
+          "FullAnswer": "Il primo principio cardine di ARKAI è la sovranità dei dati assoluta per l'utente.",
+          "DurationSec": "1.0",
+          "HashCount": 0,
+          "LoopDetected": false,
+          "Status": "SUCCESS"
+        },
+        {
+          "QuestionIndex": 3,
+          "Prompt": "3. Qual è il secondo principio cardine di ARKAI?",
+          "AnswerLength": 92,
+          "AnswerSnippet": "Il secondo principio cardine di ARKAI è la crittografia verificabile delle memorie su disco....",
+          "FullAnswer": "Il secondo principio cardine di ARKAI è la crittografia verificabile delle memorie su disco.",
+          "DurationSec": "1.0",
+          "HashCount": 0,
+          "LoopDetected": false,
+          "Status": "SUCCESS"
+        },
+        {
+          "QuestionIndex": 4,
+          "Prompt": "4. Qual è il terzo principio cardine di ARKAI?",
+          "AnswerLength": 256,
+          "AnswerSnippet": "Il terzo principio cardine di ARKAI è l'elaborazione semantica a rete zero e senza alcuna telemetria. Questo significa che tutte le elaborazioni del s...",
+          "FullAnswer": "Il terzo principio cardine di ARKAI è l'elaborazione semantica a rete zero e senza alcuna telemetria. Questo significa che tutte le elaborazioni del sistema avvengono direttamente sul dispositivo locale, senza inviare dati o richieste verso server esterni.",
+          "DurationSec": "2.0",
+          "HashCount": 0,
+          "LoopDetected": false,
+          "Status": "SUCCESS"
+        },
+        {
+          "QuestionIndex": 5,
+          "Prompt": "5. Dove si svolgono le elaborazioni del sistema?",
+          "AnswerLength": 587,
+          "AnswerSnippet": "Le elaborazioni del sistema di ARKAI si svolgono interamente sul dispositivo locale, in un ambiente a rete zero (zero-trust network). Questo significa...",
+          "FullAnswer": "Le elaborazioni del sistema di ARKAI si svolgono interamente sul dispositivo locale, in un ambiente a rete zero (zero-trust network). Questo significa che non avviene alcuna comunicazione o invio di dati verso server esterni o ambienti cloud durante il processo di elaborazione.\n\nIn particolare:\n- Le operazioni vengono eseguite sulla GPU locale NVIDIA del dispositivo dell'utente, utilizzando il runtime Vulkan per un'efficienza ottimizzata.\n- Il modello generativo impiegato per produrre le risposte è Ministral 3 8B Instruct, quantizzato in Q5_K_M, che opera esclusivamente in locale.",
+          "DurationSec": "4.0",
+          "HashCount": 0,
+          "LoopDetected": false,
+          "Status": "SUCCESS"
+        },
+        {
+          "QuestionIndex": 6,
+          "Prompt": "6. Quale hardware locale viene utilizzato?",
+          "AnswerLength": 148,
+          "AnswerSnippet": "Secondo i documenti forniti, l'hardware locale utilizzato da ARKAI per l'elaborazione è:\n\n- GPU locale NVIDIA con runtime Vulkan ad alta efficienza....",
+          "FullAnswer": "Secondo i documenti forniti, l'hardware locale utilizzato da ARKAI per l'elaborazione è:\n\n- GPU locale NVIDIA con runtime Vulkan ad alta efficienza.",
+          "DurationSec": "1.0",
+          "HashCount": 0,
+          "LoopDetected": false,
+          "Status": "SUCCESS"
+        },
+        {
+          "QuestionIndex": 7,
+          "Prompt": "7. Che modello viene eseguito per le risposte?",
+          "AnswerLength": 158,
+          "AnswerSnippet": "Il modello utilizzato da ARKAI per produrre le risposte è Ministral 3 8B Instruct, con una quantizzazione specifica Q5_K_M eseguita interamente su GPU...",
+          "FullAnswer": "Il modello utilizzato da ARKAI per produrre le risposte è Ministral 3 8B Instruct, con una quantizzazione specifica Q5_K_M eseguita interamente su GPU locale.",
+          "DurationSec": "1.0",
+          "HashCount": 0,
+          "LoopDetected": false,
+          "Status": "SUCCESS"
+        },
+        {
+          "QuestionIndex": 8,
+          "Prompt": "8. Spiega la sovranità dei dati.",
+          "AnswerLength": 1033,
+          "AnswerSnippet": "La sovranità dei dati nel contesto di ARKAI si riferisce a un principio fondamentale che garantisce all’utente il controllo assoluto e esclusivo sulle...",
+          "FullAnswer": "La sovranità dei dati nel contesto di ARKAI si riferisce a un principio fondamentale che garantisce all’utente il controllo assoluto e esclusivo sulle proprie informazioni, senza alcuna forma di condivisione, accesso o controllo da parte di terze parti esterne.\n\nIn ARKAI, questo significa:\n- Nessuna trasmissione o memorizzazione dei dati su server remoti: tutte le elaborazioni avvengono interamente sul dispositivo locale, senza connessioni a reti esterne durante l’uso del sistema.\n- Autonomia totale: i dati appartengono esclusivamente all’utente, che ne gestisce l’accesso e l’uso senza dipendere da infrastrutture cloud o provider esterni.\n- Isolamento applicativo: l’intero stack tecnologico di ARKAI opera in un ambiente a rete zero, isolato dall’internet tradizionale, eliminando qualsiasi rischio di esposizione o accesso non autorizzato da parte di entità esterne.\n\nQuesta architettura edge garantisce che l’utente mantenga il pieno dominio sui propri dati, preservandone la riservatezza e la sicurezza senza compromessi.",
+          "DurationSec": "6.0",
+          "HashCount": 0,
+          "LoopDetected": false,
+          "Status": "SUCCESS"
+        },
+        {
+          "QuestionIndex": 9,
+          "Prompt": "9. Cosa significa crittografia verificabile delle memorie?",
+          "AnswerLength": 855,
+          "AnswerSnippet": "La crittografia verificabile delle memorie nel contesto di ARKAI si riferisce a un sistema di protezione avanzato che garantisce due funzioni fondamen...",
+          "FullAnswer": "La crittografia verificabile delle memorie nel contesto di ARKAI si riferisce a un sistema di protezione avanzato che garantisce due funzioni fondamentali:\n\n- Protezione sicura dei dati: Tutte le informazioni memorizzate sul dispositivo locale, incluse le note e i file del vault, sono crittografate in modo che solo l'utente autorizzato possa accedervi. Questo impedisce l'accesso non autorizzato anche in caso di compromissione fisica del dispositivo.\n\n- Verificabilità e tracciabilità: La crittografia non è statica, ma include meccanismi che permettono all'utente di verificare che i dati non siano stati alterati o compromessi. Questo si traduce in un sistema di integrità dei dati che assicura che le informazioni rimangano fedeli e sicure nel tempo, con la possibilità di controllare la loro autenticità senza doverle decrittografare completamente.",
+          "DurationSec": "5.0",
+          "HashCount": 0,
+          "LoopDetected": false,
+          "Status": "SUCCESS"
+        },
+        {
+          "QuestionIndex": 10,
+          "Prompt": "10. Cosa garantisce l'assenza di telemetria?",
+          "AnswerLength": 817,
+          "AnswerSnippet": "L’assenza di telemetria in ARKAI garantisce che:\n\n- Nessun dato di utilizzo venga trasmesso verso server esterni o ambienti cloud.\n- Non vengono racco...",
+          "FullAnswer": "L’assenza di telemetria in ARKAI garantisce che:\n\n- Nessun dato di utilizzo venga trasmesso verso server esterni o ambienti cloud.\n- Non vengono raccolti né inviati log, registri di richiesta, attività dell’utente o informazioni sul comportamento di elaborazione.\n- L’intero stack applicativo opera in isolamento dall’ambiente internet, preservando la privacy e la sovranità dei dati esclusivamente sul dispositivo locale.\n- Non è possibile tracciare l’uso del sistema da parte di terze parti, eliminando rischi di profilazione o violazioni della privacy legate a telemetria remota.\n\nIn sintesi, l’assenza di telemetria assicura che tutte le operazioni di elaborazione semantica e generativa avvengano in un ambiente completamente chiuso e autonomo, senza alcuna dipendenza o esposizione verso infrastrutture esterne.",
+          "DurationSec": "5.0",
+          "HashCount": 0,
+          "LoopDetected": false,
+          "Status": "SUCCESS"
+        },
+        {
+          "QuestionIndex": 11,
+          "Prompt": "11. Qual è lo scopo del vault locale?",
+          "AnswerLength": 775,
+          "AnswerSnippet": "Lo scopo del vault locale in ARKAI è quello di custodire in sicurezza la conoscenza personale e aziendale, organizzandola in note strutturate e protet...",
+          "FullAnswer": "Lo scopo del vault locale in ARKAI è quello di custodire in sicurezza la conoscenza personale e aziendale, organizzandola in note strutturate e protette.\n\nIn particolare, il vault:\n- Preserva la conoscenza tramite file Markdown plain-text nativi (compatibili con Obsidian) arricchiti con frontmatter YAML.\n- Funge da memoria aumentata personale, garantendo sovranità, privacy e indipendenza dal cloud.\n- Organizza le informazioni in categorie specifiche come:\n- Note di sistema (00_SYSTEM)\n- Clienti (01_CLIENTS)\n- Progetti (02_PROJECTS)\n- Brand (03_BRANDS)\n- Posizionamento strategico.\n\nL’architettura edge di ARKAI, combinata con la crittografia verificabile e l’assenza di telemetria, assicura che i dati siano protetti, tracciabili e accessibili esclusivamente in locale.",
+          "DurationSec": "5.0",
+          "HashCount": 0,
+          "LoopDetected": false,
+          "Status": "SUCCESS"
+        },
+        {
+          "QuestionIndex": 12,
+          "Prompt": "12. Come vengono trattati i file Obsidian?",
+          "AnswerLength": 645,
+          "AnswerSnippet": "I file Obsidian all'interno di ARKAI vengono trattati come file Markdown plain-text nativi, con un formato arricchito da frontmatter YAML. Questo appr...",
+          "FullAnswer": "I file Obsidian all'interno di ARKAI vengono trattati come file Markdown plain-text nativi, con un formato arricchito da frontmatter YAML. Questo approccio garantisce:\n\n- Piena compatibilità con Obsidian, preservando la struttura e le funzionalità originali del formato.\n- Sicurezza e integrazione nel vault locale, dove vengono organizzati e gestiti secondo una struttura gerarchica (es. cartelle come `00_SYSTEM`, `01_CLIENTS`, `02_PROJECTS`).\n- Accessibilità e tracciabilità tramite l'indice semantico basato su embedding densi (generati con bge-m3), che consente il recupero intelligente dei contenuti senza dipendere da connessioni esterne.",
+          "DurationSec": "4.0",
+          "HashCount": 0,
+          "LoopDetected": false,
+          "Status": "SUCCESS"
+        },
+        {
+          "QuestionIndex": 13,
+          "Prompt": "13. Quali categorie di note sono previste?",
+          "AnswerLength": 200,
+          "AnswerSnippet": "Dai documenti forniti, le categorie di note previste nel vault locale di ARKAI sono:\n\n- note di sistema (00_SYSTEM)\n- clienti (01_CLIENTS)\n- progetti ...",
+          "FullAnswer": "Dai documenti forniti, le categorie di note previste nel vault locale di ARKAI sono:\n\n- note di sistema (00_SYSTEM)\n- clienti (01_CLIENTS)\n- progetti (02_PROJECTS)\n- brand (03_BRANDS)\n- posizionamento",
+          "DurationSec": "2.0",
+          "HashCount": 0,
+          "LoopDetected": false,
+          "Status": "SUCCESS"
+        },
+        {
+          "QuestionIndex": 14,
+          "Prompt": "14. In quale cartella si trova il profilo di ARKAI?",
+          "AnswerLength": 72,
+          "AnswerSnippet": "Il profilo di ARKAI si trova nella cartella 01_CLIENTS del vault locale....",
+          "FullAnswer": "Il profilo di ARKAI si trova nella cartella 01_CLIENTS del vault locale.",
+          "DurationSec": "1.0",
+          "HashCount": 0,
+          "LoopDetected": false,
+          "Status": "SUCCESS"
+        },
+        {
+          "QuestionIndex": 15,
+          "Prompt": "15. Qual è il tipo di documento assegnato al profilo ARKAI?",
+          "AnswerLength": 57,
+          "AnswerSnippet": "Il tipo di documento assegnato al profilo ARKAI è client....",
+          "FullAnswer": "Il tipo di documento assegnato al profilo ARKAI è client.",
+          "DurationSec": "1.0",
+          "HashCount": 0,
+          "LoopDetected": false,
+          "Status": "SUCCESS"
+        },
+        {
+          "QuestionIndex": 16,
+          "Prompt": "16. Qual è lo stato di approvazione della nota?",
+          "AnswerLength": 78,
+          "AnswerSnippet": "Lo stato di approvazione della nota del Profilo Architettura ARKAI è approved....",
+          "FullAnswer": "Lo stato di approvazione della nota del Profilo Architettura ARKAI è approved.",
+          "DurationSec": "1.0",
+          "HashCount": 0,
+          "LoopDetected": false,
+          "Status": "SUCCESS"
+        },
+        {
+          "QuestionIndex": 17,
+          "Prompt": "17. Riassumi i vantaggi dell'approccio edge.",
+          "AnswerLength": 964,
+          "AnswerSnippet": "I vantaggi dell’approccio edge adottato da ARKAI sono i seguenti:\n\n- Privacy deterministica: garantisce un controllo assoluto sulla sovranità dei dati...",
+          "FullAnswer": "I vantaggi dell’approccio edge adottato da ARKAI sono i seguenti:\n\n- Privacy deterministica: garantisce un controllo assoluto sulla sovranità dei dati, evitando qualsiasi condivisione esterna e mantenendo le informazioni esclusivamente sotto il controllo dell’utente.\n\n- Assenza di costi cloud per token: elimina i costi associati all’elaborazione su infrastrutture remote, poiché tutte le operazioni avvengono localmente.\n\n- Latenza di esecuzione immediata: permette una risposta istantanea grazie all’elaborazione diretta sul dispositivo, senza dipendenze da reti o server esterni.\n\n- Isolamento a rete zero: isola completamente lo stack applicativo dall’ambiente internet, assicurando che non vengano inviati log, telemetria o richieste verso server remoti durante l’elaborazione.\n\n- Sicurezza e crittografia: protegge i dati tramite crittografia verificabile delle memorie su disco e l’assenza di telemetria, garantendo tracciabilità e integrità dei contenuti.",
+          "DurationSec": "6.0",
+          "HashCount": 0,
+          "LoopDetected": false,
+          "Status": "SUCCESS"
+        },
+        {
+          "QuestionIndex": 18,
+          "Prompt": "18. Perché la privacy è garantita a rete zero?",
+          "AnswerLength": 757,
+          "AnswerSnippet": "La privacy è garantita a rete zero in ARKAI perché:\n\n- L’intero sistema opera in isolamento dall’ambiente internet, senza alcuna connessione esterna a...",
+          "FullAnswer": "La privacy è garantita a rete zero in ARKAI perché:\n\n- L’intero sistema opera in isolamento dall’ambiente internet, senza alcuna connessione esterna attiva durante le elaborazioni.\n- Tutte le operazioni, inclusi i processi di intelligenza artificiale (come le elaborazioni vettoriali e generative), avvengono direttamente sul dispositivo locale, senza inviare dati verso server remoti.\n- L’architettura a rete zero elimina ogni forma di telemetria, assicurando che nessun log, richiesta o informazione venga trasmesso o memorizzato al di fuori del dispositivo dell’utente.\n- La sovranità dei dati e la crittografia verificabile delle memorie locali garantiscono che i contenuti rimangano sotto il controllo esclusivo dell’utente, senza intermediari esterni.",
+          "DurationSec": "4.0",
+          "HashCount": 0,
+          "LoopDetected": false,
+          "Status": "SUCCESS"
+        },
+        {
+          "QuestionIndex": 19,
+          "Prompt": "19. Che ruolo ha l'indice semantico?",
+          "AnswerLength": 451,
+          "AnswerSnippet": "L'indice semantico in ARKAI svolge il seguente ruolo:\n\n- Convertire i documenti presenti nel vault locale in embedding densi utilizzando il modello bg...",
+          "FullAnswer": "L'indice semantico in ARKAI svolge il seguente ruolo:\n\n- Convertire i documenti presenti nel vault locale in embedding densi utilizzando il modello bge-m3.\n- Recuperare i passaggi pertinenti all'interno dei documenti prima di inviare la richiesta al modello generativo (Ministral 3 8B Instruct).\nQuesto processo ottimizza l'efficienza e la rilevanza delle risposte, garantendo un accesso rapido e mirato alle informazioni contenute nei file del vault.",
+          "DurationSec": "3.0",
+          "HashCount": 0,
+          "LoopDetected": false,
+          "Status": "SUCCESS"
+        },
+        {
+          "QuestionIndex": 20,
+          "Prompt": "20. Concludi con una sintesi generale di ARKAI.",
+          "AnswerLength": 1847,
+          "AnswerSnippet": "ARKAI rappresenta una piattaforma di intelligenza aumentata locale progettata per operare esclusivamente in modalità edge, garantendo un controllo tot...",
+          "FullAnswer": "ARKAI rappresenta una piattaforma di intelligenza aumentata locale progettata per operare esclusivamente in modalità edge, garantendo un controllo totale sull’elaborazione dei dati direttamente sul dispositivo dell’utente. La sua architettura si fonda su tre principi cardine:\n\n- Sovranità dei dati assoluta: Tutte le informazioni appartengono esclusivamente all’utente, senza alcuna condivisione esterna o dipendenza da infrastrutture remote.\n- Crittografia verificabile delle memorie: Lo storage locale è protetto e tracciabile in modo sicuro, assicurando l’integrità e la riservatezza dei dati.\n- Elaborazione semantica a rete zero: Le operazioni, incluse quelle vettoriali e generative, avvengono interamente offline, senza telemetria o connessioni internet, eliminando rischi di perdita di privacy o costi cloud.\n\nHardware e tecnologia: ARKAI sfrutta la GPU locale NVIDIA con runtime Vulkan per un’efficienza ottimizzata, esegue il modello generativo Ministral 3 8B Instruct (quantizzato in Q5_K_M) e utilizza bge-m3 per creare embedding semantici dei documenti, abilitando un recupero di informazioni contestuale e veloce.\n\nVantaggi chiave:\n- Privacy deterministica: Nessuna interazione con server esterni durante l’elaborazione, isolando completamente lo stack applicativo.\n- Assenza di costi e latenza: Eliminazione di spese legate al cloud e riduzione al minimo dei tempi di risposta grazie all’esecuzione locale.\n- Memoria aumentata sicura: Il vault locale, organizzato in note strutturate (ad esempio con Obsidian), custodisce conoscenza personale e aziendale in formato crittografato e compatibile con standard open-source.\n\nIn sintesi, ARKAI si configura come una memoria aumentata personale, indipendente dal cloud, auto-sovrana e protetta, ideale per utenti che richiedono massima privacy, controllo e performance senza compromessi.",
+          "DurationSec": "11.1",
+          "HashCount": 0,
+          "LoopDetected": false,
+          "Status": "SUCCESS"
+        }
+      ],
+      "Outcome": "PASS"
+    }
+  }
+}

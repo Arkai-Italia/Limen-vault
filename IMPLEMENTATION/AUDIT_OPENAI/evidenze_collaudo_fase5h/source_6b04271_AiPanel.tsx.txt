@@ -1,0 +1,1035 @@
+1: import React, { useEffect, useRef, useState } from 'react';
+2: import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+3: import { aiIpc, type AiAnswer, type AiPreview, type AiSource, type AiStreamChunkPayload, type AiStreamEndPayload } from './ai-ipc';
+4: import type { CitationOpenRequest } from './vault-ipc';
+5: import { labelIt, MessageIt } from './locale';
+6: import { SemanticEngineSettings } from './SemanticEngineSettings';
+7: import { TunnelPanel } from './TunnelPanel';
+8: import { getPlatformTerms } from './platform';
+9: import { m7, operationId } from './proposal-ipc';
+10: import { ChevronDown, ChevronRight, ShieldAlert, Sparkles, FileText, Check, AlertCircle, Key, Lock } from 'lucide-react';
+11: 
+12: const fieldStyle: React.CSSProperties = {
+13:   padding: '10px 14px',
+14:   border: '1px solid #cbd5e1',
+15:   borderRadius: 8,
+16:   font: 'inherit',
+17:   fontSize: 14,
+18:   outline: 'none',
+19:   width: '100%',
+20:   boxSizing: 'border-box',
+21: };
+22: 
+23: const primaryButtonStyle: React.CSSProperties = {
+24:   padding: '10px 20px',
+25:   border: 'none',
+26:   borderRadius: 8,
+27:   font: 'inherit',
+28:   fontSize: 14,
+29:   fontWeight: 600,
+30:   cursor: 'pointer',
+31:   background: '#0f172a',
+32:   color: 'white',
+33:   display: 'inline-flex',
+34:   alignItems: 'center',
+35:   justifyContent: 'center',
+36:   gap: 8,
+37:   transition: 'background 0.2s',
+38: };
+39: 
+40: // Clean titles: remove technical prefixes (e.g. doc_..._) and .md extension
+41: function cleanTitle(title: string, relativePath: string): string {
+42:   if (title && !title.startsWith('doc_') && !title.endsWith('.md')) {
+43:     return title;
+44:   }
+45:   const base = relativePath.split('/').pop() || relativePath;
+46:   return base.replace(/\.md$/i, '').replace(/^[a-f0-9_-]{8,16}_/i, '');
+47: }
+48: 
+49: export function AiPanel({
+50:   vaultPath,
+51:   onOpenDocument,
+52: }: {
+53:   vaultPath: string;
+54:   onOpenDocument?: (req: CitationOpenRequest) => void;
+55: }) {
+56:   const terms = getPlatformTerms();
+57:   const [prompt, setPrompt] = useState('');
+58:   const [model, setModel] = useState<string>('gpt-4o');
+59:   const [availableModels, setAvailableModels] = useState<string[]>([]);
+60:   const [drafts, setDrafts] = useState(false);
+61:   const [consentGranted, setConsentGranted] = useState<boolean | null>(null);
+62: 
+63:   const [loadingStep, setLoadingStep] = useState<string | null>(null);
+64:   const [streamingText, setStreamingText] = useState('');
+65:   const [isStreaming, setIsStreaming] = useState(false);
+66:   const [answer, setAnswer] = useState<AiAnswer | null>(null);
+67:   const [previewData, setPreviewData] = useState<AiPreview | null>(null);
+68:   const [error, setError] = useState<string | null>(null);
+69:   const [techError, setTechError] = useState<string | null>(null);
+70: 
+71:   const [sourcesOpen, setSourcesOpen] = useState(true);
+72:   const [techDetailsOpen, setTechDetailsOpen] = useState(false);
+73: 
+74:   const [saveMessage, setSaveMessage] = useState('');
+75:   const saveOperation = useRef(operationId());
+76:   const seq = useRef(0);
+77:   const unlistenChunkRef = useRef<UnlistenFn | null>(null);
+78:   const unlistenEndRef = useRef<UnlistenFn | null>(null);
+79:   const isRunningRef = useRef(false);
+80:   const isBusy = !!loadingStep || isStreaming;
+81: 
+82:   // Carica i modelli disponibili e il modello selezionato memorizzato (default: gpt-4o)
+83:   useEffect(() => {
+84:     let live = true;
+85:     void aiIpc.models().then(list => {
+86:       if (!live) return;
+87:       if (list && list.length > 0) {
+88:         setAvailableModels(list);
+89:       }
+90:     }).catch(() => {});
+91: 
+92:     void aiIpc.getSelectedModel().then(saved => {
+93:       if (!live) return;
+94:       if (saved) {
+95:         setModel(saved);
+96:       } else {
+97:         setModel('gpt-4o');
+98:       }
+99:     }).catch(() => {
+100:       if (live) setModel('gpt-4o');
+101:     });
+102: 
+103:     return () => {
+104:       live = false;
+105:       if (unlistenChunkRef.current) unlistenChunkRef.current();
+106:       if (unlistenEndRef.current) unlistenEndRef.current();
+107:     };
+108:   }, []);
+109: 
+110:   async function handleModelChange(newModel: string) {
+111:     setModel(newModel);
+112:     try {
+113:       await aiIpc.saveSelectedModel(newModel);
+114:     } catch (e) {
+115:       console.error('Impossibile salvare il modello selezionato:', e);
+116:     }
+117:   }
+118: 
+119:   // Check consent status on mount or vaultPath change
+120:   useEffect(() => {
+121:     let live = true;
+122:     aiIpc.getConsent(vaultPath)
+123:       .then(g => { if (live) setConsentGranted(g); })
+124:       .catch(() => { if (live) setConsentGranted(false); });
+125:     return () => { live = false; };
+126:   }, [vaultPath]);
+127: 
+128:   async function handleGrantConsentInline() {
+129:     try {
+130:       await aiIpc.setConsent(vaultPath, true);
+131:       setConsentGranted(true);
+132:       setError(null);
+133:       // Automatically trigger answer request if prompt is not empty
+134:       if (!isBusy && prompt.trim()) {
+135:         void executeAsk(prompt.trim());
+136:       }
+137:     } catch (e) {
+138:       setError('Impossibile aggiornare il consenso.');
+139:       setTechError(String(e));
+140:     }
+141:   }
+142: 
+143:   async function executeAsk(queryText: string) {
+144:     if (!queryText || isRunningRef.current || loadingStep || isStreaming) return;
+145:     isRunningRef.current = true;
+146:     const currentModel = model || 'gpt-4o';
+147: 
+148:     const currentSeq = ++seq.current;
+149:     setError(null);
+150:     setTechError(null);
+151:     setAnswer(null);
+152:     setPreviewData(null);
+153:     setStreamingText('');
+154:     setIsStreaming(false);
+155:     setSaveMessage('');
+156: 
+157:     if (unlistenChunkRef.current) {
+158:       unlistenChunkRef.current();
+159:       unlistenChunkRef.current = null;
+160:     }
+161:     if (unlistenEndRef.current) {
+162:       unlistenEndRef.current();
+163:       unlistenEndRef.current = null;
+164:     }
+165: 
+166:     // Check consent before running
+167:     const hasConsent = await aiIpc.getConsent(vaultPath).catch(() => false);
+168:     setConsentGranted(hasConsent);
+169: 
+170:     if (!hasConsent) {
+171:       isRunningRef.current = false;
+172:       return; // Inline consent banner will be shown
+173:     }
+174: 
+175:     setLoadingStep('Selezione passaggi pertinenti dal Vault…');
+176: 
+177:     const t0 = Date.now();
+178: 
+179:     try {
+180:       // Step 1: Preview / Select sources automatically
+181:       const preview = await aiIpc.preview(vaultPath, {
+182:         prompt: queryText,
+183:         model: currentModel,
+184:         includeDrafts: drafts,
+185:         sourceIds: [],
+186:       });
+187: 
+188:       if (currentSeq !== seq.current) return;
+189:       setPreviewData(preview);
+190: 
+191:       if (preview.sources.length === 0) {
+192:         setLoadingStep(null);
+193:         setError('Nessun passaggio pertinente trovato nel Vault per questa domanda.');
+194:         return;
+195:       }
+196: 
+197:       // Fonti consultate mostrate SUBITO non appena la preview è pronta!
+198:       setSourcesOpen(true);
+199:       setLoadingStep('Avvio generazione in streaming con OpenAI…');
+200:       setIsStreaming(true);
+201: 
+202:       // Step 2: Registra i listener Tauri per gli eventi di streaming
+203:       try {
+204:         const uChunk = await listen<AiStreamChunkPayload>('limen://ai-stream-chunk', (event) => {
+205:           if (currentSeq !== seq.current) return;
+206:           if (event.payload.ticket === preview.ticket) {
+207:             setLoadingStep(null);
+208:             setStreamingText(event.payload.fullText || ((prev) => prev + event.payload.delta));
+209:           }
+210:         });
+211:         unlistenChunkRef.current = uChunk;
+212: 
+213:         const uEnd = await listen<AiStreamEndPayload>('limen://ai-stream-end', (event) => {
+214:           if (currentSeq !== seq.current) return;
+215:           if (event.payload.ticket === preview.ticket) {
+216:             setIsStreaming(false);
+217:             setLoadingStep(null);
+218:             if (event.payload.cancelled && (event.payload.error?.includes('Un documento è cambiato') || event.payload.status === 'error')) {
+219:               setAnswer({
+220:                 answer: event.payload.answer || 'Un documento è cambiato durante la generazione: la risposta è stata annullata, riprova',
+221:                 provider: 'OpenAI',
+222:                 model: currentModel,
+223:                 citations: [],
+224:                 status: 'error',
+225:                 warning: event.payload.answer,
+226:               });
+227:               setStreamingText('');
+228:             } else if (event.payload.incomplete || event.payload.cancelled) {
+229:               setAnswer({
+230:                 answer: event.payload.answer,
+231:                 provider: 'OpenAI',
+232:                 model: currentModel,
+233:                 citations: [],
+234:                 incomplete: true,
+235:                 incompleteReason: event.payload.incompleteReason || 'La generazione della risposta è stata interrotta.',
+236:                 warning: 'Risposta parziale: generazione interrotta prima del completamento.',
+237:               });
+238:             }
+239:           }
+240:         });
+241:         unlistenEndRef.current = uEnd;
+242:       } catch (errListener) {
+243:         console.warn('[LIMEN] listen streaming non registrato (fallback browser o headless):', errListener);
+244:       }
+245: 
+246:       // Step 3: Invoca askStream
+247:       const uiPreviewElapsed = Math.round(Date.now() - t0);
+248:       const res = await aiIpc.askStream(preview.ticket, uiPreviewElapsed);
+249: 
+250:       if (currentSeq !== seq.current) return;
+251:       res.uiTotalMs = Math.round(Date.now() - t0);
+252:       setIsStreaming(false);
+253:       setStreamingText('');
+254:       setAnswer(res);
+255:       saveOperation.current = operationId();
+256:     } catch (e: any) {
+257:       if (currentSeq !== seq.current) return;
+258:       setIsStreaming(false);
+259:       const errStr = String(e?.message || e);
+260:       if (errStr.includes('Un documento è cambiato durante la generazione')) {
+261:         // Regola vincolante: testo sostituito per intero da messaggio errore e 0 citazioni
+262:         setStreamingText('');
+263:         setAnswer({
+264:           answer: 'Un documento è cambiato durante la generazione: la risposta è stata annullata, riprova',
+265:           provider: 'OpenAI',
+266:           model: currentModel,
+267:           citations: [],
+268:           status: 'error',
+269:           warning: 'Un documento è cambiato durante la generazione: la risposta è stata annullata, riprova',
+270:         });
+271:       } else if (errStr.includes('Consenso')) {
+272:         setConsentGranted(false);
+273:       } else if (errStr.includes('An AI request is already running') || errStr.includes('già una domanda in corso')) {
+274:         setError("C'è già una domanda in corso: attendi la risposta o annullala.");
+275:         setTechError(null);
+276:       } else if (errStr.includes('Errore interno durante la generazione della risposta')) {
+277:         setError('Errore interno durante la generazione della risposta, riprova.');
+278:         setTechError(null);
+279:       } else {
+280:         setError('Impossibile completare la risposta. Verifica la connessione o la chiave API.');
+281:         setTechError(errStr);
+282:       }
+283:     } finally {
+284:       isRunningRef.current = false;
+285:       if (currentSeq === seq.current) {
+286:         setLoadingStep(null);
+287:         setIsStreaming(false);
+288:         if (unlistenChunkRef.current) {
+289:           unlistenChunkRef.current();
+290:           unlistenChunkRef.current = null;
+291:         }
+292:         if (unlistenEndRef.current) {
+293:           unlistenEndRef.current();
+294:           unlistenEndRef.current = null;
+295:         }
+296:       }
+297:     }
+298:   }
+299: 
+300:   return (
+301:     <div style={{ maxWidth: 860, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
+302:       {/* Search / Question Header */}
+303:       <div className="limen-card" style={{ padding: 24 }}>
+304:         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+305:           <Sparkles size={20} color="#0f172a" />
+306:           <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600, color: '#0f172a' }}>
+307:             Chiedi al Vault
+308:           </h2>
+309:         </div>
+310:         <p style={{ margin: '0 0 16px 0', fontSize: 13, color: '#475569', lineHeight: 1.5 }}>
+311:           Fai una domanda per ottenere una risposta in prosa sintetizzata direttamente dai tuoi documenti.
+312:         </p>
+313: 
+314:         {/* Question Input Box */}
+315:         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+316:           {/* Model selection row */}
+317:           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+318:             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 260 }}>
+319:               <label htmlFor="ai-model-select" style={{ fontSize: 13, fontWeight: 600, color: '#334155', whiteSpace: 'nowrap' }}>
+320:                 Modello:
+321:               </label>
+322:               <select
+323:                 id="ai-model-select"
+324:                 aria-label="Seleziona modello AI"
+325:                 value={model}
+326:                 onChange={e => void handleModelChange(e.target.value)}
+327:                 style={{
+328:                   ...fieldStyle,
+329:                   width: 'auto',
+330:                   flex: 1,
+331:                   padding: '6px 12px',
+332:                   fontSize: 13,
+333:                   borderColor: !model ? '#f59e0b' : '#cbd5e1',
+334:                   backgroundColor: !model ? '#fffbeb' : '#ffffff',
+335:                 }}
+336:               >
+337:                 {!model && <option value="">-- Seleziona un modello --</option>}
+338:                 {availableModels.map(m => (
+339:                   <option key={m} value={m}>{m}</option>
+340:                 ))}
+341:                 {model && !availableModels.includes(model) && (
+342:                   <option key={model} value={model}>{model}</option>
+343:                 )}
+344:               </select>
+345:             </div>
+346:             {!model && (
+347:               <span style={{ fontSize: 12, color: '#b45309', fontWeight: 500 }}>
+348:                 ⚠️ Seleziona un modello per poter procedere
+349:               </span>
+350:             )}
+351:           </div>
+352: 
+353:           <div style={{ position: 'relative' }}>
+354:             <textarea
+355:               aria-label="Domanda al Vault"
+356:               placeholder={model ? "Es. Cosa è il progetto BNXT e quali requisiti prevede?" : "Seleziona prima un modello sopra per fare una domanda..."}
+357:               maxLength={2000}
+358:               value={prompt}
+359:               onChange={e => setPrompt(e.target.value)}
+360:               onKeyDown={e => {
+361:                 if (e.key === 'Enter' && !e.shiftKey) {
+362:                   e.preventDefault();
+363:                   if (!isBusy && prompt.trim() && model) void executeAsk(prompt.trim());
+364:                 }
+365:               }}
+366:               style={{
+367:                 ...fieldStyle,
+368:                 minHeight: 90,
+369:                 resize: 'vertical',
+370:                 paddingRight: 100,
+371:                 fontSize: 14,
+372:                 lineHeight: 1.5,
+373:               }}
+374:             />
+375:             <button
+376:               style={{
+377:                 ...primaryButtonStyle,
+378:                 position: 'absolute',
+379:                 right: 10,
+380:                 bottom: 14,
+381:                 padding: '8px 16px',
+382:                 opacity: (!model || !prompt.trim() || isBusy) ? 0.6 : 1,
+383:               }}
+384:               disabled={isBusy || !prompt.trim() || !model}
+385:               onClick={() => !isBusy && prompt.trim() && model && void executeAsk(prompt.trim())}
+386:               title={!model ? "Seleziona un modello per abilitare l'invio" : isBusy ? "Generazione in corso..." : undefined}
+387:             >
+388:               Chiedi
+389:             </button>
+390:           </div>
+391: 
+392:           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12, color: '#64748b' }}>
+393:             <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+394:               <input
+395:                 type="checkbox"
+396:                 checked={drafts}
+397:                 onChange={e => setDrafts(e.target.checked)}
+398:               />
+399:               Includi bozze e note non approvate
+400:             </label>
+401:             <span>Premere Invio per inviare</span>
+402:           </div>
+403:         </div>
+404:       </div>
+405: 
+406:       {/* Consent Warning Banner Inline if missing */}
+407:       {consentGranted === false && (
+408:         <div
+409:           style={{
+410:             padding: 20,
+411:             borderRadius: 10,
+412:             backgroundColor: '#fffbe6',
+413:             border: '1px solid #ffe58f',
+414:             display: 'flex',
+415:             flexDirection: 'column',
+416:             gap: 12,
+417:           }}
+418:         >
+419:           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+420:             <ShieldAlert size={22} color="#d48806" style={{ flexShrink: 0, marginTop: 2 }} />
+421:             <div>
+422:               <h4 style={{ margin: '0 0 4px 0', fontSize: 14, fontWeight: 600, color: '#d48806' }}>
+423:                 Consenso all’invio dei dati richiesto
+424:               </h4>
+425:               <p style={{ margin: 0, fontSize: 13, color: '#595959', lineHeight: 1.4 }}>
+426:                 Per generare la risposta, i soli passaggi dei documenti pertinenti alla domanda verranno inviati in modo sicuro a OpenAI. Nessun documento viene salvato o usato per l'addestramento.
+427:               </p>
+428:             </div>
+429:           </div>
+430:           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+431:             <button
+432:               onClick={handleGrantConsentInline}
+433:               style={{
+434:                 ...primaryButtonStyle,
+435:                 backgroundColor: '#d48806',
+436:                 color: '#fff',
+437:                 fontSize: 13,
+438:                 padding: '8px 16px',
+439:               }}
+440:             >
+441:               <Check size={16} />
+442:               Consenti l’invio a OpenAI e genera risposta
+443:             </button>
+444:           </div>
+445:         </div>
+446:       )}
+447: 
+448:       {/* Loading State */}
+449:       {loadingStep && (
+450:         <div className="limen-card" style={{ padding: 24, textAlign: 'center', color: '#475569' }}>
+451:           <div className="animate-spin" style={{ display: 'inline-block', marginBottom: 8 }}>
+452:             <Sparkles size={24} color="#0f172a" />
+453:           </div>
+454:           <p style={{ margin: 0, fontSize: 14, fontWeight: 500 }}>{loadingStep}</p>
+455:         </div>
+456:       )}
+457: 
+458:       {/* Error Message */}
+459:       {error && !loadingStep && (
+460:         <div
+461:           style={{
+462:             padding: 16,
+463:             borderRadius: 8,
+464:             backgroundColor: '#fef2f2',
+465:             border: '1px solid #fecaca',
+466:             color: '#991b1b',
+467:             fontSize: 13,
+468:           }}
+469:         >
+470:           <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600, marginBottom: 4 }}>
+471:             <AlertCircle size={16} />
+472:             <span>{error}</span>
+473:           </div>
+474:           {techError && (
+475:             <details style={{ marginTop: 8, fontSize: 12, color: '#7f1d1d' }}>
+476:               <summary style={{ cursor: 'pointer', fontWeight: 500 }}>Dettaglio tecnico errore</summary>
+477:               <pre style={{ margin: '6px 0 0 0', padding: 8, background: '#fee2e2', borderRadius: 4, whiteSpace: 'pre-wrap' }}>
+478:                 {techError}
+479:               </pre>
+480:             </details>
+481:           )}
+482:         </div>
+483:       )}
+484: 
+485:       {/* Fonti consultate dal Vault per questa domanda — Mostrate SUBITO appena la preview è pronta */}
+486:       {previewData && previewData.sources && previewData.sources.length > 0 && (
+487:         <div className="limen-card" style={{ padding: 20 }}>
+488:           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+489:             <button
+490:               onClick={() => setSourcesOpen(!sourcesOpen)}
+491:               style={{
+492:                 background: 'none',
+493:                 border: 'none',
+494:                 padding: 0,
+495:                 cursor: 'pointer',
+496:                 display: 'flex',
+497:                 alignItems: 'center',
+498:                 gap: 8,
+499:                 textAlign: 'left',
+500:               }}
+501:             >
+502:               {sourcesOpen ? <ChevronDown size={18} color="#0f172a" /> : <ChevronRight size={18} color="#0f172a" />}
+503:               <FileText size={18} color="#0f172a" />
+504:               <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#0f172a' }}>
+505:                 Fonti consultate dal Vault per questa domanda ({previewData.sources.length})
+506:               </h3>
+507:             </button>
+508:             {isStreaming && (
+509:               <span style={{ fontSize: 12, color: '#2563eb', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6 }}>
+510:                 <Sparkles size={14} className="animate-spin" /> Ricezione streaming…
+511:               </span>
+512:             )}
+513:           </div>
+514: 
+515:           {sourcesOpen && (
+516:             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+517:               {/* Indicatore trasparente: ricerca semantica vs parole chiave */}
+518:               <div
+519:                 style={{
+520:                   display: 'flex',
+521:                   alignItems: 'center',
+522:                   gap: 8,
+523:                   padding: '6px 12px',
+524:                   borderRadius: 6,
+525:                   fontSize: 12,
+526:                   backgroundColor: previewData.semanticUsed ? '#f0fdf4' : '#fffbeb',
+527:                   border: previewData.semanticUsed ? '1px solid #bbf7d0' : '1px solid #fde68a',
+528:                   color: previewData.semanticUsed ? '#166534' : '#92400e',
+529:                 }}
+530:               >
+531:                 <Sparkles size={14} color={previewData.semanticUsed ? '#16a34a' : '#d97706'} style={{ flexShrink: 0 }} />
+532:                 {previewData.semanticUsed ? (
+533:                   <span><strong>Ricerca semantica attiva:</strong> passaggi selezionati e ordinati con modello locale bge-m3 (1024d)</span>
+534:                 ) : (
+535:                   <span><strong>Ricerca per parole chiave (ripiego):</strong> {previewData.semanticFallbackReason || 'servizio locale non disponibile'}</span>
+536:                 )}
+537:               </div>
+538: 
+539:               {previewData.sources.map((s, idx) => {
+540:                 const clean = cleanTitle(s.title, s.relativePath);
+541:                 const isCited = Boolean(answer?.citations && answer.citations.some(c => c.documentId === s.documentId || c.relativePath === s.relativePath));
+542:                 return (
+543:                   <div
+544:                     key={`${s.documentId}-${idx}`}
+545:                     onClick={() => {
+546:                       if (onOpenDocument) {
+547:                         onOpenDocument({
+548:                           documentId: s.documentId,
+549:                           passageId: s.passageId,
+550:                           locator: s.locator,
+551:                           revision: s.revision,
+552:                           sha256: s.sha256,
+553:                         });
+554:                       }
+555:                     }}
+556:                     style={{
+557:                       padding: '8px 12px',
+558:                       borderRadius: 6,
+559:                       backgroundColor: isCited ? '#f0fdf4' : '#f8fafc',
+560:                       border: isCited ? '1px solid #86efac' : '1px solid #e2e8f0',
+561:                       cursor: onOpenDocument ? 'pointer' : 'default',
+562:                       display: 'flex',
+563:                       alignItems: 'center',
+564:                       justifyContent: 'space-between',
+565:                       transition: 'all 0.15s ease',
+566:                     }}
+567:                   >
+568:                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, overflow: 'hidden' }}>
+569:                       <FileText size={15} color={isCited ? '#16a34a' : '#64748b'} style={{ flexShrink: 0 }} />
+570:                       <span style={{ fontSize: 13, fontWeight: isCited ? 700 : 500, color: isCited ? '#14532d' : '#1e293b', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+571:                         {clean}
+572:                       </span>
+573:                       {s.category && (
+574:                         <span
+575:                           style={{
+576:                             fontSize: 11,
+577:                             padding: '2px 6px',
+578:                             borderRadius: 4,
+579:                             backgroundColor: isCited ? '#dcfce7' : '#e2e8f0',
+580:                             color: isCited ? '#166534' : '#475569',
+581:                             flexShrink: 0,
+582:                           }}
+583:                         >
+584:                           {s.category}
+585:                         </span>
+586:                       )}
+587:                     </div>
+588:                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+589:                       {isCited && (
+590:                         <span
+591:                           style={{
+592:                             fontSize: 11,
+593:                             fontWeight: 700,
+594:                             padding: '2px 8px',
+595:                             borderRadius: 4,
+596:                             backgroundColor: '#22c55e',
+597:                             color: '#ffffff',
+598:                             letterSpacing: '0.04em',
+599:                           }}
+600:                         >
+601:                           CITATA
+602:                         </span>
+603:                       )}
+604:                       {s.locator && (
+605:                         <span
+606:                           style={{
+607:                             fontSize: 11,
+608:                             padding: '2px 6px',
+609:                             borderRadius: 4,
+610:                             backgroundColor: isCited ? '#ecfdf5' : '#eff6ff',
+611:                             color: isCited ? '#047857' : '#1d4ed8',
+612:                             border: isCited ? '1px solid #a7f3d0' : '1px solid #bfdbfe',
+613:                           }}
+614:                         >
+615:                           {s.locator}
+616:                         </span>
+617:                       )}
+618:                     </div>
+619:                   </div>
+620:                 );
+621:               })}
+622:             </div>
+623:           )}
+624: 
+625:           {/* Dicitura trasparente: "Basata su N documenti citati tra M consultati" quando la risposta è pronta */}
+626:           {answer && (
+627:             <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+628:               <div style={{ fontSize: 13, fontWeight: 600, color: '#2563eb' }}>
+629:                 Basata su {answer.citations?.length || 0} document{answer.citations?.length === 1 ? 'o citato' : 'i citati'} tra {previewData.sources.length} consultat{previewData.sources.length === 1 ? 'o' : 'i'}
+630:               </div>
+631:               <div style={{ fontSize: 12, fontWeight: 500, color: (answer.semanticUsed ?? previewData.semanticUsed) ? '#166534' : '#92400e' }}>
+632:                 {(answer.semanticUsed ?? previewData.semanticUsed)
+633:                   ? '✓ Ricerca semantica bge-m3'
+634:                   : `⚠️ ${answer.semanticFallbackReason || previewData.semanticFallbackReason || 'Ricerca solo per parole'}`}
+635:               </div>
+636:             </div>
+637:           )}
+638:         </div>
+639:       )}
+640: 
+641:       {/* Box di generazione progressiva in streaming */}
+642:       {isStreaming && (
+643:         <div className="limen-card" style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
+644:           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, color: '#2563eb', fontSize: 13, fontWeight: 600 }}>
+645:             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+646:               <Sparkles size={16} className="animate-spin" />
+647:               <span>Generazione in streaming con OpenAI ({model || 'gpt-4o'})…</span>
+648:             </div>
+649:             {previewData?.ticket && (
+650:               <button
+651:                 type="button"
+652:                 onClick={() => {
+653:                   if (previewData?.ticket) {
+654:                     void aiIpc.cancel(previewData.ticket);
+655:                   }
+656:                 }}
+657:                 style={{
+658:                   padding: '4px 10px',
+659:                   borderRadius: 6,
+660:                   border: '1px solid #fca5a5',
+661:                   backgroundColor: '#fef2f2',
+662:                   color: '#dc2626',
+663:                   fontSize: 12,
+664:                   fontWeight: 600,
+665:                   cursor: 'pointer',
+666:                 }}
+667:               >
+668:                 Annulla domanda
+669:               </button>
+670:             )}
+671:           </div>
+672:           <div style={{ fontSize: 15, lineHeight: 1.7, color: '#0f172a', whiteSpace: 'pre-wrap' }}>
+673:             {streamingText || <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Elaborazione in corso e attesa token…</span>}
+674:             <span
+675:               style={{
+676:                 display: 'inline-block',
+677:                 width: 8,
+678:                 height: 16,
+679:                 backgroundColor: '#2563eb',
+680:                 marginLeft: 4,
+681:                 verticalAlign: 'text-bottom',
+682:                 animation: 'pulse 1s infinite',
+683:               }}
+684:             />
+685:           </div>
+686:         </div>
+687:       )}
+688: 
+689:       {/* Prose Answer Result Block */}
+690:       {answer && !loadingStep && !isStreaming && (
+691:         <div className="limen-card" style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 20 }}>
+692:           {/* Sostituzione protettiva testo per errore verify_post */}
+693:           {answer.status === 'error' && (
+694:             <div
+695:               style={{
+696:                 padding: '14px 18px',
+697:                 borderRadius: 8,
+698:                 backgroundColor: '#fef2f2',
+699:                 border: '1px solid #fecaca',
+700:                 color: '#991b1b',
+701:                 fontSize: 14,
+702:                 display: 'flex',
+703:                 alignItems: 'center',
+704:                 gap: 10,
+705:               }}
+706:             >
+707:               <AlertCircle size={20} style={{ flexShrink: 0, color: '#dc2626' }} />
+708:               <div>
+709:                 <strong>Attenzione:</strong> {answer.answer}
+710:               </div>
+711:             </div>
+712:           )}
+713: 
+714:           {/* Banner Risposta Incompleta per modelli con limite token o stream interrotto */}
+715:           {answer.incomplete && answer.status !== 'error' && (
+716:             <div
+717:               style={{
+718:                 padding: '12px 16px',
+719:                 borderRadius: 8,
+720:                 backgroundColor: '#fffbeb',
+721:                 border: '1px solid #fde68a',
+722:                 color: '#92400e',
+723:                 fontSize: 13,
+724:                 display: 'flex',
+725:                 alignItems: 'center',
+726:                 gap: 10,
+727:               }}
+728:             >
+729:               <AlertCircle size={18} style={{ flexShrink: 0, color: '#d97706' }} />
+730:               <div>
+731:                 <strong>Risposta incompleta:</strong>{' '}
+732:                 {answer.incompleteReason === 'max_output_tokens'
+733:                   ? 'Il modello ha raggiunto il limite massimo di token generabili. La risposta parziale è stata preservata con 0 citazioni.'
+734:                   : (answer.incompleteReason || 'La generazione della risposta è stata interrotta. La risposta parziale è stata preservata con 0 citazioni.')}
+735:               </div>
+736:             </div>
+737:           )}
+738: 
+739:           {/* Answer Foreground Prose */}
+740:           {answer.status !== 'error' && (
+741:             <div style={{ fontSize: 15, lineHeight: 1.7, color: '#0f172a', whiteSpace: 'pre-wrap' }}>
+742:               {answer.answer}
+743:             </div>
+744:           )}
+745: 
+746:           {/* Save as Draft & Technical Details Accordion */}
+747:           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #f1f5f9', paddingTop: 16 }}>
+748:             <button
+749:               style={{
+750:                 ...primaryButtonStyle,
+751:                 backgroundColor: '#ffffff',
+752:                 color: '#0f172a',
+753:                 border: '1px solid #cbd5e1',
+754:                 fontSize: 13,
+755:                 padding: '6px 14px',
+756:               }}
+757:               disabled={!!saveMessage || answer.status === 'error'}
+758:               onClick={async () => {
+759:                 try {
+760:                   await m7(vaultPath, {
+761:                     action: 'save',
+762:                     operationId: saveOperation.current,
+763:                     title: prompt.slice(0, 200),
+764:                     content: answer.answer,
+765:                     provider: answer.provider,
+766:                     model: answer.model,
+767:                     sources: answer.citations,
+768:                   });
+769:                   setSaveMessage('Bozza salvata in locale.');
+770:                 } catch (e) {
+771:                   setError(String(e));
+772:                 }
+773:               }}
+774:             >
+775:               {saveMessage || 'Salva risposta come bozza'}
+776:             </button>
+777: 
+778:             <span style={{ fontSize: 12, color: '#94a3b8', fontStyle: 'italic' }}>
+779:               Risposta generata con OpenAI ({answer.model})
+780:             </span>
+781:           </div>
+782: 
+783:           {/* Dettagli Tecnici Accordion */}
+784:           <div style={{ marginTop: 4 }}>
+785:             <details
+786:               open={techDetailsOpen}
+787:               onToggle={e => setTechDetailsOpen((e.target as HTMLDetailsElement).open)}
+788:               style={{ fontSize: 12, color: '#64748b' }}
+789:             >
+790:               <summary style={{ cursor: 'pointer', fontWeight: 500, color: '#64748b' }}>
+791:                 Dettagli tecnici
+792:               </summary>
+793:               <div style={{ marginTop: 8, padding: 12, backgroundColor: '#f8fafc', borderRadius: 6, border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: 6 }}>
+794:                 <div><strong>Fornitore:</strong> {answer.provider}</div>
+795:                 <div><strong>Modello:</strong> {answer.model}</div>
+796:                 <div><strong>Stato risposta:</strong> {answer.status || (answer.incomplete ? 'incompleta' : 'completa')} {answer.incompleteReason ? `(${answer.incompleteReason})` : ''}</div>
+797:                 <div>
+798:                   <strong>Token usati:</strong> {answer.tokensUsed ?? 'N/A'}
+799:                   {(answer.tokensPrompt !== undefined || answer.tokensCompletion !== undefined) && (
+800:                     <span> (input: {answer.tokensPrompt ?? 'N/A'}, output: {answer.tokensCompletion ?? 'N/A'}{answer.tokensReasoning !== undefined ? `, ragionamento: ${answer.tokensReasoning}` : ''})</span>
+801:                   )}
+802:                 </div>
+803:                 {answer.uiTotalMs && <div><strong>Tempo interfaccia (totale):</strong> {(answer.uiTotalMs / 1000).toFixed(1)} s ({answer.uiTotalMs} ms)</div>}
+804:                 {previewData && <div><strong>Dimensione contesto:</strong> {previewData.contextBytes} byte (passaggi consultati: {previewData.sources.length})</div>}
+805:                 <div>
+806:                   <strong>Ricerca semantica:</strong>{' '}
+807:                   {(answer.semanticUsed ?? previewData?.semanticUsed) ? (
+808:                     <span style={{ color: '#166534', fontWeight: 600 }}>Attiva (bge-m3 1024d)</span>
+809:                   ) : (
+810:                     <span style={{ color: '#b45309' }}>Non attiva — {answer.semanticFallbackReason || previewData?.semanticFallbackReason || 'Ripiego su ricerca per parole'}</span>
+811:                   )}
+812:                 </div>
+813:                 <div><strong>Citazioni grezze:</strong></div>
+814:                 {answer.citations.map((c, i) => (
+815:                   <div key={i} style={{ fontSize: 11, fontFamily: 'monospace', color: '#475569' }}>
+816:                     • {c.documentId} | SHA256: {c.sha256} | Path: {c.relativePath}
+817:                   </div>
+818:                 ))}
+819:               </div>
+820:             </details>
+821:           </div>
+822:         </div>
+823:       )}
+824:     </div>
+825:   );
+826: }
+827: 
+828: export function AiSettings({ vaultPath }: { vaultPath: string }) {
+829:   const terms = getPlatformTerms();
+830:   const [key, setKey] = useState('');
+831:   const [configured, setConfigured] = useState<boolean | null>(null);
+832:   const [consent, setConsent] = useState<boolean>(true);
+833:   const [selectedModel, setSelectedModel] = useState('');
+834:   const [availableModels, setAvailableModels] = useState<string[]>([]);
+835:   const [message, setMessage] = useState('');
+836:   const [busy, setBusy] = useState(false);
+837:   const [connection, setConnection] = useState<{ active: boolean; endpoint?: string; vaultId?: string; token?: string }>({ active: false });
+838: 
+839:   useEffect(() => {
+840:     void aiIpc.mcpStatus().then(setConnection).catch(e => setMessage(String(e)));
+841:     void aiIpc.getConsent(vaultPath).then(setConsent).catch(() => {});
+842:     void aiIpc.models().then(m => { if (m && m.length > 0) setAvailableModels(m); }).catch(() => {});
+843:     void aiIpc.getSelectedModel().then(m => {
+844:       if (m) setSelectedModel(m);
+845:       else setSelectedModel('gpt-4o');
+846:     }).catch(() => {
+847:       setSelectedModel('gpt-4o');
+848:     });
+849:   }, [vaultPath]);
+850: 
+851:   async function action(f: () => Promise<void>) {
+852:     setBusy(true);
+853:     setMessage('');
+854:     try {
+855:       await f();
+856:     } catch (e) {
+857:       setMessage(String(e));
+858:     } finally {
+859:       setBusy(false);
+860:     }
+861:   }
+862: 
+863:   async function handleToggleConsent(granted: boolean) {
+864:     setConsent(granted);
+865:     try {
+866:       await aiIpc.setConsent(vaultPath, granted);
+867:       setMessage(granted ? 'Consenso a OpenAI attivato.' : 'Consenso a OpenAI disattivato.');
+868:     } catch (e) {
+869:       setMessage(String(e));
+870:     }
+871:   }
+872: 
+873:   return (
+874:     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+875:       <SemanticEngineSettings vaultPath={vaultPath} />
+876: 
+877:       {/* OpenAI & Consent Settings Box */}
+878:       <div className="limen-card" style={{ padding: 24 }}>
+879:         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+880:           <Key size={18} color="#0f172a" />
+881:           <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>Impostazioni OpenAI & Consenso</h3>
+882:         </div>
+883: 
+884:         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+885:           {/* Consent Toggle (Item 2 Requirement) */}
+886:           <div style={{ padding: 16, borderRadius: 8, backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
+887:             <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer' }}>
+888:               <input
+889:                 type="checkbox"
+890:                 checked={consent}
+891:                 onChange={e => handleToggleConsent(e.target.checked)}
+892:                 style={{ marginTop: 3 }}
+893:               />
+894:               <div>
+895:                 <strong style={{ fontSize: 14, color: '#0f172a' }}>
+896:                   Consenti l'invio a OpenAI dei passaggi pertinenti per generare le risposte
+897:                 </strong>
+898:                 <p style={{ margin: '4px 0 0 0', fontSize: 12, color: '#64748b', lineHeight: 1.4 }}>
+899:                   Quando attivo, le domande inviate nella scheda Chiedi genereranno la risposta tramite le API di OpenAI inviando solo i passaggi estratti dal Vault.
+900:                 </p>
+901:               </div>
+902:             </label>
+903:           </div>
+904: 
+905:           {/* Model Selector */}
+906:           <div>
+907:             <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#334155', marginBottom: 6 }}>
+908:               Modello OpenAI predefinito
+909:             </label>
+910:             <select
+911:               aria-label="Modello OpenAI predefinito"
+912:               value={selectedModel || 'gpt-4o'}
+913:               onChange={e => {
+914:                 const val = e.target.value;
+915:                 setSelectedModel(val);
+916:                 void aiIpc.saveSelectedModel(val);
+917:               }}
+918:               style={fieldStyle}
+919:             >
+920:               {(() => {
+921:                 const list = availableModels.includes('gpt-4o')
+922:                   ? availableModels
+923:                   : ['gpt-4o', ...availableModels.filter(m => m !== 'gpt-4o')];
+924:                 return list.map(m => (
+925:                   <option key={m} value={m}>{m}</option>
+926:                 ));
+927:               })()}
+928:               {selectedModel && !availableModels.includes(selectedModel) && selectedModel !== 'gpt-4o' && (
+929:                 <option key={selectedModel} value={selectedModel}>{selectedModel}</option>
+930:               )}
+931:             </select>
+932:           </div>
+933: 
+934:           {/* API Key Management */}
+935:           <div>
+936:             <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#334155', marginBottom: 6 }}>
+937:               Chiave API OpenAI (memorizzata nel {terms.keychainTerm})
+938:             </label>
+939:             <input
+940:               type="password"
+941:               autoCapitalize="none"
+942:               autoCorrect="off"
+943:               spellCheck={false}
+944:               autoComplete="off"
+945:               aria-label="Chiave API OpenAI"
+946:               value={key}
+947:               onChange={e => setKey(e.target.value)}
+948:               style={fieldStyle}
+949:               placeholder="sk-proj-..."
+950:             />
+951:             <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+952:               <button
+953:                 style={primaryButtonStyle}
+954:                 disabled={busy || !key}
+955:                 onClick={() => {
+956:                   const val = key;
+957:                   setKey('');
+958:                   void action(async () => {
+959:                     await aiIpc.saveKey(val);
+960:                     setConfigured(true);
+961:                     setMessage(`Chiave salvata nel ${terms.keychainTerm}.`);
+962:                   });
+963:                 }}
+964:               >
+965:                 Salva chiave
+966:               </button>
+967:               <button
+968:                 style={{ ...fieldStyle, width: 'auto', cursor: 'pointer', background: '#f1f5f9' }}
+969:                 disabled={busy}
+970:                 onClick={() => action(async () => setConfigured(await aiIpc.status()))}
+971:               >
+972:                 Verifica {terms.keychainTerm}
+973:               </button>
+974:               <button
+975:                 style={{ ...fieldStyle, width: 'auto', cursor: 'pointer', background: '#fef2f2', color: '#991b1b', borderColor: '#fecaca' }}
+976:                 disabled={busy}
+977:                 onClick={() => action(async () => { await aiIpc.deleteKey(); setConfigured(false); })}
+978:               >
+979:                 Rimuovi chiave
+980:               </button>
+981:             </div>
+982:             <p style={{ fontSize: 12, color: '#64748b', marginTop: 8 }}>
+983:               {configured === null
+984:                 ? `${terms.keychainTerm} non verificato`
+985:                 : configured
+986:                 ? '✓ Chiave API configurata ed esaminata'
+987:                 : 'Nessuna chiave API configurata'}
+988:             </p>
+989:           </div>
+990:         </div>
+991:       </div>
+992: 
+993:       {/* AI Connections / MCP Box */}
+994:       <div className="limen-card" style={{ padding: 24 }}>
+995:         <h3 style={{ margin: '0 0 8px 0', fontSize: 16, fontWeight: 600 }}>Collegamenti AI & Tunnel</h3>
+996:         <p style={{ fontSize: 13, color: '#475569', margin: '0 0 16px 0', lineHeight: 1.4 }}>
+997:           Condivisione in sola lettura per client esterni ed MCP. {terms.isWin ? 'Il computer e questa app devono restare accesi' : 'Il Mac e questa app devono restare accesi'}.
+998:         </p>
+999:         <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+1000:           <button
+1001:             style={primaryButtonStyle}
+1002:             disabled={busy || connection.active}
+1003:             onClick={() => action(async () => {
+1004:               const c = await aiIpc.mcpStart(vaultPath, false);
+1005:               setConnection({ ...c, active: true });
+1006:             })}
+1007:           >
+1008:             Attiva MCP locale
+1009:           </button>
+1010:           <button
+1011:             style={{ ...fieldStyle, width: 'auto', cursor: 'pointer', background: '#f1f5f9' }}
+1012:             disabled={busy || !connection.active}
+1013:             onClick={() => action(async () => { await aiIpc.mcpStop(); setConnection({ active: false }); })}
+1014:           >
+1015:             Revoca MCP
+1016:           </button>
+1017:         </div>
+1018:         {connection.active && (
+1019:           <div style={{ fontSize: 13, color: '#334155', display: 'flex', flexDirection: 'column', gap: 6, backgroundColor: '#f8fafc', padding: 12, borderRadius: 6 }}>
+1020:             <div><strong>Indirizzo attivo:</strong> {connection.endpoint}</div>
+1021:             <div><strong>ID Vault:</strong> {connection.vaultId}</div>
+1022:             {connection.token && (
+1023:               <details style={{ marginTop: 4 }}>
+1024:                 <summary style={{ cursor: 'pointer' }}>Mostra token di collegamento</summary>
+1025:                 <input aria-label="Token MCP" type="password" readOnly value={connection.token} style={{ ...fieldStyle, marginTop: 4 }} />
+1026:               </details>
+1027:             )}
+1028:           </div>
+1029:         )}
+1030:         {message && <p role="status" style={{ fontSize: 13, color: '#2563eb', marginTop: 10 }}>{<MessageIt value={message} />}</p>}
+1031:         <TunnelPanel vaultPath={vaultPath} />
+1032:       </div>
+1033:     </div>
+1034:   );
+1035: }

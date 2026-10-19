@@ -1,0 +1,1 @@
+2026-09-24T05:21:42.242Z | event=PANEL_OPEN_STATUS | elapsed_ms=3 | details=installed=true, sha256_ok=true

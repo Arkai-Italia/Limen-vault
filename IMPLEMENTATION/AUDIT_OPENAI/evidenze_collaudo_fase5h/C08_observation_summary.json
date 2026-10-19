@@ -1,0 +1,125 @@
+{
+  "started": "2026-09-24T07:47:40.804Z",
+  "trace": [
+    {
+      "at": "2026-09-24T07:47:41.159Z",
+      "ms": 355,
+      "preparing": true,
+      "sources": false
+    },
+    {
+      "at": "2026-09-24T07:47:41.507Z",
+      "ms": 704,
+      "preparing": true,
+      "sources": false
+    },
+    {
+      "at": "2026-09-24T07:47:41.818Z",
+      "ms": 1014,
+      "preparing": true,
+      "sources": false
+    },
+    {
+      "at": "2026-09-24T07:47:42.174Z",
+      "ms": 1370,
+      "preparing": true,
+      "sources": false
+    },
+    {
+      "at": "2026-09-24T07:47:42.492Z",
+      "ms": 1688,
+      "preparing": true,
+      "sources": false
+    },
+    {
+      "at": "2026-09-24T07:47:42.807Z",
+      "ms": 2003,
+      "preparing": true,
+      "sources": false
+    },
+    {
+      "at": "2026-09-24T07:47:43.169Z",
+      "ms": 2365,
+      "preparing": true,
+      "sources": false
+    },
+    {
+      "at": "2026-09-24T07:47:43.503Z",
+      "ms": 2699,
+      "preparing": true,
+      "sources": false
+    },
+    {
+      "at": "2026-09-24T07:47:43.813Z",
+      "ms": 3009,
+      "preparing": true,
+      "sources": false
+    },
+    {
+      "at": "2026-09-24T07:47:44.135Z",
+      "ms": 3331,
+      "preparing": true,
+      "sources": false
+    },
+    {
+      "at": "2026-09-24T07:47:44.444Z",
+      "ms": 3640,
+      "preparing": true,
+      "sources": false
+    },
+    {
+      "at": "2026-09-24T07:47:44.773Z",
+      "ms": 3969,
+      "preparing": true,
+      "sources": false
+    },
+    {
+      "at": "2026-09-24T07:47:45.081Z",
+      "ms": 4277,
+      "preparing": true,
+      "sources": false
+    },
+    {
+      "at": "2026-09-24T07:47:45.425Z",
+      "ms": 4621,
+      "preparing": true,
+      "sources": false
+    },
+    {
+      "at": "2026-09-24T07:47:45.723Z",
+      "ms": 4919,
+      "preparing": true,
+      "sources": false
+    },
+    {
+      "at": "2026-09-24T07:47:46.050Z",
+      "ms": 5246,
+      "preparing": true,
+      "sources": false
+    },
+    {
+      "at": "2026-09-24T07:47:46.363Z",
+      "ms": 5559,
+      "preparing": true,
+      "sources": false
+    },
+    {
+      "at": "2026-09-24T07:47:46.682Z",
+      "ms": 5878,
+      "preparing": true,
+      "sources": false
+    },
+    {
+      "at": "2026-09-24T07:47:47.003Z",
+      "ms": 6199,
+      "preparing": true,
+      "sources": false
+    },
+    {
+      "at": "2026-09-24T07:47:47.322Z",
+      "ms": 6518,
+      "preparing": false,
+      "sources": true
+    }
+  ]
+}

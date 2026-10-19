@@ -1,0 +1,33 @@
+INCARICO: AUDIT INDIPENDENTE — LIMEN Vault v4 (Windows), blocco della preparazione della domanda
+
+RUOLO
+Sei un auditor indipendente. NON modifichi il codice di prodotto, NON fai commit sul branch windows-build, NON chiudi processi (limen-vault, llama-server, cargo, node) e NON fai chiamate all'API di OpenAI dall'app. Puoi leggere il codice, compilare, eseguire test e programmi di diagnosi in una cartella separata. Ogni affermazione deve avere evidenza: file e righe, output di comando, log. Niente ipotesi presentate come fatti: se qualcosa non è verificato, scrivi NON VERIFICATO.
+
+REPOSITORY
+Locale: E:\Projects\vault_memai_obsi (branch windows-build)
+Remoto: https://github.com/cesarenegro/vault_memai_obsi (branch windows-build). Se i commit citati sotto non sono presenti sul remoto, fermati e segnalalo.
+App: Tauri 2 (Rust in E:\Projects\vault_memai_obsi\apps\desktop\src-tauri\src, interfaccia React in E:\Projects\vault_memai_obsi\apps\desktop\src).
+File principali: ai.rs, main.rs, llama.rs, embeddings.rs, search.rs, catalog.rs (in src-tauri\src); AiPanel.tsx, ai-ipc.ts (in src).
+Vault di prova: E:\VAULT WIN TEST DEV. Servizio semantico locale: llama-server con bge-m3-Q8_0.gguf in C:\Users\user\LIMEN Vault\models\ (file llama-server.pid, llama-server.port, llama-server.log nella stessa cartella).
+Registri: C:\Users\user\.limen-vault\ask_timing.log (domande), C:\Users\user\.limen-vault\local_model_timing.log (servizio locale).
+Avvio per le prove: cd "E:\Projects\vault_memai_obsi"; npx pnpm --filter @limen-vault/desktop tauri dev --release
+
+FATTI OSSERVATI (prove di Cesare del 24/09/2026, UTC+8, domanda "Cosa è il progetto BNXT?", modello gpt-4o)
+- d34f222 (FASE 4): risposta completata alle 08:43:27.
+- 04bd7dd (FASE 5, streaming): risposta completata alle 08:47:23 (t_first_chunk_ms 1420).
+- efa0cef: fonti trovate, poi panic nel terminale "thread 'tokio-rt-worker' panicked at src\ai.rs:1716:29: start byte index 298 is not a char boundary; it is inside 'è'", interfaccia "An AI request is already running", nessuna riga nel registro.
+- e0afe10 (contiene ef2532c): interfaccia ferma su "Selezione passaggi pertinenti dal Vault…" per oltre 30 secondi; nessun errore nel terminale; nessuna riga nel registro. Nella stessa sessione il pannello del motore semantico restava su "in avvio", mentre llama-server.log mostrava "main: model loaded" e "server is listening on http://127.0.0.1:64618" (PID 24176, file pid e port coerenti) e local_model_timing.log non conteneva alcun evento SERVICE_START.
+- Nello stesso periodo era attivo anche un'altra installazione dell'app (C:\Users\user\AppData\Local\LIMEN Vault v4\limen-vault.exe, PID 25352, senza finestra) con il proprio llama-server (PID 39740), che condivide la cartella C:\Users\user\LIMEN Vault\models\.
+- c21cb10 / 67da90f (FASE 5d): il coder ha ripristinato main.rs e AiPanel.tsx alla versione di efa0cef mantenendo la correzione del panic in ai.rs; causa del blocco NON individuata; non ancora provato da Cesare.
+- L'auditor ha letto git diff efa0cef ef2532c: ai_preview in main.rs è identico; in ai.rs le modifiche non toccano il percorso della preparazione (preview_with_port, select_with_port_timed, ricerca ibrida); llama.rs non cambia tra efa0cef ed e0afe10. Quindi l'attribuzione del blocco a ef2532c NON è dimostrata.
+
+COMPITI
+1. Riproduzione. Stabilisci se il blocco su "Selezione passaggi pertinenti dal Vault…" si riproduce, e in quali condizioni: su e0afe10, su ef2532c, su efa0cef e su 67da90f, ciascuno con (a) servizio locale "avviato", (b) servizio fermo su "in avvio", (c) seconda installazione dell'app e del suo llama-server attive, (d) seconda installazione chiusa. Per ogni combinazione riporta esito e tempi. Prima di ogni prova registra lo stato dei processi con Get-Process limen-vault, llama-server e il contenuto di llama-server.pid e llama-server.port.
+2. Percorso della preparazione. Traccia con file e righe l'intero percorso: AiPanel.tsx (executeAsk, testo "Selezione passaggi pertinenti dal Vault…") → ai-ipc.ts → comando ai_preview in main.rs → AiState::preview_with_port → select_with_port_timed → ricerca ibrida in embeddings.rs e search.rs → calcolo del vettore della domanda sul servizio locale. Per ogni passo indica: lock presi e per quanto, chiamate di rete o di processo, tempo massimo (timeout) o sua assenza, cosa succede se il servizio locale non risponde o risponde su una porta diversa.
+3. Stato del servizio locale. Traccia con file e righe LlamaServerState::start, ensure_running, find_active_bge_m3_service, check_health, verify_dimensions in llama.rs e i comandi relativi in main.rs. Stabilisci perché l'interfaccia può restare su "in avvio" con il servizio già in ascolto e senza evento SERVICE_START, e se lo stato del servizio può bloccare la preparazione (lock condivisi, attese senza timeout, porta letta da file scritti da un'altra installazione).
+4. Due installazioni. Stabilisci se l'app di sviluppo e l'app installata leggono e scrivono gli stessi file llama-server.pid e llama-server.port e se questo può far usare all'una il servizio dell'altra o bloccarne l'avvio.
+5. Panic e rilascio. Verifica in 67da90f che: il pulitore dei frammenti (StreamProseSanitizer, JsonStreamAnswerParser, Utf8ChunkDecoder) non possa più andare in panic su testo italiano ed emoji; un eventuale panic dentro ask_stream liberi comunque la richiesta attiva (oggi, dopo il ripristino di main.rs a efa0cef, la garanzia ActiveGuard è stata rimossa: dichiara la conseguenza).
+6. Esito. Per ogni problema: causa dimostrata con file, righe ed evidenza di riproduzione; correzione minima proposta (senza applicarla); test che la dimostri. Separa chiaramente VERIFICATO e NON VERIFICATO.
+
+CONSEGNA
+Un unico rapporto in E:\Projects\vault_memai_obsi\IMPLEMENTATION\AUDIT_OPENAI\2026-09-24_AUDIT_BLOCCO_PREPARAZIONE.md con: tabella delle prove di riproduzione, percorso della preparazione con file e righe, percorso del servizio locale con file e righe, cause dimostrate, correzioni proposte, test proposti, elenco di ciò che resta NON VERIFICATO. Allega gli output grezzi dei comandi in E:\Projects\vault_memai_obsi\IMPLEMENTATION\AUDIT_OPENAI\evidenze\. Date e ore in UTC+8. Nessuna modifica al codice di prodotto, nessun commit sul branch windows-build, nessuna chiusura di processi non avviati da te.

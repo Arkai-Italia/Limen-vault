@@ -1,0 +1,66 @@
+[
+  {
+    "from": "catalog_001.json",
+    "to": "catalog_002.json",
+    "changes": [
+      {
+        "path": "/catalogRevision",
+        "before": 121,
+        "after": 122
+      },
+      {
+        "path": "/lastUpdatedAt",
+        "before": "2026-09-24T07:42:59.093988400+00:00",
+        "after": "2026-09-24T10:48:45.081422400+00:00"
+      }
+    ]
+  },
+  {
+    "from": "catalog_002.json",
+    "to": "catalog_003.json",
+    "changes": [
+      {
+        "path": "/catalogRevision",
+        "before": 122,
+        "after": 123
+      },
+      {
+        "path": "/lastUpdatedAt",
+        "before": "2026-09-24T10:48:45.081422400+00:00",
+        "after": "2026-09-24T10:48:52.221892500+00:00"
+      }
+    ]
+  },
+  {
+    "from": "catalog_003.json",
+    "to": "catalog_004.json",
+    "changes": [
+      {
+        "path": "/catalogRevision",
+        "before": 123,
+        "after": 124
+      },
+      {
+        "path": "/lastUpdatedAt",
+        "before": "2026-09-24T10:48:52.221892500+00:00",
+        "after": "2026-09-24T10:57:40.618740400+00:00"
+      }
+    ]
+  },
+  {
+    "from": "catalog_004.json",
+    "to": "catalog_005.json",
+    "changes": [
+      {
+        "path": "/catalogRevision",
+        "before": 124,
+        "after": 125
+      },
+      {
+        "path": "/lastUpdatedAt",
+        "before": "2026-09-24T10:57:40.618740400+00:00",
+        "after": "2026-09-24T10:57:45.731734200+00:00"
+      }
+    ]
+  }
+]

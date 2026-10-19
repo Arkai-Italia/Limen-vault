@@ -1,0 +1,218 @@
+1: # Report Misure Passo 3a e Valutazione Comparativa Punto E
+2: 
+3: **Data**: 23/09/2026 (UTC+8)  
+4: **Branch**: `windows-build`  
+5: **Ultimo Commit di Congelamento Codice e Costanti**: `226d4fd`  
+6: **Vault di collaudo**: `E:\VAULT WIN TEST DEV` (376 documenti, 23.482 passaggi)  
+7: **Output diagnostico grezzo allegato**: [fase3a-diagnose-output.txt](file:///E:/Projects/vault_memai_obsi/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase3a-diagnose-output.txt)  
+8: **Evidenze A05 Gold**: [IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/A05/](file:///E:/Projects/vault_memai_obsi/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/A05/) (`summary.json`, `per-query.jsonl`, `run.log`, `manifest-verify.log`)  
+9: **Evidenze A15 Gold**: [IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/A15/](file:///E:/Projects/vault_memai_obsi/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/A15/) (`summary.json`, `latencies-warm.csv`, `latencies-cold.csv`, `latencies-during-import.csv`, `run.log`, `manifest-verify.log`)  
+10: 
+11: ---
+12: 
+13: ## 1. PASSO 3a — Modifiche Implementate e Congelate
+14: 
+15: ### 1.1 Punto A: Bonus del Titolo Condizionato alla Rarità Documentale
+16: - **File modificati**: [search.rs](file:///E:/Projects/vault_memai_obsi/apps/desktop/src-tauri/src/search.rs) e [diagnose_fase1.rs](file:///E:/Projects/vault_memai_obsi/apps/desktop/src-tauri/src/bin/diagnose_fase1.rs).
+17: - **Logica**: il bonus del titolo (+10) non viene più assegnato indiscriminatamente a ogni parola della domanda presente nel titolo. Viene concesso **solo** ai termini con document frequency $df$ non superiore al 30% del vault ($df \le 2 \lor df / N \le 0.30$).
+18: - **Verifica empirica sul vault reale** ($N = 376$ doc):
+19:   - `"progetto"` ha $df = 133$ (35,37% > 30%) $\rightarrow$ **bonus titolo bloccato** (+0).
+20:   - `"bnxt"` ha $df = 6$ (1,60% $\le$ 30%) $\rightarrow$ **bonus titolo concesso** (+10).
+21:   - `"arkai"` ha $df = 100$ (26,60% $\le$ 30%) $\rightarrow$ **bonus titolo concesso** (+10).
+22: 
+23: ### 1.2 Punto B: Stopwords Italiane e Conservazione di "sei"
+24: - **File modificato**: [search-spec.json](file:///E:/Projects/vault_memai_obsi/packages/search-engine/src/search-spec.json).
+25: - **Nuove parole comuni**: aggiunte 54 parole comuni (dalle 89 originali a **143 totali** in ordine alfabetico rigoroso).
+26: - **Dichiarazione su "sei"**:  
+27:   La parola `"sei"` è stata **esclusa** dall'elenco delle parole comuni (mantenuta cercabile).  
+28:   *Motivazione*: in un vault di progetti, appalti e cronoprogrammi, `"sei"` rappresenta frequentemente il numerale cardinale 6 (es. *"sei mesi"*, *"entro sei giorni"*, *"fase sei"*), esattamente come *"due"*, *"tre"*, *"quattro"* che non compaiono nelle stopwords.
+29: 
+30: ### 1.3 Punto E: Attivazione in Produzione del Metodo c (Decisione di Cesare)
+31: - **File modificati**: [ai.rs](file:///E:/Projects/vault_memai_obsi/apps/desktop/src-tauri/src/ai.rs), [search.rs](file:///E:/Projects/vault_memai_obsi/apps/desktop/src-tauri/src/search.rs), [embeddings.rs](file:///E:/Projects/vault_memai_obsi/apps/desktop/src-tauri/src/embeddings.rs).
+32: - **Costante**: `pub const PUNTO_E_SEM_DELTA_THRESHOLD: f64 = 0.05;` (in `ai.rs`).
+33: - **Regola di ammissibilità (`is_candidate_admitted`)**:
+34:   Un candidato è ammesso tra le fonti se:
+35:   1. Contiene almeno una parola rara della domanda ($df \le 2 \lor df/N \le 0.30$) tramite confronto per token indicizzati esatti o per parole intere (`contains_whole_words`), senza corrispondenza di sottostringhe parziali;
+36:   2. **OPPURE** la sua similarità semantica dista dal massimo della domanda non più di **0,05** ($\max(\text{SemSim}) - \text{SemSim} \le 0.05$).
+37: - **Regole di resilienza e fallback (`filter_candidates_punto_e`)**:
+38:   - *Servizio locale spento / semantica non disponibile (`has_semantic == false`)*: il Metodo c **non si applica**. Nessun filtro: tutte le fonti lessicali sono selezionate esattamente come prima.
+39:   - *Fallback*: se nessun candidato soddisfa i criteri ma la semantica è attiva, viene comunque inviato il **primo candidato della classifica** (nessuna domanda rimane priva di fonti).
+40: 
+41: ---
+42: 
+43: ## 2. Studio di Sensibilità del Bonus Titolo e Baseline Pre-A/B
+44: 
+45: ### 2.1 Rettifica Formale sulla Misura 0,833
+46: Si verbalizza formalmente che la misura di Recall@10 **0,833** (25/30 hit) citata nei passaggi preliminari proviene dalla valutazione sulle **30 query di sviluppo disaccoppiate** ([tests/gold/A05_DEV_QUERIES.json](file:///E:/Projects/vault_memai_obsi/tests/gold/A05_DEV_QUERIES.json)) con il modello locale `bge-m3`, e **NON** dalla misura Gold A05 sulle 40 domande ufficiali.
+47: 
+48: ### 2.2 Baseline Pre-A/B (Commit `ba26889`)
+49: - Dataset: `A05_CORPUS` (120 documenti in `tests/scratch/a05_eval_vault/05_PACKAGING_KNOWLEDGE`).
+50: - Modello semantico: `bge-m3` locale.
+51: - Motore lessicale pre-A/B: bonus titolo piatto +10.0 indiscriminato (nessun filtro $df$), 89 stopwords originali.
+52: - **Recall@10 Baseline Pre-A/B**: **0,833** (25 / 30 hits).
+53: 
+54: ### 2.3 Studio di Sensibilità della Soglia $df$ del Bonus Titolo (Punto A)
+55: Misurazione eseguita sulle 30 query di sviluppo al variare della soglia massima di document frequency ammessa per il bonus:
+56: 
+57: | Soglia $df$ Titolo | Recall@10 (30 Dev Queries) | Hits / 30 | Esito sul Vault Reale ($N=376$) |
+58: |:---:|:---:|:---:|:---|
+59: | **$\le 10\%$** | **0,833** | 25 / 30 | Blocca "progetto" ($df=35.4\%$), ma rischia di tagliare marchi medi |
+60: | **$\le 20\%$** | **0,833** | 25 / 30 | Blocca "progetto" ($df=35.4\%$), ma escluderebbe "arkai" ($df=26.6\%$) |
+61: | **$\le 30\%$ (Scelta)** | **0,833** | 25 / 30 | **Ottimale**: concede bonus ad "arkai" ($df=26.6\%$) e blocca "progetto" ($df=35.4\%$) |
+62: | **$\le 40\%$** | **0,833** | 25 / 30 | Non discrimina: ammette "progetto" ($df=35.4\%$) riaprendo i falsi positivi |
+63: 
+64: *Conclusione*: sulle 30 query di sviluppo il valore del 30% è **equivalente al migliore** (tutti i valori danno 0,833). Sul vault aziendale reale, il **30%** è l'unico valore che separa nettamente i progetti/marchi specifici dai sostantivi generici di struttura.
+65: 
+66: ---
+67: 
+68: ## 3. Misurazione Comparativa Metodi Punto E (30 Dev Queries)
+69: 
+70: Misurazione condotta con `bge-m3` locale su `tests/gold/A05_DEV_QUERIES.json` (120 doc, 144 passaggi):
+71: 
+72: | Metodo | Parametro di Soglia | Recall@10 | Hits (su 30) | Media Fonti Inviate |
+73: | :--- | :--- | :---: | :---: | :---: |
+74: | **Baseline (nessuna soglia)** | Nessun filtro semantico | 0,833 | 25 / 30 | 10.0 |
+75: | **Metodo a (Soglia assoluta SemSim)** | $\text{SemSim} \ge 0.30$ | 0,833 | 25 / 30 | 10.0 |
+76: | **Metodo a (Soglia assoluta SemSim)** | $\text{SemSim} \ge 0.35$ | 0,833 | 25 / 30 | 10.0 |
+77: | **Metodo a (Soglia assoluta SemSim)** | $\text{SemSim} \ge 0.38$ | 0,833 | 25 / 30 | 10.0 |
+78: | **Metodo a (Soglia assoluta SemSim)** | $\text{SemSim} \ge 0.40$ | 0,833 | 25 / 30 | 10.0 |
+79: | **Metodo a (Soglia assoluta SemSim)** | $\text{SemSim} \ge 0.45$ | 0,833 | 25 / 30 | 10.0 |
+80: | **Metodo b (Soglia relativa al max)** | $\text{SemSim} \ge 0.60 \times \max$ (60%) | 0,833 | 25 / 30 | 10.0 |
+81: | **Metodo b (Soglia relativa al max)** | $\text{SemSim} \ge 0.70 \times \max$ (70%) | 0,833 | 25 / 30 | 10.0 |
+82: | **Metodo b (Soglia relativa al max)** | $\text{SemSim} \ge 0.75 \times \max$ (75%) | 0,833 | 25 / 30 | 10.0 |
+83: | **Metodo b (Soglia relativa al max)** | $\text{SemSim} \ge 0.80 \times \max$ (80%) | 0,833 | 25 / 30 | 9.9 |
+84: | **Metodo b (Soglia relativa al max)** | $\text{SemSim} \ge 0.85 \times \max$ (85%) | 0,800 | 24 / 30 | 9.2 *(taglia hit legittimo)* |
+85: | **Metodo c (Parola rara $\lor$ Delta max)** | Parola rara $\lor (\max - \text{SemSim} \le 0.15)$ | 0,833 | 25 / 30 | 10.0 |
+86: | **Metodo c (Parola rara $\lor$ Delta max)** | Parola rara $\lor (\max - \text{SemSim} \le 0.12)$ | 0,833 | 25 / 30 | 10.0 |
+87: | **Metodo c (Parola rara $\lor$ Delta max)** | Parola rara $\lor (\max - \text{SemSim} \le 0.10)$ | 0,833 | 25 / 30 | 10.0 |
+88: | **Metodo c (Parola rara $\lor$ Delta max)** | Parola rara $\lor (\max - \text{SemSim} \le 0.08)$ | 0,833 | 25 / 30 | 10.0 |
+89: | **Metodo c (Parola rara $\lor$ Delta max)** | Parola rara $\lor (\max - \text{SemSim} \le \mathbf{0.05})$ | **0,867** | **26 / 30** | **10.0** *(+1 hit rispetto alla baseline)* |
+90: 
+91: *Esito numerico*: il valore **0,05** del Metodo c è l'unico parametro tra tutti i testati che migliora effettivamente il Recall@10 portandolo a **0,867** (+1 hit, recuperando la query DEV08).
+92: 
+93: ---
+94: 
+95: ## 4. Verifica Empirica Reale su `E:\VAULT WIN TEST DEV`
+96: 
+97: ### 4.1 Caso BNXT (*"cosa e' il progetto bnxt ?"*)
+98: - **Esito con soli Punti A e B (senra Punto E)**:  
+99:   I documenti BNXT occupavano le prime posizioni, ma nelle posizioni 6, 7, 8, 9 comparivano file estranei (`FlashCleanView`, `Redesign UI`, `BuildSense`) privi della parola "bnxt", che spingevano `audit-localizzazione-EN-baseline` alla posizione 12.  
+100:   *Risultato con solo A e B*: **3 requisiti su 5 soddisfatti** (criterio minimo di 4 NON superato).
+101: - **Esito con Metodo c attivo ($\Delta \le 0.05$)**:  
+102:   I file estranei privi del termine raro `"bnxt"` e con similarità semantica distante oltre 0,05 dal massimo vengono scartati.  
+103:   *Fonti inviate a OpenAI*: **10 fonti**, 16.342 byte totali (tempo anteprima: 7.819 ms):
+104:   - **Fonte S1**: `BNXT CRM.md` (32f2a408) $\rightarrow$ **Requisito 2 PRESENTE (OK)**
+105:   - **Fonte S2**: `_Progetto - BNXT AUDIT VICENZA.md` (a86061ba) $\rightarrow$ **Requisito 1 PRESENTE (OK)**
+106:   - **Fonte S3**: `_INDICE.md` (957b1062)
+107:   - **Fonte S4**: `verifica-walkthrough-ux-email-whatsapp-2026-09-10.md` (5a54c2ce) $\rightarrow$ **Requisito 5 PRESENTE (OK)**
+108:   - **Fonte S5**: `verifica-impl-plan-ux-email-whatsapp-2026-09-10.md` (1e755ab8) $\rightarrow$ **Requisito 5 PRESENTE (OK)**
+109:   - **Fonte S6**: `audit-localizzazione-EN-baseline-6f2f2b8.md` (abaef2b4) $\rightarrow$ **Requisito 3 PRESENTE (OK)**
+110:   - **Fonte S7..S10**: Note contestuali ammesse.
+111:   - *Totale requisiti BNXT soddisfatti*: **4 su 5** $\rightarrow$ **CRITERIO BNXT SODDISFATTO (PASS)**.
+112: 
+113: ### 4.2 Caso ARKAI (*"ARKAI E' UNA AZIENDA, UN MARCHIO ? DI COSA TRATTA"*)
+114: - Con il Metodo c attivo, i documenti ARKAI dominano integralmente la selezione.
+115: - *Fonti inviate a OpenAI*: **10 fonti**, 14.081 byte totali (tempo anteprima: 1.536 ms):
+116:   - **Fonte S1**: `ARKAI FLOORPLAN NICE.md` (86e2218e)
+117:   - **Fonte S2**: `Arkai.Dev expansion into Italian market.md` (0bc92121)
+118:   - **Fonte S3**: `Building ARKAI free image generation web app.md` (2ff8773d)
+119:   - **Fonte S4**: `CONTRATTI ARKAI ITALIA.md` (b3f8add2)
+120:   - **Fonte S5**: `Presentazione investitori Arkai.archi.md` (540e37c6)
+121:   - **Fonte S6**: `Analisi icona app ARKAI STAGER.md` (7254c793)
+122:   - **Fonte S7**: `ARKAI AI Free Render Engine Xcode project.md` (2e947184)
+123:   - **Fonte S8**: `ARKAI FREE IMAGE AI.md` (89ed4d84)
+124:   - **Fonte S9**: `ARKAI AI RENDER APP.md` (ca804c2d)
+125:   - **Fonte S10**: `ARKAI.DEV Software Developer.md` (f4fd17eb)
+126: - *Documenti ufficiali ARKAI inviati*: **10 su 12** (soglia minima richiesta: 6 su 12) $\rightarrow$ **CRITERIO ARKAI SODDISFATTO (PASS)**.
+127: 
+128: ---
+129: 
+130: ## 5. Misure Gold A05 e A15 Post-Congelamento (Commit `226d4fd`)
+131: 
+132: Come da procedura di congelamento, dopo il commit `226d4fd` è stata eseguita una **singola misura gold** per ciascun benchmark su dataset verificato, senza alcuna modifica al codice.
+133: 
+134: ### 5.1 Benchmark Gold A05 — Semantica Misurata (Recall@10)
+135: - **Procedura di verifica corpus**:
+136:   - Costruito il vault isolato `tests/scratch/a05_eval_vault` contenente unicamente la cartella `05_PACKAGING_KNOWLEDGE` (120 file markdown copiati da `tests/gold/A05_CORPUS`) e `00_SYSTEM`.
+137:   - Verificato il manifest SHA-256 (`tests/gold/A05_MANIFEST.sha256`): **123 file OK** (120 documenti + 2 file di query + manifest stesso). Log registrato in [manifest-verify.log](file:///E:/Projects/vault_memai_obsi/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/A05/manifest-verify.log).
+138:   - Verificata identità binaria crittografica (100% hash equality) tra `tests/scratch/a05_eval_vault/05_PACKAGING_KNOWLEDGE` e `tests/gold/A05_CORPUS`.
+139: - **Comando eseguito**:
+140:   ```bash
+141:   cargo run --release --bin gold-benchmark -- a05 "E:\Projects\vault_memai_obsi\tests\scratch\a05_eval_vault" "E:\Projects\vault_memai_obsi\tests\gold\A05_QUERIES.json" "E:\Projects\vault_memai_obsi\IMPLEMENTATION\WINDOWS_BUILD_EVIDENCE\A05"
+142:   ```
+143: - **Dichiarazione sulla differenza di motore semantico**:
+144:   In aderenza rigorosa ai protocolli di collaudo A05 V2 stabiliti nelle evidenze gold storiche del 20/09, il benchmark A05 gold calcola e verifica gli embedding tramite il modello ufficiale di specifica **OpenAI `text-embedding-3-small`** (acquisendo la chiave in memoria dal credential store locale di sistema), garantendo la comparabilità diretta 1:1 con i risultati canonici di riferimento. I test di sviluppo offline e locali utilizzano invece il motore locale `bge-m3`.
+145: - **Risultati Gold A05 Misurati** (Timestamp: `2026-09-23T15:40:38+08:00`):
+146:   - **Indexed Documents**: 120
+147:   - **Indexed Passages**: 144
+148:   - **Total Gold Queries**: 40
+149:   - **Mean Recall@10 Ibrido**: **0,975** (39 query su 40 a segno al rango $\le 10$)
+150:   - **Median Recall@10**: **1,000**
+151:   - **Min Recall@10**: 0,000 (1 sola query con zero recall: `Q21`, identica al benchmark macOS)
+152:   - **Lexical Baseline Mean Recall@10**: 0,675
+153:   - **Soglia Gate A05**: $\ge 0,900$
+154:   - **Gate Status**: **PASS**
+155: 
+156: ### 5.2 Benchmark Gold A15 — Prestazioni Ricerca Locale Calda
+157: - **Procedura di verifica corpus**:
+158:   - Costruito il vault isolato `tests/scratch/a15_vault` contenente la cartella `05_PACKAGING_KNOWLEDGE` (1000 file markdown copiati da `tests/gold/A15_CORPUS`) e `00_SYSTEM`.
+159:   - Verificato il manifest SHA-256 (`tests/gold/A15_MANIFEST.sha256`): **1002 file OK** (1000 documenti + `A15_QUERIES.json` + manifest). Log registrato in [manifest-verify.log](file:///E:/Projects/vault_memai_obsi/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/A15/manifest-verify.log).
+160:   - Verificata identità crittografica: tutti i 1000 file corrispondono al 100% ad `A15_CORPUS`.
+161:   - **Correzione CRLF**: normalizzato lo splitting in `chunk_text_to_passages` (`catalog.rs`) garantendo l'estrazione corretta di 11 passaggi (1 per pagina) per documento su qualsiasi OS $\rightarrow$ **11.000 passaggi totali** indicizzati (superando il requisito vincolante di gate: $docs \ge 1000 \land passages \ge 10000$).
+162: - **Comando eseguito**:
+163:   ```bash
+164:   cargo run --release --bin gold-benchmark -- a15 "E:\Projects\vault_memai_obsi\tests\scratch\a15_vault" "E:\Projects\vault_memai_obsi\tests\gold\A15_QUERIES.json" "E:\Projects\vault_memai_obsi\IMPLEMENTATION\WINDOWS_BUILD_EVIDENCE\A15"
+165:   ```
+166: - **Risultati Gold A15 Misurati** (Timestamp: `2026-09-23T15:41:50+08:00`):
+167:   - **Indexed Documents**: 1.000 (requisito: $\ge 1.000$ $\rightarrow$ **OK**)
+168:   - **Indexed Passages**: 11.000 (requisito: $\ge 10.000$ $\rightarrow$ **OK**)
+169:   - **Total Queries**: 100
+170:   - **Cold Latency**: 253,93 ms
+171:   - **Warm Latency p50**: **351,88 ms**
+172:   - **Warm Latency p90**: 508,06 ms
+173:   - **Warm Latency p95**: **532,59 ms** (soglia contrattuale: $\le 1.000,00$ ms $\rightarrow$ **AMPIAMENTE RISPETTATA**)
+174:   - **Warm Latency p99**: 573,36 ms
+175:   - **Min / Max / Mean Latency**: 68,66 ms / 613,88 ms / 335,97 ms
+176:   - **Concurrent Import p95**: 330,59 ms
+177:   - **Gate Status**: **PASS**
+178: 
+179: ### 5.3 Stato A04
+180: - Lo stato del benchmark A04 rimane formalmente e immutabilmente **NON VERIFICATO** (in attesa del set gold validato).
+181: 
+182: ---
+183: 
+184: ## 6. Riepilogo Test Suite Completa
+185: 
+186: - Esecuzione test parallela: [cargo-test-fase-3a-parallel.log](file:///E:/Projects/vault_memai_obsi/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/cargo-test-fase-3a-parallel.log)  
+187:   `test result: ok. 133 passed; 0 failed; 0 ignored (lib); 18 passed (main); Total: 151 passed, 0 failed.`
+188: - Esecuzione test a thread singolo: [cargo-test-fase-3a-single.log](file:///E:/Projects/vault_memai_obsi/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/cargo-test-fase-3a-single.log)  
+189:   `test result: ok. 133 passed; 0 failed; 0 ignored (lib); 18 passed (main); Total: 151 passed, 0 failed.`
+190: - Inclusi tutti i 6 test dedicati per il Metodo c e il fallback con servizio offline in `ai.rs`.
+191: 
+192: ---
+193: 
+194: ## 7. Rilievi Formali Registrati sul Passo 3a
+195: 
+196: In conformità alle disposizioni di revisione, vengono registrati formalmente i seguenti tre rilievi emersi durante l'esecuzione del Passo 3a:
+197: 
+198: ### 7.1 Chiamate ad OpenAI nella Misura Gold A05 e Oggetto della Misura
+199: - **Numero Chiamate Eseguite**: nella misurazione Gold A05 su `tests/scratch/a05_eval_vault` sono state effettuate **184 chiamate ad OpenAI API** (`model: text-embedding-3-small`):
+200:   - **144 chiamate** per calcolare gli embedding dei passaggi del catalogo isolato e sincronizzare `EMBEDDINGS_CACHE.json`;
+201:   - **40 chiamate** per calcolare i vettori semantici delle 40 query gold.
+202: - **Rilievo Metodologico**: si verbalizza chiaramente che il benchmark Gold A05 misura unicamente la **qualità della ricerca ibrida** (capacità di posizionare il documento atteso nella Top 10, Recall@10) e **NON misura la scelta o la composizione delle fonti inviate al modello di risposta** (`select_with_port_timed` / Metodo c). Pertanto, il superamento di A05 attesta la tenuta del motore di indicizzazione e recupero, ma non certifica da solo la qualità della risposta di OpenAI, che dipende dalla composizione effettiva del contesto.
+203: 
+204: ### 7.2 Domande di Sviluppo Non Discriminanti sulla Soglia del Bonus Titolo
+205: - Sulle 30 query di sviluppo disaccoppiate ([tests/gold/A05_DEV_QUERIES.json](file:///E:/Projects/vault_memai_obsi/tests/gold/A05_DEV_QUERIES.json)), tutte le 4 soglie di frequenza documentale $df$ del bonus titolo testate (10%, 20%, 30%, 40%) hanno restituito esattamente lo **stesso identico punteggio di Recall@10 = 0,833 (25/30 hit)**.
+206: - Il set di sviluppo non è risultato discriminante per calibrare questo parametro specifico. La determinazione della soglia ottimale al **30%** è stata guidata dall'evidenza sul vault aziendale reale `E:\VAULT WIN TEST DEV` ($N = 376$), dove il 30% discrimina in modo netto marchi e progetti (`"arkai"`, $df = 100$, 26,6% $\le 30\%$, bonus concesso) da termini generici ad alta frequenza (`"progetto"`, $df = 133$, 35,4% $> 30\%$, bonus negato).
+207: 
+208: ### 7.3 Modifica dei Ritorni a Capo in `catalog.rs` (Normalizzazione CRLF)
+209: - **Documenti Coinvolti nel Vault di Test (`E:\VAULT WIN TEST DEV`)**:
+210:   - Totale file Markdown in `20_RAW_SOURCES`: **376 documenti**
+211:   - File con terminatori di riga Windows CRLF (`\r\n`): **22 documenti** (5,85%)
+212:   - File con terminatori di riga Unix LF (`\n`): **354 documenti** (94,15%)
+213: - **Effetti sul Prossimo Aggiornamento del Catalogo (`sync_catalog_from_vault`)**:
+214:   - Il campo `content_hash` è calcolato sui byte binari grezzi del file su disco. Per i 22 file non modificati, `content_hash` non muta e `sync_catalog_from_vault` non altera i passaggi esistenti in cache.
+215:   - Alla prima modifica su disco di uno di questi file, o in caso di reindicizzazione da zero del vault, la normalizzazione CRLF entra in funzione: i paragrafi separati da `\r\n\r\n` o le intestazioni `## Pagina` non collassano più in un unico blocco informe, ma vengono partizionati correttamente nei singoli passaggi corrispondenti, allineando determinismo e granularità tra Windows e macOS.
+216: - **Test Unitario di Parità Crittografica**:
+217:   - Implementato in [catalog.rs](file:///E:/Projects/vault_memai_obsi/apps/desktop/src-tauri/src/catalog.rs) il test `test_chunk_text_to_passages_crlf_and_lf_produce_identical_passages`.
+218:   - Il test certifica formalmente che lo stesso documento con ritorni a capo Windows (`\r\n`) e Unix (`\n`) produce lo stesso numero di passaggi, gli stessi identificativi, gli stessi localizzatori, lo stesso testo normalizzato e gli **stessi identici hash SHA-256**.

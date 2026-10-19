@@ -620,6 +620,15 @@ export default function App() {
       await refreshSnapshotsAndIntegrity(vaultPath,ticket);
       await refreshCompiler(vaultPath,ticket);
       await refreshCatalog(vaultPath,ticket);
+      if (isTauriEnv) {
+        try {
+          const report = await ipc.indexVaultSearch(vaultPath);
+          setSearchIndexStatus(report);
+          setSearchRevision((r) => r + 1);
+        } catch (idxErr) {
+          console.warn('Aggiornamento indice di ricerca durante recheck non riuscito:', idxErr);
+        }
+      }
     }finally{finish(ticket);}
   };
 

@@ -1,0 +1,2504 @@
+    1: //! Semantic retrieval and embeddings caching for LIMEN Vault.
+    2: //! Provides passage-level vector caching, OpenAI embeddings generation,
+    3: //! cosine similarity, hybrid RRF fusion, and offline fallback.
+    4: 
+    5: use crate::{
+    6:     catalog::{load_catalog, DocumentPassage},
+    7:     search::{self, normalize_text, SearchQuery, SearchResultItem},
+    8:     snapshots::{child, compute_sha256, names, read, root, write_new},
+    9: };
+   10: use serde::{Deserialize, Serialize};
+   11: use serde_json::{json, Value};
+   12: use std::{
+   13:     collections::{BTreeMap, BTreeSet},
+   14:     path::{Path, PathBuf},
+   15:     sync::{
+   16:         atomic::{AtomicBool, AtomicU64, Ordering},
+   17:         Arc, Mutex,
+   18:     },
+   19:     time::{Duration, Instant, SystemTime},
+   20: };
+   21: 
+   22: static SYNC_CANCELLED: AtomicBool = AtomicBool::new(false);
+   23: 
+   24: pub static EMBEDDINGS_CACHE_REVISION: AtomicU64 = AtomicU64::new(1);
+   25: pub static EMBEDDINGS_CACHE_DISK_READ_COUNT: AtomicU64 = AtomicU64::new(0);
+   26: static EMBEDDINGS_DISK_READ_COUNTS: Mutex<BTreeMap<PathBuf, u64>> = Mutex::new(BTreeMap::new());
+   27: static EMBEDDINGS_CACHE_REVISIONS: Mutex<BTreeMap<PathBuf, u64>> = Mutex::new(BTreeMap::new());
+   28: 
+   29: #[derive(Clone)]
+   30: struct EmbeddingsCacheEntry {
+   31:     vault_path: PathBuf,
+   32:     size: u64,
+   33:     mtime: SystemTime,
+   34:     revision: u64,
+   35:     cache: Arc<EmbeddingsCache>,
+   36: }
+   37: 
+   38: static EMBEDDINGS_IN_MEMORY_CACHE: Mutex<BTreeMap<PathBuf, EmbeddingsCacheEntry>> = Mutex::new(BTreeMap::new());
+   39: 
+   40: pub fn get_embeddings_cache_disk_read_count() -> u64 {
+   41:     EMBEDDINGS_CACHE_DISK_READ_COUNT.load(Ordering::SeqCst)
+   42: }
+   43: 
+   44: pub fn get_embeddings_disk_read_count_for_vault(vault_path: &Path) -> u64 {
+   45:     EMBEDDINGS_DISK_READ_COUNTS.lock().unwrap().get(vault_path).copied().unwrap_or(0)
+   46: }
+   47: 
+   48: fn increment_embeddings_disk_read_count(vault_path: &Path) {
+   49:     EMBEDDINGS_CACHE_DISK_READ_COUNT.fetch_add(1, Ordering::SeqCst);
+   50:     let mut guard = EMBEDDINGS_DISK_READ_COUNTS.lock().unwrap();
+   51:     let entry = guard.entry(vault_path.to_path_buf()).or_insert(0);
+   52:     *entry += 1;
+   53: }
+   54: 
+   55: pub fn get_embeddings_cache_revision(vault_path: &Path) -> u64 {
+   56:     EMBEDDINGS_CACHE_REVISIONS.lock().unwrap().get(vault_path).copied().unwrap_or(0)
+   57: }
+   58: 
+   59: pub fn bump_embeddings_cache_revision(vault_path: &Path) {
+   60:     EMBEDDINGS_CACHE_REVISION.fetch_add(1, Ordering::SeqCst);
+   61:     let mut guard = EMBEDDINGS_CACHE_REVISIONS.lock().unwrap();
+   62:     let entry = guard.entry(vault_path.to_path_buf()).or_insert(0);
+   63:     *entry += 1;
+   64: }
+   65: 
+   66: pub fn cancel_sync() {
+   67:     SYNC_CANCELLED.store(true, Ordering::SeqCst);
+   68: }
+   69: 
+   70: pub const EMBEDDINGS_CACHE_FILE: &str = "EMBEDDINGS_CACHE.json";
+   71: pub const DEFAULT_EMBEDDINGS_MODEL: &str = "text-embedding-3-small";
+   72: pub const DEFAULT_EMBEDDINGS_DIMENSIONS: usize = 1536;
+   73: pub const DEFAULT_EMBEDDINGS_ENDPOINT: &str = "https://api.openai.com/v1/embeddings";
+   74: 
+   75: /// Timeout per l'indicizzazione batch dei passaggi (300 s):
+   76: /// Lotti da 16 passaggi completi di 512 token possono richiedere tempo consistente su CPU o PC/Mac senza accelerazione hardware (fino a 1-2 s per passaggio).
+   77: /// 300 s garantiscono che l'indicizzazione batch non venga interrotta prematuramente durante il sync massivo.
+   78: pub const BATCH_EMBEDDINGS_TIMEOUT: Duration = Duration::from_secs(300);
+   79: 
+   80: /// Timeout per il calcolo del vettore della singola domanda utente (10 s):
+   81: /// Per una singola query utente (< 2000 caratteri), l'inferenza del modello locale bge-m3 richiede tipicamente tra 50 ms e 500 ms.
+   82: /// Un limite rigido di 10 s previene il blocco della fase di preparazione di "Chiedi" (che altrimenti attenderebbe fino a 300 s
+   83: /// in caso di server locale sovraccarico, bloccato o non responsivo), consentendo il ripiego immediato e trasparente sulla
+   84: /// ricerca per parole chiave e la registrazione nel log delle tempistiche.
+   85: pub const QUERY_EMBEDDINGS_TIMEOUT: Duration = Duration::from_secs(10);
+   86: 
+   87: #[derive(Debug, Clone, Serialize, Deserialize)]
+   88: #[serde(rename_all = "camelCase")]
+   89: pub struct EmbeddingsProviderReport {
+   90:     pub provider: String, // "local" | "openai"
+   91:     pub model: String,
+   92:     pub dimensions: usize,
+   93:     pub endpoint: String,
+   94:     pub cache_dimensions: usize,
+   95:     pub cache_entries: usize,
+   96:     /// Passaggi totali nel catalogo e quanti hanno gia' un vettore valido per il fornitore attivo.
+   97:     pub total_passages: usize,
+   98:     pub matched_passages: usize,
+   99:     pub needs_reindex: bool,
+  100: }
+  101: 
+  102: /// Read embeddings provider from 00_SYSTEM/SYNC_PROFILE.json.
+  103: /// If absent, defaults to "openai".
+  104: pub fn get_embeddings_provider(vault_path: &Path, active_port: u16) -> EmbeddingsProviderReport {
+  105:     let profile_path = vault_path.join("00_SYSTEM").join("SYNC_PROFILE.json");
+  106:     let mut configured_provider = None;
+  107: 
+  108:     if let Ok(content) = std::fs::read_to_string(&profile_path) {
+  109:         if let Ok(val) = serde_json::from_str::<Value>(&content) {
+  110:             if let Some(p) = val.get("embeddingsProvider").and_then(Value::as_str) {
+  111:                 let trimmed = p.trim().to_lowercase();
+  112:                 if trimmed == "local" || trimmed == "openai" {
+  113:                     configured_provider = Some(trimmed);
+  114:                 }
+  115:             }
+  116:         }
+  117:     }
+  118: 
+  119:     let provider = configured_provider.unwrap_or_else(|| "openai".to_string());
+  120:     let is_local = provider == "local";
+  121:     let model = if is_local {
+  122:         "bge-m3".to_string()
+  123:     } else {
+  124:         DEFAULT_EMBEDDINGS_MODEL.to_string()
+  125:     };
+  126:     let dimensions = if is_local { 1024 } else { 1536 };
+  127:     let endpoint = if is_local {
+  128:         if active_port > 0 {
+  129:             format!("http://127.0.0.1:{}/v1/embeddings", active_port)
+  130:         } else {
+  131:             String::new()
+  132:         }
+  133:     } else {
+  134:         DEFAULT_EMBEDDINGS_ENDPOINT.to_string()
+  135:     };
+  136: 
+  137:     let cache = load_embeddings_cache(vault_path).unwrap_or_default();
+  138:     let cache_entries = cache.entries.len();
+  139:     // Cache assente o vuota: nessuna dimensione memorizzata da confrontare. Senza questo azzeramento il
+  140:     // default della struct (1536) veniva mostrato in UI come "cache a 1536 dim" con 0 passaggi
+  141:     // (collaudo del 20/09/2026 su vault senza EMBEDDINGS_CACHE.json).
+  142:     let cache_dimensions = if cache_entries == 0 { 0 } else { cache.dimensions };
+  143: 
+  144:     let mut total_passages = 0;
+  145:     let mut matched_passages = 0;
+  146:     if let Ok(catalog) = load_catalog(vault_path) {
+  147:         for doc in catalog.documents.values() {
+  148:             for p in &doc.passages {
+  149:                 total_passages += 1;
+  150:                 if let Some(entry) = cache.entries.get(&p.passage_id) {
+  151:                     if entry.sha256 == p.sha256 && (cache_dimensions == 0 || cache_dimensions == dimensions) {
+  152:                         matched_passages += 1;
+  153:                     }
+  154:                 }
+  155:             }
+  156:         }
+  157:     }
+  158: 
+  159:     let needs_reindex = if total_passages > 0 {
+  160:         matched_passages < total_passages || (cache_entries > 0 && cache_dimensions != dimensions)
+  161:     } else {
+  162:         cache_entries > 0 && cache_dimensions != dimensions
+  163:     };
+  164: 
+  165:     EmbeddingsProviderReport {
+  166:         provider,
+  167:         model,
+  168:         dimensions,
+  169:         endpoint,
+  170:         cache_dimensions,
+  171:         cache_entries,
+  172:         total_passages,
+  173:         matched_passages,
+  174:         needs_reindex,
+  175:     }
+  176: }
+  177: 
+  178: /// Atomically write embeddingsProvider to 00_SYSTEM/SYNC_PROFILE.json.
+  179: /// Endpoint and model are NOT persisted: endpoint is built dynamically at runtime from active_port.
+  180: pub fn set_embeddings_provider(
+  181:     vault_path: &Path,
+  182:     provider: &str,
+  183:     active_port: u16,
+  184: ) -> Result<EmbeddingsProviderReport, String> {
+  185:     let prov = provider.trim().to_lowercase();
+  186:     if prov != "local" && prov != "openai" {
+  187:         return Err(format!(
+  188:             "Fornitore non valido '{}': ammessi esclusivamente 'openai' o 'local'",
+  189:             provider
+  190:         ));
+  191:     }
+  192: 
+  193:     let profile_path = vault_path.join("00_SYSTEM").join("SYNC_PROFILE.json");
+  194:     let mut val = if profile_path.exists() {
+  195:         let content = std::fs::read_to_string(&profile_path).map_err(|e| e.to_string())?;
+  196:         serde_json::from_str::<Value>(&content).unwrap_or_else(|_| json!({}))
+  197:     } else {
+  198:         json!({})
+  199:     };
+  200: 
+  201:     if !val.is_object() {
+  202:         val = json!({});
+  203:     }
+  204: 
+  205:     let obj = val.as_object_mut().unwrap();
+  206:     obj.insert("embeddingsProvider".into(), Value::String(prov.clone()));
+  207: 
+  208:     // Never persist endpoint or model: endpoint is runtime-constructed from live server port
+  209:     obj.remove("embeddingsEndpoint");
+  210:     obj.remove("embeddingsModel");
+  211: 
+  212:     let sys_dir = vault_path.join("00_SYSTEM");
+  213:     if !sys_dir.exists() {
+  214:         std::fs::create_dir_all(&sys_dir).map_err(|e| e.to_string())?;
+  215:     }
+  216: 
+  217:     let serialized = serde_json::to_string_pretty(&val).map_err(|e| e.to_string())?;
+  218:     std::fs::write(&profile_path, serialized.as_bytes()).map_err(|e| e.to_string())?;
+  219:     let _ = crate::ai::save_embeddings_provider_setting(&prov);
+  220: 
+  221:     Ok(get_embeddings_provider(vault_path, active_port))
+  222: }
+  223: 
+  224: /// Security validation: if embeddingsProvider is "local", ensure the endpoint is strictly a loopback address.
+  225: pub fn validate_provider_endpoint(vault_path: &Path, endpoint: &str) -> Result<(), String> {
+  226:     if endpoint.trim().is_empty() {
+  227:         return Ok(());
+  228:     }
+  229:     let profile_path = vault_path.join("00_SYSTEM").join("SYNC_PROFILE.json");
+  230:     if let Ok(content) = std::fs::read_to_string(&profile_path) {
+  231:         if let Ok(val) = serde_json::from_str::<Value>(&content) {
+  232:             if let Some(p) = val.get("embeddingsProvider").and_then(Value::as_str) {
+  233:                 if p.trim().to_lowercase() == "local" {
+  234:                     let is_loopback = is_loopback_endpoint(endpoint)?;
+  235:                     if !is_loopback {
+  236:                         return Err(format!(
+  237:                             "Rifiutato endpoint esterno '{}' con provider 'local': il provider locale autorizza esclusivamente indirizzi loopback (127.0.0.1, localhost, ::1)",
+  238:                             endpoint
+  239:                         ));
+  240:                     }
+  241:                 }
+  242:             }
+  243:         }
+  244:     }
+  245:     Ok(())
+  246: }
+  247: 
+  248: /// Read embeddingsEndpoint from runtime provider configuration, or OpenAI default.
+  249: /// For local provider, returns empty string when no active port is specified.
+  250: pub fn resolve_embeddings_endpoint(vault_path: &Path) -> String {
+  251:     get_embeddings_provider(vault_path, 0).endpoint
+  252: }
+  253: 
+  254: /// Optional model override from runtime provider configuration.
+  255: pub fn resolve_embeddings_model(vault_path: &Path) -> Option<String> {
+  256:     let rep = get_embeddings_provider(vault_path, 0);
+  257:     Some(rep.model)
+  258: }
+  259: 
+  260: /// Validates an embeddings endpoint URL for security.
+  261: /// Returns Ok(true) if the endpoint is loopback (allowing http://),
+  262: /// Ok(false) if the endpoint is a valid external HTTPS endpoint,
+  263: /// or Err(message) if an external endpoint attempts to use unencrypted HTTP or if the URL is invalid.
+  264: pub fn is_loopback_endpoint(endpoint: &str) -> Result<bool, String> {
+  265:     let url = reqwest::Url::parse(endpoint)
+  266:         .map_err(|e| format!("URL endpoint non valido '{}': {}", endpoint, e))?;
+  267: 
+  268:     let host = url.host_str().unwrap_or("").trim();
+  269:     let is_loopback = host == "127.0.0.1" || host == "localhost" || host == "::1" || host == "[::1]";
+  270: 
+  271:     match url.scheme() {
+  272:         "http" => {
+  273:             if is_loopback {
+  274:                 Ok(true)
+  275:             } else {
+  276:                 Err(format!(
+  277:                     "Rifiutato endpoint HTTP non sicuro '{}': http:// è consentito esclusivamente su loopback (127.0.0.1, localhost, ::1)",
+  278:                     endpoint
+  279:                 ))
+  280:             }
+  281:         }
+  282:         "https" => Ok(is_loopback),
+  283:         other => Err(format!("Schema URL non supportato '{}': supportati solo http e https", other)),
+  284:     }
+  285: }
+  286: 
+  287: fn err(e: impl std::fmt::Display) -> String {
+  288:     e.to_string()
+  289: }
+  290: 
+  291: fn now_iso() -> String {
+  292:     chrono::Utc::now().to_rfc3339()
+  293: }
+  294: 
+  295: #[derive(Debug, Clone, Serialize, Deserialize)]
+  296: #[serde(rename_all = "camelCase")]
+  297: pub struct PassageEmbeddingEntry {
+  298:     pub passage_id: String,
+  299:     pub document_id: String,
+  300:     pub relative_path: String,
+  301:     pub locator: String,
+  302:     pub sha256: String, // Hash of the passage text
+  303:     #[serde(default)]
+  304:     pub embedded_text_sha256: Option<String>,
+  305:     pub model: String,
+  306:     pub dimensions: usize,
+  307:     pub vector: Vec<f32>,
+  308:     pub updated_at: String,
+  309: }
+  310: 
+  311: #[derive(Debug, Clone, Serialize, Deserialize)]
+  312: #[serde(rename_all = "camelCase")]
+  313: pub struct EmbeddingsCache {
+  314:     pub version: u32,
+  315:     pub model: String,
+  316:     pub dimensions: usize,
+  317:     pub entries: BTreeMap<String, PassageEmbeddingEntry>, // keyed by passage_id
+  318:     pub last_updated_at: String,
+  319: }
+  320: 
+  321: impl Default for EmbeddingsCache {
+  322:     fn default() -> Self {
+  323:         Self {
+  324:             version: 1,
+  325:             model: DEFAULT_EMBEDDINGS_MODEL.to_string(),
+  326:             dimensions: DEFAULT_EMBEDDINGS_DIMENSIONS,
+  327:             entries: BTreeMap::new(),
+  328:             last_updated_at: now_iso(),
+  329:         }
+  330:     }
+  331: }
+  332: 
+  333: #[derive(Debug, Clone, Serialize, Deserialize)]
+  334: #[serde(rename_all = "camelCase")]
+  335: pub struct EmbeddingsStatusReport {
+  336:     pub total_passages: usize,
+  337:     pub cached_passages: usize,
+  338:     pub missing_passages: usize,
+  339:     pub coverage: f64,
+  340:     pub model: String,
+  341:     pub dimensions: usize,
+  342:     pub is_available: bool,
+  343:     pub last_updated_at: String,
+  344: }
+  345: 
+  346: /// Compute cosine similarity between two float vectors.
+  347: pub fn cosine_similarity(a: &[f32], b: &[f32]) -> f32 {
+  348:     if a.len() != b.len() || a.is_empty() {
+  349:         return 0.0;
+  350:     }
+  351:     let mut dot = 0.0f32;
+  352:     let mut norm_a = 0.0f32;
+  353:     let mut norm_b = 0.0f32;
+  354:     for (x, y) in a.iter().zip(b.iter()) {
+  355:         dot += x * y;
+  356:         norm_a += x * x;
+  357:         norm_b += y * y;
+  358:     }
+  359:     let denom = norm_a.sqrt() * norm_b.sqrt();
+  360:     if denom <= 0.0000001 {
+  361:         0.0
+  362:     } else {
+  363:         dot / denom
+  364:     }
+  365: }
+  366: 
+  367: /// Load embeddings cache from 00_SYSTEM/EMBEDDINGS_CACHE.json or default if absent.
+  368: pub fn load_embeddings_cache(vault_path: &Path) -> Result<Arc<EmbeddingsCache>, String> {
+  369:     let r = root(vault_path)?;
+  370:     let sys = match child(&r, "00_SYSTEM") {
+  371:         Ok(d) => d,
+  372:         Err(_) => return Ok(Arc::new(EmbeddingsCache::default())),
+  373:     };
+  374:     if !names(&sys)?.iter().any(|s| s == EMBEDDINGS_CACHE_FILE) {
+  375:         return Ok(Arc::new(EmbeddingsCache::default()));
+  376:     }
+  377: 
+  378:     let emb_file = vault_path.join("00_SYSTEM").join(EMBEDDINGS_CACHE_FILE);
+  379:     let current_rev = get_embeddings_cache_revision(vault_path);
+  380: 
+  381:     if let Ok(meta) = std::fs::metadata(&emb_file) {
+  382:         let size = meta.len();
+  383:         let mtime = meta.modified().unwrap_or(SystemTime::UNIX_EPOCH);
+  384:         if let Ok(guard) = EMBEDDINGS_IN_MEMORY_CACHE.lock() {
+  385:             if let Some(entry) = guard.get(vault_path) {
+  386:                 let is_high_prec = crate::ai::is_high_precision_fs(vault_path);
+  387:                 let is_mtime_match = if is_high_prec {
+  388:                     entry.mtime == mtime
+  389:                 } else {
+  390:                     entry.mtime == mtime
+  391:                         || entry.mtime.duration_since(mtime).map(|d| d.as_millis() < 2000).unwrap_or(false)
+  392:                         || mtime.duration_since(entry.mtime).map(|d| d.as_millis() < 2000).unwrap_or(false)
+  393:                 };
+  394:                 if entry.size == size && is_mtime_match && entry.revision == current_rev {
+  395:                     return Ok(entry.cache.clone());
+  396:                 }
+  397:             }
+  398:         }
+  399:     }
+  400: 
+  401:     increment_embeddings_disk_read_count(vault_path);
+  402:     let bytes = read(&sys, EMBEDDINGS_CACHE_FILE)?;
+  403:     if bytes.len() > 512 * 1024 * 1024 {
+  404:         return Err("Embeddings cache file exceeds 512 MB".into());
+  405:     }
+  406:     let cache: EmbeddingsCache = serde_json::from_slice(&bytes).map_err(err)?;
+  407:     let cache_arc = Arc::new(cache);
+  408: 
+  409:     if let Ok(meta) = std::fs::metadata(&emb_file) {
+  410:         let size = meta.len();
+  411:         let mtime = meta.modified().unwrap_or(SystemTime::UNIX_EPOCH);
+  412:         let current_rev = get_embeddings_cache_revision(vault_path);
+  413:         if let Ok(mut guard) = EMBEDDINGS_IN_MEMORY_CACHE.lock() {
+  414:             guard.insert(vault_path.to_path_buf(), EmbeddingsCacheEntry {
+  415:                 vault_path: vault_path.to_path_buf(),
+  416:                 size,
+  417:                 mtime,
+  418:                 revision: current_rev,
+  419:                 cache: cache_arc.clone(),
+  420:             });
+  421:         }
+  422:     }
+  423: 
+  424:     Ok(cache_arc)
+  425: }
+  426: 
+  427: /// Atomically save embeddings cache to 00_SYSTEM/EMBEDDINGS_CACHE.json
+  428: pub fn save_embeddings_cache(vault_path: &Path, cache: &mut EmbeddingsCache) -> Result<(), String> {
+  429:     cache.last_updated_at = now_iso();
+  430:     let r = root(vault_path)?;
+  431:     let sys = child(&r, "00_SYSTEM")?;
+  432:     let tmp = format!(".embeddings-{}.tmp", crate::ai::random_token()?);
+  433:     let bytes = serde_json::to_vec(cache).map_err(err)?;
+  434:     write_new(&sys, &tmp, &bytes)?;
+  435:     let res = sys.rename(&tmp, &sys, EMBEDDINGS_CACHE_FILE).map_err(err);
+  436:     if res.is_err() {
+  437:         let _ = sys.remove_file(&tmp);
+  438:     } else {
+  439:         bump_embeddings_cache_revision(vault_path);
+  440:     }
+  441:     res
+  442: }
+  443: 
+  444: /// Get current embeddings status and coverage
+  445: pub fn embeddings_status(vault_path: &Path) -> Result<EmbeddingsStatusReport, String> {
+  446:     let catalog = load_catalog(vault_path)?;
+  447:     let cache = load_embeddings_cache(vault_path)?;
+  448: 
+  449:     let mut total_passages: usize = 0;
+  450:     let mut cached_passages: usize = 0;
+  451: 
+  452:     for doc in catalog.documents.values() {
+  453:         for p in &doc.passages {
+  454:             total_passages += 1;
+  455:             if let Some(entry) = cache.entries.get(&p.passage_id) {
+  456:                 if entry.sha256 == p.sha256 {
+  457:                     cached_passages += 1;
+  458:                 }
+  459:             }
+  460:         }
+  461:     }
+  462: 
+  463:     let missing = total_passages.saturating_sub(cached_passages);
+  464:     let coverage = if total_passages == 0 {
+  465:         1.0
+  466:     } else {
+  467:         (cached_passages as f64) / (total_passages as f64)
+  468:     };
+  469: 
+  470:     Ok(EmbeddingsStatusReport {
+  471:         total_passages,
+  472:         cached_passages,
+  473:         missing_passages: missing,
+  474:         coverage,
+  475:         model: cache.model.clone(),
+  476:         dimensions: cache.dimensions,
+  477:         is_available: cached_passages > 0,
+  478:         last_updated_at: cache.last_updated_at.clone(),
+  479:     })
+  480: }
+  481: 
+  482: /// Fetch embeddings for a batch of strings using default OpenAI API endpoint.
+  483: pub async fn fetch_openai_embeddings(
+  484:     api_key: &str,
+  485:     model: &str,
+  486:     texts: &[String],
+  487: ) -> Result<Vec<Vec<f32>>, String> {
+  488:     fetch_openai_embeddings_with_endpoint(DEFAULT_EMBEDDINGS_ENDPOINT, api_key, model, texts).await
+  489: }
+  490: 
+  491: /// Fetch embeddings for a batch of strings from a configurable endpoint.
+  492: /// Allows http:// ONLY on loopback (127.0.0.1, localhost, ::1); rejects unencrypted HTTP for external hosts.
+  493: /// Does not require or send an API key if the endpoint is loopback and key is empty.
+  494: pub async fn fetch_openai_embeddings_with_endpoint(
+  495:     endpoint: &str,
+  496:     api_key: &str,
+  497:     model: &str,
+  498:     texts: &[String],
+  499: ) -> Result<Vec<Vec<f32>>, String> {
+  500:     fetch_openai_embeddings_with_endpoint_and_timeout(endpoint, api_key, model, texts, None).await
+  501: }
+  502: 
+  503: /// Fetch embeddings with configurable timeout override.
+  504: /// In assenza di override esplicito, usa BATCH_EMBEDDINGS_TIMEOUT (300 s) su loopback per lotti batch,
+  505: /// oppure 60 s per endpoint remoti.
+  506: pub async fn fetch_openai_embeddings_with_endpoint_and_timeout(
+  507:     endpoint: &str,
+  508:     api_key: &str,
+  509:     model: &str,
+  510:     texts: &[String],
+  511:     timeout_override: Option<Duration>,
+  512: ) -> Result<Vec<Vec<f32>>, String> {
+  513:     if texts.is_empty() {
+  514:         return Ok(Vec::new());
+  515:     }
+  516: 
+  517:     let is_loopback = is_loopback_endpoint(endpoint)?;
+  518: 
+  519:     // Non-loopback endpoints strictly require an API key
+  520:     if !is_loopback && api_key.trim().is_empty() {
+  521:         return Err("OpenAI API key non configurata".into());
+  522:     }
+  523: 
+  524:     let request_timeout = timeout_override.unwrap_or_else(|| {
+  525:         if is_loopback {
+  526:             BATCH_EMBEDDINGS_TIMEOUT
+  527:         } else {
+  528:             Duration::from_secs(60)
+  529:         }
+  530:     });
+  531:     let mut client_builder = reqwest::Client::builder()
+  532:         .connect_timeout(Duration::from_secs(10))
+  533:         .timeout(request_timeout);
+  534: 
+  535:     if !is_loopback {
+  536:         client_builder = client_builder.https_only(true);
+  537:     }
+  538: 
+  539:     let client = client_builder
+  540:         .build()
+  541:         .map_err(|e| format!("HTTP client error: {}", e))?;
+  542: 
+  543:     let body = json!({
+  544:         "model": model,
+  545:         "input": texts
+  546:     });
+  547: 
+  548:     let mut req = client.post(endpoint).json(&body);
+  549:     if !api_key.trim().is_empty() {
+  550:         req = req.bearer_auth(api_key);
+  551:     }
+  552: 
+  553:     let resp = req
+  554:         .send()
+  555:         .await
+  556:         .map_err(|e| {
+  557:             if e.is_timeout() {
+  558:                 format!("Richiesta embeddings verso '{}' scaduta per timeout: {}", endpoint, e)
+  559:             } else {
+  560:                 format!("Richiesta embeddings fallita verso '{}': {}", endpoint, e)
+  561:             }
+  562:         })?;
+  563: 
+  564:     if !resp.status().is_success() {
+  565:         let status = resp.status().as_u16();
+  566:         let err_text = resp.text().await.unwrap_or_default();
+  567:         return Err(match status {
+  568:             401 => "Chiave API non valida o non autorizzata".into(),
+  569:             429 => "Quota esaurita o rate limit raggiunto".into(),
+  570:             code => format!("Embeddings error HTTP {}: {}", code, err_text),
+  571:         });
+  572:     }
+  573: 
+  574:     let val: Value = resp
+  575:         .json()
+  576:         .await
+  577:         .map_err(|e| format!("Risposta JSON embeddings non valida: {}", e))?;
+  578: 
+  579:     let data = val
+  580:         .get("data")
+  581:         .and_then(Value::as_array)
+  582:         .ok_or("Campo data mancante nella risposta embeddings")?;
+  583: 
+  584:     let mut embeddings = Vec::with_capacity(texts.len());
+  585:     for item in data {
+  586:         let arr = item
+  587:             .get("embedding")
+  588:             .and_then(Value::as_array)
+  589:             .ok_or("Vettore embedding non valido")?;
+  590:         let vec: Vec<f32> = arr
+  591:             .iter()
+  592:             .filter_map(|v| v.as_f64().map(|f| f as f32))
+  593:             .collect();
+  594:         embeddings.push(vec);
+  595:     }
+  596: 
+  597:     if embeddings.len() != texts.len() {
+  598:         return Err(format!(
+  599:             "Numero vettori ricevuti ({}) diverso dai testi inviati ({})",
+  600:             embeddings.len(),
+  601:             texts.len()
+  602:         ));
+  603:     }
+  604: 
+  605:     Ok(embeddings)
+  606: }
+  607: 
+  608: /// Build contextualized passage text for embedding:
+  609: /// - Note title (frontmatter title if available, else file_name without extension)
+  610: /// - Document category (folder name e.g. "01_CLIENTS" ... "10_APPROVED_OUTPUTS" or category)
+  611: /// - Section locator (p.locator e.g. "Pagina N", "Slide N", "Paragrafi N-M")
+  612: /// - Raw passage text
+  613: /// Prefix context is capped at 20% of the character length of the passage.
+  614: pub fn build_passage_embedding_text(
+  615:     title: &str,
+  616:     category: &str,
+  617:     locator: &str,
+  618:     passage_text: &str,
+  619: ) -> String {
+  620:     let mut ctx_lines = Vec::new();
+  621:     let trimmed_title = title.trim();
+  622:     if !trimmed_title.is_empty() {
+  623:         ctx_lines.push(trimmed_title);
+  624:     }
+  625:     let trimmed_cat = category.trim();
+  626:     if !trimmed_cat.is_empty() {
+  627:         ctx_lines.push(trimmed_cat);
+  628:     }
+  629:     let trimmed_loc = locator.trim();
+  630:     if !trimmed_loc.is_empty() {
+  631:         ctx_lines.push(trimmed_loc);
+  632:     }
+  633: 
+  634:     if ctx_lines.is_empty() || passage_text.trim().is_empty() {
+  635:         return passage_text.to_string();
+  636:     }
+  637: 
+  638:     let raw_ctx = ctx_lines.join("\n");
+  639:     let max_len = (passage_text.chars().count() as f64 * 0.20).floor() as usize;
+  640:     let final_ctx: String = if raw_ctx.chars().count() > max_len {
+  641:         raw_ctx.chars().take(max_len).collect()
+  642:     } else {
+  643:         raw_ctx
+  644:     };
+  645: 
+  646:     if final_ctx.is_empty() {
+  647:         passage_text.to_string()
+  648:     } else {
+  649:         format!("{}\n{}", final_ctx, passage_text)
+  650:     }
+  651: }
+  652: 
+  653: /// Synchronize embeddings for catalog passages using the configured OpenAI API key.
+  654: /// Bounded to batches of max 32 passages to prevent timeouts and cost explosions.
+  655: pub async fn sync_embeddings(
+  656:     vault_path: &Path,
+  657:     api_key: &str,
+  658:     model: Option<&str>,
+  659: ) -> Result<EmbeddingsStatusReport, String> {
+  660:     sync_embeddings_with_port(vault_path, api_key, model, None).await
+  661: }
+  662: 
+  663: pub async fn sync_embeddings_with_port(
+  664:     vault_path: &Path,
+  665:     api_key: &str,
+  666:     model: Option<&str>,
+  667:     active_port: Option<u16>,
+  668: ) -> Result<EmbeddingsStatusReport, String> {
+  669:     sync_embeddings_with_progress(vault_path, api_key, model, active_port, None).await
+  670: }
+  671: 
+  672: /// Come `sync_embeddings_with_port`, con callback `(elaborati, totale)` invocata all'avvio e dopo ogni
+  673: /// lotto: e' l'unica sorgente dell'evento `embeddings_sync_progress` che alimenta la barra in UI
+  674: /// (prima di questa callback l'evento non veniva mai emesso e la barra restava a 0,0%).
+  675: pub async fn sync_embeddings_with_progress(
+  676:     vault_path: &Path,
+  677:     api_key: &str,
+  678:     model: Option<&str>,
+  679:     active_port: Option<u16>,
+  680:     on_progress: Option<&(dyn Fn(usize, usize) + Sync)>,
+  681: ) -> Result<EmbeddingsStatusReport, String> {
+  682:     SYNC_CANCELLED.store(false, Ordering::SeqCst);
+  683: 
+  684:     let catalog = load_catalog(vault_path)?;
+  685:     let current_cache = load_embeddings_cache(vault_path)?;
+  686:     let prov_rep = get_embeddings_provider(vault_path, active_port.unwrap_or(0));
+  687:     let endpoint = prov_rep.endpoint.clone();
+  688:     let is_local = prov_rep.provider == "local";
+  689: 
+  690:     if is_local {
+  691:         if endpoint.is_empty() || active_port.unwrap_or(0) == 0 {
+  692:             return Err("Server di embedding locale non attivo. Avvia il server locale da Impostazioni prima di sincronizzare.".into());
+  693:         }
+  694:         let port = active_port.unwrap();
+  695:         if !crate::llama::check_health(port) {
+  696:             return Err(format!(
+  697:                 "Server di embedding locale non raggiungibile su {}. Avvia il server locale da Impostazioni prima di sincronizzare.",
+  698:                 endpoint
+  699:             ));
+  700:         }
+  701:     }
+  702: 
+  703:     validate_provider_endpoint(vault_path, &endpoint)?;
+  704:     let is_loopback = is_loopback_endpoint(&endpoint)?;
+  705:     let target_model = model.unwrap_or(&prov_rep.model);
+  706:     let target_dimensions = prov_rep.dimensions;
+  707: 
+  708:     let key_from_keychain = if !is_loopback && api_key.trim().is_empty() {
+  709:         crate::keychain::load().ok().flatten().filter(|k| !k.trim().is_empty())
+  710:     } else {
+  711:         None
+  712:     };
+  713:     let effective_key = if is_loopback {
+  714:         ""
+  715:     } else if !api_key.trim().is_empty() {
+  716:         api_key
+  717:     } else if let Some(ref k) = key_from_keychain {
+  718:         k.as_str()
+  719:     } else {
+  720:         return Err("Chiave API mancante. Configurala in Impostazioni per sincronizzare gli embeddings.".into());
+  721:     };
+  722: 
+  723:     // Staging cache for safe migration:
+  724:     // If target_model != current_cache.model or target_dimensions != current_cache.dimensions,
+  725:     // we use a staging cache file (00_SYSTEM/EMBEDDINGS_CACHE.staging.json) so the existing cache
+  726:     // is preserved until 100% complete, and if cancelled or interrupted, can resume!
+  727:     let is_model_migration = current_cache.model != target_model || (current_cache.dimensions > 0 && current_cache.dimensions != target_dimensions);
+  728:     let staging_path = vault_path.join("00_SYSTEM").join("EMBEDDINGS_CACHE.staging.json");
+  729: 
+  730:     let mut working_cache = if is_model_migration {
+  731:         if staging_path.exists() {
+  732:             if let Ok(st_content) = std::fs::read_to_string(&staging_path) {
+  733:                 if let Ok(st_cache) = serde_json::from_str::<EmbeddingsCache>(&st_content) {
+  734:                     if st_cache.model == target_model && st_cache.dimensions == target_dimensions {
+  735:                         st_cache
+  736:                     } else {
+  737:                         EmbeddingsCache {
+  738:                             version: 1,
+  739:                             model: target_model.to_string(),
+  740:                             dimensions: target_dimensions,
+  741:                             entries: BTreeMap::new(),
+  742:                             last_updated_at: now_iso(),
+  743:                         }
+  744:                     }
+  745:                 } else {
+  746:                     EmbeddingsCache {
+  747:                         version: 1,
+  748:                         model: target_model.to_string(),
+  749:                         dimensions: target_dimensions,
+  750:                         entries: BTreeMap::new(),
+  751:                         last_updated_at: now_iso(),
+  752:                     }
+  753:                 }
+  754:             } else {
+  755:                 EmbeddingsCache {
+  756:                     version: 1,
+  757:                     model: target_model.to_string(),
+  758:                     dimensions: target_dimensions,
+  759:                     entries: BTreeMap::new(),
+  760:                     last_updated_at: now_iso(),
+  761:                 }
+  762:             }
+  763:         } else {
+  764:             EmbeddingsCache {
+  765:                 version: 1,
+  766:                 model: target_model.to_string(),
+  767:                 dimensions: target_dimensions,
+  768:                 entries: BTreeMap::new(),
+  769:                 last_updated_at: now_iso(),
+  770:             }
+  771:         }
+  772:     } else {
+  773:         (*current_cache).clone()
+  774:     };
+  775: 
+  776:     // Collect missing or updated passages
+  777:     struct MissingPassage {
+  778:         passage_id: String,
+  779:         document_id: String,
+  780:         relative_path: String,
+  781:         locator: String,
+  782:         sha256: String,
+  783:         embedded_text_sha256: String,
+  784:         text_to_embed: String,
+  785:     }
+  786: 
+  787:     let mut missing: Vec<MissingPassage> = Vec::new();
+  788:     let mut valid_passage_ids = BTreeSet::new();
+  789: 
+  790:     for doc in catalog.documents.values() {
+  791:         let doc_title = if let Ok(content) = std::fs::read_to_string(vault_path.join(&doc.original_path)) {
+  792:             crate::vault::frontmatter(&content)
+  793:                 .ok()
+  794:                 .flatten()
+  795:                 .and_then(|fm| fm["title"].as_str().map(|s| s.trim().to_string()))
+  796:                 .filter(|s| !s.is_empty())
+  797:                 .unwrap_or_else(|| {
+  798:                     Path::new(&doc.file_name)
+  799:                         .file_stem()
+  800:                         .and_then(|s| s.to_str())
+  801:                         .unwrap_or(&doc.file_name)
+  802:                         .to_string()
+  803:                 })
+  804:         } else {
+  805:             Path::new(&doc.file_name)
+  806:                 .file_stem()
+  807:                 .and_then(|s| s.to_str())
+  808:                 .unwrap_or(&doc.file_name)
+  809:                 .to_string()
+  810:         };
+  811: 
+  812:         let doc_category = if let Some(first_segment) = doc.original_path.split('/').next() {
+  813:             if first_segment.starts_with("0") || first_segment.starts_with("1") {
+  814:                 first_segment.to_string()
+  815:             } else {
+  816:                 doc.category.clone().unwrap_or_else(|| first_segment.to_string())
+  817:             }
+  818:         } else {
+  819:             doc.category.clone().unwrap_or_default()
+  820:         };
+  821: 
+  822:         for p in &doc.passages {
+  823:             valid_passage_ids.insert(p.passage_id.clone());
+  824: 
+  825:             let text_to_embed = build_passage_embedding_text(&doc_title, &doc_category, &p.locator, &p.text);
+  826:             let embedded_sha = compute_sha256(text_to_embed.as_bytes());
+  827: 
+  828:             let needs_update = match working_cache.entries.get(&p.passage_id) {
+  829:                 Some(entry) => {
+  830:                     entry.sha256 != p.sha256
+  831:                         || entry.model != target_model
+  832:                         || entry.dimensions != target_dimensions
+  833:                         || entry.embedded_text_sha256.as_deref() != Some(&embedded_sha)
+  834:                 }
+  835:                 None => true,
+  836:             };
+  837: 
+  838:             if needs_update && !p.text.trim().is_empty() {
+  839:                 missing.push(MissingPassage {
+  840:                     passage_id: p.passage_id.clone(),
+  841:                     document_id: doc.document_id.clone(),
+  842:                     relative_path: doc.original_path.clone(),
+  843:                     locator: p.locator.clone(),
+  844:                     sha256: p.sha256.clone(),
+  845:                     embedded_text_sha256: embedded_sha,
+  846:                     text_to_embed,
+  847:                 });
+  848:             }
+  849:         }
+  850:     }
+  851: 
+  852:     // Prune stale passages from working cache
+  853:     working_cache.entries.retain(|id, _| valid_passage_ids.contains(id));
+  854: 
+  855:     // Lotti: 16 in locale (avanzamento a passi piccoli, annullamento entro un lotto), 32 verso l'API remota.
+  856:     // LIMEN_SYNC_BATCH e LIMEN_SYNC_TIMING servono solo alle misure sul banco di prova (21/09/2026):
+  857:     // senza variabili il comportamento e' quello predefinito.
+  858:     let default_batch = if is_loopback { 16 } else { 32 };
+  859:     let batch_size = std::env::var("LIMEN_SYNC_BATCH")
+  860:         .ok()
+  861:         .and_then(|v| v.parse::<usize>().ok())
+  862:         .filter(|n| *n > 0)
+  863:         .unwrap_or(default_batch);
+  864:     let timing = std::env::var("LIMEN_SYNC_TIMING").is_ok();
+  865:     let sync_started = std::time::Instant::now();
+  866:     let (mut t_req_total, mut t_write_total, mut writes) = (0u128, 0u128, 0usize);
+  867:     let total_missing = missing.len();
+  868:     let mut processed_count = 0;
+  869:     if total_missing > 0 {
+  870:         println!("Starting embedding sync: {} missing passages to process...", total_missing);
+  871:     }
+  872:     if let Some(cb) = on_progress {
+  873:         cb(0, total_missing);
+  874:     }
+  875: 
+  876:     for chunk in missing.chunks(batch_size) {
+  877:         if SYNC_CANCELLED.load(Ordering::SeqCst) {
+  878:             if is_model_migration {
+  879:                 let _ = std::fs::write(&staging_path, serde_json::to_string(&working_cache).unwrap_or_default());
+  880:             }
+  881:             return Err("Sincronizzazione semantica annullata dall'utente".to_string());
+  882:         }
+  883: 
+  884:         let texts: Vec<String> = chunk.iter().map(|m| m.text_to_embed.clone()).collect();
+  885:         let chars: usize = texts.iter().map(|t| t.chars().count()).sum();
+  886:         let t0 = std::time::Instant::now();
+  887:         let vectors = fetch_openai_embeddings_with_endpoint(&endpoint, effective_key, target_model, &texts).await?;
+  888:         let req_ms = t0.elapsed().as_millis();
+  889:         t_req_total += req_ms;
+  890: 
+  891:         for (m, vec) in chunk.iter().zip(vectors.into_iter()) {
+  892:             working_cache.entries.insert(
+  893:                 m.passage_id.clone(),
+  894:                 PassageEmbeddingEntry {
+  895:                     passage_id: m.passage_id.clone(),
+  896:                     document_id: m.document_id.clone(),
+  897:                     relative_path: m.relative_path.clone(),
+  898:                     locator: m.locator.clone(),
+  899:                     sha256: m.sha256.clone(),
+  900:                     embedded_text_sha256: Some(m.embedded_text_sha256.clone()),
+  901:                     model: target_model.to_string(),
+  902:                     dimensions: vec.len(),
+  903:                     vector: vec,
+  904:                     updated_at: now_iso(),
+  905:                 },
+  906:             );
+  907:         }
+  908: 
+  909:         processed_count += chunk.len();
+  910:         if let Some(cb) = on_progress {
+  911:             cb(processed_count, total_missing);
+  912:         }
+  913:         let mut write_ms = 0u128;
+  914:         if is_model_migration && (processed_count % 320 == 0 || processed_count == total_missing) {
+  915:             let t1 = std::time::Instant::now();
+  916:             let _ = std::fs::write(&staging_path, serde_json::to_string(&working_cache).unwrap_or_default());
+  917:             write_ms = t1.elapsed().as_millis();
+  918:             t_write_total += write_ms;
+  919:             writes += 1;
+  920:         }
+  921:         if timing {
+  922:             eprintln!(
+  923:                 "[sync-timing] lotto n={} caratteri={} richiesta_ms={} scrittura_ms={} elaborati={}/{} trascorso_s={:.1}",
+  924:                 texts.len(), chars, req_ms, write_ms, processed_count, total_missing, sync_started.elapsed().as_secs_f64()
+  925:             );
+  926:         }
+  927: 
+  928:         if processed_count % 320 == 0 || processed_count == total_missing {
+  929:             println!(
+  930:                 "Embedding progress: {}/{} passages ({:.1}%)",
+  931:                 processed_count,
+  932:                 total_missing,
+  933:                 (processed_count as f64 / total_missing as f64) * 100.0
+  934:             );
+  935:         }
+  936:     }
+  937: 
+  938:     if timing {
+  939:         eprintln!(
+  940:             "[sync-timing] TOTALE passaggi={} lotto={} totale_s={:.1} richieste_s={:.1} scritture_staging={} scritture_s={:.1}",
+  941:             total_missing, batch_size, sync_started.elapsed().as_secs_f64(), t_req_total as f64 / 1000.0, writes, t_write_total as f64 / 1000.0
+  942:         );
+  943:     }
+  944:     if let Some(first_entry) = working_cache.entries.values().next() {
+  945:         working_cache.dimensions = first_entry.dimensions;
+  946:     } else {
+  947:         working_cache.dimensions = target_dimensions;
+  948:     }
+  949:     working_cache.model = target_model.to_string();
+  950: 
+  951:     if is_model_migration {
+  952:         // Migration complete: atomically replace EMBEDDINGS_CACHE.json
+  953:         save_embeddings_cache(vault_path, &mut working_cache)?;
+  954:         let _ = std::fs::remove_file(&staging_path);
+  955:     } else {
+  956:         save_embeddings_cache(vault_path, &mut working_cache)?;
+  957:     }
+  958: 
+  959:     embeddings_status(vault_path)
+  960: }
+  961: 
+  962: /// Semantic score for a document given a query embedding vector.
+  963: /// Returns (best_score, matching_passage_id, matching_locator, passage_snippet).
+  964: pub fn rank_document_semantic(
+  965:     _doc_id: &str,
+  966:     passages: &[DocumentPassage],
+  967:     query_vector: &[f32],
+  968:     cache: &EmbeddingsCache,
+  969: ) -> (f32, Option<String>, Option<String>, Option<String>) {
+  970:     let mut best_score = 0.0f32;
+  971:     let mut best_passage_id = None;
+  972:     let mut best_locator = None;
+  973:     let mut best_snippet = None;
+  974: 
+  975:     for p in passages {
+  976:         if let Some(entry) = cache.entries.get(&p.passage_id) {
+  977:             if entry.sha256 == p.sha256 {
+  978:                 let sim = cosine_similarity(query_vector, &entry.vector);
+  979:                 if sim > best_score {
+  980:                     best_score = sim;
+  981:                     best_passage_id = Some(p.passage_id.clone());
+  982:                     best_locator = Some(p.locator.clone());
+  983:                     best_snippet = Some(p.text.chars().take(240).collect::<String>());
+  984:                 }
+  985:             }
+  986:         }
+  987:     }
+  988: 
+  989:     (best_score, best_passage_id, best_locator, best_snippet)
+  990: }
+  991: 
+  992: /// Hybrid search query combining lexical search and semantic embeddings.
+  993: /// Priority is given to exact codes and identifiers.
+  994: /// Ammissibilità/status is filtered BEFORE top-k (Gate A06 & R3).
+  995: pub async fn hybrid_search_vault(
+  996:     vault_path: &Path,
+  997:     q: SearchQuery,
+  998:     api_key: Option<String>,
+  999:     use_semantic: bool,
+ 1000: ) -> Result<Vec<SearchResultItem>, String> {
+ 1001:     hybrid_search_vault_with_port_filtered::<fn(&search::SearchDocumentRecord) -> bool>(vault_path, q, api_key, use_semantic, None, None)
+ 1002:         .await
+ 1003:         .map(|(items, _)| items)
+ 1004: }
+ 1005: 
+ 1006: pub async fn hybrid_search_vault_with_port(
+ 1007:     vault_path: &Path,
+ 1008:     q: SearchQuery,
+ 1009:     api_key: Option<String>,
+ 1010:     use_semantic: bool,
+ 1011:     active_port: Option<u16>,
+ 1012: ) -> Result<(Vec<SearchResultItem>, bool), String> {
+ 1013:     hybrid_search_vault_with_port_filtered::<fn(&search::SearchDocumentRecord) -> bool>(vault_path, q, api_key, use_semantic, active_port, None).await
+ 1014: }
+ 1015: 
+ 1016: #[derive(Debug, Clone, Default)]
+ 1017: pub struct SearchPhaseTimings {
+ 1018:     pub t_index_cache_ms: u64,
+ 1019:     pub t_search_ms: u64,
+ 1020:     pub t_embed_ms: u64,
+ 1021:     pub t_words_ms: u64,
+ 1022:     pub t_sem_ms: u64,
+ 1023:     pub t_fuse_ms: u64,
+ 1024:     pub embed_error: Option<String>,
+ 1025: }
+ 1026: 
+ 1027: pub async fn hybrid_search_vault_with_port_filtered<F>(
+ 1028:     vault_path: &Path,
+ 1029:     q: SearchQuery,
+ 1030:     api_key: Option<String>,
+ 1031:     use_semantic: bool,
+ 1032:     active_port: Option<u16>,
+ 1033:     filter_fn: Option<F>,
+ 1034: ) -> Result<(Vec<SearchResultItem>, bool), String>
+ 1035: where
+ 1036:     F: Fn(&search::SearchDocumentRecord) -> bool,
+ 1037: {
+ 1038:     let (items, degraded, _, _) = hybrid_search_vault_with_port_filtered_timed(
+ 1039:         vault_path,
+ 1040:         q,
+ 1041:         api_key,
+ 1042:         use_semantic,
+ 1043:         active_port,
+ 1044:         filter_fn,
+ 1045:     )
+ 1046:     .await?;
+ 1047:     Ok((items, degraded))
+ 1048: }
+ 1049: 
+ 1050: pub async fn hybrid_search_vault_with_port_filtered_timed<F>(
+ 1051:     vault_path: &Path,
+ 1052:     q: SearchQuery,
+ 1053:     api_key: Option<String>,
+ 1054:     use_semantic: bool,
+ 1055:     active_port: Option<u16>,
+ 1056:     filter_fn: Option<F>,
+ 1057: ) -> Result<(Vec<SearchResultItem>, bool, SearchPhaseTimings, Option<Vec<f32>>), String>
+ 1058: where
+ 1059:     F: Fn(&search::SearchDocumentRecord) -> bool,
+ 1060: {
+ 1061:     let mut timings = SearchPhaseTimings::default();
+ 1062:     let prov_rep = get_embeddings_provider(vault_path, active_port.unwrap_or(0));
+ 1063:     let is_local = prov_rep.provider == "local";
+ 1064:     let endpoint = prov_rep.endpoint.clone();
+ 1065: 
+ 1066:     if !use_semantic {
+ 1067:         let (items, sub_timings) = hybrid_search_vault_with_vector_filtered_timed(vault_path, q, None, false, filter_fn.as_ref()).await?;
+ 1068:         timings.t_index_cache_ms = sub_timings.t_index_cache_ms;
+ 1069:         timings.t_search_ms = sub_timings.t_search_ms;
+ 1070:         timings.t_words_ms = sub_timings.t_words_ms;
+ 1071:         timings.t_sem_ms = sub_timings.t_sem_ms;
+ 1072:         timings.t_fuse_ms = sub_timings.t_fuse_ms;
+ 1073:         return Ok((items, false, timings, None));
+ 1074:     }
+ 1075: 
+ 1076:     let term = match &q.term {
+ 1077:         Some(t) if !t.trim().is_empty() => t.trim(),
+ 1078:         _ => {
+ 1079:             let (items, sub_timings) = hybrid_search_vault_with_vector_filtered_timed(vault_path, q, None, false, filter_fn.as_ref()).await?;
+ 1080:             timings.t_index_cache_ms = sub_timings.t_index_cache_ms;
+ 1081:             timings.t_search_ms = sub_timings.t_search_ms;
+ 1082:             timings.t_words_ms = sub_timings.t_words_ms;
+ 1083:             timings.t_sem_ms = sub_timings.t_sem_ms;
+ 1084:             timings.t_fuse_ms = sub_timings.t_fuse_ms;
+ 1085:             return Ok((items, false, timings, None));
+ 1086:         }
+ 1087:     };
+ 1088: 
+ 1089:     // If local provider and service is offline (port 0 or empty endpoint), immediately degrade to lexical
+ 1090:     if is_local && (endpoint.is_empty() || active_port.unwrap_or(0) == 0) {
+ 1091:         let (items, sub_timings) = hybrid_search_vault_with_vector_filtered_timed(vault_path, q, None, false, filter_fn.as_ref()).await?;
+ 1092:         timings.t_index_cache_ms = sub_timings.t_index_cache_ms;
+ 1093:         timings.t_search_ms = sub_timings.t_search_ms;
+ 1094:         timings.t_words_ms = sub_timings.t_words_ms;
+ 1095:         timings.t_sem_ms = sub_timings.t_sem_ms;
+ 1096:         timings.t_fuse_ms = sub_timings.t_fuse_ms;
+ 1097:         return Ok((items, true, timings, None));
+ 1098:     }
+ 1099: 
+ 1100:     // Mandatory security validation: local provider strictly forbids non-loopback endpoints
+ 1101:     validate_provider_endpoint(vault_path, &endpoint)?;
+ 1102: 
+ 1103:     let cache = match load_embeddings_cache(vault_path) {
+ 1104:         Ok(c) if !c.entries.is_empty() => c,
+ 1105:         _ => {
+ 1106:             let (items, sub_timings) = hybrid_search_vault_with_vector_filtered_timed(vault_path, q, None, false, filter_fn.as_ref()).await?;
+ 1107:             timings.t_index_cache_ms = sub_timings.t_index_cache_ms;
+ 1108:             timings.t_search_ms = sub_timings.t_search_ms;
+ 1109:             timings.t_words_ms = sub_timings.t_words_ms;
+ 1110:             timings.t_sem_ms = sub_timings.t_sem_ms;
+ 1111:             timings.t_fuse_ms = sub_timings.t_fuse_ms;
+ 1112:             return Ok((items, is_local, timings, None));
+ 1113:         }
+ 1114:     };
+ 1115: 
+ 1116:     let is_loopback = is_loopback_endpoint(&endpoint).unwrap_or(false);
+ 1117: 
+ 1118:     let effective_key = if is_loopback {
+ 1119:         api_key.filter(|k| !k.trim().is_empty())
+ 1120:     } else {
+ 1121:         if is_local {
+ 1122:             return Err("Rifiutato endpoint esterno con provider 'local'".into());
+ 1123:         }
+ 1124:         match api_key.as_deref() {
+ 1125:             Some(k) if !k.trim().is_empty() => Some(k.to_string()),
+ 1126:             _ => crate::keychain::load().ok().flatten().filter(|k| !k.trim().is_empty()),
+ 1127:         }
+ 1128:     };
+ 1129: 
+ 1130:     let mut degraded = false;
+ 1131:     let t_embed_start = Instant::now();
+ 1132:     let query_vector = if is_loopback {
+ 1133:         let key_str = effective_key.as_deref().unwrap_or("");
+ 1134:         if let Ok(u) = reqwest::Url::parse(&endpoint) {
+ 1135:             let port = u.port().unwrap_or(0);
+ 1136:             if port == 0 || !crate::llama::check_health(port) {
+ 1137:                 degraded = true;
+ 1138:                 timings.embed_error = Some("Endpoint loopback non responsivo al check /health".to_string());
+ 1139:                 None
+ 1140:             } else {
+ 1141:                 match fetch_openai_embeddings_with_endpoint_and_timeout(
+ 1142:                     &endpoint,
+ 1143:                     key_str,
+ 1144:                     &cache.model,
+ 1145:                     &[term.to_string()],
+ 1146:                     Some(QUERY_EMBEDDINGS_TIMEOUT),
+ 1147:                 )
+ 1148:                 .await
+ 1149:                 {
+ 1150:                     Ok(mut vecs) => vecs.pop(),
+ 1151:                     Err(e) => {
+ 1152:                         degraded = true;
+ 1153:                         timings.embed_error = Some(e);
+ 1154:                         None
+ 1155:                     }
+ 1156:                 }
+ 1157:             }
+ 1158:         } else {
+ 1159:             degraded = true;
+ 1160:             timings.embed_error = Some("URL endpoint non valido".to_string());
+ 1161:             None
+ 1162:         }
+ 1163:     } else {
+ 1164:         match effective_key.as_deref() {
+ 1165:             Some(key) if !key.is_empty() => {
+ 1166:                 match fetch_openai_embeddings_with_endpoint_and_timeout(
+ 1167:                     &endpoint,
+ 1168:                     key,
+ 1169:                     &cache.model,
+ 1170:                     &[term.to_string()],
+ 1171:                     Some(QUERY_EMBEDDINGS_TIMEOUT),
+ 1172:                 )
+ 1173:                 .await
+ 1174:                 {
+ 1175:                     Ok(mut vecs) => vecs.pop(),
+ 1176:                     Err(e) => {
+ 1177:                         degraded = true;
+ 1178:                         timings.embed_error = Some(e);
+ 1179:                         None
+ 1180:                     }
+ 1181:                 }
+ 1182:             }
+ 1183:             _ => {
+ 1184:                 degraded = true;
+ 1185:                 timings.embed_error = Some("Chiave API remota assente".to_string());
+ 1186:                 None
+ 1187:             }
+ 1188:         }
+ 1189:     };
+ 1190:     timings.t_embed_ms = t_embed_start.elapsed().as_millis() as u64;
+ 1191: 
+ 1192:     if query_vector.is_none() && is_local {
+ 1193:         degraded = true;
+ 1194:     }
+ 1195: 
+ 1196:     let (items, sub_timings) = hybrid_search_vault_with_vector_filtered_timed(vault_path, q, query_vector.clone(), true, filter_fn.as_ref()).await?;
+ 1197:     timings.t_index_cache_ms = sub_timings.t_index_cache_ms;
+ 1198:     timings.t_search_ms = sub_timings.t_search_ms;
+ 1199:     timings.t_words_ms = sub_timings.t_words_ms;
+ 1200:     timings.t_sem_ms = sub_timings.t_sem_ms;
+ 1201:     timings.t_fuse_ms = sub_timings.t_fuse_ms;
+ 1202:     Ok((items, degraded, timings, query_vector))
+ 1203: }
+ 1204: 
+ 1205: pub async fn compute_query_vector_for_prompt(
+ 1206:     vault_path: &Path,
+ 1207:     term: &str,
+ 1208:     api_key: Option<String>,
+ 1209:     active_port: Option<u16>,
+ 1210: ) -> Option<Vec<f32>> {
+ 1211:     let prov_rep = get_embeddings_provider(vault_path, active_port.unwrap_or(0));
+ 1212:     let endpoint = prov_rep.endpoint.clone();
+ 1213:     if endpoint.is_empty() || (prov_rep.provider == "local" && active_port.unwrap_or(0) == 0) {
+ 1214:         return None;
+ 1215:     }
+ 1216:     let cache = load_embeddings_cache(vault_path).ok()?;
+ 1217:     let is_loopback = is_loopback_endpoint(&endpoint).unwrap_or(false);
+ 1218:     let effective_key = if is_loopback {
+ 1219:         api_key.filter(|k| !k.trim().is_empty())
+ 1220:     } else {
+ 1221:         match api_key.as_deref() {
+ 1222:             Some(k) if !k.trim().is_empty() => Some(k.to_string()),
+ 1223:             _ => crate::keychain::load().ok().flatten().filter(|k| !k.trim().is_empty()),
+ 1224:         }
+ 1225:     };
+ 1226:     if is_loopback {
+ 1227:         let key_str = effective_key.as_deref().unwrap_or("");
+ 1228:         if let Ok(u) = reqwest::Url::parse(&endpoint) {
+ 1229:             let port = u.port().unwrap_or(0);
+ 1230:             if port == 0 || !crate::llama::check_health(port) {
+ 1231:                 return None;
+ 1232:             }
+ 1233:             fetch_openai_embeddings_with_endpoint_and_timeout(
+ 1234:                 &endpoint,
+ 1235:                 key_str,
+ 1236:                 &cache.model,
+ 1237:                 &[term.to_string()],
+ 1238:                 Some(QUERY_EMBEDDINGS_TIMEOUT),
+ 1239:             )
+ 1240:             .await
+ 1241:             .ok()?
+ 1242:             .pop()
+ 1243:         } else {
+ 1244:             None
+ 1245:         }
+ 1246:     } else if let Some(key) = effective_key.as_deref().filter(|k| !k.is_empty()) {
+ 1247:         fetch_openai_embeddings_with_endpoint_and_timeout(
+ 1248:             &endpoint,
+ 1249:             key,
+ 1250:             &cache.model,
+ 1251:             &[term.to_string()],
+ 1252:             Some(QUERY_EMBEDDINGS_TIMEOUT),
+ 1253:         )
+ 1254:         .await
+ 1255:         .ok()?
+ 1256:         .pop()
+ 1257:     } else {
+ 1258:         None
+ 1259:     }
+ 1260: }
+ 1261: 
+ 1262: pub async fn hybrid_search_vault_with_vector(
+ 1263:     vault_path: &Path,
+ 1264:     q: SearchQuery,
+ 1265:     query_vector: Option<Vec<f32>>,
+ 1266:     use_semantic: bool,
+ 1267: ) -> Result<Vec<SearchResultItem>, String> {
+ 1268:     hybrid_search_vault_with_vector_filtered::<fn(&search::SearchDocumentRecord) -> bool>(vault_path, q, query_vector, use_semantic, None).await
+ 1269: }
+ 1270: 
+ 1271: pub async fn hybrid_search_vault_with_vector_filtered<F>(
+ 1272:     vault_path: &Path,
+ 1273:     q: SearchQuery,
+ 1274:     query_vector: Option<Vec<f32>>,
+ 1275:     use_semantic: bool,
+ 1276:     filter_fn: Option<&F>,
+ 1277: ) -> Result<Vec<SearchResultItem>, String>
+ 1278: where
+ 1279:     F: Fn(&search::SearchDocumentRecord) -> bool,
+ 1280: {
+ 1281:     let (items, _) = hybrid_search_vault_with_vector_filtered_timed(vault_path, q, query_vector, use_semantic, filter_fn).await?;
+ 1282:     Ok(items)
+ 1283: }
+ 1284: 
+ 1285: pub async fn hybrid_search_vault_with_vector_filtered_timed<F>(
+ 1286:     vault_path: &Path,
+ 1287:     q: SearchQuery,
+ 1288:     query_vector: Option<Vec<f32>>,
+ 1289:     use_semantic: bool,
+ 1290:     filter_fn: Option<&F>,
+ 1291: ) -> Result<(Vec<SearchResultItem>, SearchPhaseTimings), String>
+ 1292: where
+ 1293:     F: Fn(&search::SearchDocumentRecord) -> bool,
+ 1294: {
+ 1295:     let t_index_cache_start = Instant::now();
+ 1296:     let _ = search::load_index_for_vault(vault_path);
+ 1297:     let _ = load_embeddings_cache(vault_path);
+ 1298:     let _ = load_catalog(vault_path);
+ 1299:     let t_index_cache_ms = t_index_cache_start.elapsed().as_millis() as u64;
+ 1300: 
+ 1301:     let t_search_start = Instant::now();
+ 1302:     let limit = q.limit.unwrap_or(50);
+ 1303:     let offset = q.offset.unwrap_or(0);
+ 1304: 
+ 1305:     // 1. Run local lexical search with large candidate limit (not premature pagination)
+ 1306:     let t_words_start = Instant::now();
+ 1307:     let mut lex_query = q.clone();
+ 1308:     lex_query.limit = Some(200);
+ 1309:     lex_query.offset = Some(0);
+ 1310:     let lexical_results = search::search_vault_filtered(vault_path, lex_query, filter_fn)?;
+ 1311:     let t_words_ms = t_words_start.elapsed().as_millis() as u64;
+ 1312: 
+ 1313:     // 2. If semantic search is not requested or no query term, return lexical results with original pagination
+ 1314:     let term = match &q.term {
+ 1315:         Some(t) if !t.trim().is_empty() => t.trim(),
+ 1316:         _ => {
+ 1317:             let timings = SearchPhaseTimings {
+ 1318:                 t_index_cache_ms,
+ 1319:                 t_search_ms: t_search_start.elapsed().as_millis() as u64,
+ 1320:                 t_embed_ms: 0,
+ 1321:                 t_words_ms,
+ 1322:                 t_sem_ms: 0,
+ 1323:                 t_fuse_ms: 0,
+ 1324:                 embed_error: None,
+ 1325:             };
+ 1326:             return Ok((lexical_results.into_iter().skip(offset).take(limit).collect(), timings));
+ 1327:         }
+ 1328:     };
+ 1329: 
+ 1330:     if !use_semantic {
+ 1331:         let timings = SearchPhaseTimings {
+ 1332:             t_index_cache_ms,
+ 1333:             t_search_ms: t_search_start.elapsed().as_millis() as u64,
+ 1334:             t_embed_ms: 0,
+ 1335:             t_words_ms,
+ 1336:             t_sem_ms: 0,
+ 1337:             t_fuse_ms: 0,
+ 1338:             embed_error: None,
+ 1339:         };
+ 1340:         return Ok((lexical_results.into_iter().skip(offset).take(limit).collect(), timings));
+ 1341:     }
+ 1342: 
+ 1343:     let cache = match load_embeddings_cache(vault_path) {
+ 1344:         Ok(c) if !c.entries.is_empty() => c,
+ 1345:         _ => {
+ 1346:             let timings = SearchPhaseTimings {
+ 1347:                 t_index_cache_ms,
+ 1348:                 t_search_ms: t_search_start.elapsed().as_millis() as u64,
+ 1349:                 t_embed_ms: 0,
+ 1350:                 t_words_ms,
+ 1351:                 t_sem_ms: 0,
+ 1352:                 t_fuse_ms: 0,
+ 1353:                 embed_error: None,
+ 1354:             };
+ 1355:             return Ok((lexical_results.into_iter().skip(offset).take(limit).collect(), timings));
+ 1356:         }
+ 1357:     };
+ 1358: 
+ 1359:     let q_vec = match query_vector {
+ 1360:         Some(v) => v,
+ 1361:         None => {
+ 1362:             let timings = SearchPhaseTimings {
+ 1363:                 t_index_cache_ms,
+ 1364:                 t_search_ms: t_search_start.elapsed().as_millis() as u64,
+ 1365:                 t_embed_ms: 0,
+ 1366:                 t_words_ms,
+ 1367:                 t_sem_ms: 0,
+ 1368:                 t_fuse_ms: 0,
+ 1369:                 embed_error: None,
+ 1370:             };
+ 1371:             return Ok((lexical_results.into_iter().skip(offset).take(limit).collect(), timings));
+ 1372:         }
+ 1373:     };
+ 1374: 
+ 1375:     // 5. Score all candidates semantically with full filtering (R3)
+ 1376:     let catalog = match load_catalog(vault_path) {
+ 1377:         Ok(cat) => cat,
+ 1378:         Err(_) => {
+ 1379:             let timings = SearchPhaseTimings {
+ 1380:                 t_index_cache_ms,
+ 1381:                 t_search_ms: t_search_start.elapsed().as_millis() as u64,
+ 1382:                 t_embed_ms: 0,
+ 1383:                 t_words_ms,
+ 1384:                 t_sem_ms: 0,
+ 1385:                 t_fuse_ms: 0,
+ 1386:                 embed_error: None,
+ 1387:             };
+ 1388:             return Ok((lexical_results.into_iter().skip(offset).take(limit).collect(), timings));
+ 1389:         }
+ 1390:     };
+ 1391: 
+ 1392:     // Map of document_id -> (semantic_score, passage_id, locator, snippet)
+ 1393:     let t_sem_start = Instant::now();
+ 1394:     let mut semantic_scores: BTreeMap<String, (f32, Option<String>, Option<String>, Option<String>)> = BTreeMap::new();
+ 1395: 
+ 1396:     for doc in catalog.documents.values() {
+ 1397:         if let Some(f) = filter_fn {
+ 1398:             let s_doc = search::SearchDocumentRecord {
+ 1399:                 id: doc.document_id.clone(),
+ 1400:                 note_id: None,
+ 1401:                 relative_path: doc.original_path.clone(),
+ 1402:                 sha256: doc.content_hash.clone(),
+ 1403:                 mtime_ms: 0,
+ 1404:                 title: doc.file_name.clone(),
+ 1405:                 category: doc.category.clone().unwrap_or_default(),
+ 1406:                 client: doc.client.clone(),
+ 1407:                 project: doc.project.clone(),
+ 1408:                 brand: None,
+ 1409:                 tags: doc.tags.clone(),
+ 1410:                 status: Some(doc.editorial_status.clone()),
+ 1411:                 created_at: String::new(),
+ 1412:                 updated_at: String::new(),
+ 1413:                 tokens: Vec::new(),
+ 1414:                 content_preview: String::new(),
+ 1415:                 passages: Vec::new(),
+ 1416:             };
+ 1417:             if !f(&s_doc) {
+ 1418:                 continue;
+ 1419:             }
+ 1420:         }
+ 1421:         // Enforce all filters BEFORE scoring (R3): category, client, project, tags, status
+ 1422:         if let Some(ref cat) = q.category {
+ 1423:             if !cat.is_empty() && doc.category.as_deref() != Some(cat.as_str()) {
+ 1424:                 continue;
+ 1425:             }
+ 1426:         }
+ 1427:         if let Some(ref cl) = q.client {
+ 1428:             if !cl.is_empty() && normalize_text(cl) != normalize_text(doc.client.as_deref().unwrap_or("")) {
+ 1429:                 continue;
+ 1430:             }
+ 1431:         }
+ 1432:         if let Some(ref pr) = q.project {
+ 1433:             if !pr.is_empty() && normalize_text(pr) != normalize_text(doc.project.as_deref().unwrap_or("")) {
+ 1434:                 continue;
+ 1435:             }
+ 1436:         }
+ 1437:         if let Some(ref tags) = q.tags {
+ 1438:             if tags.iter().any(|t| !doc.tags.iter().any(|x| normalize_text(x) == normalize_text(t))) {
+ 1439:                 continue;
+ 1440:             }
+ 1441:         }
+ 1442:         if let Some(ref st) = q.status {
+ 1443:             if st != &doc.editorial_status {
+ 1444:                 continue;
+ 1445:             }
+ 1446:         }
+ 1447:         if doc.passages.is_empty() {
+ 1448:             continue;
+ 1449:         }
+ 1450:         let (sim, pid, loc, snip) = rank_document_semantic(&doc.document_id, &doc.passages, &q_vec, &cache);
+ 1451:         if sim > 0.25 {
+ 1452:             semantic_scores.insert(doc.document_id.clone(), (sim, pid, loc, snip));
+ 1453:         }
+ 1454:     }
+ 1455:     let t_sem_ms = t_sem_start.elapsed().as_millis() as u64;
+ 1456: 
+ 1457:     let t_fuse_start = Instant::now();
+ 1458:     // 5. Hybrid fusion using min-max normalized combination (Variant B, w_lex=0.5, w_sem=0.5)
+ 1459:     let term_lower = term.to_lowercase();
+ 1460:     let is_exact_code = (term.contains('-') || term.contains('_') || term.chars().any(|c| c.is_ascii_digit()))
+ 1461:         && term.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+ 1462:         && term.len() >= 3;
+ 1463: 
+ 1464:     // Helper to normalize document ID to 16 hex chars (doc_<16hex>) to reconcile
+ 1465:     // 68-char IDs from SEARCH_INDEX.json (doc_<64hex>) with 20-char catalog IDs.
+ 1466:     let normalize_id = |id: &str| -> String {
+ 1467:         if id.starts_with("doc_") && id.len() > 20 {
+ 1468:             id[..20].to_string()
+ 1469:         } else {
+ 1470:             id.to_string()
+ 1471:         }
+ 1472:     };
+ 1473: 
+ 1474:     // Union of all candidate canonical IDs from lexical and semantic
+ 1475:     let mut all_ids: BTreeSet<String> = BTreeSet::new();
+ 1476:     for lex_item in &lexical_results {
+ 1477:         all_ids.insert(normalize_id(&lex_item.id));
+ 1478:     }
+ 1479:     for sem_id in semantic_scores.keys() {
+ 1480:         all_ids.insert(normalize_id(sem_id));
+ 1481:     }
+ 1482: 
+ 1483:     struct IntermediateCandidate {
+ 1484:         item: SearchResultItem,
+ 1485:         base_score: f64,
+ 1486:         sem_sim: f64,
+ 1487:         matches_term: bool,
+ 1488:     }
+ 1489: 
+ 1490:     let mut intermediate: Vec<IntermediateCandidate> = Vec::new();
+ 1491: 
+ 1492:     for id in all_ids {
+ 1493:         // Check for lexical match by normalized id or full id
+ 1494:         let lex_item = lexical_results.iter().find(|i| normalize_id(&i.id) == id || i.id == id);
+ 1495:         let base_score = lex_item.map(|i| i.score).unwrap_or(0.0);
+ 1496: 
+ 1497:         // Check for semantic match by normalized id or full id
+ 1498:         let sem_info = semantic_scores.get(&id).or_else(|| {
+ 1499:             semantic_scores.iter().find(|(k, _)| normalize_id(k) == id).map(|(_, v)| v)
+ 1500:         });
+ 1501:         let sem_sim = sem_info.map(|s| s.0 as f64).unwrap_or(0.0);
+ 1502: 
+ 1503:         // Build base SearchResultItem: prefer lexical item if available, otherwise reconstruct from catalog
+ 1504:         let mut item = if let Some(li) = lex_item {
+ 1505:             let mut it = li.clone();
+ 1506:             it.id = id.clone();
+ 1507:             it
+ 1508:         } else if let Some(doc) = catalog.documents.get(&id).or_else(|| {
+ 1509:             catalog.documents.values().find(|d| normalize_id(&d.document_id) == id || d.original_path == id)
+ 1510:         }) {
+ 1511:             let preview = doc.passages.first().map(|p| p.text.clone()).unwrap_or_default();
+ 1512:             SearchResultItem {
+ 1513:                 id: doc.document_id.clone(),
+ 1514:                 title: doc.file_name.clone(),
+ 1515:                 relative_path: doc.original_path.clone(),
+ 1516:                 category: doc.category.clone().unwrap_or_else(|| "source".to_string()),
+ 1517:                 client: doc.client.clone(),
+ 1518:                 project: doc.project.clone(),
+ 1519:                 tags: doc.tags.clone(),
+ 1520:                 status: Some(doc.editorial_status.clone()),
+ 1521:                 snippet: preview,
+ 1522:                 score: 0.0,
+ 1523:                 updated_at: Some(doc.updated_at.clone()),
+ 1524:                 sha256: doc.content_hash.clone(),
+ 1525:                 matching_locator: None,
+ 1526:                 matching_passage_id: None,
+ 1527:                 passages: Vec::new(),
+ 1528:                 semantic_similarity: None,
+ 1529:             }
+ 1530:         } else {
+ 1531:             continue;
+ 1532:         };
+ 1533: 
+ 1534:         // If semantic found a better matching passage or if locator is missing, enrich item
+ 1535:         if let Some((_, pid, loc, snip)) = sem_info {
+ 1536:             if item.matching_locator.is_none() || (lex_item.is_none() && snip.is_some()) {
+ 1537:                 if let Some(l) = loc { item.matching_locator = Some(l.clone()); }
+ 1538:                 if let Some(p) = pid { item.matching_passage_id = Some(p.clone()); }
+ 1539:                 if let Some(s) = snip { item.snippet = s.clone(); }
+ 1540:             }
+ 1541:         }
+ 1542: 
+ 1543:         let matches_term = item.title.to_lowercase().contains(&term_lower) || item.snippet.to_lowercase().contains(&term_lower);
+ 1544: 
+ 1545:         intermediate.push(IntermediateCandidate {
+ 1546:             item,
+ 1547:             base_score,
+ 1548:             sem_sim,
+ 1549:             matches_term,
+ 1550:         });
+ 1551:     }
+ 1552: 
+ 1553:     // Min-Max normalization bounds for this query across retrieved candidates
+ 1554:     let min_lex = intermediate.iter().map(|c| c.base_score).fold(f64::INFINITY, f64::min);
+ 1555:     let max_lex = intermediate.iter().map(|c| c.base_score).fold(f64::NEG_INFINITY, f64::max);
+ 1556:     let min_sem = intermediate.iter().map(|c| c.sem_sim).fold(f64::INFINITY, f64::min);
+ 1557:     let max_sem = intermediate.iter().map(|c| c.sem_sim).fold(f64::NEG_INFINITY, f64::max);
+ 1558: 
+ 1559:     struct FusedCandidate {
+ 1560:         item: SearchResultItem,
+ 1561:         fused_score: f64,
+ 1562:     }
+ 1563: 
+ 1564:     let mut fused_candidates: Vec<FusedCandidate> = Vec::new();
+ 1565: 
+ 1566:     for mut c in intermediate {
+ 1567:         let lex_norm = if max_lex > min_lex {
+ 1568:             (c.base_score - min_lex) / (max_lex - min_lex)
+ 1569:         } else if c.base_score > 0.0 {
+ 1570:             1.0
+ 1571:         } else {
+ 1572:             0.0
+ 1573:         };
+ 1574: 
+ 1575:         let sem_norm = if max_sem > min_sem {
+ 1576:             (c.sem_sim - min_sem) / (max_sem - min_sem)
+ 1577:         } else if c.sem_sim > 0.0 {
+ 1578:             1.0
+ 1579:         } else {
+ 1580:             0.0
+ 1581:         };
+ 1582: 
+ 1583:         let exact_bonus = if c.matches_term {
+ 1584:             if is_exact_code { 0.20 } else { 0.05 }
+ 1585:         } else {
+ 1586:             0.0
+ 1587:         };
+ 1588: 
+ 1589:         // C10 formula (F2, k = 0.20): max(lex_norm, sem_norm) + 0.20 * min(lex_norm, sem_norm) + exact_bonus
+ 1590:         // Ensures documents with a single strong signal (e.g. semantic-only with lex_norm = 0)
+ 1591:         // preserve their score and rank above mediocre dual-signal documents, while continuing
+ 1592:         // to reward multi-modal concurrence. Selected via dev tuning on 30 queries (Recall@10 = 0.933).
+ 1593:         let fused_score = lex_norm.max(sem_norm) + 0.20 * lex_norm.min(sem_norm) + exact_bonus;
+ 1594:         c.item.score = fused_score;
+ 1595:         c.item.semantic_similarity = if c.sem_sim > 0.0 { Some(c.sem_sim) } else { None };
+ 1596:         fused_candidates.push(FusedCandidate { item: c.item, fused_score });
+ 1597:     }
+ 1598: 
+ 1599:     // Sort descending by fused score
+ 1600:     fused_candidates.sort_by(|a, b| b.fused_score.partial_cmp(&a.fused_score).unwrap_or(std::cmp::Ordering::Equal));
+ 1601: 
+ 1602:     let limit = q.limit.unwrap_or(50);
+ 1603:     let offset = q.offset.unwrap_or(0);
+ 1604:     let results: Vec<SearchResultItem> = fused_candidates
+ 1605:         .into_iter()
+ 1606:         .skip(offset)
+ 1607:         .take(limit)
+ 1608:         .map(|c| c.item)
+ 1609:         .collect();
+ 1610:     let t_fuse_ms = t_fuse_start.elapsed().as_millis() as u64;
+ 1611:     let t_search_ms = t_search_start.elapsed().as_millis() as u64;
+ 1612: 
+ 1613:     let timings = SearchPhaseTimings {
+ 1614:         t_index_cache_ms,
+ 1615:         t_search_ms,
+ 1616:         t_embed_ms: 0,
+ 1617:         t_words_ms,
+ 1618:         t_sem_ms,
+ 1619:         t_fuse_ms,
+ 1620:         embed_error: None,
+ 1621:     };
+ 1622: 
+ 1623:     Ok((results, timings))
+ 1624: }
+ 1625: 
+ 1626: #[cfg(test)]
+ 1627: mod tests {
+ 1628:     use super::*;
+ 1629:     use std::fs;
+ 1630: 
+ 1631:     #[test]
+ 1632:     fn test_cosine_similarity() {
+ 1633:         let v1 = vec![1.0, 0.0, 0.0];
+ 1634:         let v2 = vec![1.0, 0.0, 0.0];
+ 1635:         let v3 = vec![0.0, 1.0, 0.0];
+ 1636:         let v4 = vec![-1.0, 0.0, 0.0];
+ 1637: 
+ 1638:         assert!((cosine_similarity(&v1, &v2) - 1.0).abs() < 1e-5);
+ 1639:         assert!((cosine_similarity(&v1, &v3) - 0.0).abs() < 1e-5);
+ 1640:         assert!((cosine_similarity(&v1, &v4) - (-1.0)).abs() < 1e-5);
+ 1641:     }
+ 1642: 
+ 1643:     #[test]
+ 1644:     fn test_embeddings_cache_lifecycle() {
+ 1645:         let tmp = tempfile::tempdir().unwrap();
+ 1646:         let path = tmp.path();
+ 1647:         fs::create_dir_all(path.join("00_SYSTEM")).unwrap();
+ 1648: 
+ 1649:         let mut cache = EmbeddingsCache::default();
+ 1650:         cache.entries.insert(
+ 1651:             "doc1_p0".into(),
+ 1652:             PassageEmbeddingEntry {
+ 1653:                 passage_id: "doc1_p0".into(),
+ 1654:                 document_id: "doc1".into(),
+ 1655:                 relative_path: "20_RAW_SOURCES/doc.txt".into(),
+ 1656:                 locator: "Paragrafo 1".into(),
+ 1657:                 sha256: "hash1".into(),
+ 1658:                 embedded_text_sha256: Some("emb_hash1".into()),
+ 1659:                 model: DEFAULT_EMBEDDINGS_MODEL.into(),
+ 1660:                 dimensions: 3,
+ 1661:                 vector: vec![0.1, 0.2, 0.3],
+ 1662:                 updated_at: now_iso(),
+ 1663:             },
+ 1664:         );
+ 1665: 
+ 1666:         save_embeddings_cache(path, &mut cache).unwrap();
+ 1667:         let loaded = load_embeddings_cache(path).unwrap();
+ 1668:         assert_eq!(loaded.entries.len(), 1);
+ 1669:         let entry = loaded.entries.get("doc1_p0").unwrap();
+ 1670:         assert_eq!(entry.locator, "Paragrafo 1");
+ 1671:         assert_eq!(entry.vector, vec![0.1, 0.2, 0.3]);
+ 1672:         assert_eq!(entry.embedded_text_sha256.as_deref(), Some("emb_hash1"));
+ 1673:     }
+ 1674: 
+ 1675:     #[test]
+ 1676:     fn test_passage_embedding_text_context_and_20_percent_cap() {
+ 1677:         let title = "Guida al Confezionamento Sottovuoto";
+ 1678:         let category = "05_PACKAGING_KNOWLEDGE";
+ 1679:         let locator = "Pagina 12";
+ 1680:         let short_passage = "Testo breve.";
+ 1681: 
+ 1682:         // When passage text is short, prefix cap applies:
+ 1683:         // short_passage is 12 chars -> 20% is floor(2.4) = 2 chars.
+ 1684:         let embedded_short = build_passage_embedding_text(title, category, locator, short_passage);
+ 1685:         let lines: Vec<&str> = embedded_short.split('\n').collect();
+ 1686:         // Since prefix is capped to 2 chars, it takes the first 2 chars of "Guida..." which is "Gu"
+ 1687:         assert_eq!(lines[0], "Gu");
+ 1688:         assert_eq!(lines[1], short_passage);
+ 1689: 
+ 1690:         // When passage text is long enough, all metadata is preserved:
+ 1691:         let long_passage = "Questo documento descrive in modo dettagliato tutte le specifiche tecniche, i parametri di saldatura, i tempi di ciclo, le tolleranze di tenuta e le procedure di convalida per le linee di confezionamento sottovuoto ad alta velocità destinate al settore alimentare e medicale. Include inoltre le istruzioni operative per gli operatori di linea e le verifiche di conformità per i materiali barriera multistrato.".repeat(2);
+ 1692:         let embedded_long = build_passage_embedding_text(title, category, locator, &long_passage);
+ 1693:         assert!(embedded_long.contains(title));
+ 1694:         assert!(embedded_long.contains(category));
+ 1695:         assert!(embedded_long.contains(locator));
+ 1696:         assert!(embedded_long.ends_with(&long_passage));
+ 1697:     }
+ 1698: 
+ 1699:     #[test]
+ 1700:     fn test_embedded_text_sha256_cache_invalidation_on_prefix_change() {
+ 1701:         let passage_text = "Passaggio informativo molto dettagliato con parametri di saldatura e tempi di ciclo per le confezionatrici.";
+ 1702:         let raw_sha256 = compute_sha256(passage_text.as_bytes());
+ 1703: 
+ 1704:         // Context 1: Document title "Titolo Vecchio", category "05_PACKAGING_KNOWLEDGE", locator "Pagina 1"
+ 1705:         let text_v1 = build_passage_embedding_text("Titolo Vecchio", "05_PACKAGING_KNOWLEDGE", "Pagina 1", passage_text);
+ 1706:         let sha_v1 = compute_sha256(text_v1.as_bytes());
+ 1707: 
+ 1708:         // Cache entry created with v1 context:
+ 1709:         let entry = PassageEmbeddingEntry {
+ 1710:             passage_id: "doc1_p0".into(),
+ 1711:             document_id: "doc1".into(),
+ 1712:             relative_path: "05_PACKAGING_KNOWLEDGE/doc1.md".into(),
+ 1713:             locator: "Pagina 1".into(),
+ 1714:             sha256: raw_sha256.clone(), // raw passage text hash
+ 1715:             embedded_text_sha256: Some(sha_v1.clone()),
+ 1716:             model: DEFAULT_EMBEDDINGS_MODEL.into(),
+ 1717:             dimensions: 1536,
+ 1718:             vector: vec![0.1; 1536],
+ 1719:             updated_at: now_iso(),
+ 1720:         };
+ 1721: 
+ 1722:         // If context doesn't change, no update needed:
+ 1723:         let text_v1_same = build_passage_embedding_text("Titolo Vecchio", "05_PACKAGING_KNOWLEDGE", "Pagina 1", passage_text);
+ 1724:         let sha_v1_same = compute_sha256(text_v1_same.as_bytes());
+ 1725:         let needs_update_unchanged = entry.sha256 != raw_sha256
+ 1726:             || entry.model != DEFAULT_EMBEDDINGS_MODEL
+ 1727:             || entry.embedded_text_sha256.as_deref() != Some(&sha_v1_same);
+ 1728:         assert!(!needs_update_unchanged, "Cache entry should remain valid when context is identical");
+ 1729: 
+ 1730:         // Context 2: Document title changed to "Titolo Nuovo", but raw passage text is UNCHANGED!
+ 1731:         let text_v2 = build_passage_embedding_text("Titolo Nuovo", "05_PACKAGING_KNOWLEDGE", "Pagina 1", passage_text);
+ 1732:         let sha_v2 = compute_sha256(text_v2.as_bytes());
+ 1733:         assert_ne!(sha_v1, sha_v2, "Embedded text SHA must change when title changes");
+ 1734: 
+ 1735:         // Cache invalidation check:
+ 1736:         // Even though entry.sha256 == raw_sha256 (raw passage is identical),
+ 1737:         // entry.embedded_text_sha256 != sha_v2 triggers invalidation!
+ 1738:         let needs_update = entry.sha256 != raw_sha256
+ 1739:             || entry.model != DEFAULT_EMBEDDINGS_MODEL
+ 1740:             || entry.embedded_text_sha256.as_deref() != Some(&sha_v2);
+ 1741:         assert!(needs_update, "Cache must invalidate when prefix/context changes even if raw passage text sha256 matches!");
+ 1742: 
+ 1743:         // Also verify that an older cache entry with embedded_text_sha256 == None triggers update:
+ 1744:         let old_style_entry = PassageEmbeddingEntry {
+ 1745:             passage_id: "doc1_p0".into(),
+ 1746:             document_id: "doc1".into(),
+ 1747:             relative_path: "05_PACKAGING_KNOWLEDGE/doc1.md".into(),
+ 1748:             locator: "Pagina 1".into(),
+ 1749:             sha256: raw_sha256.clone(),
+ 1750:             embedded_text_sha256: None, // old format
+ 1751:             model: DEFAULT_EMBEDDINGS_MODEL.into(),
+ 1752:             dimensions: 1536,
+ 1753:             vector: vec![0.1; 1536],
+ 1754:             updated_at: now_iso(),
+ 1755:         };
+ 1756:         let needs_update_old = old_style_entry.sha256 != raw_sha256
+ 1757:             || old_style_entry.model != DEFAULT_EMBEDDINGS_MODEL
+ 1758:             || old_style_entry.embedded_text_sha256.as_deref() != Some(&sha_v2);
+ 1759:         assert!(needs_update_old, "Old cache entry without embedded_text_sha256 must be invalidated and re-embedded!");
+ 1760:     }
+ 1761: 
+ 1762:     #[test]
+ 1763:     fn test_hybrid_search_offline_graceful_fallback() {
+ 1764:         let tmp = tempfile::tempdir().unwrap();
+ 1765:         let path = tmp.path();
+ 1766:         fs::create_dir_all(path.join("00_SYSTEM")).unwrap();
+ 1767:         fs::create_dir_all(path.join("01_CLIENTS")).unwrap();
+ 1768: 
+ 1769:         fs::write(
+ 1770:             path.join("01_CLIENTS/note.md"),
+ 1771:             "---\ntitle: Progetto Aurora\nstatus: approved\n---\nSpecifiche del progetto Aurora con dettagli tecnici.",
+ 1772:         ).unwrap();
+ 1773: 
+ 1774:         search::index_vault_search(path).unwrap();
+ 1775: 
+ 1776:         // Hybrid search without API key or with empty embeddings cache falls back to lexical seamlessly
+ 1777:         let rt = tokio::runtime::Runtime::new().unwrap();
+ 1778:         let results = rt.block_on(hybrid_search_vault(
+ 1779:             path,
+ 1780:             SearchQuery {
+ 1781:                 term: Some("Aurora".into()),
+ 1782:                 ..Default::default()
+ 1783:             },
+ 1784:             None,
+ 1785:             true, // use_semantic = true, but offline
+ 1786:         )).unwrap();
+ 1787: 
+ 1788:         assert_eq!(results.len(), 1);
+ 1789:         assert_eq!(results[0].title, "Progetto Aurora");
+ 1790:     }
+ 1791: 
+ 1792:     #[test]
+ 1793:     fn test_hybrid_fusion_ranks_exact_code_first() {
+ 1794:         let tmp = tempfile::tempdir().unwrap();
+ 1795:         let path = tmp.path();
+ 1796:         fs::create_dir_all(path.join("00_SYSTEM")).unwrap();
+ 1797:         fs::create_dir_all(path.join("20_RAW_SOURCES")).unwrap();
+ 1798: 
+ 1799:         // 1. Doc A with exact SKU code
+ 1800:         let doc_a_text = "Prodotto SKU-999-X: microprocessore per controller industriale.";
+ 1801:         fs::write(path.join("20_RAW_SOURCES/doc_a.txt"), doc_a_text).unwrap();
+ 1802: 
+ 1803:         // 2. Doc B with conceptual match
+ 1804:         let doc_b_text = "Controller e chip per automazione di processo industriale.";
+ 1805:         fs::write(path.join("20_RAW_SOURCES/doc_b.txt"), doc_b_text).unwrap();
+ 1806: 
+ 1807:         let _cat = crate::catalog::sync_catalog_from_vault(path).unwrap();
+ 1808:         crate::catalog::process_pending_extractions(path).unwrap();
+ 1809: 
+ 1810:         // Index
+ 1811:         search::index_vault_search(path).unwrap();
+ 1812: 
+ 1813:         // Search for exact code SKU-999-X
+ 1814:         let rt = tokio::runtime::Runtime::new().unwrap();
+ 1815:         let res = rt.block_on(hybrid_search_vault(
+ 1816:             path,
+ 1817:             SearchQuery {
+ 1818:                 term: Some("SKU-999-X".into()),
+ 1819:                 ..Default::default()
+ 1820:             },
+ 1821:             None,
+ 1822:             false,
+ 1823:         )).unwrap();
+ 1824: 
+ 1825:         assert!(!res.is_empty());
+ 1826:         assert_eq!(res[0].relative_path, "20_RAW_SOURCES/doc_a.txt");
+ 1827:     }
+ 1828: 
+ 1829:     #[test]
+ 1830:     fn test_hybrid_fusion_pure_semantic_enters_top_ten() {
+ 1831:         let tmp = tempfile::tempdir().unwrap();
+ 1832:         let path = tmp.path();
+ 1833:         fs::create_dir_all(path.join("00_SYSTEM")).unwrap();
+ 1834:         fs::create_dir_all(path.join("20_RAW_SOURCES")).unwrap();
+ 1835: 
+ 1836:         // 1. Create 5 documents that match lexical search for "packaging"
+ 1837:         for i in 1..=5 {
+ 1838:             let doc_text = format!("Specifiche per soluzioni di packaging standard modello numerato {}.", i);
+ 1839:             fs::write(path.join(format!("20_RAW_SOURCES/lex_doc_{:02}.txt", i)), doc_text).unwrap();
+ 1840:         }
+ 1841: 
+ 1842:         // 2. Create 1 document that has ZERO lexical match for "packaging", but high semantic relevance
+ 1843:         let sem_text = "Involucro a tenuta stagna per liquidi criogenici con barriera termica sottovuoto.";
+ 1844:         fs::write(path.join("20_RAW_SOURCES/pure_sem_doc.txt"), sem_text).unwrap();
+ 1845: 
+ 1846:         let _ = crate::catalog::sync_catalog_from_vault(path).unwrap();
+ 1847:         crate::catalog::process_pending_extractions(path).unwrap();
+ 1848:         let cat = crate::catalog::load_catalog(path).unwrap();
+ 1849:         search::index_vault_search(path).unwrap();
+ 1850: 
+ 1851:         // Find document_id of pure_sem_doc
+ 1852:         let pure_sem_doc_id = cat.documents.values()
+ 1853:             .find(|d| d.original_path.contains("pure_sem_doc.txt"))
+ 1854:             .map(|d| d.document_id.clone())
+ 1855:             .expect("pure_sem_doc must be in catalog");
+ 1856: 
+ 1857:         // 3. Build embeddings cache where pure_sem_doc has high similarity vector [1.0, 0.0, 0.0]
+ 1858:         // and lexical docs have orthogonal vector [0.0, 1.0, 0.0]
+ 1859:         let mut cache = EmbeddingsCache {
+ 1860:             version: 1,
+ 1861:             model: DEFAULT_EMBEDDINGS_MODEL.into(),
+ 1862:             dimensions: 3,
+ 1863:             entries: BTreeMap::new(),
+ 1864:             last_updated_at: now_iso(),
+ 1865:         };
+ 1866: 
+ 1867:         for doc in cat.documents.values() {
+ 1868:             let vec = if doc.document_id == pure_sem_doc_id {
+ 1869:                 vec![1.0, 0.0, 0.0]
+ 1870:             } else {
+ 1871:                 vec![0.0, 1.0, 0.0]
+ 1872:             };
+ 1873:             for p in &doc.passages {
+ 1874:                 cache.entries.insert(
+ 1875:                     p.passage_id.clone(),
+ 1876:                     PassageEmbeddingEntry {
+ 1877:                         passage_id: p.passage_id.clone(),
+ 1878:                         document_id: doc.document_id.clone(),
+ 1879:                         relative_path: doc.original_path.clone(),
+ 1880:                         locator: p.locator.clone(),
+ 1881:                         sha256: p.sha256.clone(),
+ 1882:                         embedded_text_sha256: Some(p.sha256.clone()),
+ 1883:                         model: DEFAULT_EMBEDDINGS_MODEL.into(),
+ 1884:                         dimensions: 3,
+ 1885:                         vector: vec.clone(),
+ 1886:                         updated_at: now_iso(),
+ 1887:                     },
+ 1888:                 );
+ 1889:             }
+ 1890:         }
+ 1891:         save_embeddings_cache(path, &mut cache).unwrap();
+ 1892: 
+ 1893:         // 4. Query for "packaging" with query_vector = [1.0, 0.0, 0.0]
+ 1894:         // Pure semantic doc has 0.0 lexical score, but 1.0 cosine similarity
+ 1895:         let rt = tokio::runtime::Runtime::new().unwrap();
+ 1896:         let res = rt.block_on(hybrid_search_vault_with_vector(
+ 1897:             path,
+ 1898:             SearchQuery {
+ 1899:                 term: Some("packaging".into()),
+ 1900:                 limit: Some(10),
+ 1901:                 ..Default::default()
+ 1902:             },
+ 1903:             Some(vec![1.0, 0.0, 0.0]),
+ 1904:             true, // use_semantic = true
+ 1905:         )).unwrap();
+ 1906: 
+ 1907:         // Verify pure semantic document enters top 10
+ 1908:         let found_rank = res.iter().position(|r| r.id == pure_sem_doc_id);
+ 1909:         assert!(found_rank.is_some(), "Document found only by semantics (zero lexical score) MUST enter top 10!");
+ 1910:         let rank = found_rank.unwrap() + 1;
+ 1911:         assert!(rank <= 10, "Pure semantic document rank ({}) must be <= 10", rank);
+ 1912:     }
+ 1913: 
+ 1914:     #[test]
+ 1915:     fn test_hybrid_fusion_coalescence_single_row_when_found_by_both_engines() {
+ 1916:         let tmp = tempfile::tempdir().unwrap();
+ 1917:         let path = tmp.path();
+ 1918:         fs::create_dir_all(path.join("00_SYSTEM")).unwrap();
+ 1919:         fs::create_dir_all(path.join("20_RAW_SOURCES")).unwrap();
+ 1920: 
+ 1921:         let doc_text = "Guaine protettive per cablaggi elettrici e protezione termica.";
+ 1922:         fs::write(path.join("20_RAW_SOURCES/doc_guaine.txt"), doc_text).unwrap();
+ 1923: 
+ 1924:         let _ = crate::catalog::sync_catalog_from_vault(path).unwrap();
+ 1925:         crate::catalog::process_pending_extractions(path).unwrap();
+ 1926:         let cat = crate::catalog::load_catalog(path).unwrap();
+ 1927:         search::index_vault_search(path).unwrap();
+ 1928: 
+ 1929:         let doc_id = cat.documents.values()
+ 1930:             .find(|d| d.original_path.contains("doc_guaine.txt"))
+ 1931:             .map(|d| d.document_id.clone())
+ 1932:             .expect("document must be in catalog");
+ 1933: 
+ 1934:         let mut cache = EmbeddingsCache {
+ 1935:             version: 1,
+ 1936:             model: DEFAULT_EMBEDDINGS_MODEL.into(),
+ 1937:             dimensions: 3,
+ 1938:             entries: BTreeMap::new(),
+ 1939:             last_updated_at: now_iso(),
+ 1940:         };
+ 1941: 
+ 1942:         for doc in cat.documents.values() {
+ 1943:             for p in &doc.passages {
+ 1944:                 cache.entries.insert(
+ 1945:                     p.passage_id.clone(),
+ 1946:                     PassageEmbeddingEntry {
+ 1947:                         passage_id: p.passage_id.clone(),
+ 1948:                         document_id: doc.document_id.clone(),
+ 1949:                         relative_path: doc.original_path.clone(),
+ 1950:                         locator: p.locator.clone(),
+ 1951:                         sha256: p.sha256.clone(),
+ 1952:                         embedded_text_sha256: Some(p.sha256.clone()),
+ 1953:                         model: DEFAULT_EMBEDDINGS_MODEL.into(),
+ 1954:                         dimensions: 3,
+ 1955:                         vector: vec![1.0, 0.0, 0.0],
+ 1956:                         updated_at: now_iso(),
+ 1957:                     },
+ 1958:                 );
+ 1959:             }
+ 1960:         }
+ 1961:         save_embeddings_cache(path, &mut cache).unwrap();
+ 1962: 
+ 1963:         let rt = tokio::runtime::Runtime::new().unwrap();
+ 1964:         let res = rt.block_on(hybrid_search_vault_with_vector(
+ 1965:             path,
+ 1966:             SearchQuery {
+ 1967:                 term: Some("Guaine".into()),
+ 1968:                 limit: Some(10),
+ 1969:                 ..Default::default()
+ 1970:             },
+ 1971:             Some(vec![1.0, 0.0, 0.0]),
+ 1972:             true,
+ 1973:         )).unwrap();
+ 1974: 
+ 1975:         let matching_rows: Vec<_> = res.iter().filter(|r| r.relative_path.contains("doc_guaine.txt")).collect();
+ 1976:         assert_eq!(matching_rows.len(), 1, "Document found by both engines MUST produce exactly one row, got {}", matching_rows.len());
+ 1977:         assert_eq!(res.len(), 1);
+ 1978:         assert_eq!(res[0].id, doc_id);
+ 1979:     }
+ 1980: 
+ 1981:     #[test]
+ 1982:     fn test_hybrid_fusion_coalesced_beats_single_engine_at_score_parity() {
+ 1983:         let tmp = tempfile::tempdir().unwrap();
+ 1984:         let path = tmp.path();
+ 1985:         fs::create_dir_all(path.join("00_SYSTEM")).unwrap();
+ 1986:         fs::create_dir_all(path.join("20_RAW_SOURCES")).unwrap();
+ 1987: 
+ 1988:         // 1. Doc Both: matches lexically for "solvente" and semantically
+ 1989:         fs::write(path.join("20_RAW_SOURCES/doc_both.txt"), "Solvente chimico per decappaggio industriale di alta purezza.").unwrap();
+ 1990:         // 2. Doc LexOnly: matches lexically for "solvente" but orthogonal semantically
+ 1991:         fs::write(path.join("20_RAW_SOURCES/doc_lex_only.txt"), "Solvente sgrassante per superfici metalliche meccaniche.").unwrap();
+ 1992:         // 3. Doc SemOnly: ZERO lexical match for "solvente", but high semantic match
+ 1993:         fs::write(path.join("20_RAW_SOURCES/doc_sem_only.txt"), "Fluido reagente decontaminante per trattamento chimico.").unwrap();
+ 1994: 
+ 1995:         let _ = crate::catalog::sync_catalog_from_vault(path).unwrap();
+ 1996:         crate::catalog::process_pending_extractions(path).unwrap();
+ 1997:         let cat = crate::catalog::load_catalog(path).unwrap();
+ 1998:         search::index_vault_search(path).unwrap();
+ 1999: 
+ 2000:         let mut cache = EmbeddingsCache {
+ 2001:             version: 1,
+ 2002:             model: DEFAULT_EMBEDDINGS_MODEL.into(),
+ 2003:             dimensions: 3,
+ 2004:             entries: BTreeMap::new(),
+ 2005:             last_updated_at: now_iso(),
+ 2006:         };
+ 2007: 
+ 2008:         for doc in cat.documents.values() {
+ 2009:             let vec = if doc.original_path.contains("doc_both.txt") || doc.original_path.contains("doc_sem_only.txt") {
+ 2010:                 vec![1.0, 0.0, 0.0]
+ 2011:             } else {
+ 2012:                 vec![0.0, 1.0, 0.0]
+ 2013:             };
+ 2014:             for p in &doc.passages {
+ 2015:                 cache.entries.insert(
+ 2016:                     p.passage_id.clone(),
+ 2017:                     PassageEmbeddingEntry {
+ 2018:                         passage_id: p.passage_id.clone(),
+ 2019:                         document_id: doc.document_id.clone(),
+ 2020:                         relative_path: doc.original_path.clone(),
+ 2021:                         locator: p.locator.clone(),
+ 2022:                         sha256: p.sha256.clone(),
+ 2023:                         embedded_text_sha256: Some(p.sha256.clone()),
+ 2024:                         model: DEFAULT_EMBEDDINGS_MODEL.into(),
+ 2025:                         dimensions: 3,
+ 2026:                         vector: vec.clone(),
+ 2027:                         updated_at: now_iso(),
+ 2028:                     },
+ 2029:                 );
+ 2030:             }
+ 2031:         }
+ 2032:         save_embeddings_cache(path, &mut cache).unwrap();
+ 2033: 
+ 2034:         let rt = tokio::runtime::Runtime::new().unwrap();
+ 2035:         let res = rt.block_on(hybrid_search_vault_with_vector(
+ 2036:             path,
+ 2037:             SearchQuery {
+ 2038:                 term: Some("solvente".into()),
+ 2039:                 limit: Some(10),
+ 2040:                 ..Default::default()
+ 2041:             },
+ 2042:             Some(vec![1.0, 0.0, 0.0]),
+ 2043:             true,
+ 2044:         )).unwrap();
+ 2045: 
+ 2046:         assert!(res.len() >= 3, "Expected at least 3 documents in results");
+ 2047:         // Doc Both must be strictly Rank 1 because it combines both lexical and semantic scores
+ 2048:         assert_eq!(res[0].relative_path, "20_RAW_SOURCES/doc_both.txt", "Doc Both MUST be Rank 1");
+ 2049:         // Its score must strictly exceed Doc LexOnly and Doc SemOnly
+ 2050:         assert!(res[0].score > res[1].score, "Doc Both score ({}) must be > Rank 2 score ({})", res[0].score, res[1].score);
+ 2051:     }
+ 2052: 
+ 2053:     #[test]
+ 2054:     fn test_hybrid_fusion_high_sem_pure_beats_mediocre_dual_signals() {
+ 2055:         let tmp = tempfile::tempdir().unwrap();
+ 2056:         let path = tmp.path();
+ 2057:         fs::create_dir_all(path.join("00_SYSTEM")).unwrap();
+ 2058:         fs::create_dir_all(path.join("20_RAW_SOURCES")).unwrap();
+ 2059: 
+ 2060:         // Query terms: "alfa beta"
+ 2061:         // 1. Doc High Lex: matches both terms "alfa" and "beta" repeatedly -> max lexical score (lex_norm = 1.0)
+ 2062:         fs::write(
+ 2063:             path.join("20_RAW_SOURCES/doc_high_lex.txt"),
+ 2064:             "Trattamento speciale alfa beta con elementi alfa beta e parametri alfa beta concentrati.",
+ 2065:         ).unwrap();
+ 2066: 
+ 2067:         // 2. Doc Mediocre Dual: matches only ONE term "alfa" in longer text (lex_norm ~ 0.50), and moderate semantic similarity (0.50)
+ 2068:         fs::write(
+ 2069:             path.join("20_RAW_SOURCES/doc_mediocre_dual.txt"),
+ 2070:             "Specifiche tecniche ordinarie di produzione industriale per componenti alfa senza altre caratteristiche rilevanti.",
+ 2071:         ).unwrap();
+ 2072: 
+ 2073:         // 3. Doc High Sem: matches NEITHER "alfa" nor "beta" (lex_norm = 0.0), but high semantic similarity (0.95)
+ 2074:         fs::write(
+ 2075:             path.join("20_RAW_SOURCES/doc_high_sem.txt"),
+ 2076:             "Dispositivo criogenico avanzato per isolamento termico in camere pressurizzate.",
+ 2077:         ).unwrap();
+ 2078: 
+ 2079:         let _ = crate::catalog::sync_catalog_from_vault(path).unwrap();
+ 2080:         crate::catalog::process_pending_extractions(path).unwrap();
+ 2081:         let cat = crate::catalog::load_catalog(path).unwrap();
+ 2082:         search::index_vault_search(path).unwrap();
+ 2083: 
+ 2084:         let mut cache = EmbeddingsCache {
+ 2085:             version: 1,
+ 2086:             model: DEFAULT_EMBEDDINGS_MODEL.into(),
+ 2087:             dimensions: 3,
+ 2088:             entries: BTreeMap::new(),
+ 2089:             last_updated_at: now_iso(),
+ 2090:         };
+ 2091: 
+ 2092:         // Query vector: [1.0, 0.0, 0.0]
+ 2093:         // Doc High Sem: sim = 0.95
+ 2094:         // Doc Mediocre Dual: sim = 0.50
+ 2095:         // Doc High Lex: sim = 0.0
+ 2096:         for doc in cat.documents.values() {
+ 2097:             let vec = if doc.original_path.contains("doc_high_sem.txt") {
+ 2098:                 vec![0.95, 0.312, 0.0]
+ 2099:             } else if doc.original_path.contains("doc_mediocre_dual.txt") {
+ 2100:                 vec![0.50, 0.866, 0.0]
+ 2101:             } else {
+ 2102:                 vec![0.0, 1.0, 0.0]
+ 2103:             };
+ 2104:             for p in &doc.passages {
+ 2105:                 cache.entries.insert(
+ 2106:                     p.passage_id.clone(),
+ 2107:                     PassageEmbeddingEntry {
+ 2108:                         passage_id: p.passage_id.clone(),
+ 2109:                         document_id: doc.document_id.clone(),
+ 2110:                         relative_path: doc.original_path.clone(),
+ 2111:                         locator: p.locator.clone(),
+ 2112:                         sha256: p.sha256.clone(),
+ 2113:                         embedded_text_sha256: Some(p.sha256.clone()),
+ 2114:                         model: DEFAULT_EMBEDDINGS_MODEL.into(),
+ 2115:                         dimensions: 3,
+ 2116:                         vector: vec.clone(),
+ 2117:                         updated_at: now_iso(),
+ 2118:                     },
+ 2119:                 );
+ 2120:             }
+ 2121:         }
+ 2122:         save_embeddings_cache(path, &mut cache).unwrap();
+ 2123: 
+ 2124:         let rt = tokio::runtime::Runtime::new().unwrap();
+ 2125:         let res = rt.block_on(hybrid_search_vault_with_vector(
+ 2126:             path,
+ 2127:             SearchQuery {
+ 2128:                 term: Some("alfa beta".into()),
+ 2129:                 limit: Some(10),
+ 2130:                 ..Default::default()
+ 2131:             },
+ 2132:             Some(vec![1.0, 0.0, 0.0]),
+ 2133:             true,
+ 2134:         )).unwrap();
+ 2135: 
+ 2136:         assert!(res.len() >= 2, "Expected at least 2 documents in results");
+ 2137:         let high_sem_idx = res.iter().position(|r| r.relative_path.contains("doc_high_sem.txt")).expect("doc_high_sem must be present");
+ 2138:         let mediocre_dual_idx = res.iter().position(|r| r.relative_path.contains("doc_mediocre_dual.txt")).expect("doc_mediocre_dual must be present");
+ 2139: 
+ 2140:         // Under C10 formula (F2, k=0.20):
+ 2141:         // doc_high_sem score: max(0.0, sem_norm) + 0.20 * min(0.0, sem_norm) ~ 1.00
+ 2142:         // doc_mediocre_dual score: max(lex_norm, sem_norm) + 0.20 * min(lex_norm, sem_norm) + bonus ~ 0.55 + 0.10 + 0.05 = 0.70 < 1.00
+ 2143:         // doc_high_sem MUST strictly outrank doc_mediocre_dual
+ 2144:         assert!(high_sem_idx < mediocre_dual_idx, "doc_high_sem (rank {}) must beat doc_mediocre_dual (rank {})", high_sem_idx + 1, mediocre_dual_idx + 1);
+ 2145:         assert!(res[high_sem_idx].score > res[mediocre_dual_idx].score, "doc_high_sem score ({}) must be > doc_mediocre_dual score ({})", res[high_sem_idx].score, res[mediocre_dual_idx].score);
+ 2146:     }
+ 2147: 
+ 2148:     #[test]
+ 2149:     fn test_resolve_embeddings_endpoint_defaults_to_openai_when_absent() {
+ 2150:         let tmp = tempfile::tempdir().unwrap();
+ 2151:         let path = tmp.path();
+ 2152:         fs::create_dir_all(path.join("00_SYSTEM")).unwrap();
+ 2153:         assert_eq!(resolve_embeddings_endpoint(path), DEFAULT_EMBEDDINGS_ENDPOINT);
+ 2154: 
+ 2155:         // Even with empty SYNC_PROFILE.json
+ 2156:         fs::write(path.join("00_SYSTEM/SYNC_PROFILE.json"), "{}").unwrap();
+ 2157:         assert_eq!(resolve_embeddings_endpoint(path), DEFAULT_EMBEDDINGS_ENDPOINT);
+ 2158: 
+ 2159:         // When provider is configured as local (endpoint is empty string when port is 0)
+ 2160:         let custom = r#"{"embeddingsProvider":"local"}"#;
+ 2161:         fs::write(path.join("00_SYSTEM/SYNC_PROFILE.json"), custom).unwrap();
+ 2162:         assert_eq!(resolve_embeddings_endpoint(path), "");
+ 2163:         assert_eq!(resolve_embeddings_model(path).as_deref(), Some("bge-m3"));
+ 2164:     }
+ 2165: 
+ 2166:     #[test]
+ 2167:     fn test_provider_report_with_empty_cache_reports_zero_dims_and_total_passages() {
+ 2168:         let tmp = tempfile::tempdir().unwrap();
+ 2169:         let path = tmp.path();
+ 2170:         fs::create_dir_all(path.join("00_SYSTEM")).unwrap();
+ 2171:         fs::create_dir_all(path.join("20_RAW_SOURCES")).unwrap();
+ 2172:         fs::write(path.join("00_SYSTEM/SYNC_PROFILE.json"), r#"{"embeddingsProvider":"local"}"#).unwrap();
+ 2173:         fs::write(path.join("20_RAW_SOURCES/nota.txt"), "Testo di prova per un passaggio del catalogo.").unwrap();
+ 2174:         crate::catalog::sync_catalog_from_vault(path).unwrap();
+ 2175:         crate::catalog::process_pending_extractions(path).unwrap();
+ 2176: 
+ 2177:         let rep = get_embeddings_provider(path, 0);
+ 2178:         assert_eq!(rep.cache_entries, 0);
+ 2179:         assert_eq!(rep.cache_dimensions, 0, "cache assente: nessuna dimensione da mostrare (non il default 1536)");
+ 2180:         assert!(rep.total_passages > 0, "il catalogo di prova deve avere almeno un passaggio");
+ 2181:         assert_eq!(rep.matched_passages, 0);
+ 2182:         assert!(rep.needs_reindex);
+ 2183:     }
+ 2184: 
+ 2185:     #[test]
+ 2186:     fn test_is_loopback_endpoint_security_rules() {
+ 2187:         // Loopback HTTP accepted
+ 2188:         assert_eq!(is_loopback_endpoint("http://127.0.0.1:8088/v1/embeddings").unwrap(), true);
+ 2189:         assert_eq!(is_loopback_endpoint("http://localhost:8088/v1/embeddings").unwrap(), true);
+ 2190:         assert_eq!(is_loopback_endpoint("http://[::1]:8088/v1/embeddings").unwrap(), true);
+ 2191: 
+ 2192:         // External HTTPS accepted
+ 2193:         assert_eq!(is_loopback_endpoint("https://api.openai.com/v1/embeddings").unwrap(), false);
+ 2194:         assert_eq!(is_loopback_endpoint("https://custom-ai.company.internal/v1/embeddings").unwrap(), false);
+ 2195: 
+ 2196:         // Insecure external HTTP REJECTED
+ 2197:         assert!(is_loopback_endpoint("http://api.openai.com/v1/embeddings").is_err());
+ 2198:         assert!(is_loopback_endpoint("http://esempio.esterno/v1/embeddings").is_err());
+ 2199:         assert!(is_loopback_endpoint("http://192.168.1.50:8088/v1/embeddings").is_err());
+ 2200:     }
+ 2201: 
+ 2202:     #[tokio::test]
+ 2203:     async fn test_fetch_embeddings_api_key_rules() {
+ 2204:         // Non-loopback endpoint requires API key
+ 2205:         let res_ext = fetch_openai_embeddings_with_endpoint(
+ 2206:             "https://api.openai.com/v1/embeddings",
+ 2207:             "",
+ 2208:             "text-embedding-3-small",
+ 2209:             &["test".to_string()],
+ 2210:         ).await;
+ 2211:         assert!(res_ext.is_err());
+ 2212:         assert_eq!(res_ext.unwrap_err(), "OpenAI API key non configurata");
+ 2213: 
+ 2214:         // External unencrypted HTTP rejected immediately
+ 2215:         let res_insecure = fetch_openai_embeddings_with_endpoint(
+ 2216:             "http://esempio.esterno/v1/embeddings",
+ 2217:             "key123",
+ 2218:             "text-embedding-3-small",
+ 2219:             &["test".to_string()],
+ 2220:         ).await;
+ 2221:         assert!(res_insecure.is_err());
+ 2222:         assert!(res_insecure.unwrap_err().contains("Rifiutato endpoint HTTP non sicuro"));
+ 2223:     }
+ 2224: 
+ 2225:     #[test]
+ 2226:     fn test_embeddings_cache_invalidates_on_dimension_change() {
+ 2227:         let tmp = tempfile::tempdir().unwrap();
+ 2228:         let path = tmp.path();
+ 2229:         fs::create_dir_all(path.join("00_SYSTEM")).unwrap();
+ 2230: 
+ 2231:         // Create cache with dimensions 1536
+ 2232:         let mut cache = EmbeddingsCache {
+ 2233:             version: 1,
+ 2234:             model: "bge-m3".to_string(),
+ 2235:             dimensions: 1536,
+ 2236:             entries: BTreeMap::new(),
+ 2237:             last_updated_at: now_iso(),
+ 2238:         };
+ 2239:         cache.entries.insert("p1".to_string(), PassageEmbeddingEntry {
+ 2240:             passage_id: "p1".to_string(),
+ 2241:             document_id: "d1".to_string(),
+ 2242:             relative_path: "20_RAW_SOURCES/d1.txt".to_string(),
+ 2243:             locator: "1".to_string(),
+ 2244:             sha256: "hash".to_string(),
+ 2245:             embedded_text_sha256: Some("sha".to_string()),
+ 2246:             model: "bge-m3".to_string(),
+ 2247:             dimensions: 1536,
+ 2248:             vector: vec![0.1; 1536],
+ 2249:             updated_at: now_iso(),
+ 2250:         });
+ 2251:         save_embeddings_cache(path, &mut cache).unwrap();
+ 2252: 
+ 2253:         let loaded = load_embeddings_cache(path).unwrap();
+ 2254:         assert_eq!(loaded.entries.len(), 1);
+ 2255:         assert_eq!(loaded.dimensions, 1536);
+ 2256: 
+ 2257:         // When new dimensions are 1024, cache is detected as invalid
+ 2258:         let target_dim = 1024;
+ 2259:         let mut updated_cache = loaded;
+ 2260:         let mut_cache = std::sync::Arc::make_mut(&mut updated_cache);
+ 2261:         if mut_cache.dimensions != target_dim {
+ 2262:             mut_cache.entries.clear();
+ 2263:             mut_cache.dimensions = target_dim;
+ 2264:         }
+ 2265:         assert_eq!(updated_cache.entries.len(), 0);
+ 2266:         assert_eq!(updated_cache.dimensions, 1024);
+ 2267:     }
+ 2268: 
+ 2269:     #[test]
+ 2270:     fn test_local_provider_rejects_non_loopback_endpoint() {
+ 2271:         let tmp = tempfile::tempdir().unwrap();
+ 2272:         let path = tmp.path();
+ 2273:         fs::create_dir_all(path.join("00_SYSTEM")).unwrap();
+ 2274: 
+ 2275:         // Write local provider with external endpoint
+ 2276:         let bad_profile = r#"{"embeddingsProvider":"local","embeddingsEndpoint":"https://api.openai.com/v1/embeddings"}"#;
+ 2277:         fs::write(path.join("00_SYSTEM/SYNC_PROFILE.json"), bad_profile).unwrap();
+ 2278: 
+ 2279:         let val_res = validate_provider_endpoint(path, "https://api.openai.com/v1/embeddings");
+ 2280:         assert!(val_res.is_err(), "Non-loopback endpoint MUST be rejected when provider is 'local'");
+ 2281:         assert!(val_res.unwrap_err().contains("Rifiutato endpoint esterno"));
+ 2282: 
+ 2283:         // Loopback endpoint MUST be accepted
+ 2284:         let ok_res = validate_provider_endpoint(path, "http://127.0.0.1:8088/v1/embeddings");
+ 2285:         assert!(ok_res.is_ok());
+ 2286:     }
+ 2287: 
+ 2288:     #[tokio::test]
+ 2289:     async fn test_hybrid_search_local_offline_graceful_fallback() {
+ 2290:         let tmp = tempfile::tempdir().unwrap();
+ 2291:         let path = tmp.path();
+ 2292:         fs::create_dir_all(path.join("00_SYSTEM")).unwrap();
+ 2293:         fs::create_dir_all(path.join("01_CLIENTS")).unwrap();
+ 2294: 
+ 2295:         fs::write(
+ 2296:             path.join("01_CLIENTS/note.md"),
+ 2297:             "---\ntitle: Documento Locale Offline\nstatus: approved\n---\nContenuto del documento per test offline.",
+ 2298:         ).unwrap();
+ 2299: 
+ 2300:         search::index_vault_search(path).unwrap();
+ 2301: 
+ 2302:         // Configure provider as local (service offline, port 0)
+ 2303:         set_embeddings_provider(path, "local", 0).unwrap();
+ 2304: 
+ 2305:         // Active port pointing to a closed port (e.g. 59999) where no server is running
+ 2306:         let (results, degraded) = hybrid_search_vault_with_port(
+ 2307:             path,
+ 2308:             SearchQuery {
+ 2309:                 term: Some("Documento".into()),
+ 2310:                 ..Default::default()
+ 2311:             },
+ 2312:             None,
+ 2313:             true,
+ 2314:             Some(59999), // Closed port
+ 2315:         ).await.unwrap();
+ 2316: 
+ 2317:         // Must succeed with lexical search, degraded = true, and NEVER call OpenAI
+ 2318:         assert_eq!(results.len(), 1);
+ 2319:         assert_eq!(results[0].title, "Documento Locale Offline");
+ 2320:         assert!(degraded, "Search must be marked as degraded when local service is offline");
+ 2321:     }
+ 2322: 
+ 2323:     #[test]
+ 2324:     fn test_embeddings_in_memory_cache_no_disk_re_read() {
+ 2325:         let tmp = tempfile::tempdir().unwrap();
+ 2326:         let path = tmp.path();
+ 2327:         fs::create_dir_all(path.join("00_SYSTEM")).unwrap();
+ 2328:         let mut cache = EmbeddingsCache::default();
+ 2329:         cache.entries.insert("p1".into(), PassageEmbeddingEntry {
+ 2330:             passage_id: "p1".into(),
+ 2331:             document_id: "d1".into(),
+ 2332:             relative_path: "01_CLIENTS/c1.md".into(),
+ 2333:             locator: "1".into(),
+ 2334:             sha256: "0000000000000000000000000000000000000000000000000000000000000000".into(),
+ 2335:             embedded_text_sha256: Some("sha".into()),
+ 2336:             model: "bge-m3".into(),
+ 2337:             dimensions: 1024,
+ 2338:             vector: vec![0.1; 1024],
+ 2339:             updated_at: now_iso(),
+ 2340:         });
+ 2341:         save_embeddings_cache(path, &mut cache).unwrap();
+ 2342: 
+ 2343:         if let Ok(mut guard) = EMBEDDINGS_IN_MEMORY_CACHE.lock() { guard.remove(path); }
+ 2344:         let c1 = load_embeddings_cache(path).unwrap();
+ 2345:         assert_eq!(c1.entries.len(), 1);
+ 2346: 
+ 2347:         let c2 = load_embeddings_cache(path).unwrap();
+ 2348:         assert_eq!(c2.entries.len(), 1);
+ 2349:         assert!(std::sync::Arc::ptr_eq(&c1, &c2), "La seconda lettura di EMBEDDINGS_CACHE usa l'istanza Arc in memoria!");
+ 2350: 
+ 2351:         // Ricalcolo cache -> vettori nuovi usati
+ 2352:         cache.entries.insert("p2".into(), PassageEmbeddingEntry {
+ 2353:             passage_id: "p2".into(),
+ 2354:             document_id: "d2".into(),
+ 2355:             relative_path: "01_CLIENTS/c2.md".into(),
+ 2356:             locator: "1".into(),
+ 2357:             sha256: "1111111111111111111111111111111111111111111111111111111111111111".into(),
+ 2358:             embedded_text_sha256: Some("sha".into()),
+ 2359:             model: "bge-m3".into(),
+ 2360:             dimensions: 1024,
+ 2361:             vector: vec![0.2; 1024],
+ 2362:             updated_at: now_iso(),
+ 2363:         });
+ 2364:         save_embeddings_cache(path, &mut cache).unwrap();
+ 2365: 
+ 2366:         let c3 = load_embeddings_cache(path).unwrap();
+ 2367:         assert_eq!(c3.entries.len(), 2, "La ricerca dopo il ricalcolo della cache deve usare i vettori nuovi");
+ 2368:         assert!(!std::sync::Arc::ptr_eq(&c1, &c3), "Il ricalcolo aggiorna l'istanza Arc!");
+ 2369:     }
+ 2370: 
+ 2371:     #[tokio::test]
+ 2372:     async fn test_p4_query_vector_timeout_and_fallback() {
+ 2373:         use std::io::{Read, Write};
+ 2374:         use std::net::TcpListener;
+ 2375:         use std::sync::atomic::{AtomicBool, Ordering};
+ 2376: 
+ 2377:         assert_eq!(BATCH_EMBEDDINGS_TIMEOUT, Duration::from_secs(300));
+ 2378:         assert_eq!(QUERY_EMBEDDINGS_TIMEOUT, Duration::from_secs(10));
+ 2379: 
+ 2380:         let listener = TcpListener::bind("127.0.0.1:0").expect("Failed to bind mock listener");
+ 2381:         let mock_port = listener.local_addr().unwrap().port();
+ 2382:         let running_flag = Arc::new(AtomicBool::new(true));
+ 2383:         let flag_clone = running_flag.clone();
+ 2384: 
+ 2385:         let server_thread = std::thread::spawn(move || {
+ 2386:             listener.set_nonblocking(true).unwrap();
+ 2387:             while flag_clone.load(Ordering::SeqCst) {
+ 2388:                 if let Ok((mut stream, _)) = listener.accept() {
+ 2389:                     let mut req_buf = [0u8; 1024];
+ 2390:                     let n = stream.read(&mut req_buf).unwrap_or(0);
+ 2391:                     let req_str = String::from_utf8_lossy(&req_buf[..n]);
+ 2392: 
+ 2393:                     if req_str.contains("/health") {
+ 2394:                         let resp = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 15\r\n\r\n{\"status\":\"ok\"}";
+ 2395:                         let _ = stream.write_all(resp.as_bytes());
+ 2396:                     } else if req_str.contains("/v1/embeddings") {
+ 2397:                         // Simula elaborazione lenta che supera il timeout breve (50 ms)
+ 2398:                         std::thread::sleep(Duration::from_millis(250));
+ 2399:                         let floats_1024 = vec!["0.1"; 1024].join(",");
+ 2400:                         let json_body = format!("{{\"data\":[{{\"embedding\":[{}]}}]}}", floats_1024);
+ 2401:                         let resp = format!(
+ 2402:                             "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{}",
+ 2403:                             json_body.len(),
+ 2404:                             json_body
+ 2405:                         );
+ 2406:                         let _ = stream.write_all(resp.as_bytes());
+ 2407:                     } else {
+ 2408:                         let resp = "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n";
+ 2409:                         let _ = stream.write_all(resp.as_bytes());
+ 2410:                     }
+ 2411:                 } else {
+ 2412:                     std::thread::sleep(Duration::from_millis(10));
+ 2413:                 }
+ 2414:             }
+ 2415:         });
+ 2416: 
+ 2417:         let endpoint = format!("http://127.0.0.1:{}/v1/embeddings", mock_port);
+ 2418: 
+ 2419:         // 1. Verifica che con timeout breve (50 ms) la richiesta fallisca per timeout
+ 2420:         let res = fetch_openai_embeddings_with_endpoint_and_timeout(
+ 2421:             &endpoint,
+ 2422:             "",
+ 2423:             "bge-m3",
+ 2424:             &["query test".to_string()],
+ 2425:             Some(Duration::from_millis(50)),
+ 2426:         )
+ 2427:         .await;
+ 2428: 
+ 2429:         assert!(res.is_err(), "La richiesta deve andare in timeout");
+ 2430:         let err_msg = res.unwrap_err().to_lowercase();
+ 2431:         assert!(
+ 2432:             err_msg.contains("timed out") || err_msg.contains("timeout"),
+ 2433:             "Il messaggio di errore deve indicare timeout: {}",
+ 2434:             err_msg
+ 2435:         );
+ 2436: 
+ 2437:         // 2. Crea vault temporaneo con catalog e cache e verifica fallback trasparente
+ 2438:         let dir = tempfile::tempdir().unwrap();
+ 2439:         let path = dir.path();
+ 2440:         std::fs::create_dir_all(path.join("00_SYSTEM")).unwrap();
+ 2441:         std::fs::create_dir_all(path.join("01_CLIENTS")).unwrap();
+ 2442:         std::fs::write(path.join("01_CLIENTS/doc.md"), "# Alpha Document\nContenuto di prova per ricerca parole.").unwrap();
+ 2443: 
+ 2444:         let mut cat = crate::catalog::sync_catalog_from_vault(path).unwrap();
+ 2445:         let doc_id = crate::catalog::make_document_id("01_CLIENTS/doc.md");
+ 2446:         let doc = cat.documents.get_mut(&doc_id).unwrap();
+ 2447:         doc.extraction_status = crate::catalog::ExtractionStatus::Ready;
+ 2448:         doc.passages.push(DocumentPassage {
+ 2449:             passage_id: format!("{}_p0", doc_id),
+ 2450:             locator: "P1".into(),
+ 2451:             text: "Contenuto di prova per ricerca parole.".into(),
+ 2452:             char_count: 38,
+ 2453:             sha256: "dummy".into(),
+ 2454:         });
+ 2455:         crate::catalog::save_catalog(path, &mut cat).unwrap();
+ 2456:         crate::search::index_vault_search(path).unwrap();
+ 2457: 
+ 2458:         let mut cache = EmbeddingsCache::default();
+ 2459:         cache.model = "bge-m3".to_string();
+ 2460:         cache.dimensions = 1024;
+ 2461:         cache.entries.insert(format!("{}_p0", doc_id), PassageEmbeddingEntry {
+ 2462:             passage_id: format!("{}_p0", doc_id),
+ 2463:             document_id: doc_id.clone(),
+ 2464:             relative_path: "01_CLIENTS/doc.md".into(),
+ 2465:             locator: "P1".into(),
+ 2466:             sha256: "dummy".into(),
+ 2467:             embedded_text_sha256: Some("sha".into()),
+ 2468:             model: "bge-m3".into(),
+ 2469:             dimensions: 1024,
+ 2470:             vector: vec![0.1; 1024],
+ 2471:             updated_at: now_iso(),
+ 2472:         });
+ 2473:         save_embeddings_cache(path, &mut cache).unwrap();
+ 2474:         let _ = set_embeddings_provider(path, "local", mock_port);
+ 2475: 
+ 2476:         let query = SearchQuery {
+ 2477:             term: Some("Alpha Document".into()),
+ 2478:             category: None,
+ 2479:             client: None,
+ 2480:             project: None,
+ 2481:             tags: None,
+ 2482:             status: None,
+ 2483:             limit: Some(10),
+ 2484:             offset: None,
+ 2485:         };
+ 2486: 
+ 2487:         let (items, _, _, _) = hybrid_search_vault_with_port_filtered_timed::<fn(&search::SearchDocumentRecord) -> bool>(
+ 2488:             path,
+ 2489:             query,
+ 2490:             None,
+ 2491:             true,
+ 2492:             Some(mock_port),
+ 2493:             None,
+ 2494:         )
+ 2495:         .await
+ 2496:         .unwrap();
+ 2497: 
+ 2498:         assert!(!items.is_empty(), "I risultati lessicali devono essere comunque restituiti");
+ 2499: 
+ 2500:         // Cleanup
+ 2501:         running_flag.store(false, Ordering::SeqCst);
+ 2502:         let _ = server_thread.join();
+ 2503:     }
+ 2504: }

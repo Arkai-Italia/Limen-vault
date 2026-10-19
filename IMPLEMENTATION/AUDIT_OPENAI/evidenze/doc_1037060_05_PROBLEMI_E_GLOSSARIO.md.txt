@@ -1,0 +1,81 @@
+1: ---
+2: title: "LIMEN Vault — Problemi comuni e glossario"
+3: type: help
+4: created_at: "2026-09-16"
+5: updated_at: "2026-09-20"
+6: tags: [limen-vault, troubleshooting, glossario, rag-locale, bm25]
+7: ---
+8: 
+9: # Problemi comuni e glossario
+10: 
+11: Torna all'indice: [[00_INDICE]]
+12: 
+13: **Novità v3:** RAG 100% Locale, Ricerca Ibrida BM25 con normalizzazione sulla lunghezza e Modalità Degradata automatica.
+14: 
+15: ---
+16: 
+17: ## Messaggi dell'app e cosa fare
+18: 
+19: | Messaggio | Causa | Cosa fare |
+20: | --- | --- | --- |
+21: | Modalità degradata (solo ricerca lessicale)... | Il servizio semantico locale `llama-server` non risponde o è spento | Vai in *Avanzate → Collegamenti AI & MCP → Motore semantico* e premi **AVVIA SERVIZIO LOCALE** (il banner non ha pulsanti). Nessun dato esce dal Mac |
+22: | Cache semantica assente / Disallineamento dimensioni vettore / Cache semantica incompleta | Nessun vettore ancora calcolato; cambio di fornitore (1536 ↔ 1024); documenti nuovi o modificati | Nel pannello *Motore semantico*, premi **RICALCOLA CACHE SEMANTICA (1024 DIM)**. Il ricalcolo usa uno staging senza cancellare la cache in uso; durata misurata 49 min per 9.458 passaggi su M2 |
+23: | Ricalcolo cache fallito o interrotto: Richiesta embeddings fallita verso http://127.0.0.1:… | Il servizio locale non ha risposto a un lotto entro 300 s (Mac molto carico o servizio bloccato) | Premi **AGGIORNA STATO**; se il servizio non risponde, **ARRESTA** e **AVVIA SERVIZIO LOCALE**, poi **RICALCOLA**: riparte dallo staging |
+24: | `llama-server` rimane in memoria dopo una chiusura forzata dell'app | L'app è stata terminata con Forza uscita o è caduta: il processo figlio sopravvive | Nessuna azione: al riavvio l'app riconosce il processo orfano dal pid registrato e lo termina prima di avviarne uno nuovo |
+25: | llama-server uscito con codice exit status: 1 | Problema all'avvio del binario o modello mancante/danneggiato | Controlla il log diagnostico in `~/Library/Application Support/LIMEN Vault/models/llama-server.log`. Verifica l'integrità del modello (deve essere *INSTALLATO (SHA-256 OK)*) |
+26: | Download del modello fallito o interrotto | Connessione di rete persa durante il download di `bge-m3-Q8_0.gguf` (~605 MB) | Riprova il download oppure copia manualmente il file in `~/Library/Application Support/LIMEN Vault/models/` e usa **SELEZIONA FILE GGUF DA DISCO…** |
+27: | Configura la chiave API nelle Impostazioni | Nessuna chiave OpenAI salvata (necessaria solo per *Chiedi al Vault* generativo) | Impostazioni → SALVA CHIAVE (non serve per il RAG locale bge-m3) |
+28: | Indica un modello API disponibile nel tuo account | Campo modello OpenAI vuoto | Scrivi l'identificativo del modello (es. `gpt-4o`) |
+29: | Accesso al Portachiavi negato o non disponibile | macOS ha negato l'accesso alle chiavi | Riprova e autorizza nella finestra di dialogo di sicurezza macOS |
+30: | Anteprima scaduta. Seleziona nuovamente le fonti | Trascorsi più di 300 s dall'anteprima locale | Premi nuovamente **ANTEPRIMA FONTI** |
+31: | Una fonte è cambiata dopo l'anteprima… | Una nota è stata modificata durante l'attesa | Genera una nuova anteprima |
+32: | Il Vault non ha superato la validazione | Struttura cartelle mancante o frontmatter non valido | Leggi gli errori specifici elencati nella schermata iniziale |
+33: 
+34: ---
+35: 
+36: ## Situazioni tipiche
+37: 
+38: | Sintomo | Verifica | Soluzione |
+39: | --- | --- | --- |
+40: | Compare il banner giallo di Modalità Degradata | La casella *Ricerca Ibrida* è spuntata ma il processo locale è offline | Normale comportamento di sicurezza: la ricerca continua in sola modalità BM25. Avvia il servizio da *Avanzate → Motore semantico* |
+41: | Il servizio locale non parte | C'è un altro processo in ascolto o modello assente | Premi **AGGIORNA STATO** nel Motore Semantico. Se necessario, riavvia l'applicazione LIMEN |
+42: | Ricerca vuota o risultati parziali | Indice non aggiornato o filtri cliente/progetto attivi | Rimuovi i filtri e premi **AGGIORNA INDICE** in Ricerca |
+43: | Ricalcolo cache semantica interrotto | L'app è stata chiusa durante l'indicizzazione dei passaggi | Riapri l'app e premi **RICALCOLA CACHE**: il processo riprende dallo staging atomico senza ripartire da zero |
+44: | Il Vault non si apre | Percorso assoluto corretto? Cartella con 15 cartelle LIMEN? | Correggi il percorso. Non cancellare file per forzare l'apertura |
+45: | CREA NUOVO VAULT rifiuta la cartella | La cartella selezionata esiste già e contiene file | Scegli una cartella nuova o vuota |
+46: | APPROVA respinta in Proposte | Destinazione fuori categoria, file già esistente, estensione non `.md` | Correggi il percorso proposto; spunta la casella di verifica obbligatoria |
+47: | *Differenze rilevate* in Panoramica | Note nuove o modificate rispetto al manifesto precedente | Se le modifiche sono intenzionali è normale. Crea una nuova copia locale |
+48: | Obsidian non si apre | Percorso applicazione Obsidian | Installa Obsidian o apri prima Obsidian con *Open folder as vault* |
+49: 
+50: ---
+51: 
+52: ## Cose da non fare
+53: 
+54: - Non modificare manualmente i file in `00_SYSTEM/` (inclusi `EMBEDDINGS_CACHE.json`, `SEARCH_INDEX.json`, `SYNC_PROFILE.json`).
+55: - Non inserire URL esterni in `SYNC_PROFILE.json`: il fornitore locale accetta unicamente connessioni di loopback `127.0.0.1`.
+56: - Non tradurre i nomi tecnici delle cartelle o delle proprietà YAML (`client`, `type`, `status: approved`).
+57: - Non cancellare file `.staging.json` o file temporanei `.pending-*` durante il calcolo della cache o dei trasferimenti.
+58: - Non disattivare Gatekeeper né rimuovere la quarantena con comandi di bypass non verificati.
+59: 
+60: ---
+61: 
+62: ## Glossario
+63: 
+64: | Termine | Significato |
+65: | --- | --- |
+66: | **RAG 100% Locale** | Retrieval-Augmented Generation interamente eseguito sul Mac a rete zero, senza dipendere da server cloud per la ricerca. |
+67: | **bge-m3** | Modello di intelligenza artificiale per embedding multilingua a 1024 dimensioni (BAAI/bge-m3), quantizzato in formato `Q8_0.gguf` (605,2 MB). |
+68: | **llama-server** | Servizio nativo integrato nel pacchetto dell'applicazione per l'esecuzione locale e accelerata del modello bge-m3 su socket loopback `127.0.0.1`. |
+69: | **BM25** | Algoritmo probabilistico di ranking lessicale con parametri $k_1=1,2$ e $b=0,75$, frequenze reali dei termini e normalizzazione sulla lunghezza del documento (`dl/avgdl`). |
+70: | **Ricerca Ibrida** | Fusione intelligente tra punteggio lessicale BM25 e punteggio semantico vettoriale con formula $F_2$, coalescenza identificativi e bonus di concordanza esatta. |
+71: | **Modalità Degradata** | Meccanismo di ripiego automatico: se il servizio semantico è offline, la ricerca continua istantaneamente in sola modalità BM25 esponendo un banner giallo di avviso. |
+72: | **Staging Cache** | File temporaneo sicuro (`00_SYSTEM/EMBEDDINGS_CACHE.staging.json`) che raccoglie i nuovi vettori progressivamente senza alterare la cache in uso fino al completamento al 100%. |
+73: | **Chunking** | Segmentazione automatica dei testi estratti in passaggi da circa 1.200 caratteri con locator di pagina o paragrafo e contestualizzazione di metadati. |
+74: | **Locator** | Indicazione precisa dell'origine del passaggio all'interno del documento (es. `## Pagina 3` o `Paragrafi 12-14`). |
+75: | **Vault** | Cartella del Mac strutturata secondo le specifiche LIMEN, pienamente compatibile con Obsidian. |
+76: | **Frontmatter** | Blocco iniziale di proprietà YAML in testa a ogni file Markdown, compreso tra due righe `---`. |
+77: | **Fonte originale (RAW)** | Documento memorizzato in `20_RAW_SOURCES`, conservato integro e in sola lettura. |
+78: | **Proposta** | Bozza di conoscenza in `90_PROPOSALS/` in attesa di revisione e approvazione umana con tracciamento della cronologia. |
+79: | **SHA-256** | Impronta crittografica digitale che certifica l'integrità matematica esatta di file, passaggi e copie di sicurezza. |
+80: | **Copia locale (snapshot)** | Backup certificato e immutabile creato all'interno di `00_SYSTEM/SNAPSHOTS/`. |
+81: | **MCP** | Protocollo Model Context Protocol con cui client esterni autorizzati consultano il Vault in sola lettura. |

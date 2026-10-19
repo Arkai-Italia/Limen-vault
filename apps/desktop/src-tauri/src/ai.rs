@@ -1634,6 +1634,8 @@ impl AiState {
     }
     pub fn begin(&self, ticket: &str) -> Result<(Pending, Arc<AtomicBool>), String> {
         let mut active = self.active.lock().map_err(|_| "AI unavailable")?;
+        // Rimuovi eventuali richieste attive precedenti che sono già state annullate dall'utente
+        active.retain(|_, entry| !entry.cancel.load(Ordering::SeqCst));
         if !active.is_empty() {
             if let Some((active_ticket, entry)) = active.iter().next() {
                 let active_elapsed_ms = entry.started_at.elapsed().as_millis() as u64;

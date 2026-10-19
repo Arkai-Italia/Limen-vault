@@ -1,0 +1,29 @@
+2026-09-24T10:24:55.2002049+08:00
+02747c3820d8494dbe3a20180c65f66b855e089c
+02747c3 fix(P1): stop_child terminazione esplicita su Windows senza blocco del mutex dello stato e attesa limitata
+1037060 docs(evidence): add fase-5d.patch and diff-efa0cef-ef2532c.patch
+ SESSION_HANDOVER_WINDOWS_BUILD.md   |  12 +-
+ apps/desktop/src-tauri/src/llama.rs | 224 +++++++++++++++++++++++++++++++-----
+ 2 files changed, 200 insertions(+), 36 deletions(-)
+Process count: 0
+
+  Length LastWriteTime       ProductName    ProductVersion
+  ------ -------------       -----------    --------------
+22339584 24/09/2026 09:17:29 LIMEN Vault v4 0.4.0
+<!DOCTYPE html>
+<html lang="it">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LIMEN Vault v3</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+       1                                    
+llama-server.pid ABSENT
+llama-server.port ABSENT
+
+SHA256 C0520DB2A81C76C6F4EDCD464BB84566B6046C93096A68435E438AC6BC806BF0 E:\Projects\vault_memai_obsi\apps\desktop\src-tauri\target\release\limen-vault.exe

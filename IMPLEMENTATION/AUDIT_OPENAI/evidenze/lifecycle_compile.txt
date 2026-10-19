@@ -1,0 +1,15 @@
+warning: type `LocalServerReport` is more private than the item `LlamaServerState::status`
+  --> E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\lifecycle_harness.rs:91:5
+   |
+91 |     pub fn status(&self) -> LocalServerReport {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method `LlamaServerState::status` is reachable at visibility `pub`
+   |
+note: but type `LocalServerReport` is only usable at visibility `pub(crate)`
+  --> E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\lifecycle_harness.rs:4:1
+   |
+ 4 | struct LocalServerReport { running:bool, port:u16, pid:Option<u32>, model:String, healthy:bool, last_error:Option<String> }
+   | ^^^^^^^^^^^^^^^^^^^^^^^^
+   = note: `#[warn(private_interfaces)]` on by default
+
+warning: 1 warning emitted
+

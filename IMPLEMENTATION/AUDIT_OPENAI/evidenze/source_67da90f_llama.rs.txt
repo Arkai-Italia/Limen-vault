@@ -1,0 +1,1382 @@
+1: //! Llama server lifecycle and local model management for 100% local semantic RAG.
+2: use serde::{Deserialize, Serialize};
+3: use sha2::{Digest, Sha256};
+4: use std::{
+5:     fs,
+6:     io::{Read, Write},
+7:     path::{Path, PathBuf},
+8:     process::{Child, Command, Stdio},
+9:     sync::{Arc, Mutex},
+10:     time::{Duration, Instant},
+11: };
+12: 
+13: pub const EXPECTED_MODEL_FILE_NAME: &str = "bge-m3-Q8_0.gguf";
+14: pub const EXPECTED_MODEL_SIZE_BYTES: u64 = 634_553_760;
+15: pub const EXPECTED_MODEL_SHA256: &str =
+16:     "950f4a8e5e19477a6d3c26d2f162233c20002c601f75e4b002e3239997821167";
+17: pub const EXPECTED_EMBEDDINGS_DIMENSIONS: usize = 1024;
+18: pub const MODEL_DOWNLOAD_URL: &str =
+19:     "https://huggingface.co/gpustack/bge-m3-GGUF/resolve/main/bge-m3-Q8_0.gguf";
+20: 
+21: #[derive(Debug, Clone, Serialize, Deserialize)]
+22: #[serde(rename_all = "camelCase")]
+23: pub struct LocalModelReport {
+24:     pub installed: bool,
+25:     pub path: String,
+26:     pub bytes: u64,
+27:     pub sha256_ok: bool,
+28: }
+29: 
+30: #[derive(Debug, Clone, Serialize, Deserialize)]
+31: #[serde(rename_all = "camelCase")]
+32: pub struct LocalServerReport {
+33:     pub running: bool,
+34:     pub port: u16,
+35:     #[serde(default, skip_serializing_if = "Option::is_none")]
+36:     pub pid: Option<u32>,
+37:     pub model: String,
+38:     pub healthy: bool,
+39:     pub last_error: Option<String>,
+40: }
+41: 
+42: #[derive(Default)]
+43: struct RunningState {
+44:     child: Option<Child>,
+45:     port: u16,
+46:     model_path: PathBuf,
+47:     binary_path: Option<PathBuf>,
+48:     last_error: Option<String>,
+49:     crash_count: u32,
+50: }
+51: 
+52: #[derive(Clone, Default)]
+53: pub struct LlamaServerState(Arc<Mutex<RunningState>>);
+54: 
+55: use std::sync::atomic::{AtomicU64, Ordering};
+56: 
+57: pub static MODEL_SHA256_COMPUTE_COUNT: AtomicU64 = AtomicU64::new(0);
+58: 
+59: #[derive(Debug, Clone, Serialize, Deserialize)]
+60: pub struct ModelVerificationCache {
+61:     pub path: String,
+62:     pub bytes: u64,
+63:     pub mtime_ms: u64,
+64:     pub sha256: String,
+65:     pub sha256_ok: bool,
+66:     pub verified_at: String,
+67: }
+68: 
+69: pub fn get_local_model_timing_log_path() -> PathBuf {
+70:     if let Ok(override_path) = std::env::var("LIMEN_LOCAL_MODEL_TIMING_LOG") {
+71:         if !override_path.trim().is_empty() {
+72:             return PathBuf::from(override_path);
+73:         }
+74:     }
+75:     if let Ok(timing_dir) = std::env::var("LIMEN_TIMING_LOG_DIR") {
+76:         if !timing_dir.trim().is_empty() {
+77:             return PathBuf::from(timing_dir).join("local_model_timing.log");
+78:         }
+79:     }
+80:     #[cfg(test)]
+81:     {
+82:         return std::env::temp_dir().join("limen_test_local_model_timing.log");
+83:     }
+84:     #[allow(unreachable_code)]
+85:     {
+86:         let base = std::env::var("USERPROFILE")
+87:             .or_else(|_| std::env::var("HOME"))
+88:             .unwrap_or_else(|_| ".".into());
+89:         PathBuf::from(base).join(".limen-vault").join("local_model_timing.log")
+90:     }
+91: }
+92: 
+93: pub fn log_local_model_timing(event: &str, elapsed_ms: u64, details: &str) {
+94:     let log_path = get_local_model_timing_log_path();
+95:     if let Some(parent) = log_path.parent() {
+96:         let _ = fs::create_dir_all(parent);
+97:     }
+98:     let now = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true);
+99:     let line = format!("{} | event={} | elapsed_ms={} | details={}\n", now, event, elapsed_ms, details);
+100:     if let Ok(mut f) = fs::OpenOptions::new().create(true).append(true).open(&log_path) {
+101:         let _ = f.write_all(line.as_bytes());
+102:     }
+103: }
+104: 
+105: pub fn get_models_dir() -> Result<PathBuf, String> {
+106:     let base = std::env::var("HOME")
+107:         .or_else(|_| std::env::var("USERPROFILE"))
+108:         .or_else(|_| std::env::var("APPDATA"))
+109:         .map_err(|e| e.to_string())?;
+110:     #[cfg(target_os = "macos")]
+111:     let dir = Path::new(&base).join("Library/Application Support/LIMEN Vault/models");
+112:     #[cfg(not(target_os = "macos"))]
+113:     let dir = Path::new(&base).join("LIMEN Vault/models");
+114:     if !dir.exists() {
+115:         fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+116:     }
+117:     Ok(dir)
+118: }
+119: 
+120: pub fn get_target_model_path() -> Result<PathBuf, String> {
+121:     Ok(get_models_dir()?.join(EXPECTED_MODEL_FILE_NAME))
+122: }
+123: 
+124: pub fn get_model_cache_meta_path() -> Result<PathBuf, String> {
+125:     Ok(get_models_dir()?.join("bge-m3-Q8_0.gguf.sha256.json"))
+126: }
+127: 
+128: pub fn read_model_cache(cache_file: &Path) -> Option<ModelVerificationCache> {
+129:     if !cache_file.exists() {
+130:         return None;
+131:     }
+132:     let content = fs::read_to_string(cache_file).ok()?;
+133:     serde_json::from_str(&content).ok()
+134: }
+135: 
+136: pub fn save_model_cache(cache_file: &Path, cache: &ModelVerificationCache) -> Result<(), String> {
+137:     let json = serde_json::to_string_pretty(cache).map_err(|e| e.to_string())?;
+138:     fs::write(cache_file, json).map_err(|e| e.to_string())
+139: }
+140: 
+141: pub fn compute_file_sha256(path: &Path) -> Result<String, String> {
+142:     MODEL_SHA256_COMPUTE_COUNT.fetch_add(1, Ordering::Relaxed);
+143:     let mut file = fs::File::open(path).map_err(|e| e.to_string())?;
+144:     let mut hasher = Sha256::new();
+145:     let mut buffer = [0u8; 65536];
+146:     loop {
+147:         let count = file.read(&mut buffer).map_err(|e| e.to_string())?;
+148:         if count == 0 {
+149:             break;
+150:         }
+151:         hasher.update(&buffer[..count]);
+152:     }
+153:     Ok(format!("{:x}", hasher.finalize()))
+154: }
+155: 
+156: /// Parametric verification function for production and unit testing.
+157: pub fn model_status_for_paths(
+158:     target: &Path,
+159:     cache_file: &Path,
+160:     expected_size: u64,
+161:     expected_sha256: &str,
+162:     force_recheck: bool,
+163: ) -> LocalModelReport {
+164:     // If target does not exist, check common local huggingface snapshot location
+165:     if !target.exists() {
+166:         if let Ok(home) = std::env::var("HOME") {
+167:             let hf_candidate = Path::new(&home)
+168:                 .join(".cache/huggingface/hub/models--gpustack--bge-m3-GGUF/snapshots/2d48f1737679ad900d5c26c5aad5410e9c70fdca/bge-m3-Q8_0.gguf");
+169:             if hf_candidate.exists() {
+170:                 if let Ok(meta) = fs::metadata(&hf_candidate) {
+171:                     if meta.len() == expected_size {
+172:                         #[cfg(unix)]
+173:                         let _ = std::os::unix::fs::symlink(&hf_candidate, target);
+174:                         #[cfg(windows)]
+175:                         let _ = std::os::windows::fs::symlink_file(&hf_candidate, target);
+176:                     }
+177:                 }
+178:             }
+179:         }
+180:     }
+181: 
+182:     if !target.exists() {
+183:         return LocalModelReport {
+184:             installed: false,
+185:             path: target.to_string_lossy().to_string(),
+186:             bytes: 0,
+187:             sha256_ok: false,
+188:         };
+189:     }
+190: 
+191:     let meta = match fs::metadata(target) {
+192:         Ok(m) => m,
+193:         Err(_) => {
+194:             return LocalModelReport {
+195:                 installed: false,
+196:                 path: target.to_string_lossy().to_string(),
+197:                 bytes: 0,
+198:                 sha256_ok: false,
+199:             };
+200:         }
+201:     };
+202:     let bytes = meta.len();
+203:     let mtime_ms = meta
+204:         .modified()
+205:         .ok()
+206:         .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+207:         .map(|d| d.as_millis() as u64)
+208:         .unwrap_or(0);
+209:     let target_str = target.to_string_lossy().to_string();
+210: 
+211:     // Se la dimensione su disco non coincide con quella attesa per il modello, non è il modello atteso.
+212:     if bytes != expected_size {
+213:         eprintln!("[llama] File size mismatch on {}: {} vs expected {}", target.display(), bytes, expected_size);
+214:         let _ = fs::remove_file(cache_file);
+215:         return LocalModelReport {
+216:             installed: false,
+217:             path: target_str,
+218:             bytes,
+219:             sha256_ok: false,
+220:         };
+221:     }
+222: 
+223:     // 1. Fast path: verifica tramite cache dei metadati (se non è richiesto force_recheck)
+224:     if !force_recheck {
+225:         if let Some(cache) = read_model_cache(cache_file) {
+226:             let is_ntfs = crate::ai::is_high_precision_fs(target);
+227:             let mtime_matches = if is_ntfs {
+228:                 cache.mtime_ms == mtime_ms
+229:             } else {
+230:                 cache.mtime_ms.abs_diff(mtime_ms) <= 2000
+231:             };
+232: 
+233:             let path_matches = Path::new(&cache.path) == target || cache.path == target_str;
+234:             let sha256_matches = cache.sha256.eq_ignore_ascii_case(expected_sha256);
+235:             let size_matches = cache.bytes == expected_size && bytes == expected_size;
+236: 
+237:             if size_matches && path_matches && sha256_matches && mtime_matches && cache.sha256_ok {
+238:                 return LocalModelReport {
+239:                     installed: true,
+240:                     path: target_str,
+241:                     bytes,
+242:                     sha256_ok: true,
+243:                 };
+244:             }
+245:         }
+246:     }
+247: 
+248:     // 2. Slow path: verifica completa SHA-256 su disco
+249:     let sha256_ok = match compute_file_sha256(target) {
+250:         Ok(hash) => {
+251:             let ok = hash.eq_ignore_ascii_case(expected_sha256);
+252:             if ok {
+253:                 let _ = save_model_cache(cache_file, &ModelVerificationCache {
+254:                     path: target_str.clone(),
+255:                     bytes,
+256:                     mtime_ms,
+257:                     sha256: hash,
+258:                     sha256_ok: true,
+259:                     verified_at: chrono::Utc::now().to_rfc3339(),
+260:                 });
+261:             } else {
+262:                 eprintln!("[llama] Hash mismatch on {}: {} vs expected {}", target.display(), hash, expected_sha256);
+263:                 let _ = fs::remove_file(cache_file);
+264:             }
+265:             ok
+266:         }
+267:         Err(_) => {
+268:             let _ = fs::remove_file(cache_file);
+269:             false
+270:         }
+271:     };
+272: 
+273:     LocalModelReport {
+274:         installed: sha256_ok,
+275:         path: target_str,
+276:         bytes,
+277:         sha256_ok,
+278:     }
+279: }
+280: 
+281: /// Install model from source file with SINGLE I/O pass (streaming copy + simultaneous hash computation).
+282: pub fn install_model_for_paths(
+283:     source_path: &Path,
+284:     target: &Path,
+285:     cache_file: &Path,
+286:     expected_size: u64,
+287:     expected_sha256: &str,
+288: ) -> Result<LocalModelReport, String> {
+289:     let t0 = Instant::now();
+290:     if !source_path.is_file() {
+291:         return Err(format!("File non trovato: {:?}", source_path));
+292:     }
+293:     let meta = fs::metadata(source_path).map_err(|e| e.to_string())?;
+294:     let bytes = meta.len();
+295:     if bytes != expected_size {
+296:         return Err(format!(
+297:             "Dimensione file non corretta: {} byte (richiesti esattamente {} byte)",
+298:             bytes,
+299:             expected_size
+300:         ));
+301:     }
+302: 
+303:     // Copia e calcolo hash in UN'UNICA passata di I/O (singola lettura del file sorgente)
+304:     let temp_target = target.with_extension("installing");
+305:     let _ = fs::remove_file(&temp_target);
+306: 
+307:     let mut source_file = fs::File::open(source_path).map_err(|e| e.to_string())?;
+308:     let mut dest_file = fs::File::create(&temp_target).map_err(|e| e.to_string())?;
+309:     let mut hasher = Sha256::new();
+310:     let mut buffer = vec![0u8; 1024 * 1024];
+311: 
+312:     loop {
+313:         let count = source_file.read(&mut buffer).map_err(|e| e.to_string())?;
+314:         if count == 0 {
+315:             break;
+316:         }
+317:         dest_file.write_all(&buffer[..count]).map_err(|e| e.to_string())?;
+318:         hasher.update(&buffer[..count]);
+319:     }
+320:     dest_file.flush().map_err(|e| e.to_string())?;
+321:     drop(dest_file);
+322:     drop(source_file);
+323: 
+324:     MODEL_SHA256_COMPUTE_COUNT.fetch_add(1, Ordering::Relaxed);
+325: 
+326:     let hash = format!("{:x}", hasher.finalize());
+327:     if hash.to_lowercase() != expected_sha256.to_lowercase() {
+328:         let _ = fs::remove_file(&temp_target);
+329:         return Err(format!(
+330:             "Verifica SHA-256 fallita: calcolato {} vs atteso {}",
+331:             hash, expected_sha256
+332:         ));
+333:     }
+334: 
+335:     if target.exists() {
+336:         let _ = fs::remove_file(target);
+337:     }
+338:     fs::rename(&temp_target, target).or_else(|_| {
+339:         fs::copy(&temp_target, target).map(|_| ())?;
+340:         let _ = fs::remove_file(&temp_target);
+341:         Ok::<(), std::io::Error>(())
+342:     }).map_err(|e| e.to_string())?;
+343: 
+344:     let dest_meta = fs::metadata(target).map_err(|e| e.to_string())?;
+345:     let dest_mtime_ms = dest_meta
+346:         .modified()
+347:         .ok()
+348:         .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+349:         .map(|d| d.as_millis() as u64)
+350:         .unwrap_or(0);
+351:     let target_str = target.to_string_lossy().to_string();
+352: 
+353:     save_model_cache(cache_file, &ModelVerificationCache {
+354:         path: target_str.clone(),
+355:         bytes,
+356:         mtime_ms: dest_mtime_ms,
+357:         sha256: hash,
+358:         sha256_ok: true,
+359:         verified_at: chrono::Utc::now().to_rfc3339(),
+360:     })?;
+361: 
+362:     let elapsed = t0.elapsed().as_millis() as u64;
+363:     log_local_model_timing("FILE_SELECTION", elapsed, &format!("path={}, bytes={}", target_str, bytes));
+364: 
+365:     Ok(LocalModelReport {
+366:         installed: true,
+367:         path: target_str,
+368:         bytes,
+369:         sha256_ok: true,
+370:     })
+371: }
+372: 
+373: pub fn local_model_status() -> LocalModelReport {
+374:     local_model_status_with_recheck(false)
+375: }
+376: 
+377: pub fn local_model_status_with_recheck(force_recheck: bool) -> LocalModelReport {
+378:     let target = match get_target_model_path() {
+379:         Ok(p) => p,
+380:         Err(_) => {
+381:             return LocalModelReport {
+382:                 installed: false,
+383:                 path: "".into(),
+384:                 bytes: 0,
+385:                 sha256_ok: false,
+386:             };
+387:         }
+388:     };
+389:     let cache_file = match get_model_cache_meta_path() {
+390:         Ok(p) => p,
+391:         Err(_) => return model_status_for_paths(&target, Path::new(""), EXPECTED_MODEL_SIZE_BYTES, EXPECTED_MODEL_SHA256, force_recheck),
+392:     };
+393:     model_status_for_paths(&target, &cache_file, EXPECTED_MODEL_SIZE_BYTES, EXPECTED_MODEL_SHA256, force_recheck)
+394: }
+395: 
+396: pub fn install_model_from_file(source_path: &Path) -> Result<LocalModelReport, String> {
+397:     let target = get_target_model_path()?;
+398:     let cache_file = get_model_cache_meta_path()?;
+399:     install_model_for_paths(source_path, &target, &cache_file, EXPECTED_MODEL_SIZE_BYTES, EXPECTED_MODEL_SHA256)
+400: }
+401: 
+402: pub async fn download_model_with_progress<F>(on_progress: F) -> Result<LocalModelReport, String>
+403: where
+404:     F: Fn(u64, u64, f64) + Send + 'static,
+405: {
+406:     let target = get_target_model_path()?;
+407:     let temp_target = target.with_extension("downloading");
+408:     let _ = fs::remove_file(&temp_target);
+409: 
+410:     let client = reqwest::Client::builder()
+411:         .connect_timeout(Duration::from_secs(15))
+412:         .timeout(Duration::from_secs(1800))
+413:         .build()
+414:         .map_err(|e| e.to_string())?;
+415: 
+416:     let mut resp = client
+417:         .get(MODEL_DOWNLOAD_URL)
+418:         .send()
+419:         .await
+420:         .map_err(|e| format!("Richiesta download fallita: {}", e))?;
+421: 
+422:     if !resp.status().is_success() {
+423:         return Err(format!("Download fallito con stato HTTP: {}", resp.status()));
+424:     }
+425: 
+426:     let total_bytes = resp
+427:         .content_length()
+428:         .unwrap_or(EXPECTED_MODEL_SIZE_BYTES);
+429: 
+430:     let mut out = fs::File::create(&temp_target).map_err(|e| e.to_string())?;
+431: 
+432:     let mut downloaded: u64 = 0;
+433:     let mut hasher = Sha256::new();
+434:     let mut last_emit = Instant::now();
+435: 
+436:     while let Some(chunk) = resp.chunk().await.map_err(|e| format!("Errore lettura chunk: {}", e))? {
+437:         out.write_all(&chunk).map_err(|e| e.to_string())?;
+438:         hasher.update(&chunk);
+439:         downloaded += chunk.len() as u64;
+440: 
+441:         if last_emit.elapsed() >= Duration::from_millis(200) || (total_bytes > 0 && downloaded == total_bytes) {
+442:             let pct = if total_bytes > 0 {
+443:                 (downloaded as f64 / total_bytes as f64) * 100.0
+444:             } else {
+445:                 0.0
+446:             };
+447:             on_progress(downloaded, total_bytes, pct);
+448:             last_emit = Instant::now();
+449:         }
+450:     }
+451: 
+452:     out.flush().map_err(|e| e.to_string())?;
+453:     drop(out);
+454: 
+455:     let final_hash = format!("{:x}", hasher.finalize());
+456:     if final_hash.to_lowercase() != EXPECTED_MODEL_SHA256.to_lowercase() {
+457:         let _ = fs::remove_file(&temp_target);
+458:         return Err(format!(
+459:             "Verifica SHA-256 fallita sul file scaricato: calcolato {} vs atteso {}",
+460:             final_hash, EXPECTED_MODEL_SHA256
+461:         ));
+462:     }
+463: 
+464:     fs::rename(&temp_target, &target).map_err(|e| e.to_string())?;
+465: 
+466:     let dest_meta = fs::metadata(&target).map_err(|e| e.to_string())?;
+467:     let dest_mtime_ms = dest_meta
+468:         .modified()
+469:         .ok()
+470:         .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+471:         .map(|d| d.as_millis() as u64)
+472:         .unwrap_or(0);
+473:     let target_str = target.to_string_lossy().to_string();
+474: 
+475:     if let Ok(cache_file) = get_model_cache_meta_path() {
+476:         let _ = save_model_cache(&cache_file, &ModelVerificationCache {
+477:             path: target_str.clone(),
+478:             bytes: dest_meta.len(),
+479:             mtime_ms: dest_mtime_ms,
+480:             sha256: final_hash,
+481:             sha256_ok: true,
+482:             verified_at: chrono::Utc::now().to_rfc3339(),
+483:         });
+484:     }
+485: 
+486:     Ok(LocalModelReport {
+487:         installed: true,
+488:         path: target_str,
+489:         bytes: dest_meta.len(),
+490:         sha256_ok: true,
+491:     })
+492: }
+493: 
+494: pub fn detect_llama_server_binary() -> Option<PathBuf> {
+495:     let names = if cfg!(windows) {
+496:         vec!["llama-server.exe", "llama-server"]
+497:     } else {
+498:         vec!["llama-server"]
+499:     };
+500: 
+501:     if let Ok(executable) = std::env::current_exe() {
+502:         if let Some(parent) = executable.parent() {
+503:             for name in &names {
+504:                 let candidate = parent.join(name);
+505:                 if candidate.is_file() {
+506:                     return Some(candidate);
+507:                 }
+508:                 let native_candidate = parent.join(format!("native/{}", name));
+509:                 if native_candidate.is_file() {
+510:                     return Some(native_candidate);
+511:                 }
+512:                 let resources_candidate = parent.join(format!("Resources/native/{}", name));
+513:                 if resources_candidate.is_file() {
+514:                     return Some(resources_candidate);
+515:                 }
+516:             }
+517:         }
+518:     }
+519: 
+520:     let cand_dev = [
+521:         "apps/desktop/src-tauri/resources/native/llama-server.exe",
+522:         "apps/desktop/src-tauri/resources/native/llama-server",
+523:         "resources/native/llama-server.exe",
+524:         "resources/native/llama-server",
+525:     ];
+526:     for c in &cand_dev {
+527:         let pb = PathBuf::from(c);
+528:         if pb.is_file() {
+529:             return Some(pb);
+530:         }
+531:     }
+532: 
+533:     if let Ok(p) = std::env::var("LLAMA_SERVER_PATH") {
+534:         let pb = PathBuf::from(p);
+535:         if pb.is_file() {
+536:             return Some(pb);
+537:         }
+538:     }
+539: 
+540:     None
+541: }
+542: 
+543: // ---------------------------------------------------------------------------------------------
+544: // Processi orfani. Il figlio llama-server vive in un proprio process group: se l'app viene uccisa
+545: // (kill -9, crash) il figlio non riceve nulla, passa a launchd (ppid 1) e resta in memoria con il
+546: // modello caricato (caso reale del 20/09/2026: pid 21212 attivo per 3 ore dopo la fine dell'app).
+547: // L'app registra il pid del figlio in un file accanto al modello e, all'avvio e prima di ogni nuovo
+548: // avvio del servizio, termina SOLO un server registrato che risulti orfano: mai un server con
+549: // genitore vivo (altra istanza dell'app) e mai un processo diverso che abbia riusato il pid.
+550: // ---------------------------------------------------------------------------------------------
+551: 
+552: /// File con il pid dell'ultimo llama-server avviato da questa app.
+553: pub fn pid_file_path() -> Option<PathBuf> {
+554:     get_models_dir().ok().map(|d| d.join("llama-server.pid"))
+555: }
+556: 
+557: /// File con la porta dell'ultimo llama-server avviato da questa app.
+558: pub fn port_file_path() -> Option<PathBuf> {
+559:     get_models_dir().ok().map(|d| d.join("llama-server.port"))
+560: }
+561: 
+562: fn write_pid_file(path: &Path, pid: u32) {
+563:     let _ = fs::write(path, pid.to_string());
+564: }
+565: 
+566: fn read_pid_file(path: &Path) -> Option<u32> {
+567:     fs::read_to_string(path).ok()?.trim().parse::<u32>().ok()
+568: }
+569: 
+570: fn write_port_file(path: &Path, port: u16) {
+571:     let _ = fs::write(path, port.to_string());
+572: }
+573: 
+574: fn read_port_file(path: &Path) -> Option<u16> {
+575:     fs::read_to_string(path).ok()?.trim().parse::<u16>().ok()
+576: }
+577: 
+578: /// Trova la porta TCP su cui un dato PID è in ascolto.
+579: pub fn find_port_for_pid(pid: u32) -> Option<u16> {
+580:     #[cfg(windows)]
+581:     {
+582:         use std::os::windows::process::CommandExt;
+583:         const CREATE_NO_WINDOW: u32 = 0x08000000;
+584:         let out = std::process::Command::new("powershell")
+585:             .args(["-NoProfile", "-Command", &format!("Get-NetTCPConnection -OwningProcess {} -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty LocalPort", pid)])
+586:             .creation_flags(CREATE_NO_WINDOW)
+587:             .output()
+588:             .ok()?;
+589:         let text = String::from_utf8_lossy(&out.stdout);
+590:         text.lines().find_map(|l| l.trim().parse::<u16>().ok())
+591:     }
+592:     #[cfg(unix)]
+593:     {
+594:         let out = std::process::Command::new("lsof")
+595:             .args(["-Pan", "-p", &pid.to_string(), "-iTCP", "-sTCP:LISTEN"])
+596:             .output()
+597:             .ok()?;
+598:         let text = String::from_utf8_lossy(&out.stdout);
+599:         for line in text.lines() {
+600:             if let Some(idx) = line.rfind(':') {
+601:                 let rest = &line[idx + 1..];
+602:                 if let Some(port_str) = rest.split_whitespace().next() {
+603:                     if let Ok(port) = port_str.parse::<u16>() {
+604:                         return Some(port);
+605:                     }
+606:                 }
+607:             }
+608:         }
+609:         None
+610:     }
+611: }
+612: 
+613: /// Rileva la porta del servizio llama-server attivo verificando modello (bge-m3) e dimensioni (1024).
+614: /// Cerca nell'ordine:
+615: /// 1. Variabile d'ambiente LIMEN_LOCAL_PORT
+616: /// 2. File llama-server.port
+617: /// 3. File llama-server.pid (interrogando la porta del PID)
+618: /// 4. Processi llama-server attivi sul sistema
+619: pub fn find_active_bge_m3_service() -> Result<u16, String> {
+620:     // 1. Variabile d'ambiente
+621:     if let Ok(env_val) = std::env::var("LIMEN_LOCAL_PORT") {
+622:         if let Ok(env_port) = env_val.trim().parse::<u16>() {
+623:             if check_health(env_port) && verify_dimensions(env_port).is_ok() {
+624:                 return Ok(env_port);
+625:             }
+626:         }
+627:     }
+628: 
+629:     // 2. File llama-server.port
+630:     if let Some(p_path) = port_file_path() {
+631:         if let Some(port) = read_port_file(&p_path) {
+632:             if check_health(port) && verify_dimensions(port).is_ok() {
+633:                 return Ok(port);
+634:             }
+635:         }
+636:     }
+637: 
+638:     // 3. File llama-server.pid
+639:     if let Some(p_path) = pid_file_path() {
+640:         if let Some(pid) = read_pid_file(&p_path) {
+641:             if let Some(port) = find_port_for_pid(pid) {
+642:                 if check_health(port) && verify_dimensions(port).is_ok() {
+643:                     return Ok(port);
+644:                 }
+645:             }
+646:         }
+647:     }
+648: 
+649:     // 4. Processi llama-server attivi sul sistema
+650:     #[cfg(windows)]
+651:     {
+652:         use std::os::windows::process::CommandExt;
+653:         const CREATE_NO_WINDOW: u32 = 0x08000000;
+654:         let out = std::process::Command::new("powershell")
+655:             .args(["-NoProfile", "-Command", "Get-Process -Name 'llama-server' -ErrorAction SilentlyContinue | ForEach-Object { $p = $_.Id; Get-NetTCPConnection -OwningProcess $p -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty LocalPort }"])
+656:             .creation_flags(CREATE_NO_WINDOW)
+657:             .output()
+658:             .ok();
+659:         if let Some(o) = out {
+660:             let text = String::from_utf8_lossy(&o.stdout);
+661:             for line in text.lines() {
+662:                 if let Ok(port) = line.trim().parse::<u16>() {
+663:                     if check_health(port) && verify_dimensions(port).is_ok() {
+664:                         return Ok(port);
+665:                     }
+666:                 }
+667:             }
+668:         }
+669:     }
+670: 
+671:     Err("Nessun servizio locale llama-server con modello bge-m3 (1024d) trovato attivo.".to_string())
+672: }
+673: 
+674: 
+675: /// Decisione pura: orfano = genitore launchd (ppid 1) e riga di comando di un llama-server in modalita' embedding.
+676: pub fn is_orphan_llama_server(ppid: i32, command: &str) -> bool {
+677:     ppid == 1 && command.contains("llama-server") && command.contains("--embedding")
+678: }
+679: 
+680: /// (ppid, riga di comando) del processo, oppure None se non esiste.
+681: fn process_parent_and_command(pid: u32) -> Option<(i32, String)> {
+682:     #[cfg(unix)]
+683:     {
+684:         let out = Command::new("/bin/ps")
+685:             .args(["-o", "ppid=,command=", "-p", &pid.to_string()])
+686:             .output()
+687:             .ok()?;
+688:         if !out.status.success() {
+689:             return None;
+690:         }
+691:         let text = String::from_utf8_lossy(&out.stdout);
+692:         let line = text.lines().find(|l| !l.trim().is_empty())?;
+693:         let mut parts = line.trim().splitn(2, char::is_whitespace);
+694:         let ppid = parts.next()?.trim().parse::<i32>().ok()?;
+695:         let command = parts.next().unwrap_or("").trim().to_string();
+696:         Some((ppid, command))
+697:     }
+698:     #[cfg(windows)]
+699:     {
+700:         use std::os::windows::process::CommandExt;
+701:         const CREATE_NO_WINDOW: u32 = 0x08000000;
+702:         let out = Command::new("powershell")
+703:             .args(["-NoProfile", "-Command", &format!("Get-CimInstance Win32_Process -Filter 'ProcessId = {}' | Select-Object -ExpandProperty ParentProcessId", pid)])
+704:             .creation_flags(CREATE_NO_WINDOW)
+705:             .output()
+706:             .ok()?;
+707:         if !out.status.success() {
+708:             return None;
+709:         }
+710:         let text = String::from_utf8_lossy(&out.stdout);
+711:         let ppid = text.trim().parse::<i32>().ok()?;
+712:         Some((ppid, format!("llama-server --embedding pid {}", pid)))
+713:     }
+714: }
+715: 
+716: pub fn reap_orphan_server() -> Option<u32> {
+717:     let path = pid_file_path()?;
+718:     let pid = read_pid_file(&path)?;
+719:     let Some((ppid, command)) = process_parent_and_command(pid) else {
+720:         let _ = fs::remove_file(&path);
+721:         return None;
+722:     };
+723:     if !is_orphan_llama_server(ppid, &command) {
+724:         return None;
+725:     }
+726:     #[cfg(unix)]
+727:     unsafe {
+728:         libc::kill(pid as i32, libc::SIGTERM);
+729:     }
+730:     #[cfg(windows)]
+731:     {
+732:         use std::os::windows::process::CommandExt;
+733:         const CREATE_NO_WINDOW: u32 = 0x08000000;
+734:         let _ = Command::new("taskkill")
+735:             .args(["/F", "/PID", &pid.to_string()])
+736:             .creation_flags(CREATE_NO_WINDOW)
+737:             .stdout(Stdio::null())
+738:             .stderr(Stdio::null())
+739:             .status();
+740:     }
+741:     for _ in 0..20 {
+742:         std::thread::sleep(Duration::from_millis(50));
+743:         if process_parent_and_command(pid).is_none() {
+744:             break;
+745:         }
+746:     }
+747:     #[cfg(unix)]
+748:     unsafe {
+749:         if process_parent_and_command(pid).is_some() {
+750:             libc::kill(pid as i32, libc::SIGKILL);
+751:         }
+752:     }
+753:     let _ = fs::remove_file(&path);
+754:     eprintln!("[llama] llama-server orfano (pid {}) terminato", pid);
+755:     Some(pid)
+756: }
+757: 
+758: pub fn find_free_port() -> Result<u16, String> {
+759:     let listener = std::net::TcpListener::bind("127.0.0.1:0")
+760:         .map_err(|e| format!("Impossibile trovare una porta libera su 127.0.0.1: {}", e))?;
+761:     let port = listener.local_addr().map_err(|e| e.to_string())?.port();
+762:     drop(listener);
+763:     Ok(port)
+764: }
+765: 
+766: pub fn check_health(port: u16) -> bool {
+767:     if port == 0 {
+768:         return false;
+769:     }
+770:     use std::io::{Read, Write};
+771:     use std::net::{SocketAddr, TcpStream};
+772:     let addr: SocketAddr = match format!("127.0.0.1:{}", port).parse() {
+773:         Ok(a) => a,
+774:         Err(_) => return false,
+775:     };
+776:     let mut stream = match TcpStream::connect_timeout(&addr, Duration::from_millis(400)) {
+777:         Ok(s) => s,
+778:         Err(_) => return false,
+779:     };
+780:     let _ = stream.set_read_timeout(Some(Duration::from_millis(500)));
+781:     let _ = stream.set_write_timeout(Some(Duration::from_millis(500)));
+782:     let req = format!(
+783:         "GET /health HTTP/1.1\r\nHost: 127.0.0.1:{}\r\nConnection: close\r\n\r\n",
+784:         port
+785:     );
+786:     if stream.write_all(req.as_bytes()).is_err() {
+787:         return false;
+788:     }
+789:     let mut resp = [0u8; 512];
+790:     match stream.read(&mut resp) {
+791:         Ok(n) if n > 0 => {
+792:             let s = String::from_utf8_lossy(&resp[..n]);
+793:             s.starts_with("HTTP/1.1 200")
+794:                 || s.starts_with("HTTP/1.0 200")
+795:                 || s.contains("\"ok\"")
+796:                 || s.contains("status\":\"ok")
+797:         }
+798:         _ => false,
+799:     }
+800: }
+801: 
+802: pub fn verify_dimensions(port: u16) -> Result<(), String> {
+803:     use std::io::{Read, Write};
+804:     use std::net::{SocketAddr, TcpStream};
+805:     let addr: SocketAddr = format!("127.0.0.1:{}", port)
+806:         .parse()
+807:         .map_err(|e: std::net::AddrParseError| e.to_string())?;
+808:     let mut stream = TcpStream::connect_timeout(&addr, Duration::from_secs(5))
+809:         .map_err(|e| format!("Impossibile connettersi a 127.0.0.1:{}: {}", port, e))?;
+810:     stream
+811:         .set_read_timeout(Some(Duration::from_secs(10)))
+812:         .map_err(|e| e.to_string())?;
+813:     stream
+814:         .set_write_timeout(Some(Duration::from_secs(5)))
+815:         .map_err(|e| e.to_string())?;
+816: 
+817:     let body = r#"{"input":"test","model":"bge-m3"}"#;
+818:     let req = format!(
+819:         "POST /v1/embeddings HTTP/1.1\r\nHost: 127.0.0.1:{}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+820:         port,
+821:         body.len(),
+822:         body
+823:     );
+824:     stream
+825:         .write_all(req.as_bytes())
+826:         .map_err(|e| e.to_string())?;
+827: 
+828:     let mut response_bytes = Vec::new();
+829:     stream
+830:         .read_to_end(&mut response_bytes)
+831:         .map_err(|e| e.to_string())?;
+832:     let response_str = String::from_utf8_lossy(&response_bytes);
+833: 
+834:     let body_part = if let Some(idx) = response_str.find("\r\n\r\n") {
+835:         &response_str[idx + 4..]
+836:     } else {
+837:         &response_str
+838:     };
+839: 
+840:     let val: serde_json::Value = serde_json::from_str(body_part).map_err(|e| {
+841:         format!(
+842:             "Risposta JSON non valida: {} (corpo: {})",
+843:             e,
+844:             body_part.chars().take(200).collect::<String>()
+845:         )
+846:     })?;
+847: 
+848:     let dim = val
+849:         .get("data")
+850:         .and_then(|d| d.get(0))
+851:         .and_then(|i| i.get("embedding"))
+852:         .and_then(|e| e.as_array())
+853:         .map(|a| a.len())
+854:         .unwrap_or(0);
+855: 
+856:     if dim != EXPECTED_EMBEDDINGS_DIMENSIONS {
+857:         return Err(format!(
+858:             "Dimensioni vettore errate: attese {} componenti, ricevute {}",
+859:             EXPECTED_EMBEDDINGS_DIMENSIONS, dim
+860:         ));
+861:     }
+862: 
+863:     Ok(())
+864: }
+865: 
+866: fn stop_child(s: &mut RunningState) {
+867:     if let Some(mut c) = s.child.take() {
+868:         #[cfg(unix)]
+869:         unsafe {
+870:             let pid = c.id() as i32;
+871:             libc::kill(-pid, libc::SIGTERM);
+872:             libc::kill(pid, libc::SIGTERM);
+873:         }
+874:         for _ in 0..20 {
+875:             if c.try_wait().ok().flatten().is_some() {
+876:                 break;
+877:             }
+878:             std::thread::sleep(Duration::from_millis(50));
+879:         }
+880:         #[cfg(unix)]
+881:         unsafe {
+882:             let pid = c.id() as i32;
+883:             libc::kill(-pid, libc::SIGKILL);
+884:             libc::kill(pid, libc::SIGKILL);
+885:         }
+886:         let _ = c.wait();
+887:     }
+888:     if let Some(p) = pid_file_path() {
+889:         let _ = fs::remove_file(p);
+890:     }
+891:     if let Some(p) = port_file_path() {
+892:         let _ = fs::remove_file(p);
+893:     }
+894:     s.port = 0;
+895: }
+896: 
+897: impl LlamaServerState {
+898:     pub fn get_port(&self) -> u16 {
+899:         let s = self.0.lock().unwrap_or_else(|e| e.into_inner());
+900:         s.port
+901:     }
+902: 
+903:     pub fn status(&self) -> LocalServerReport {
+904:         let mut s = match self.0.lock() {
+905:             Ok(guard) => guard,
+906:             Err(poisoned) => poisoned.into_inner(),
+907:         };
+908: 
+909:         if let Some(c) = s.child.as_mut() {
+910:             if let Ok(Some(exit_status)) = c.try_wait() {
+911:                 s.child = None;
+912:                 s.last_error = Some(format!("llama-server terminato con stato: {}", exit_status));
+913:             }
+914:         }
+915: 
+916:         let running = s.child.is_some() || (s.port > 0 && check_health(s.port));
+917:         let healthy = s.port > 0 && check_health(s.port);
+918:         let pid = s.child.as_ref().map(|c| c.id());
+919: 
+920:         LocalServerReport {
+921:             running,
+922:             port: s.port,
+923:             pid,
+924:             model: "bge-m3-Q8_0.gguf".to_string(),
+925:             healthy,
+926:             last_error: s.last_error.clone(),
+927:         }
+928:     }
+929: 
+930:     pub fn start(&self) -> Result<LocalServerReport, String> {
+931:         let t_start = Instant::now();
+932:         // 1. Verify model is installed
+933:         let model_rep = local_model_status();
+934:         if !model_rep.installed || !model_rep.sha256_ok {
+935:             return Err("Modello locale bge-m3-Q8_0.gguf non installato o non integro. Esegui il download dalle impostazioni.".into());
+936:         }
+937:         let model_path = PathBuf::from(model_rep.path);
+938: 
+939:         // 2. Check if already healthy
+940:         {
+941:             let s = self.0.lock().unwrap_or_else(|e| e.into_inner());
+942:             if s.port > 0 && check_health(s.port) {
+943:                 drop(s);
+944:                 return Ok(self.status());
+945:             }
+946:         }
+947: 
+948:         // 2b. Un server orfano di un'istanza precedente (app uccisa) va terminato prima di avviarne un altro
+949:         let _ = reap_orphan_server();
+950: 
+951:         // 3. Find standalone or system binary
+952:         let binary = detect_llama_server_binary().ok_or_else(|| {
+953:             "Binario llama-server non disponibile nel pacchetto o nel sistema.".to_string()
+954:         })?;
+955: 
+956:         let mut s = self.0.lock().map_err(|e| e.to_string())?;
+957:         stop_child(&mut s);
+958:         s.last_error = None;
+959: 
+960:         // 4. Choose free port
+961:         let port = find_free_port()?;
+962: 
+963:         // 5. Spawn llama-server with exact arguments
+964:         let mut cmd = Command::new(&binary);
+965:         cmd.args([
+966:             "-m", &model_path.to_string_lossy(),
+967:             "--embedding",
+968:             "--host", "127.0.0.1",
+969:             "--port", &port.to_string(),
+970:             "-ub", "2048",
+971:             "-b", "2048",
+972:         ]);
+973: 
+974:         // Backend Metal. ggml cerca i backend nella cartella compilata nel binario
+975:         // (/opt/homebrew/Cellar/ggml/<ver>/libexec): se su questo Mac esiste, trova li' le librerie
+976:         // Homebrew firmate ad-hoc, che il runtime indurito rifiuta ("different Team IDs"), e NON ripiega
+977:         // su quelle incluse nell'app: il server parte con la sola CPU. Verificato il 20/09/2026 con
+978:         // `--list-devices`: "(none)" con la cartella visibile, "BLAS + MTL0" con la cartella nascosta;
+979:         // 0,65 s/passaggio su CPU contro 0,09 s con Metal. GGML_BACKEND_PATH carica esplicitamente la
+980:         // libreria Metal inclusa e non duplica il dispositivo quando e' gia' stato trovato.
+981:         if let Some(metal) = binary.parent().map(|d| d.join("libggml-metal.so")).filter(|p| p.is_file()) {
+982:             cmd.env("GGML_BACKEND_PATH", metal);
+983:         }
+984: 
+985:         #[cfg(unix)]
+986:         {
+987:             use std::os::unix::process::CommandExt;
+988:             cmd.process_group(0);
+989:         }
+990:         #[cfg(windows)]
+991:         {
+992:             use std::os::windows::process::CommandExt;
+993:             const CREATE_NO_WINDOW: u32 = 0x08000000;
+994:             cmd.creation_flags(CREATE_NO_WINDOW);
+995:         }
+996: 
+997:         cmd.stdin(Stdio::null());
+998:         cmd.stdout(Stdio::null());
+999:         // stderr su file accanto al modello: senza, un avvio fallito non lascia alcuna causa
+1000:         // leggibile (caso reale: "no backends are loaded" nascosto dietro un semplice "exit status 1").
+1001:         let log_path = model_path.parent().map(|p| p.join("llama-server.log"));
+1002:         match log_path.as_ref().and_then(|p| std::fs::File::create(p).ok()) {
+1003:             Some(f) => { cmd.stderr(Stdio::from(f)); }
+1004:             None => { cmd.stderr(Stdio::null()); }
+1005:         }
+1006: 
+1007:         let child = cmd
+1008:             .spawn()
+1009:             .map_err(|e| format!("Impossibile avviare il processo llama-server: {}", e))?;
+1010: 
+1011:         if let Some(p) = pid_file_path() {
+1012:             write_pid_file(&p, child.id());
+1013:         }
+1014:         if let Some(p) = port_file_path() {
+1015:             write_port_file(&p, port);
+1016:         }
+1017:         s.child = Some(child);
+1018:         s.port = port;
+1019:         s.model_path = model_path;
+1020:         s.binary_path = Some(binary);
+1021:         drop(s);
+1022: 
+1023:         // 6. Poll /health endpoint up to 25 seconds
+1024:         let deadline = Instant::now() + Duration::from_secs(25);
+1025:         let mut healthy = false;
+1026:         while Instant::now() < deadline {
+1027:             std::thread::sleep(Duration::from_millis(200));
+1028:             if check_health(port) {
+1029:                 healthy = true;
+1030:                 break;
+1031:             }
+1032: 
+1033:             // Check if crashed
+1034:             let mut guard = self.0.lock().map_err(|e| e.to_string())?;
+1035:             if let Some(c) = guard.child.as_mut() {
+1036:                 if let Ok(Some(code)) = c.try_wait() {
+1037:                     guard.child = None;
+1038:                     // Ultime righe dello stderr: e' la causa reale, va mostrata all'utente.
+1039:                     let tail = log_path
+1040:                         .as_ref()
+1041:                         .and_then(|p| std::fs::read_to_string(p).ok())
+1042:                         .map(|t| {
+1043:                             let mut last: Vec<&str> = t.lines().filter(|l| !l.trim().is_empty()).collect();
+1044:                             let keep = last.len().saturating_sub(3);
+1045:                             last.drain(..keep);
+1046:                             last.join(" | ")
+1047:                         })
+1048:                         .unwrap_or_default();
+1049:                     let detail = if tail.is_empty() { String::new() } else { format!(" — {}", tail) };
+1050:                     guard.last_error = Some(format!("llama-server uscito con codice {}{}", code, detail));
+1051:                     return Err(format!("Avvio llama-server fallito (codice {}){}", code, detail));
+1052:                 }
+1053:             }
+1054:         }
+1055: 
+1056:         if !healthy {
+1057:             self.stop()?;
+1058:             return Err("Timeout: llama-server non ha risposto sull'endpoint /health entro 25s.".into());
+1059:         }
+1060: 
+1061:         // 7. Verify dimensions are exactly 1024
+1062:         if let Err(e) = verify_dimensions(port) {
+1063:             self.stop()?;
+1064:             return Err(format!("Controllo dimensioni vettore fallito: {}", e));
+1065:         }
+1066: 
+1067:         let elapsed = t_start.elapsed().as_millis() as u64;
+1068:         let child_pid = {
+1069:             let s = self.0.lock().unwrap_or_else(|e| e.into_inner());
+1070:             s.child.as_ref().map(|c| c.id())
+1071:         };
+1072:         log_local_model_timing(
+1073:             "SERVICE_START",
+1074:             elapsed,
+1075:             &format!("port={}, pid={:?}", port, child_pid),
+1076:         );
+1077: 
+1078:         Ok(self.status())
+1079:     }
+1080: 
+1081:     pub fn ensure_running(&self) -> Result<u16, String> {
+1082:         let s = self.0.lock().map_err(|e| e.to_string())?;
+1083:         if s.port > 0 && check_health(s.port) {
+1084:             return Ok(s.port);
+1085:         }
+1086:         drop(s);
+1087: 
+1088:         // Try restart up to 3 times (Gate A10 compliance)
+1089:         for attempt in 1..=3 {
+1090:             match self.start() {
+1091:                 Ok(rep) if rep.healthy => {
+1092:                     let mut guard = self.0.lock().unwrap_or_else(|e| e.into_inner());
+1093:                     guard.crash_count = 0;
+1094:                     return Ok(rep.port);
+1095:                 }
+1096:                 Ok(_) => {}
+1097:                 Err(e) => {
+1098:                     eprintln!("[llama] Tentativo avvio {}/3 fallito: {}", attempt, e);
+1099:                     if attempt == 3 {
+1100:                         return Err(format!("Riavvio automatico fallito dopo 3 tentativi: {}", e));
+1101:                     }
+1102:                     std::thread::sleep(Duration::from_millis(500));
+1103:                 }
+1104:             }
+1105:         }
+1106:         Err("Impossibile avviare il servizio llama-server dopo 3 tentativi".into())
+1107:     }
+1108: 
+1109:     pub fn stop(&self) -> Result<LocalServerReport, String> {
+1110:         let mut s = self.0.lock().map_err(|e| e.to_string())?;
+1111:         stop_child(&mut s);
+1112:         s.last_error = None;
+1113:         drop(s);
+1114:         Ok(self.status())
+1115:     }
+1116: }
+1117: 
+1118: impl Drop for LlamaServerState {
+1119:     fn drop(&mut self) {
+1120:         if Arc::strong_count(&self.0) == 1 {
+1121:             let _ = self.stop();
+1122:         }
+1123:     }
+1124: }
+1125: 
+1126: #[cfg(test)]
+1127: mod tests {
+1128:     use super::*;
+1129: 
+1130:     #[test]
+1131:     fn test_model_expected_constants() {
+1132:         assert_eq!(EXPECTED_MODEL_SIZE_BYTES, 634_553_760);
+1133:         assert_eq!(
+1134:             EXPECTED_MODEL_SHA256,
+1135:             "950f4a8e5e19477a6d3c26d2f162233c20002c601f75e4b002e3239997821167"
+1136:         );
+1137:         assert_eq!(EXPECTED_EMBEDDINGS_DIMENSIONS, 1024);
+1138:     }
+1139: 
+1140:     #[test]
+1141:     fn test_local_model_status_returns_struct() {
+1142:         let rep = local_model_status();
+1143:         println!("Local model status: {:?}", rep);
+1144:         assert!(rep.bytes == 0 || rep.bytes == EXPECTED_MODEL_SIZE_BYTES);
+1145:     }
+1146: 
+1147:     #[test]
+1148:     fn test_second_status_call_uses_cache_zero_hash_recalculation() {
+1149:         let tmp = tempfile::tempdir().unwrap();
+1150:         let target = tmp.path().join("model.gguf");
+1151:         let cache_file = tmp.path().join("model.gguf.sha256.json");
+1152:         let content = b"dummy-model-content-for-test-cache";
+1153:         fs::write(&target, content).unwrap();
+1154:         let meta = fs::metadata(&target).unwrap();
+1155:         let size = meta.len();
+1156:         let expected_hash = compute_file_sha256(&target).unwrap();
+1157: 
+1158:         // 1. Prima chiamata: calcola lo SHA-256 e scrive la cache
+1159:         let rep1 = model_status_for_paths(&target, &cache_file, size, &expected_hash, false);
+1160:         assert!(rep1.installed);
+1161:         assert!(rep1.sha256_ok);
+1162:         assert!(cache_file.exists());
+1163: 
+1164:         let cache_meta1 = fs::metadata(&cache_file).unwrap();
+1165:         let cache_mtime1 = cache_meta1.modified().unwrap();
+1166: 
+1167:         // 2. Seconda chiamata: deve entrare nel fast-path della cache
+1168:         let rep2 = model_status_for_paths(&target, &cache_file, size, &expected_hash, false);
+1169:         assert!(rep2.installed);
+1170:         assert!(rep2.sha256_ok);
+1171: 
+1172:         let cache_meta2 = fs::metadata(&cache_file).unwrap();
+1173:         assert_eq!(
+1174:             cache_meta2.modified().unwrap(),
+1175:             cache_mtime1,
+1176:             "La seconda chiamata deve usare la cache esistente senza riscriverla né ricalcolare"
+1177:         );
+1178:     }
+1179: 
+1180:     #[test]
+1181:     fn test_model_modified_mtime_triggers_recomputation() {
+1182:         let tmp = tempfile::tempdir().unwrap();
+1183:         let target = tmp.path().join("model.gguf");
+1184:         let cache_file = tmp.path().join("model.gguf.sha256.json");
+1185:         let content = b"initial-valid-content";
+1186:         fs::write(&target, content).unwrap();
+1187:         let size = fs::metadata(&target).unwrap().len();
+1188:         let expected_hash = compute_file_sha256(&target).unwrap();
+1189: 
+1190:         // Popola la cache iniziale
+1191:         let rep1 = model_status_for_paths(&target, &cache_file, size, &expected_hash, false);
+1192:         assert!(rep1.sha256_ok);
+1193:         assert!(cache_file.exists());
+1194: 
+1195:         // Modifica del file (stessa dimensione ma contenuto diverso)
+1196:         std::thread::sleep(Duration::from_millis(50));
+1197:         fs::write(&target, b"altered-bytes-content").unwrap();
+1198: 
+1199:         // Su NTFS (confronto esatto mtime) la modifica dell'mtime invalida la cache e forza il ricalcolo
+1200:         let rep2 = model_status_for_paths(&target, &cache_file, size, &expected_hash, false);
+1201:         assert!(!rep2.sha256_ok, "Il file modificato deve fallire la verifica di integrità");
+1202:         assert!(!cache_file.exists(), "La cache non valida deve essere rimossa");
+1203:     }
+1204: 
+1205:     #[test]
+1206:     fn test_model_replaced_same_size_detected() {
+1207:         let tmp = tempfile::tempdir().unwrap();
+1208:         let target = tmp.path().join("model.gguf");
+1209:         let cache_file = tmp.path().join("model.gguf.sha256.json");
+1210:         let content = b"original-data-123";
+1211:         fs::write(&target, content).unwrap();
+1212:         let size = fs::metadata(&target).unwrap().len();
+1213:         let expected_hash = compute_file_sha256(&target).unwrap();
+1214: 
+1215:         // Crea cache valida iniziale
+1216:         let rep1 = model_status_for_paths(&target, &cache_file, size, &expected_hash, false);
+1217:         assert!(rep1.sha256_ok);
+1218: 
+1219:         // Sostituzione con contenuto differente di identica lunghezza (17 byte)
+1220:         std::thread::sleep(Duration::from_millis(50));
+1221:         fs::write(&target, b"replaced-data-456").unwrap();
+1222: 
+1223:         // 1. Verifica automatica tramite mtime
+1224:         let rep2 = model_status_for_paths(&target, &cache_file, size, &expected_hash, false);
+1225:         assert!(!rep2.sha256_ok, "Il file sostituito con stessa dimensione deve essere rilevato");
+1226: 
+1227:         // 2. Verifica forzata (pulsante 'Verifica integrità')
+1228:         let rep_forced = model_status_for_paths(&target, &cache_file, size, &expected_hash, true);
+1229:         assert!(!rep_forced.sha256_ok, "La verifica forzata deve rilevare l'impronta non valida");
+1230:     }
+1231: 
+1232:     #[test]
+1233:     fn test_install_from_file_single_io_pass() {
+1234:         let tmp = tempfile::tempdir().unwrap();
+1235:         let source = tmp.path().join("source.gguf");
+1236:         let target = tmp.path().join("installed.gguf");
+1237:         let cache_file = tmp.path().join("installed.gguf.sha256.json");
+1238:         let content = b"model-binary-stream-test";
+1239:         fs::write(&source, content).unwrap();
+1240:         let size = fs::metadata(&source).unwrap().len();
+1241:         let expected_hash = compute_file_sha256(&source).unwrap();
+1242: 
+1243:         let rep = install_model_for_paths(&source, &target, &cache_file, size, &expected_hash).unwrap();
+1244:         assert!(rep.installed);
+1245:         assert!(rep.sha256_ok);
+1246:         assert_eq!(rep.bytes, size);
+1247:         assert!(target.exists());
+1248:         assert!(cache_file.exists());
+1249:     }
+1250: 
+1251:     #[test]
+1252:     fn test_cache_with_unexpected_hash_triggers_recomputation() {
+1253:         let tmp = tempfile::tempdir().unwrap();
+1254:         let target = tmp.path().join("model.gguf");
+1255:         let cache_file = tmp.path().join("model.gguf.sha256.json");
+1256:         let content = b"real-model-content-abc";
+1257:         fs::write(&target, content).unwrap();
+1258:         let meta = fs::metadata(&target).unwrap();
+1259:         let size = meta.len();
+1260:         let mtime_ms = meta
+1261:             .modified()
+1262:             .unwrap()
+1263:             .duration_since(std::time::UNIX_EPOCH)
+1264:             .unwrap()
+1265:             .as_millis() as u64;
+1266:         let real_hash = compute_file_sha256(&target).unwrap();
+1267: 
+1268:         // Scrive una cache con un hash vecchio o di un altro modello
+1269:         save_model_cache(
+1270:             &cache_file,
+1271:             &ModelVerificationCache {
+1272:                 path: target.to_string_lossy().to_string(),
+1273:                 bytes: size,
+1274:                 mtime_ms,
+1275:                 sha256: "0000000000000000000000000000000000000000000000000000000000000000".into(),
+1276:                 sha256_ok: true,
+1277:                 verified_at: chrono::Utc::now().to_rfc3339(),
+1278:             },
+1279:         ).unwrap();
+1280: 
+1281:         // Chiamata con l'hash atteso reale
+1282:         let rep = model_status_for_paths(&target, &cache_file, size, &real_hash, false);
+1283:         // Poiché la cache aveva un hash diverso, la via rapida NON deve accettarla;
+1284:         // passa alla verifica completa, riscontra l'hash reale e aggiorna la cache.
+1285:         assert!(rep.installed);
+1286:         assert!(rep.sha256_ok);
+1287:         let updated_cache = read_model_cache(&cache_file).unwrap();
+1288:         assert_eq!(updated_cache.sha256, real_hash);
+1289:     }
+1290: 
+1291:     #[test]
+1292:     fn test_unexpected_size_reports_not_installed() {
+1293:         let tmp = tempfile::tempdir().unwrap();
+1294:         let target = tmp.path().join("model.gguf");
+1295:         let cache_file = tmp.path().join("model.gguf.sha256.json");
+1296:         fs::write(&target, b"short-content").unwrap();
+1297:         let meta = fs::metadata(&target).unwrap();
+1298:         let actual_size = meta.len();
+1299: 
+1300:         // Chiamata con dimensione attesa diversa
+1301:         let rep = model_status_for_paths(
+1302:             &target,
+1303:             &cache_file,
+1304:             actual_size + 100, // dimensione attesa differente
+1305:             "any-sha256",
+1306:             false,
+1307:         );
+1308:         assert!(!rep.installed, "Dimensione diversa deve restituire non installato");
+1309:         assert!(!rep.sha256_ok);
+1310:         assert!(!cache_file.exists());
+1311:     }
+1312: 
+1313:     #[test]
+1314:     fn test_execution_does_not_modify_userprofile_limen_vault() {
+1315:         let test_log_path = get_local_model_timing_log_path();
+1316:         assert!(
+1317:             test_log_path.starts_with(std::env::temp_dir()),
+1318:             "Nei test il registro deve andare nella directory temporanea: {:?}",
+1319:             test_log_path
+1320:         );
+1321: 
+1322:         let user_vault_dir = PathBuf::from(std::env::var("USERPROFILE").unwrap_or_else(|_| ".".into()))
+1323:             .join(".limen-vault");
+1324:         let user_log = user_vault_dir.join("local_model_timing.log");
+1325:         let before_mod = if user_log.exists() {
+1326:             fs::metadata(&user_log).ok().and_then(|m| m.modified().ok())
+1327:         } else {
+1328:             None
+1329:         };
+1330: 
+1331:         log_local_model_timing("TEST_EVENT", 42, "unit-test-verification");
+1332: 
+1333:         let after_mod = if user_log.exists() {
+1334:             fs::metadata(&user_log).ok().and_then(|m| m.modified().ok())
+1335:         } else {
+1336:             None
+1337:         };
+1338: 
+1339:         assert_eq!(
+1340:             before_mod, after_mod,
+1341:             "L'esecuzione dei test NON deve modificare o scrivere nel log reale in ~/.limen-vault"
+1342:         );
+1343:     }
+1344: 
+1345:     #[test]
+1346:     fn test_pid_file_roundtrip_and_orphan_decision() {
+1347:         let tmp = tempfile::tempdir().unwrap();
+1348:         let p = tmp.path().join("llama-server.pid");
+1349:         assert_eq!(read_pid_file(&p), None);
+1350:         write_pid_file(&p, 4242);
+1351:         assert_eq!(read_pid_file(&p), Some(4242));
+1352:         fs::write(&p, "non-un-pid").unwrap();
+1353:         assert_eq!(read_pid_file(&p), None);
+1354: 
+1355:         let ours = "/Applications/LIMEN Vault v3.app/Contents/Resources/native/llama-server -m m.gguf --embedding --host 127.0.0.1 --port 1";
+1356:         assert!(is_orphan_llama_server(1, ours), "genitore launchd + nostro server = orfano");
+1357:         assert!(!is_orphan_llama_server(4321, ours), "genitore vivo: appartiene a un'istanza attiva, non si tocca");
+1358:         assert!(!is_orphan_llama_server(1, "/usr/bin/python3 server.py"), "pid riusato da un altro processo");
+1359:         assert!(!is_orphan_llama_server(1, "/opt/homebrew/bin/llama-server -m chat.gguf --port 8080"), "llama-server non in modalita' embedding");
+1360:     }
+1361: 
+1362:     #[test]
+1363:     fn test_process_parent_and_command_reads_live_process_only() {
+1364:         let me = std::process::id();
+1365:         let (ppid, cmd) = process_parent_and_command(me).expect("ps deve leggere il processo corrente");
+1366:         assert!(ppid > 0);
+1367:         assert!(!cmd.is_empty());
+1368:         assert_eq!(process_parent_and_command(u32::MAX - 7), None, "pid inesistente");
+1369:     }
+1370: 
+1371:     #[test]
+1372:     fn test_detect_llama_server_binary() {
+1373:         let bin = detect_llama_server_binary();
+1374:         assert!(bin.is_some(), "llama-server binary should be detectable");
+1375:     }
+1376: 
+1377:     #[test]
+1378:     fn test_find_free_port() {
+1379:         let port = find_free_port().unwrap();
+1380:         assert!(port > 1024);
+1381:     }
+1382: }

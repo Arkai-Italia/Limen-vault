@@ -1,0 +1,104 @@
+{
+  "Started": "2026-09-24T19:00:03.4108554+08:00",
+  "Case": "C06",
+  "Phase": "recovered",
+  "SHA": "d8ddd86ec04e3ff17cf13c2e1fb41ee4b29e8eac",
+  "Exe": {
+    "Path": "E:\\Projects\\vault_memai_obsi_collaudo_d8ddd86\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+    "Exists": true,
+    "Length": 22554624,
+    "Created": "2026-09-24T18:47:55.8871459+08:00",
+    "Modified": "2026-09-24T18:47:58.8858986+08:00",
+    "SHA256": "6CEDF05E91504CD275B9A9C5C3D81F6CBFA8A1F4523DBC6F442DCB3DB86CB6F3"
+  },
+  "Environment": [
+    {
+      "LIMEN_MODELS_DIR": null,
+      "Scope": "Process"
+    },
+    {
+      "LIMEN_MODELS_DIR": null,
+      "Scope": "User"
+    },
+    {
+      "LIMEN_MODELS_DIR": null,
+      "Scope": "Machine"
+    }
+  ],
+  "Processes": [
+    {
+      "ProcessId": 29636,
+      "ParentProcessId": 42460,
+      "ExecutablePath": "E:\\Projects\\vault_memai_obsi_collaudo_d8ddd86\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+      "CreationDate": "2026-09-24T18:57:12.605814+08:00",
+      "CommandLine": "\"E:\\Projects\\vault_memai_obsi_collaudo_d8ddd86\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe\""
+    },
+    {
+      "ProcessId": 5760,
+      "ParentProcessId": 29636,
+      "ExecutablePath": "E:\\Projects\\vault_memai_obsi_collaudo_d8ddd86\\apps\\desktop\\src-tauri\\target\\release\\native\\llama-server.exe",
+      "CreationDate": "2026-09-24T18:59:21.56496+08:00",
+      "CommandLine": "\"E:\\Projects\\vault_memai_obsi_collaudo_d8ddd86\\apps\\desktop\\src-tauri\\target\\release\\native/llama-server.exe\" -m \"C:\\Users\\user\\LIMEN Vault/models\\bge-m3-Q8_0.gguf\" --embedding --host 127.0.0.1 --port 53117 -ub 2048 -b 2048"
+    }
+  ],
+  "Shared": [
+    {
+      "Path": "C:\\Users\\user\\LIMEN Vault\\models\\llama-server.pid",
+      "Exists": true,
+      "Length": 4,
+      "Created": "2026-09-24T18:56:45.2853316+08:00",
+      "Modified": "2026-09-24T18:59:21.5805551+08:00",
+      "SHA256": "84B504F830BF8B6D2C233EEAD51D27A08D46A33DDF8225D90197E3F565F5D621"
+    },
+    {
+      "Path": "C:\\Users\\user\\LIMEN Vault\\models\\llama-server.port",
+      "Exists": true,
+      "Length": 5,
+      "Created": "2026-09-24T18:59:21.5816826+08:00",
+      "Modified": "2026-09-24T18:59:21.5816826+08:00",
+      "SHA256": "E8672C6A70357DFD16E4534F21338C891812CE79B39BCC140C118474DEDF2382"
+    },
+    {
+      "Path": "C:\\Users\\user\\LIMEN Vault\\models\\llama-server.log",
+      "Exists": true,
+      "Length": 11339,
+      "Created": "2026-09-23T04:52:59.5270462+08:00",
+      "Modified": "2026-09-24T18:59:25.2435120+08:00",
+      "SHA256": "B33F228CAE431E2618F3C033B3607845E9BDC3797332CB5CF48508595663C5F7"
+    },
+    {
+      "Path": "C:\\Users\\user\\.limen-vault\\ask_timing.log",
+      "Exists": true,
+      "Length": 303136,
+      "Created": "2026-09-23T08:45:19.0203945+08:00",
+      "Modified": "2026-09-24T18:59:21.8941891+08:00",
+      "SHA256": "5A52441A5A6B93810A54EBC149BD02FBF72DBCB9F0A0164C0A723BFBAC5AFE3D"
+    },
+    {
+      "Path": "C:\\Users\\user\\.limen-vault\\local_model_timing.log",
+      "Exists": true,
+      "Length": 39409,
+      "Created": "2026-09-23T13:28:01.7827001+08:00",
+      "Modified": "2026-09-24T18:59:37.9601991+08:00",
+      "SHA256": "C76301154CB50A2DDE52437DF03145718A9A9FBD92EB21C85036D61E2B73CF65"
+    },
+    {
+      "Path": "C:\\Users\\user\\.limen-vault\\ai_settings.json",
+      "Exists": true,
+      "Length": 66,
+      "Created": "2026-09-23T20:51:32.6312001+08:00",
+      "Modified": "2026-09-24T18:57:42.1649451+08:00",
+      "SHA256": "377DD59D15F4F5A9EBA4A70628E587386D0EFA588E2A21E733C5F809FF98E6BF"
+    }
+  ],
+  "Models": [],
+  "Catalog": {
+    "Path": "E:\\VAULT WIN TEST DEV\\00_SYSTEM\\VAULT_CATALOG.json",
+    "Exists": true,
+    "Length": 31605699,
+    "Created": "2026-09-24T18:57:45.7835491+08:00",
+    "Modified": "2026-09-24T18:57:45.8398925+08:00",
+    "SHA256": "764A1603374373DA41E45CFE62375BD7D34FA1FE74216026E0B5E59E2E63D4AE"
+  },
+  "Completed": "2026-09-24T19:00:03.9982880+08:00"
+}

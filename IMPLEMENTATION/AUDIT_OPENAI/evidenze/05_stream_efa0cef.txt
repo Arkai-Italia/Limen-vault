@@ -1,0 +1,343 @@
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 18 is not a char boundary; it is inside 'è' (bytes 17..19) of `Il progetto BNXT è un’iniziativa già avviata`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 18 is not a char boundary; it is inside 'è' (bytes 17..19) of `Il progetto BNXT è un’iniziativa già avviata`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 18 is not a char boundary; it is inside 'è' (bytes 17..19) of `Il progetto BNXT è un’iniziativa già avviata`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 18 is not a char boundary; it is inside 'è' (bytes 17..19) of `Il progetto BNXT è un’iniziativa già avviata`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 39 is not a char boundary; it is inside 'à' (bytes 38..40) of `Il progetto BNXT è un’iniziativa già avviata, perché l’attivit`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 18 is not a char boundary; it is inside 'è' (bytes 17..19) of `Il progetto BNXT è un’iniziativa già avviata`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 39 is not a char boundary; it is inside 'à' (bytes 38..40) of `Il progetto BNXT è un’iniziativa già avviata, perché l’attivit`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 18 is not a char boundary; it is inside 'è' (bytes 17..19) of `Il progetto BNXT è un’iniziativa già avviata`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 24 is not a char boundary; it is inside '’' (bytes 22..25) of `Il progetto BNXT è un’iniziativa già avviata, perc`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 39 is not a char boundary; it is inside 'à' (bytes 38..40) of `Il progetto BNXT è un’iniziativa già avviata, perché l’attivit`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 56 is not a char boundary; it is inside 'é' (bytes 55..57) of `Il progetto BNXT è un’iniziativa già avviata, perché l’attività è utile. 😀`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 18 is not a char boundary; it is inside 'è' (bytes 17..19) of `Il progetto BNXT è un’iniziativa già avviata`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:114:28:
+start byte index 18 is not a char boundary; it is inside 'è' (bytes 17..19) of `Il progetto BNXT è un’iniziativa già avviata, perché l’attività è uti`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 39 is not a char boundary; it is inside 'à' (bytes 38..40) of `Il progetto BNXT è un’iniziativa già avviata, perché l’attivit`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 60 is not a char boundary; it is inside '’' (bytes 59..62) of `Il progetto BNXT è un’iniziativa già avviata, perché l’attività è utile. 😀🚀`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 18 is not a char boundary; it is inside 'è' (bytes 17..19) of `Il progetto BNXT è un’iniziativa già avviata`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 24 is not a char boundary; it is inside '’' (bytes 22..25) of `Il progetto BNXT è un’iniziativa già avviata, perc`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 56 is not a char boundary; it is inside 'é' (bytes 55..57) of `Il progetto BNXT è un’iniziativa già avviata, perché l’attività è utile. 😀`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 39 is not a char boundary; it is inside 'à' (bytes 38..40) of `Il progetto BNXT è un’iniziativa già avviata, perché l’attivit`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 18 is not a char boundary; it is inside 'è' (bytes 17..19) of `Il progetto BNXT è un’iniziativa già avviata`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:114:28:
+start byte index 18 is not a char boundary; it is inside 'è' (bytes 17..19) of `Il progetto BNXT è un’iniziativa già avviata, perché l’attività è uti`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 24 is not a char boundary; it is inside '’' (bytes 22..25) of `Il progetto BNXT è un’iniziativa già avviata, perc`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 56 is not a char boundary; it is inside 'é' (bytes 55..57) of `Il progetto BNXT è un’iniziativa già avviata, perché l’attività è utile. 😀`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 60 is not a char boundary; it is inside '’' (bytes 59..62) of `Il progetto BNXT è un’iniziativa già avviata, perché l’attività è utile. 😀🚀`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 39 is not a char boundary; it is inside 'à' (bytes 38..40) of `Il progetto BNXT è un’iniziativa già avviata, perché l’attivit`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:114:28:
+start byte index 18 is not a char boundary; it is inside 'è' (bytes 17..19) of `Il progetto BNXT è un’iniziativa già avviata, perché l’attività è uti`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 56 is not a char boundary; it is inside 'é' (bytes 55..57) of `Il progetto BNXT è un’iniziativa già avviata, perché l’attività è utile. 😀`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 56 is not a char boundary; it is inside 'é' (bytes 55..57) of `Il progetto BNXT è un’iniziativa già avviata, perché l’attività è utile. 😀`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 60 is not a char boundary; it is inside '’' (bytes 59..62) of `Il progetto BNXT è un’iniziativa già avviata, perché l’attività è utile. 😀🚀`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 18 is not a char boundary; it is inside 'è' (bytes 17..19) of `Il progetto BNXT è un’iniziativa già avviata`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 23 is not a char boundary; it is inside '’' (bytes 22..25) of `Il progetto BNXT è un’iniziativa già avviata, per`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 24 is not a char boundary; it is inside '’' (bytes 22..25) of `Il progetto BNXT è un’iniziativa già avviata, perc`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 39 is not a char boundary; it is inside 'à' (bytes 38..40) of `Il progetto BNXT è un’iniziativa già avviata, perché l’attivit`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 39 is not a char boundary; it is inside 'à' (bytes 38..40) of `Il progetto BNXT è un’iniziativa già avviata, perché l’attivit`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:114:28:
+start byte index 18 is not a char boundary; it is inside 'è' (bytes 17..19) of `Il progetto BNXT è un’iniziativa già avviata, perché l’attività è uti`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 3 is not a char boundary; it is inside 'à' (bytes 2..4) of `èàìòù € 👨‍👩‍👧`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 3 is not a char boundary; it is inside 'à' (bytes 2..4) of `èàìòù € 👨‍👩‍👧`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 3 is not a char boundary; it is inside 'à' (bytes 2..4) of `èàìòù € 👨‍👩‍👧`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 18 is not a char boundary; it is inside '👨' (bytes 15..19) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT*`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 3 is not a char boundary; it is inside 'à' (bytes 2..4) of `èàìòù € 👨‍👩‍👧`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 12 is not a char boundary; it is inside '€' (bytes 11..14) of `èàìòù € 👨‍👩‍👧‍👦 *`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 3 is not a char boundary; it is inside 'à' (bytes 2..4) of `èàìòù € 👨‍👩‍👧`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 18 is not a char boundary; it is inside '👨' (bytes 15..19) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT*`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 24 is not a char boundary; it is inside '👩' (bytes 22..26) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT** (S2)`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 20 is not a char boundary; it is inside '\u{200d}' (bytes 19..22) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT** `
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 3 is not a char boundary; it is inside 'à' (bytes 2..4) of `èàìòù € 👨‍👩‍👧`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 18 is not a char boundary; it is inside '👨' (bytes 15..19) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT*`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 35 is not a char boundary; it is inside '\u{200d}' (bytes 33..36) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT** (S2) conclusion`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 12 is not a char boundary; it is inside '€' (bytes 11..14) of `èàìòù € 👨‍👩‍👧‍👦 *`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 30 is not a char boundary; it is inside '👧' (bytes 29..33) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT** (S2) concl`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 18 is not a char boundary; it is inside '👨' (bytes 15..19) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT*`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 3 is not a char boundary; it is inside 'à' (bytes 2..4) of `èàìòù € 👨‍👩‍👧`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 24 is not a char boundary; it is inside '👩' (bytes 22..26) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT** (S2)`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 27 is not a char boundary; it is inside '\u{200d}' (bytes 26..29) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT** (S2) co`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 30 is not a char boundary; it is inside '👧' (bytes 29..33) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT** (S2) concl`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 12 is not a char boundary; it is inside '€' (bytes 11..14) of `èàìòù € 👨‍👩‍👧‍👦 *`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 37 is not a char boundary; it is inside '👦' (bytes 36..40) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT** (S2) conclusione.`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 16 is not a char boundary; it is inside '👨' (bytes 15..19) of `èàìòù € 👨‍👩‍👧‍👦 **BNX`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 18 is not a char boundary; it is inside '👨' (bytes 15..19) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT*`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 20 is not a char boundary; it is inside '\u{200d}' (bytes 19..22) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT** `
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 37 is not a char boundary; it is inside '👦' (bytes 36..40) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT** (S2) conclusione.`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 24 is not a char boundary; it is inside '👩' (bytes 22..26) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT** (S2)`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 37 is not a char boundary; it is inside '👦' (bytes 36..40) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT** (S2) conclusione.`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 28 is not a char boundary; it is inside '\u{200d}' (bytes 26..29) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT** (S2) con`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 30 is not a char boundary; it is inside '👧' (bytes 29..33) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT** (S2) concl`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 32 is not a char boundary; it is inside '👧' (bytes 29..33) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT** (S2) conclus`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 34 is not a char boundary; it is inside '\u{200d}' (bytes 33..36) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT** (S2) conclusio`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 3 is not a char boundary; it is inside 'à' (bytes 2..4) of `èàìòù € 👨‍👩‍👧`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 3 is not a char boundary; it is inside 'à' (bytes 2..4) of `èàìòù € 👨‍👩‍👧`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 3 is not a char boundary; it is inside 'à' (bytes 2..4) of `èàìòù € 👨‍👩‍👧`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 37 is not a char boundary; it is inside '👦' (bytes 36..40) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT** (S2) conclusione.`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 37 is not a char boundary; it is inside '👦' (bytes 36..40) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT** (S2) conclusione.`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 37 is not a char boundary; it is inside '👦' (bytes 36..40) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT** (S2) conclusione.`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 37 is not a char boundary; it is inside '👦' (bytes 36..40) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT** (S2) conclusione.`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 37 is not a char boundary; it is inside '👦' (bytes 36..40) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT** (S2) conclusione.`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 37 is not a char boundary; it is inside '👦' (bytes 36..40) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT** (S2) conclusione.`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 12 is not a char boundary; it is inside '€' (bytes 11..14) of `èàìòù € 👨‍👩‍👧‍👦 *`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 13 is not a char boundary; it is inside '€' (bytes 11..14) of `èàìòù € 👨‍👩‍👧‍👦 **`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 37 is not a char boundary; it is inside '👦' (bytes 36..40) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT** (S2) conclusione.`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 37 is not a char boundary; it is inside '👦' (bytes 36..40) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT** (S2) conclusione.`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 16 is not a char boundary; it is inside '👨' (bytes 15..19) of `èàìòù € 👨‍👩‍👧‍👦 **BNX`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 17 is not a char boundary; it is inside '👨' (bytes 15..19) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 18 is not a char boundary; it is inside '👨' (bytes 15..19) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT*`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 37 is not a char boundary; it is inside '👦' (bytes 36..40) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT** (S2) conclusione.`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 20 is not a char boundary; it is inside '\u{200d}' (bytes 19..22) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT** `
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 21 is not a char boundary; it is inside '\u{200d}' (bytes 19..22) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT** (`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 37 is not a char boundary; it is inside '👦' (bytes 36..40) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT** (S2) conclusione.`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 23 is not a char boundary; it is inside '👩' (bytes 22..26) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT** (S2`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 24 is not a char boundary; it is inside '👩' (bytes 22..26) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT** (S2)`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 25 is not a char boundary; it is inside '👩' (bytes 22..26) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT** (S2) `
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 37 is not a char boundary; it is inside '👦' (bytes 36..40) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT** (S2) conclusione.`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 27 is not a char boundary; it is inside '\u{200d}' (bytes 26..29) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT** (S2) co`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 28 is not a char boundary; it is inside '\u{200d}' (bytes 26..29) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT** (S2) con`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 37 is not a char boundary; it is inside '👦' (bytes 36..40) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT** (S2) conclusione.`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 30 is not a char boundary; it is inside '👧' (bytes 29..33) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT** (S2) concl`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 31 is not a char boundary; it is inside '👧' (bytes 29..33) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT** (S2) conclu`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 32 is not a char boundary; it is inside '👧' (bytes 29..33) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT** (S2) conclus`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:114:28:
+start byte index 3 is not a char boundary; it is inside 'à' (bytes 2..4) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT** (S2) conclusi`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 34 is not a char boundary; it is inside '\u{200d}' (bytes 33..36) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT** (S2) conclusio`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 35 is not a char boundary; it is inside '\u{200d}' (bytes 33..36) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT** (S2) conclusion`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 37 is not a char boundary; it is inside '👦' (bytes 36..40) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT** (S2) conclusione.`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 37 is not a char boundary; it is inside '👦' (bytes 36..40) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT** (S2) conclusione.`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 37 is not a char boundary; it is inside '👦' (bytes 36..40) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT** (S2) conclusione.`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 37 is not a char boundary; it is inside '👦' (bytes 36..40) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT** (S2) conclusione.`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 37 is not a char boundary; it is inside '👦' (bytes 36..40) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT** (S2) conclusione.`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 37 is not a char boundary; it is inside '👦' (bytes 36..40) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT** (S2) conclusione.`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 37 is not a char boundary; it is inside '👦' (bytes 36..40) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT** (S2) conclusione.`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 37 is not a char boundary; it is inside '👦' (bytes 36..40) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT** (S2) conclusione.`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 37 is not a char boundary; it is inside '👦' (bytes 36..40) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT** (S2) conclusione.`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 37 is not a char boundary; it is inside '👦' (bytes 36..40) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT** (S2) conclusione.`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 37 is not a char boundary; it is inside '👦' (bytes 36..40) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT** (S2) conclusione.`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 37 is not a char boundary; it is inside '👦' (bytes 36..40) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT** (S2) conclusione.`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 37 is not a char boundary; it is inside '👦' (bytes 36..40) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT** (S2) conclusione.`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 37 is not a char boundary; it is inside '👦' (bytes 36..40) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT** (S2) conclusione.`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 37 is not a char boundary; it is inside '👦' (bytes 36..40) of `èàìòù € 👨‍👩‍👧‍👦 **BNXT** (S2) conclusione.`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 1 is not a char boundary; it is inside 'È' (bytes 0..2) of `È un progetto con città e qua`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 24 is not a char boundary; it is inside 'à' (bytes 23..25) of `È un progetto con città e qualità. È un progetto c`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 24 is not a char boundary; it is inside 'à' (bytes 23..25) of `È un progetto con città e qualità. È un progetto c`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:114:28:
+start byte index 24 is not a char boundary; it is inside 'à' (bytes 23..25) of `È un progetto con città e qualità. È un progetto con città e qualità. È un pr`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 35 is not a char boundary; it is inside 'à' (bytes 34..36) of `È un progetto con città e qualità. È un progetto con città e`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 24 is not a char boundary; it is inside 'à' (bytes 23..25) of `È un progetto con città e qualità. È un progetto c`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:114:28:
+start byte index 24 is not a char boundary; it is inside 'à' (bytes 23..25) of `È un progetto con città e qualità. È un progetto con città e qualità. È un pr`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:114:28:
+start byte index 100 is not a char boundary; it is inside 'à' (bytes 99..101) of `È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un pr`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 24 is not a char boundary; it is inside 'à' (bytes 23..25) of `È un progetto con città e qualità. È un progetto c`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:114:28:
+start byte index 39 is not a char boundary; it is inside 'È' (bytes 38..40) of `È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con citt`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:114:28:
+start byte index 39 is not a char boundary; it is inside 'È' (bytes 38..40) of `È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con citt`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:114:28:
+start byte index 24 is not a char boundary; it is inside 'à' (bytes 23..25) of `È un progetto con città e qualità. È un progetto con città e qualità. È un pr`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 35 is not a char boundary; it is inside 'à' (bytes 34..36) of `È un progetto con città e qualità. È un progetto con città e`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:114:28:
+start byte index 24 is not a char boundary; it is inside 'à' (bytes 23..25) of `È un progetto con città e qualità. È un progetto con città e qualità. È un pr`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 225 is not a char boundary; it is inside 'à' (bytes 224..226) of `È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:114:28:
+start byte index 100 is not a char boundary; it is inside 'à' (bytes 99..101) of `È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un pr`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 191 is not a char boundary; it is inside 'È' (bytes 190..192) of `È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qua`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 24 is not a char boundary; it is inside 'à' (bytes 23..25) of `È un progetto con città e qualità. È un progetto c`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:114:28:
+start byte index 35 is not a char boundary; it is inside 'à' (bytes 34..36) of `È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con `
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:114:28:
+start byte index 39 is not a char boundary; it is inside 'È' (bytes 38..40) of `È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con citt`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:114:28:
+start byte index 24 is not a char boundary; it is inside 'à' (bytes 23..25) of `È un progetto con città e qualità. È un progetto con città e qualità. È un pr`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:114:28:
+start byte index 115 is not a char boundary; it is inside 'È' (bytes 114..116) of `È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con citt`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 39 is not a char boundary; it is inside 'È' (bytes 38..40) of `È un progetto con città e qualità. È un progetto con città e qua`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 138 is not a char boundary; it is inside 'à' (bytes 137..139) of `È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un progetto c`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:114:28:
+start byte index 39 is not a char boundary; it is inside 'È' (bytes 38..40) of `È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con citt`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 100 is not a char boundary; it is inside 'à' (bytes 99..101) of `È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un progetto c`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 24 is not a char boundary; it is inside 'à' (bytes 23..25) of `È un progetto con città e qualità. È un progetto c`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:114:28:
+start byte index 24 is not a char boundary; it is inside 'à' (bytes 23..25) of `È un progetto con città e qualità. È un progetto con città e qualità. È un pr`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 115 is not a char boundary; it is inside 'È' (bytes 114..116) of `È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qua`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 1 is not a char boundary; it is inside 'È' (bytes 0..2) of `È un progetto con città e qua`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:114:28:
+start byte index 100 is not a char boundary; it is inside 'à' (bytes 99..101) of `È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un pr`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:114:28:
+start byte index 39 is not a char boundary; it is inside 'È' (bytes 38..40) of `È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con citt`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:114:28:
+start byte index 115 is not a char boundary; it is inside 'È' (bytes 114..116) of `È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con citt`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:114:28:
+start byte index 191 is not a char boundary; it is inside 'È' (bytes 190..192) of `È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con citt`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 229 is not a char boundary; it is inside 'È' (bytes 228..230) of `È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e `[...]
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:114:28:
+start byte index 100 is not a char boundary; it is inside 'à' (bytes 99..101) of `È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un pr`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:114:28:
+start byte index 24 is not a char boundary; it is inside 'à' (bytes 23..25) of `È un progetto con città e qualità. È un progetto con città e qualità. È un pr`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:114:28:
+start byte index 115 is not a char boundary; it is inside 'È' (bytes 114..116) of `È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con citt`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 62 is not a char boundary; it is inside 'à' (bytes 61..63) of `È un progetto con città e qualità. È un progetto con città e qualità. È un progetto c`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 111 is not a char boundary; it is inside 'à' (bytes 110..112) of `È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:114:28:
+start byte index 39 is not a char boundary; it is inside 'È' (bytes 38..40) of `È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con citt`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 225 is not a char boundary; it is inside 'à' (bytes 224..226) of `È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 24 is not a char boundary; it is inside 'à' (bytes 23..25) of `È un progetto con città e qualità. È un progetto c`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 138 is not a char boundary; it is inside 'à' (bytes 137..139) of `È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un progetto c`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:114:28:
+start byte index 111 is not a char boundary; it is inside 'à' (bytes 110..112) of `È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con `
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:114:28:
+start byte index 229 is not a char boundary; it is inside 'È' (bytes 228..230) of `È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e `[...]
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:114:28:
+start byte index 176 is not a char boundary; it is inside 'à' (bytes 175..177) of `È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un pr`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:114:28:
+start byte index 1 is not a char boundary; it is inside 'È' (bytes 0..2) of `È un progetto con città e qualità. È un progetto con citt`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:114:28:
+start byte index 1 is not a char boundary; it is inside 'È' (bytes 0..2) of `È un progetto con città e qualità. È un progetto con citt`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:114:28:
+start byte index 191 is not a char boundary; it is inside 'È' (bytes 190..192) of `È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con citt`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 35 is not a char boundary; it is inside 'à' (bytes 34..36) of `È un progetto con città e qualità. È un progetto con città e`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:114:28:
+start byte index 138 is not a char boundary; it is inside 'à' (bytes 137..139) of `È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un pr`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:97:29:
+start byte index 39 is not a char boundary; it is inside 'È' (bytes 38..40) of `È un progetto con città e qualità. È un progetto con città e qua`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:114:28:
+start byte index 153 is not a char boundary; it is inside 'È' (bytes 152..154) of `È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con citt`
+CAPTURED_PANIC panicked at E:\Projects\MEMAI_V_PRO_WORKSPACE\audit_limen_20260924\evidenze\stream_efa0cef.rs:114:28:
+start byte index 100 is not a char boundary; it is inside 'à' (bytes 99..101) of `È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un progetto con città e qualità. È un pr`
+sanitizer_decoder_cases=240 panics=170
+parser_case=literal_emoji chunks=1..80 panics=0 mismatches=0 output="È già città 😀🚀"
+parser_case=escaped_emoji chunks=1..80 panics=0 mismatches=80 output="È già città "

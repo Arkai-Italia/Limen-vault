@@ -1,0 +1,12 @@
+{
+  "PromptA": "Scrivi una dissertazione lunghissima e dettagliata di tremila parole sulla teoria della crittografia verificabile.",
+  "PromptB": "Dimmi in sole tre parole cosa è ARKAI.",
+  "StreamingActiveConfirmed": true,
+  "ImmediateFollowUpAttempted": true,
+  "ResponseBDurationSec": "7.7",
+  "ResponseBLength": 17,
+  "ResponseBText": "Memoria aumentata",
+  "NoResidualLeakage": true,
+  "ServerInterruptedImmediately": true,
+  "Outcome": "PASS"
+}

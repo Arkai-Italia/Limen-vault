@@ -1,0 +1,2858 @@
+    1: //! Llama server lifecycle and local model management for 100% local semantic RAG.
+    2: use serde::{Deserialize, Serialize};
+    3: use sha2::{Digest, Sha256};
+    4: use std::{
+    5:     fs,
+    6:     io::{Read, Write},
+    7:     path::{Path, PathBuf},
+    8:     process::{Child, Command, Stdio},
+    9:     sync::{Arc, Mutex},
+   10:     time::{Duration, Instant},
+   11: };
+   12: 
+   13: pub const EXPECTED_MODEL_FILE_NAME: &str = "bge-m3-Q8_0.gguf";
+   14: pub const EXPECTED_MODEL_SIZE_BYTES: u64 = 634_553_760;
+   15: pub const EXPECTED_MODEL_SHA256: &str =
+   16:     "950f4a8e5e19477a6d3c26d2f162233c20002c601f75e4b002e3239997821167";
+   17: pub const EXPECTED_EMBEDDINGS_DIMENSIONS: usize = 1024;
+   18: pub const MODEL_DOWNLOAD_URL: &str =
+   19:     "https://huggingface.co/gpustack/bge-m3-GGUF/resolve/main/bge-m3-Q8_0.gguf";
+   20: 
+   21: #[derive(Debug, Clone, Serialize, Deserialize)]
+   22: #[serde(rename_all = "camelCase")]
+   23: pub struct LocalModelReport {
+   24:     pub installed: bool,
+   25:     pub path: String,
+   26:     pub bytes: u64,
+   27:     pub sha256_ok: bool,
+   28: }
+   29: 
+   30: #[derive(Debug, Clone, Serialize, Deserialize)]
+   31: #[serde(rename_all = "camelCase")]
+   32: pub struct LocalServerReport {
+   33:     pub running: bool,
+   34:     pub port: u16,
+   35:     #[serde(default, skip_serializing_if = "Option::is_none")]
+   36:     pub pid: Option<u32>,
+   37:     pub model: String,
+   38:     pub healthy: bool,
+   39:     pub last_error: Option<String>,
+   40: }
+   41: 
+   42: #[derive(Default)]
+   43: struct RunningState {
+   44:     child: Option<Child>,
+   45:     port: u16,
+   46:     adopted_pid: Option<u32>,
+   47:     owned_pid: Option<u32>,
+   48:     model_path: PathBuf,
+   49:     binary_path: Option<PathBuf>,
+   50:     last_error: Option<String>,
+   51:     crash_count: u32,
+   52:     auto_start_failed: bool,
+   53:     auto_start_failure_reason: Option<String>,
+   54:     starting: bool,
+   55: }
+   56: 
+   57: #[derive(Clone, Default)]
+   58: pub struct LlamaServerState(Arc<Mutex<RunningState>>);
+   59: 
+   60: use std::sync::atomic::{AtomicU64, Ordering};
+   61: 
+   62: pub static MODEL_SHA256_COMPUTE_COUNT: AtomicU64 = AtomicU64::new(0);
+   63: 
+   64: #[derive(Debug, Clone, Serialize, Deserialize)]
+   65: pub struct ModelVerificationCache {
+   66:     pub path: String,
+   67:     pub bytes: u64,
+   68:     pub mtime_ms: u64,
+   69:     pub sha256: String,
+   70:     pub sha256_ok: bool,
+   71:     pub verified_at: String,
+   72: }
+   73: 
+   74: pub fn get_local_model_timing_log_path() -> PathBuf {
+   75:     if let Ok(override_path) = std::env::var("LIMEN_LOCAL_MODEL_TIMING_LOG") {
+   76:         if !override_path.trim().is_empty() {
+   77:             return PathBuf::from(override_path);
+   78:         }
+   79:     }
+   80:     if let Ok(timing_dir) = std::env::var("LIMEN_TIMING_LOG_DIR") {
+   81:         if !timing_dir.trim().is_empty() {
+   82:             return PathBuf::from(timing_dir).join("local_model_timing.log");
+   83:         }
+   84:     }
+   85:     #[cfg(test)]
+   86:     {
+   87:         return std::env::temp_dir().join("limen_test_local_model_timing.log");
+   88:     }
+   89:     #[allow(unreachable_code)]
+   90:     {
+   91:         let base = std::env::var("USERPROFILE")
+   92:             .or_else(|_| std::env::var("HOME"))
+   93:             .unwrap_or_else(|_| ".".into());
+   94:         PathBuf::from(base).join(".limen-vault").join("local_model_timing.log")
+   95:     }
+   96: }
+   97: 
+   98: pub fn log_local_model_timing_meta(
+   99:     event: &str,
+  100:     elapsed_ms: u64,
+  101:     service_binary: Option<&Path>,
+  102:     service_pid: Option<u32>,
+  103:     service_port: Option<u16>,
+  104:     details: &str,
+  105: ) {
+  106:     let log_path = get_local_model_timing_log_path();
+  107:     if let Some(parent) = log_path.parent() {
+  108:         let _ = fs::create_dir_all(parent);
+  109:     }
+  110:     let now = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true);
+  111: 
+  112:     let app_exe = std::env::current_exe()
+  113:         .map(|p| p.to_string_lossy().to_string())
+  114:         .unwrap_or_else(|_| "sconosciuto".to_string());
+  115:     let app_pid = std::process::id();
+  116: 
+  117:     let s_bin = service_binary
+  118:         .map(|p| p.to_string_lossy().to_string())
+  119:         .or_else(|| detect_llama_server_binary().map(|p| p.to_string_lossy().to_string()))
+  120:         .unwrap_or_else(|| "non_rilevato".to_string());
+  121:     let s_pid = service_pid.map(|p| p.to_string()).unwrap_or_else(|| "none".to_string());
+  122:     let s_port = service_port.map(|p| p.to_string()).unwrap_or_else(|| "none".to_string());
+  123: 
+  124:     let line = format!(
+  125:         "{} | event={} | elapsed_ms={} | app_exe={} | app_pid={} | service_exe={} | service_pid={} | service_port={} | details={}\n",
+  126:         now, event, elapsed_ms, app_exe, app_pid, s_bin, s_pid, s_port, details
+  127:     );
+  128:     if let Ok(mut f) = fs::OpenOptions::new().create(true).append(true).open(&log_path) {
+  129:         let _ = f.write_all(line.as_bytes());
+  130:     }
+  131: }
+  132: 
+  133: pub fn log_local_model_timing(event: &str, elapsed_ms: u64, details: &str) {
+  134:     log_local_model_timing_meta(event, elapsed_ms, None, None, None, details);
+  135: }
+  136: 
+  137: pub fn rotate_llama_server_logs(logs_dir: &Path, max_files: usize) {
+  138:     if let Ok(entries) = fs::read_dir(logs_dir) {
+  139:         let mut files: Vec<PathBuf> = entries
+  140:             .filter_map(|e| e.ok())
+  141:             .map(|e| e.path())
+  142:             .filter(|p| {
+  143:                 p.is_file()
+  144:                     && p.file_name()
+  145:                         .and_then(|n| n.to_str())
+  146:                         .map(|n| n.starts_with("llama-server_") && n.ends_with(".log"))
+  147:                         .unwrap_or(false)
+  148:             })
+  149:             .collect();
+  150: 
+  151:         files.sort();
+  152: 
+  153:         if files.len() > max_files {
+  154:             let to_remove = files.len() - max_files;
+  155:             for p in files.iter().take(to_remove) {
+  156:                 let _ = fs::remove_file(p);
+  157:             }
+  158:         }
+  159:     }
+  160: }
+  161: 
+  162: pub fn get_models_dir() -> Result<PathBuf, String> {
+  163:     let base = std::env::var("HOME")
+  164:         .or_else(|_| std::env::var("USERPROFILE"))
+  165:         .or_else(|_| std::env::var("APPDATA"))
+  166:         .map_err(|e| e.to_string())?;
+  167:     #[cfg(target_os = "macos")]
+  168:     let dir = Path::new(&base).join("Library/Application Support/LIMEN Vault/models");
+  169:     #[cfg(not(target_os = "macos"))]
+  170:     let dir = Path::new(&base).join("LIMEN Vault/models");
+  171:     if !dir.exists() {
+  172:         fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+  173:     }
+  174:     Ok(dir)
+  175: }
+  176: 
+  177: pub fn get_target_model_path() -> Result<PathBuf, String> {
+  178:     Ok(get_models_dir()?.join(EXPECTED_MODEL_FILE_NAME))
+  179: }
+  180: 
+  181: pub fn get_model_cache_meta_path() -> Result<PathBuf, String> {
+  182:     Ok(get_models_dir()?.join("bge-m3-Q8_0.gguf.sha256.json"))
+  183: }
+  184: 
+  185: pub fn read_model_cache(cache_file: &Path) -> Option<ModelVerificationCache> {
+  186:     if !cache_file.exists() {
+  187:         return None;
+  188:     }
+  189:     let content = fs::read_to_string(cache_file).ok()?;
+  190:     serde_json::from_str(&content).ok()
+  191: }
+  192: 
+  193: pub fn save_model_cache(cache_file: &Path, cache: &ModelVerificationCache) -> Result<(), String> {
+  194:     let json = serde_json::to_string_pretty(cache).map_err(|e| e.to_string())?;
+  195:     fs::write(cache_file, json).map_err(|e| e.to_string())
+  196: }
+  197: 
+  198: pub fn compute_file_sha256(path: &Path) -> Result<String, String> {
+  199:     MODEL_SHA256_COMPUTE_COUNT.fetch_add(1, Ordering::Relaxed);
+  200:     let mut file = fs::File::open(path).map_err(|e| e.to_string())?;
+  201:     let mut hasher = Sha256::new();
+  202:     let mut buffer = [0u8; 65536];
+  203:     loop {
+  204:         let count = file.read(&mut buffer).map_err(|e| e.to_string())?;
+  205:         if count == 0 {
+  206:             break;
+  207:         }
+  208:         hasher.update(&buffer[..count]);
+  209:     }
+  210:     Ok(format!("{:x}", hasher.finalize()))
+  211: }
+  212: 
+  213: /// Parametric verification function for production and unit testing.
+  214: pub fn model_status_for_paths(
+  215:     target: &Path,
+  216:     cache_file: &Path,
+  217:     expected_size: u64,
+  218:     expected_sha256: &str,
+  219:     force_recheck: bool,
+  220: ) -> LocalModelReport {
+  221:     // If target does not exist, check common local huggingface snapshot location
+  222:     if !target.exists() {
+  223:         if let Ok(home) = std::env::var("HOME") {
+  224:             let hf_candidate = Path::new(&home)
+  225:                 .join(".cache/huggingface/hub/models--gpustack--bge-m3-GGUF/snapshots/2d48f1737679ad900d5c26c5aad5410e9c70fdca/bge-m3-Q8_0.gguf");
+  226:             if hf_candidate.exists() {
+  227:                 if let Ok(meta) = fs::metadata(&hf_candidate) {
+  228:                     if meta.len() == expected_size {
+  229:                         #[cfg(unix)]
+  230:                         let _ = std::os::unix::fs::symlink(&hf_candidate, target);
+  231:                         #[cfg(windows)]
+  232:                         let _ = std::os::windows::fs::symlink_file(&hf_candidate, target);
+  233:                     }
+  234:                 }
+  235:             }
+  236:         }
+  237:     }
+  238: 
+  239:     if !target.exists() {
+  240:         return LocalModelReport {
+  241:             installed: false,
+  242:             path: target.to_string_lossy().to_string(),
+  243:             bytes: 0,
+  244:             sha256_ok: false,
+  245:         };
+  246:     }
+  247: 
+  248:     let meta = match fs::metadata(target) {
+  249:         Ok(m) => m,
+  250:         Err(_) => {
+  251:             return LocalModelReport {
+  252:                 installed: false,
+  253:                 path: target.to_string_lossy().to_string(),
+  254:                 bytes: 0,
+  255:                 sha256_ok: false,
+  256:             };
+  257:         }
+  258:     };
+  259:     let bytes = meta.len();
+  260:     let mtime_ms = meta
+  261:         .modified()
+  262:         .ok()
+  263:         .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+  264:         .map(|d| d.as_millis() as u64)
+  265:         .unwrap_or(0);
+  266:     let target_str = target.to_string_lossy().to_string();
+  267: 
+  268:     // Se la dimensione su disco non coincide con quella attesa per il modello, non è il modello atteso.
+  269:     if bytes != expected_size {
+  270:         eprintln!("[llama] File size mismatch on {}: {} vs expected {}", target.display(), bytes, expected_size);
+  271:         let _ = fs::remove_file(cache_file);
+  272:         return LocalModelReport {
+  273:             installed: false,
+  274:             path: target_str,
+  275:             bytes,
+  276:             sha256_ok: false,
+  277:         };
+  278:     }
+  279: 
+  280:     // 1. Fast path: verifica tramite cache dei metadati (se non è richiesto force_recheck)
+  281:     if !force_recheck {
+  282:         if let Some(cache) = read_model_cache(cache_file) {
+  283:             let is_ntfs = crate::ai::is_high_precision_fs(target);
+  284:             let mtime_matches = if is_ntfs {
+  285:                 cache.mtime_ms == mtime_ms
+  286:             } else {
+  287:                 cache.mtime_ms.abs_diff(mtime_ms) <= 2000
+  288:             };
+  289: 
+  290:             let path_matches = Path::new(&cache.path) == target || cache.path == target_str;
+  291:             let sha256_matches = cache.sha256.eq_ignore_ascii_case(expected_sha256);
+  292:             let size_matches = cache.bytes == expected_size && bytes == expected_size;
+  293: 
+  294:             if size_matches && path_matches && sha256_matches && mtime_matches && cache.sha256_ok {
+  295:                 return LocalModelReport {
+  296:                     installed: true,
+  297:                     path: target_str,
+  298:                     bytes,
+  299:                     sha256_ok: true,
+  300:                 };
+  301:             }
+  302:         }
+  303:     }
+  304: 
+  305:     // 2. Slow path: verifica completa SHA-256 su disco
+  306:     let sha256_ok = match compute_file_sha256(target) {
+  307:         Ok(hash) => {
+  308:             let ok = hash.eq_ignore_ascii_case(expected_sha256);
+  309:             if ok {
+  310:                 let _ = save_model_cache(cache_file, &ModelVerificationCache {
+  311:                     path: target_str.clone(),
+  312:                     bytes,
+  313:                     mtime_ms,
+  314:                     sha256: hash,
+  315:                     sha256_ok: true,
+  316:                     verified_at: chrono::Utc::now().to_rfc3339(),
+  317:                 });
+  318:             } else {
+  319:                 eprintln!("[llama] Hash mismatch on {}: {} vs expected {}", target.display(), hash, expected_sha256);
+  320:                 let _ = fs::remove_file(cache_file);
+  321:             }
+  322:             ok
+  323:         }
+  324:         Err(_) => {
+  325:             let _ = fs::remove_file(cache_file);
+  326:             false
+  327:         }
+  328:     };
+  329: 
+  330:     LocalModelReport {
+  331:         installed: sha256_ok,
+  332:         path: target_str,
+  333:         bytes,
+  334:         sha256_ok,
+  335:     }
+  336: }
+  337: 
+  338: /// Install model from source file with SINGLE I/O pass (streaming copy + simultaneous hash computation).
+  339: pub fn install_model_for_paths(
+  340:     source_path: &Path,
+  341:     target: &Path,
+  342:     cache_file: &Path,
+  343:     expected_size: u64,
+  344:     expected_sha256: &str,
+  345: ) -> Result<LocalModelReport, String> {
+  346:     let t0 = Instant::now();
+  347:     if !source_path.is_file() {
+  348:         return Err(format!("File non trovato: {:?}", source_path));
+  349:     }
+  350:     let meta = fs::metadata(source_path).map_err(|e| e.to_string())?;
+  351:     let bytes = meta.len();
+  352:     if bytes != expected_size {
+  353:         return Err(format!(
+  354:             "Dimensione file non corretta: {} byte (richiesti esattamente {} byte)",
+  355:             bytes,
+  356:             expected_size
+  357:         ));
+  358:     }
+  359: 
+  360:     // Copia e calcolo hash in UN'UNICA passata di I/O (singola lettura del file sorgente)
+  361:     let temp_target = target.with_extension("installing");
+  362:     let _ = fs::remove_file(&temp_target);
+  363: 
+  364:     let mut source_file = fs::File::open(source_path).map_err(|e| e.to_string())?;
+  365:     let mut dest_file = fs::File::create(&temp_target).map_err(|e| e.to_string())?;
+  366:     let mut hasher = Sha256::new();
+  367:     let mut buffer = vec![0u8; 1024 * 1024];
+  368: 
+  369:     loop {
+  370:         let count = source_file.read(&mut buffer).map_err(|e| e.to_string())?;
+  371:         if count == 0 {
+  372:             break;
+  373:         }
+  374:         dest_file.write_all(&buffer[..count]).map_err(|e| e.to_string())?;
+  375:         hasher.update(&buffer[..count]);
+  376:     }
+  377:     dest_file.flush().map_err(|e| e.to_string())?;
+  378:     drop(dest_file);
+  379:     drop(source_file);
+  380: 
+  381:     MODEL_SHA256_COMPUTE_COUNT.fetch_add(1, Ordering::Relaxed);
+  382: 
+  383:     let hash = format!("{:x}", hasher.finalize());
+  384:     if hash.to_lowercase() != expected_sha256.to_lowercase() {
+  385:         let _ = fs::remove_file(&temp_target);
+  386:         return Err(format!(
+  387:             "Verifica SHA-256 fallita: calcolato {} vs atteso {}",
+  388:             hash, expected_sha256
+  389:         ));
+  390:     }
+  391: 
+  392:     if target.exists() {
+  393:         let _ = fs::remove_file(target);
+  394:     }
+  395:     fs::rename(&temp_target, target).or_else(|_| {
+  396:         fs::copy(&temp_target, target).map(|_| ())?;
+  397:         let _ = fs::remove_file(&temp_target);
+  398:         Ok::<(), std::io::Error>(())
+  399:     }).map_err(|e| e.to_string())?;
+  400: 
+  401:     let dest_meta = fs::metadata(target).map_err(|e| e.to_string())?;
+  402:     let dest_mtime_ms = dest_meta
+  403:         .modified()
+  404:         .ok()
+  405:         .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+  406:         .map(|d| d.as_millis() as u64)
+  407:         .unwrap_or(0);
+  408:     let target_str = target.to_string_lossy().to_string();
+  409: 
+  410:     save_model_cache(cache_file, &ModelVerificationCache {
+  411:         path: target_str.clone(),
+  412:         bytes,
+  413:         mtime_ms: dest_mtime_ms,
+  414:         sha256: hash,
+  415:         sha256_ok: true,
+  416:         verified_at: chrono::Utc::now().to_rfc3339(),
+  417:     })?;
+  418: 
+  419:     let elapsed = t0.elapsed().as_millis() as u64;
+  420:     log_local_model_timing("FILE_SELECTION", elapsed, &format!("path={}, bytes={}", target_str, bytes));
+  421: 
+  422:     Ok(LocalModelReport {
+  423:         installed: true,
+  424:         path: target_str,
+  425:         bytes,
+  426:         sha256_ok: true,
+  427:     })
+  428: }
+  429: 
+  430: pub fn local_model_status() -> LocalModelReport {
+  431:     local_model_status_with_recheck(false)
+  432: }
+  433: 
+  434: pub fn local_model_status_with_recheck(force_recheck: bool) -> LocalModelReport {
+  435:     let target = match get_target_model_path() {
+  436:         Ok(p) => p,
+  437:         Err(_) => {
+  438:             return LocalModelReport {
+  439:                 installed: false,
+  440:                 path: "".into(),
+  441:                 bytes: 0,
+  442:                 sha256_ok: false,
+  443:             };
+  444:         }
+  445:     };
+  446:     let cache_file = match get_model_cache_meta_path() {
+  447:         Ok(p) => p,
+  448:         Err(_) => return model_status_for_paths(&target, Path::new(""), EXPECTED_MODEL_SIZE_BYTES, EXPECTED_MODEL_SHA256, force_recheck),
+  449:     };
+  450:     model_status_for_paths(&target, &cache_file, EXPECTED_MODEL_SIZE_BYTES, EXPECTED_MODEL_SHA256, force_recheck)
+  451: }
+  452: 
+  453: pub fn install_model_from_file(source_path: &Path) -> Result<LocalModelReport, String> {
+  454:     let target = get_target_model_path()?;
+  455:     let cache_file = get_model_cache_meta_path()?;
+  456:     install_model_for_paths(source_path, &target, &cache_file, EXPECTED_MODEL_SIZE_BYTES, EXPECTED_MODEL_SHA256)
+  457: }
+  458: 
+  459: pub async fn download_model_with_progress<F>(on_progress: F) -> Result<LocalModelReport, String>
+  460: where
+  461:     F: Fn(u64, u64, f64) + Send + 'static,
+  462: {
+  463:     let target = get_target_model_path()?;
+  464:     let temp_target = target.with_extension("downloading");
+  465:     let _ = fs::remove_file(&temp_target);
+  466: 
+  467:     let client = reqwest::Client::builder()
+  468:         .connect_timeout(Duration::from_secs(15))
+  469:         .timeout(Duration::from_secs(1800))
+  470:         .build()
+  471:         .map_err(|e| e.to_string())?;
+  472: 
+  473:     let mut resp = client
+  474:         .get(MODEL_DOWNLOAD_URL)
+  475:         .send()
+  476:         .await
+  477:         .map_err(|e| format!("Richiesta download fallita: {}", e))?;
+  478: 
+  479:     if !resp.status().is_success() {
+  480:         return Err(format!("Download fallito con stato HTTP: {}", resp.status()));
+  481:     }
+  482: 
+  483:     let total_bytes = resp
+  484:         .content_length()
+  485:         .unwrap_or(EXPECTED_MODEL_SIZE_BYTES);
+  486: 
+  487:     let mut out = fs::File::create(&temp_target).map_err(|e| e.to_string())?;
+  488: 
+  489:     let mut downloaded: u64 = 0;
+  490:     let mut hasher = Sha256::new();
+  491:     let mut last_emit = Instant::now();
+  492: 
+  493:     while let Some(chunk) = resp.chunk().await.map_err(|e| format!("Errore lettura chunk: {}", e))? {
+  494:         out.write_all(&chunk).map_err(|e| e.to_string())?;
+  495:         hasher.update(&chunk);
+  496:         downloaded += chunk.len() as u64;
+  497: 
+  498:         if last_emit.elapsed() >= Duration::from_millis(200) || (total_bytes > 0 && downloaded == total_bytes) {
+  499:             let pct = if total_bytes > 0 {
+  500:                 (downloaded as f64 / total_bytes as f64) * 100.0
+  501:             } else {
+  502:                 0.0
+  503:             };
+  504:             on_progress(downloaded, total_bytes, pct);
+  505:             last_emit = Instant::now();
+  506:         }
+  507:     }
+  508: 
+  509:     out.flush().map_err(|e| e.to_string())?;
+  510:     drop(out);
+  511: 
+  512:     let final_hash = format!("{:x}", hasher.finalize());
+  513:     if final_hash.to_lowercase() != EXPECTED_MODEL_SHA256.to_lowercase() {
+  514:         let _ = fs::remove_file(&temp_target);
+  515:         return Err(format!(
+  516:             "Verifica SHA-256 fallita sul file scaricato: calcolato {} vs atteso {}",
+  517:             final_hash, EXPECTED_MODEL_SHA256
+  518:         ));
+  519:     }
+  520: 
+  521:     fs::rename(&temp_target, &target).map_err(|e| e.to_string())?;
+  522: 
+  523:     let dest_meta = fs::metadata(&target).map_err(|e| e.to_string())?;
+  524:     let dest_mtime_ms = dest_meta
+  525:         .modified()
+  526:         .ok()
+  527:         .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+  528:         .map(|d| d.as_millis() as u64)
+  529:         .unwrap_or(0);
+  530:     let target_str = target.to_string_lossy().to_string();
+  531: 
+  532:     if let Ok(cache_file) = get_model_cache_meta_path() {
+  533:         let _ = save_model_cache(&cache_file, &ModelVerificationCache {
+  534:             path: target_str.clone(),
+  535:             bytes: dest_meta.len(),
+  536:             mtime_ms: dest_mtime_ms,
+  537:             sha256: final_hash,
+  538:             sha256_ok: true,
+  539:             verified_at: chrono::Utc::now().to_rfc3339(),
+  540:         });
+  541:     }
+  542: 
+  543:     Ok(LocalModelReport {
+  544:         installed: true,
+  545:         path: target_str,
+  546:         bytes: dest_meta.len(),
+  547:         sha256_ok: true,
+  548:     })
+  549: }
+  550: 
+  551: pub fn detect_llama_server_binary() -> Option<PathBuf> {
+  552:     if let Ok(p) = std::env::var("LLAMA_SERVER_PATH") {
+  553:         let pb = PathBuf::from(p);
+  554:         if pb.is_file() {
+  555:             return Some(pb);
+  556:         }
+  557:         return None;
+  558:     }
+  559: 
+  560:     let names = if cfg!(windows) {
+  561:         vec!["llama-server.exe", "llama-server"]
+  562:     } else {
+  563:         vec!["llama-server"]
+  564:     };
+  565: 
+  566:     if let Ok(executable) = std::env::current_exe() {
+  567:         if let Some(parent) = executable.parent() {
+  568:             for name in &names {
+  569:                 let candidate = parent.join(name);
+  570:                 if candidate.is_file() {
+  571:                     return Some(candidate);
+  572:                 }
+  573:                 let native_candidate = parent.join(format!("native/{}", name));
+  574:                 if native_candidate.is_file() {
+  575:                     return Some(native_candidate);
+  576:                 }
+  577:                 let resources_candidate = parent.join(format!("Resources/native/{}", name));
+  578:                 if resources_candidate.is_file() {
+  579:                     return Some(resources_candidate);
+  580:                 }
+  581:             }
+  582:         }
+  583:     }
+  584: 
+  585:     let cand_dev = [
+  586:         "apps/desktop/src-tauri/resources/native/llama-server.exe",
+  587:         "apps/desktop/src-tauri/resources/native/llama-server",
+  588:         "resources/native/llama-server.exe",
+  589:         "resources/native/llama-server",
+  590:     ];
+  591:     for c in &cand_dev {
+  592:         let pb = PathBuf::from(c);
+  593:         if pb.is_file() {
+  594:             return Some(pb);
+  595:         }
+  596:     }
+  597: 
+  598:     None
+  599: }
+  600: 
+  601: // ---------------------------------------------------------------------------------------------
+  602: // Processi orfani. Il figlio llama-server vive in un proprio process group: se l'app viene uccisa
+  603: // (kill -9, crash) il figlio non riceve nulla, passa a launchd (ppid 1) e resta in memoria con il
+  604: // modello caricato (caso reale del 20/09/2026: pid 21212 attivo per 3 ore dopo la fine dell'app).
+  605: // L'app registra il pid del figlio in un file accanto al modello e, all'avvio e prima di ogni nuovo
+  606: // avvio del servizio, termina SOLO un server registrato che risulti orfano: mai un server con
+  607: // genitore vivo (altra istanza dell'app) e mai un processo diverso che abbia riusato il pid.
+  608: // ---------------------------------------------------------------------------------------------
+  609: 
+  610: /// File con il pid dell'ultimo llama-server avviato da questa app.
+  611: pub fn pid_file_path() -> Option<PathBuf> {
+  612:     get_models_dir().ok().map(|d| d.join("llama-server.pid"))
+  613: }
+  614: 
+  615: /// File con la porta dell'ultimo llama-server avviato da questa app.
+  616: pub fn port_file_path() -> Option<PathBuf> {
+  617:     get_models_dir().ok().map(|d| d.join("llama-server.port"))
+  618: }
+  619: 
+  620: pub fn write_pid_file(path: &Path, pid: u32) {
+  621:     let _ = fs::write(path, pid.to_string());
+  622: }
+  623: 
+  624: pub fn read_pid_file(path: &Path) -> Option<u32> {
+  625:     fs::read_to_string(path).ok()?.trim().parse::<u32>().ok()
+  626: }
+  627: 
+  628: pub fn write_port_file(path: &Path, port: u16) {
+  629:     let _ = fs::write(path, port.to_string());
+  630: }
+  631: 
+  632: pub fn read_port_file(path: &Path) -> Option<u16> {
+  633:     fs::read_to_string(path).ok()?.trim().parse::<u16>().ok()
+  634: }
+  635: 
+  636: /// Timeout massimo vincolante per ciascun singolo comando esterno di scoperta/ispezione (PowerShell, pgrep, lsof).
+  637: /// Evita qualsiasi hang indefinito su chiamate a processi di sistema operativo.
+  638: pub const DISCOVERY_COMMAND_TIMEOUT: Duration = Duration::from_millis(2000);
+  639: 
+  640: pub fn discovery_command_timeout() -> Duration {
+  641:     if let Ok(val) = std::env::var("LIMEN_DISCOVERY_COMMAND_TIMEOUT_MS") {
+  642:         if let Ok(ms) = val.trim().parse::<u64>() {
+  643:             return Duration::from_millis(ms);
+  644:         }
+  645:     }
+  646:     DISCOVERY_COMMAND_TIMEOUT
+  647: }
+  648: 
+  649: /// Timeout massimo complessivo per la fase di preparazione del servizio locale durante ai_preview (scoperta, adozione, eventuale avvio).
+  650: /// Se il servizio non è pronto entro questo limite, la preparazione ripiega immediatamente e in modo trasparente
+  651: /// sulla ricerca per sole parole chiave, indicando la causa in ask_timing.log e nell'interfaccia utente.
+  652: pub const SERVICE_PREPARATION_TIMEOUT: Duration = Duration::from_secs(5);
+  653: 
+  654: pub fn service_preparation_timeout() -> Duration {
+  655:     if let Ok(val) = std::env::var("LIMEN_SERVICE_PREP_TIMEOUT_MS") {
+  656:         if let Ok(ms) = val.trim().parse::<u64>() {
+  657:             return Duration::from_millis(ms);
+  658:         }
+  659:     }
+  660:     SERVICE_PREPARATION_TIMEOUT
+  661: }
+  662: 
+  663: /// Esegue un comando esterno con limite di tempo garantito, terminando il processo in caso di scadenza.
+  664: pub fn run_command_with_timeout(
+  665:     mut cmd: std::process::Command,
+  666:     timeout: Duration,
+  667: ) -> Option<std::process::Output> {
+  668:     let mut child = cmd
+  669:         .stdout(std::process::Stdio::piped())
+  670:         .stderr(std::process::Stdio::piped())
+  671:         .spawn()
+  672:         .ok()?;
+  673: 
+  674:     let t_start = Instant::now();
+  675:     let poll_interval = Duration::from_millis(30);
+  676:     while t_start.elapsed() < timeout {
+  677:         match child.try_wait() {
+  678:             Ok(Some(_status)) => {
+  679:                 return child.wait_with_output().ok();
+  680:             }
+  681:             Ok(None) => {
+  682:                 std::thread::sleep(poll_interval);
+  683:             }
+  684:             Err(_) => {
+  685:                 let _ = child.kill();
+  686:                 return None;
+  687:             }
+  688:         }
+  689:     }
+  690: 
+  691:     // Timeout scaduto: termina forzatamente il processo
+  692:     let _ = child.kill();
+  693:     #[cfg(windows)]
+  694:     {
+  695:         let pid = child.id();
+  696:         unsafe {
+  697:             let handle = windows_sys::Win32::System::Threading::OpenProcess(
+  698:                 windows_sys::Win32::System::Threading::PROCESS_TERMINATE,
+  699:                 0,
+  700:                 pid,
+  701:             );
+  702:             if !handle.is_null() {
+  703:                 windows_sys::Win32::System::Threading::TerminateProcess(handle, 1);
+  704:                 windows_sys::Win32::Foundation::CloseHandle(handle);
+  705:             }
+  706:         }
+  707:     }
+  708:     let _ = child.try_wait();
+  709:     None
+  710: }
+  711: 
+  712: /// Verifica se un processo con il PID specificato è attualmente vivo nel sistema operativo.
+  713: pub fn is_process_alive(pid: u32) -> bool {
+  714:     if pid == 0 {
+  715:         return false;
+  716:     }
+  717:     #[cfg(windows)]
+  718:     {
+  719:         use std::os::windows::process::CommandExt;
+  720:         const CREATE_NO_WINDOW: u32 = 0x08000000;
+  721:         let mut cmd = std::process::Command::new("powershell");
+  722:         cmd.args(["-NoProfile", "-Command", &format!("Get-Process -Id {} -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Id", pid)])
+  723:             .creation_flags(CREATE_NO_WINDOW);
+  724:         if let Some(o) = run_command_with_timeout(cmd, discovery_command_timeout()) {
+  725:             let s = String::from_utf8_lossy(&o.stdout);
+  726:             s.trim().parse::<u32>().ok() == Some(pid)
+  727:         } else {
+  728:             false
+  729:         }
+  730:     }
+  731:     #[cfg(unix)]
+  732:     {
+  733:         unsafe { libc::kill(pid as i32, 0) == 0 }
+  734:     }
+  735: }
+  736: 
+  737: /// Scrittura consistente della coppia (llama-server.pid e llama-server.port).
+  738: /// Se esiste già una registrazione per un PID attivo e sano (healthy), NON sovrascrive.
+  739: pub fn write_service_registration(pid: u32, port: u16) -> Result<(), String> {
+  740:     let pid_path = pid_file_path().ok_or("Impossibile determinare il percorso di llama-server.pid")?;
+  741:     let port_path = port_file_path().ok_or("Impossibile determinare il percorso di llama-server.port")?;
+  742:     write_service_registration_to_paths(&pid_path, &port_path, pid, port)
+  743: }
+  744: 
+  745: /// Scrittura consistente atomica su percorsi espliciti con protezione da sovrascrittura di istanze attive.
+  746: pub fn write_service_registration_to_paths(
+  747:     pid_path: &Path,
+  748:     port_path: &Path,
+  749:     pid: u32,
+  750:     port: u16,
+  751: ) -> Result<(), String> {
+  752:     if let Some(existing_pid) = read_pid_file(pid_path) {
+  753:         if existing_pid != pid && is_process_alive(existing_pid) {
+  754:             let existing_port = read_port_file(port_path).unwrap_or(0);
+  755:             if existing_port > 0 && check_health(existing_port) {
+  756:                 return Err(format!(
+  757:                     "Registrazione non sovrascritta: appartiene a un'altra istanza attiva (PID {}, porta {})",
+  758:                     existing_pid, existing_port
+  759:                 ));
+  760:             }
+  761:         }
+  762:     }
+  763: 
+  764:     let dir = pid_path.parent().ok_or("Parent directory assente")?;
+  765:     let _ = fs::create_dir_all(dir);
+  766:     let pid_tmp = dir.join(format!("llama-server.pid.tmp.{}", pid));
+  767:     let port_tmp = dir.join(format!("llama-server.port.tmp.{}", pid));
+  768: 
+  769:     fs::write(&pid_tmp, pid.to_string()).map_err(|e| e.to_string())?;
+  770:     fs::write(&port_tmp, port.to_string()).map_err(|e| e.to_string())?;
+  771: 
+  772:     let _ = fs::rename(&pid_tmp, pid_path);
+  773:     let _ = fs::rename(&port_tmp, port_path);
+  774: 
+  775:     Ok(())
+  776: }
+  777: 
+  778: /// Rimuove la registrazione (llama-server.pid e llama-server.port) SOLO se appartiene al PID specificato.
+  779: /// Se il file contiene un PID diverso o appartiene ad altra istanza attiva, NON cancella.
+  780: pub fn remove_service_registration_if_owned(owned_pid: u32) {
+  781:     if let (Some(pid_path), Some(port_path)) = (pid_file_path(), port_file_path()) {
+  782:         remove_service_registration_from_paths_if_owned(&pid_path, &port_path, owned_pid);
+  783:     }
+  784: }
+  785: 
+  786: /// Rimuove la registrazione su percorsi espliciti SOLO se appartiene al PID specificato.
+  787: pub fn remove_service_registration_from_paths_if_owned(
+  788:     pid_path: &Path,
+  789:     port_path: &Path,
+  790:     owned_pid: u32,
+  791: ) {
+  792:     if owned_pid == 0 {
+  793:         return;
+  794:     }
+  795:     if let Some(current_pid) = read_pid_file(pid_path) {
+  796:         if current_pid == owned_pid {
+  797:             let _ = fs::remove_file(pid_path);
+  798:             let _ = fs::remove_file(port_path);
+  799:         }
+  800:     }
+  801: }
+  802: 
+  803: /// Trova la porta TCP su cui un dato PID è in ascolto.
+  804: pub fn find_port_for_pid(pid: u32) -> Option<u16> {
+  805:     #[cfg(windows)]
+  806:     {
+  807:         use std::os::windows::process::CommandExt;
+  808:         const CREATE_NO_WINDOW: u32 = 0x08000000;
+  809:         let mut cmd = std::process::Command::new("powershell");
+  810:         cmd.args(["-NoProfile", "-Command", &format!("Get-NetTCPConnection -OwningProcess {} -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty LocalPort", pid)])
+  811:             .creation_flags(CREATE_NO_WINDOW);
+  812:         let out = run_command_with_timeout(cmd, discovery_command_timeout())?;
+  813:         let text = String::from_utf8_lossy(&out.stdout);
+  814:         text.lines().find_map(|l| l.trim().parse::<u16>().ok())
+  815:     }
+  816:     #[cfg(unix)]
+  817:     {
+  818:         let mut cmd = std::process::Command::new("lsof");
+  819:         cmd.args(["-Pan", "-p", &pid.to_string(), "-iTCP", "-sTCP:LISTEN"]);
+  820:         let out = run_command_with_timeout(cmd, discovery_command_timeout())?;
+  821:         let text = String::from_utf8_lossy(&out.stdout);
+  822:         for line in text.lines() {
+  823:             if let Some(idx) = line.rfind(':') {
+  824:                 let rest = &line[idx + 1..];
+  825:                 if let Some(port_str) = rest.split_whitespace().next() {
+  826:                     if let Ok(port) = port_str.parse::<u16>() {
+  827:                         return Some(port);
+  828:                     }
+  829:                 }
+  830:             }
+  831:         }
+  832:         None
+  833:     }
+  834: }
+  835: 
+  836: /// Rileva la porta del servizio llama-server attivo verificando modello (bge-m3) e dimensioni (1024).
+  837: /// Rileva la porta e il PID del servizio llama-server attivo verificando modello (bge-m3) e dimensioni (1024).
+  838: /// Cerca nell'ordine:
+  839: /// 1. Variabile d'ambiente LIMEN_LOCAL_PORT
+  840: /// 2. File llama-server.port e llama-server.pid
+  841: /// 3. File llama-server.pid (interrogando la porta del PID)
+  842: /// 4. Processi llama-server attivi sul sistema
+  843: pub fn find_active_bge_m3_service_with_pid() -> Result<(u16, Option<u32>), String> {
+  844:     if std::env::var("LIMEN_TEST_DISABLE_ADOPTION").is_ok() {
+  845:         return Err("Adozione disabilitata per il test".into());
+  846:     }
+  847: 
+  848:     // 1. Variabile d'ambiente
+  849:     if let Ok(env_val) = std::env::var("LIMEN_LOCAL_PORT") {
+  850:         if let Ok(env_port) = env_val.trim().parse::<u16>() {
+  851:             if check_health(env_port) && verify_dimensions(env_port).is_ok() {
+  852:                 let pid = pid_file_path().and_then(|p| read_pid_file(&p));
+  853:                 return Ok((env_port, pid));
+  854:             } else {
+  855:                 return Err(format!("Porta configurata in LIMEN_LOCAL_PORT ({}) non pronta o non valida", env_port));
+  856:             }
+  857:         }
+  858:     }
+  859: 
+  860:     // 2. File llama-server.port e llama-server.pid
+  861:     if let Some(p_path) = port_file_path() {
+  862:         if let Some(port) = read_port_file(&p_path) {
+  863:             if check_health(port) && verify_dimensions(port).is_ok() {
+  864:                 let pid = pid_file_path().and_then(|p| read_pid_file(&p));
+  865:                 return Ok((port, pid));
+  866:             }
+  867:         }
+  868:     }
+  869: 
+  870:     // 3. File llama-server.pid
+  871:     if let Some(p_path) = pid_file_path() {
+  872:         if let Some(pid) = read_pid_file(&p_path) {
+  873:             if let Some(port) = find_port_for_pid(pid) {
+  874:                 if check_health(port) && verify_dimensions(port).is_ok() {
+  875:                     return Ok((port, Some(pid)));
+  876:                 }
+  877:             }
+  878:         }
+  879:     }
+  880: 
+  881:     // 4. Processi llama-server attivi sul sistema
+  882:     #[cfg(windows)]
+  883:     {
+  884:         use std::os::windows::process::CommandExt;
+  885:         const CREATE_NO_WINDOW: u32 = 0x08000000;
+  886:         let mut cmd = std::process::Command::new("powershell");
+  887:         cmd.args(["-NoProfile", "-Command", "Get-Process -Name 'llama-server' -ErrorAction SilentlyContinue | ForEach-Object { $p = $_.Id; Get-NetTCPConnection -OwningProcess $p -State Listen -ErrorAction SilentlyContinue | ForEach-Object { [string]$p + ':' + [string]$_.LocalPort } }"])
+  888:             .creation_flags(CREATE_NO_WINDOW);
+  889:         let out = run_command_with_timeout(cmd, discovery_command_timeout());
+  890:         if let Some(o) = out {
+  891:             let text = String::from_utf8_lossy(&o.stdout);
+  892:             for line in text.lines() {
+  893:                 let parts: Vec<&str> = line.trim().split(':').collect();
+  894:                 if parts.len() == 2 {
+  895:                     if let (Ok(pid), Ok(port)) = (parts[0].parse::<u32>(), parts[1].parse::<u16>()) {
+  896:                         if check_health(port) && verify_dimensions(port).is_ok() {
+  897:                             return Ok((port, Some(pid)));
+  898:                         }
+  899:                     }
+  900:                 }
+  901:             }
+  902:         }
+  903:     }
+  904:     #[cfg(unix)]
+  905:     {
+  906:         let mut cmd = std::process::Command::new("pgrep");
+  907:         cmd.arg("llama-server");
+  908:         let out = run_command_with_timeout(cmd, discovery_command_timeout());
+  909:         if let Some(o) = out {
+  910:             let text = String::from_utf8_lossy(&o.stdout);
+  911:             for line in text.lines() {
+  912:                 if let Ok(pid) = line.trim().parse::<u32>() {
+  913:                     if let Some(port) = find_port_for_pid(pid) {
+  914:                         if check_health(port) && verify_dimensions(port).is_ok() {
+  915:                             return Ok((port, Some(pid)));
+  916:                         }
+  917:                     }
+  918:                 }
+  919:             }
+  920:         }
+  921:     }
+  922: 
+  923:     Err("Nessun servizio locale llama-server con modello bge-m3 (1024d) trovato attivo.".to_string())
+  924: }
+  925: 
+  926: pub fn find_active_bge_m3_service() -> Result<u16, String> {
+  927:     find_active_bge_m3_service_with_pid().map(|(port, _)| port)
+  928: }
+  929: 
+  930: 
+  931: /// Decisione pura: orfano = genitore launchd (ppid 1) e riga di comando di un llama-server in modalita' embedding.
+  932: pub fn is_orphan_llama_server(ppid: i32, command: &str) -> bool {
+  933:     ppid == 1 && command.contains("llama-server") && command.contains("--embedding")
+  934: }
+  935: 
+  936: /// (ppid, riga di comando) del processo, oppure None se non esiste.
+  937: fn process_parent_and_command(pid: u32) -> Option<(i32, String)> {
+  938:     #[cfg(unix)]
+  939:     {
+  940:         let mut cmd = Command::new("/bin/ps");
+  941:         cmd.args(["-o", "ppid=,command=", "-p", &pid.to_string()]);
+  942:         let out = run_command_with_timeout(cmd, discovery_command_timeout())?;
+  943:         if !out.status.success() {
+  944:             return None;
+  945:         }
+  946:         let text = String::from_utf8_lossy(&out.stdout);
+  947:         let line = text.lines().find(|l| !l.trim().is_empty())?;
+  948:         let mut parts = line.trim().splitn(2, char::is_whitespace);
+  949:         let ppid = parts.next()?.trim().parse::<i32>().ok()?;
+  950:         let command = parts.next().unwrap_or("").trim().to_string();
+  951:         Some((ppid, command))
+  952:     }
+  953:     #[cfg(windows)]
+  954:     {
+  955:         use std::os::windows::process::CommandExt;
+  956:         const CREATE_NO_WINDOW: u32 = 0x08000000;
+  957:         let mut cmd = Command::new("powershell");
+  958:         cmd.args(["-NoProfile", "-Command", &format!("Get-CimInstance Win32_Process -Filter 'ProcessId = {}' | Select-Object -ExpandProperty ParentProcessId", pid)])
+  959:             .creation_flags(CREATE_NO_WINDOW);
+  960:         let out = run_command_with_timeout(cmd, discovery_command_timeout())?;
+  961:         if !out.status.success() {
+  962:             return None;
+  963:         }
+  964:         let text = String::from_utf8_lossy(&out.stdout);
+  965:         let ppid = text.trim().parse::<i32>().ok()?;
+  966:         Some((ppid, format!("llama-server --embedding pid {}", pid)))
+  967:     }
+  968: }
+  969: 
+  970: pub fn reap_orphan_server() -> Option<u32> {
+  971:     let path = pid_file_path()?;
+  972:     let pid = read_pid_file(&path)?;
+  973:     let Some((ppid, command)) = process_parent_and_command(pid) else {
+  974:         let _ = fs::remove_file(&path);
+  975:         return None;
+  976:     };
+  977:     if !is_orphan_llama_server(ppid, &command) {
+  978:         return None;
+  979:     }
+  980:     #[cfg(unix)]
+  981:     unsafe {
+  982:         libc::kill(pid as i32, libc::SIGTERM);
+  983:     }
+  984:     #[cfg(windows)]
+  985:     {
+  986:         use std::os::windows::process::CommandExt;
+  987:         const CREATE_NO_WINDOW: u32 = 0x08000000;
+  988:         let _ = Command::new("taskkill")
+  989:             .args(["/F", "/PID", &pid.to_string()])
+  990:             .creation_flags(CREATE_NO_WINDOW)
+  991:             .stdout(Stdio::null())
+  992:             .stderr(Stdio::null())
+  993:             .status();
+  994:     }
+  995:     for _ in 0..20 {
+  996:         std::thread::sleep(Duration::from_millis(50));
+  997:         if process_parent_and_command(pid).is_none() {
+  998:             break;
+  999:         }
+ 1000:     }
+ 1001:     #[cfg(unix)]
+ 1002:     unsafe {
+ 1003:         if process_parent_and_command(pid).is_some() {
+ 1004:             libc::kill(pid as i32, libc::SIGKILL);
+ 1005:         }
+ 1006:     }
+ 1007:     let _ = fs::remove_file(&path);
+ 1008:     eprintln!("[llama] llama-server orfano (pid {}) terminato", pid);
+ 1009:     Some(pid)
+ 1010: }
+ 1011: 
+ 1012: pub fn find_free_port() -> Result<u16, String> {
+ 1013:     let listener = std::net::TcpListener::bind("127.0.0.1:0")
+ 1014:         .map_err(|e| format!("Impossibile trovare una porta libera su 127.0.0.1: {}", e))?;
+ 1015:     let port = listener.local_addr().map_err(|e| e.to_string())?.port();
+ 1016:     drop(listener);
+ 1017:     Ok(port)
+ 1018: }
+ 1019: 
+ 1020: pub fn check_health(port: u16) -> bool {
+ 1021:     if port == 0 {
+ 1022:         return false;
+ 1023:     }
+ 1024:     use std::io::{Read, Write};
+ 1025:     use std::net::{SocketAddr, TcpStream};
+ 1026:     let addr: SocketAddr = match format!("127.0.0.1:{}", port).parse() {
+ 1027:         Ok(a) => a,
+ 1028:         Err(_) => return false,
+ 1029:     };
+ 1030:     let mut stream = match TcpStream::connect_timeout(&addr, Duration::from_millis(400)) {
+ 1031:         Ok(s) => s,
+ 1032:         Err(_) => return false,
+ 1033:     };
+ 1034:     let _ = stream.set_read_timeout(Some(Duration::from_millis(500)));
+ 1035:     let _ = stream.set_write_timeout(Some(Duration::from_millis(500)));
+ 1036:     let req = format!(
+ 1037:         "GET /health HTTP/1.1\r\nHost: 127.0.0.1:{}\r\nConnection: close\r\n\r\n",
+ 1038:         port
+ 1039:     );
+ 1040:     if stream.write_all(req.as_bytes()).is_err() {
+ 1041:         return false;
+ 1042:     }
+ 1043:     let mut resp = [0u8; 512];
+ 1044:     match stream.read(&mut resp) {
+ 1045:         Ok(n) if n > 0 => {
+ 1046:             let s = String::from_utf8_lossy(&resp[..n]);
+ 1047:             s.starts_with("HTTP/1.1 200")
+ 1048:                 || s.starts_with("HTTP/1.0 200")
+ 1049:                 || s.contains("\"ok\"")
+ 1050:                 || s.contains("status\":\"ok")
+ 1051:         }
+ 1052:         _ => false,
+ 1053:     }
+ 1054: }
+ 1055: 
+ 1056: pub fn verify_dimensions(port: u16) -> Result<(), String> {
+ 1057:     use std::io::{Read, Write};
+ 1058:     use std::net::{SocketAddr, TcpStream};
+ 1059:     let addr: SocketAddr = format!("127.0.0.1:{}", port)
+ 1060:         .parse()
+ 1061:         .map_err(|e: std::net::AddrParseError| e.to_string())?;
+ 1062:     let mut stream = TcpStream::connect_timeout(&addr, Duration::from_secs(5))
+ 1063:         .map_err(|e| format!("Impossibile connettersi a 127.0.0.1:{}: {}", port, e))?;
+ 1064:     stream
+ 1065:         .set_read_timeout(Some(Duration::from_secs(10)))
+ 1066:         .map_err(|e| e.to_string())?;
+ 1067:     stream
+ 1068:         .set_write_timeout(Some(Duration::from_secs(5)))
+ 1069:         .map_err(|e| e.to_string())?;
+ 1070: 
+ 1071:     let body = r#"{"input":"test","model":"bge-m3"}"#;
+ 1072:     let req = format!(
+ 1073:         "POST /v1/embeddings HTTP/1.1\r\nHost: 127.0.0.1:{}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+ 1074:         port,
+ 1075:         body.len(),
+ 1076:         body
+ 1077:     );
+ 1078:     stream
+ 1079:         .write_all(req.as_bytes())
+ 1080:         .map_err(|e| e.to_string())?;
+ 1081: 
+ 1082:     let mut response_bytes = Vec::new();
+ 1083:     stream
+ 1084:         .read_to_end(&mut response_bytes)
+ 1085:         .map_err(|e| e.to_string())?;
+ 1086:     let response_str = String::from_utf8_lossy(&response_bytes);
+ 1087: 
+ 1088:     if !response_str.starts_with("HTTP/1.1 200") && !response_str.starts_with("HTTP/1.0 200") {
+ 1089:         return Err(format!(
+ 1090:             "Status HTTP non 200 durante la verifica embeddings: {}",
+ 1091:             response_str.lines().next().unwrap_or("")
+ 1092:         ));
+ 1093:     }
+ 1094: 
+ 1095:     let body_part = if let Some(idx) = response_str.find("\r\n\r\n") {
+ 1096:         &response_str[idx + 4..]
+ 1097:     } else {
+ 1098:         &response_str
+ 1099:     };
+ 1100: 
+ 1101:     let json_slice = if let (Some(first_brace), Some(last_brace)) = (body_part.find('{'), body_part.rfind('}')) {
+ 1102:         if first_brace <= last_brace {
+ 1103:             &body_part[first_brace..=last_brace]
+ 1104:         } else {
+ 1105:             body_part
+ 1106:         }
+ 1107:     } else {
+ 1108:         body_part
+ 1109:     };
+ 1110: 
+ 1111:     let val: serde_json::Value = serde_json::from_str(json_slice).map_err(|e| {
+ 1112:         format!(
+ 1113:             "Risposta JSON non valida: {} (corpo: {})",
+ 1114:             e,
+ 1115:             json_slice.chars().take(200).collect::<String>()
+ 1116:         )
+ 1117:     })?;
+ 1118: 
+ 1119:     let dim = val
+ 1120:         .get("data")
+ 1121:         .and_then(|d| d.get(0))
+ 1122:         .and_then(|i| i.get("embedding"))
+ 1123:         .and_then(|e| e.as_array())
+ 1124:         .map(|a| a.len())
+ 1125:         .unwrap_or(0);
+ 1126: 
+ 1127:     if dim != EXPECTED_EMBEDDINGS_DIMENSIONS {
+ 1128:         return Err(format!(
+ 1129:             "Dimensioni vettore errate: attese {} componenti, ricevute {}",
+ 1130:             EXPECTED_EMBEDDINGS_DIMENSIONS, dim
+ 1131:         ));
+ 1132:     }
+ 1133: 
+ 1134:     Ok(())
+ 1135: }
+ 1136: 
+ 1137: pub struct StartingGuard(pub LlamaServerState, pub bool);
+ 1138: 
+ 1139: impl Drop for StartingGuard {
+ 1140:     fn drop(&mut self) {
+ 1141:         if self.1 {
+ 1142:             let mut s = self.0.0.lock().unwrap_or_else(|e| e.into_inner());
+ 1143:             s.starting = false;
+ 1144:         }
+ 1145:     }
+ 1146: }
+ 1147: 
+ 1148: impl LlamaServerState {
+ 1149:     pub fn get_port(&self) -> u16 {
+ 1150:         let s = self.0.lock().unwrap_or_else(|e| e.into_inner());
+ 1151:         s.port
+ 1152:     }
+ 1153: 
+ 1154:     pub fn status(&self) -> LocalServerReport {
+ 1155:         // Estrae lo stato rilasciando IMMEDIATAMENTE il mutex: non tiene il lock durante check_health di rete
+ 1156:         let (port, has_child, pid, last_error) = {
+ 1157:             let mut s = match self.0.lock() {
+ 1158:                 Ok(guard) => guard,
+ 1159:                 Err(poisoned) => poisoned.into_inner(),
+ 1160:             };
+ 1161: 
+ 1162:             if let Some(c) = s.child.as_mut() {
+ 1163:                 if let Ok(Some(exit_status)) = c.try_wait() {
+ 1164:                     s.child = None;
+ 1165:                     s.last_error = Some(format!("llama-server terminato con stato: {}", exit_status));
+ 1166:                 }
+ 1167:             }
+ 1168: 
+ 1169:             let pid = s.child.as_ref().map(|c| c.id()).or(s.adopted_pid);
+ 1170:             (s.port, s.child.is_some(), pid, s.last_error.clone())
+ 1171:         };
+ 1172: 
+ 1173:         // check_health viene eseguito FUORI DAL MUTEX
+ 1174:         let healthy = port > 0 && check_health(port);
+ 1175:         let running = has_child || healthy;
+ 1176: 
+ 1177:         LocalServerReport {
+ 1178:             running,
+ 1179:             port,
+ 1180:             pid,
+ 1181:             model: "bge-m3-Q8_0.gguf".to_string(),
+ 1182:             healthy,
+ 1183:             last_error,
+ 1184:         }
+ 1185:     }
+ 1186: 
+ 1187:     pub fn adopt_service(&self, port: u16, pid: Option<u32>) {
+ 1188:         let mut s = self.0.lock().unwrap_or_else(|e| e.into_inner());
+ 1189:         s.port = port;
+ 1190:         s.adopted_pid = pid;
+ 1191:         s.owned_pid = None;
+ 1192:         s.starting = false;
+ 1193:         s.auto_start_failed = false;
+ 1194:         s.auto_start_failure_reason = None;
+ 1195:         s.last_error = None;
+ 1196:     }
+ 1197: 
+ 1198:     pub fn reset_auto_start_failure(&self) {
+ 1199:         let mut s = self.0.lock().unwrap_or_else(|e| e.into_inner());
+ 1200:         s.auto_start_failed = false;
+ 1201:         s.auto_start_failure_reason = None;
+ 1202:     }
+ 1203: 
+ 1204:     pub fn is_auto_start_failed(&self) -> bool {
+ 1205:         let s = self.0.lock().unwrap_or_else(|e| e.into_inner());
+ 1206:         s.auto_start_failed
+ 1207:     }
+ 1208: 
+ 1209:     pub fn is_starting(&self) -> bool {
+ 1210:         let s = self.0.lock().unwrap_or_else(|e| e.into_inner());
+ 1211:         s.starting
+ 1212:     }
+ 1213: 
+ 1214:     pub fn service_state(&self) -> &'static str {
+ 1215:         let s = self.0.lock().unwrap_or_else(|e| e.into_inner());
+ 1216:         if s.port > 0 && check_health(s.port) {
+ 1217:             if s.adopted_pid.is_some() {
+ 1218:                 "esterno adottato"
+ 1219:             } else {
+ 1220:                 "pronto"
+ 1221:             }
+ 1222:         } else if s.auto_start_failed {
+ 1223:             "fallito"
+ 1224:         } else if s.starting || (s.child.is_some() && s.port > 0) {
+ 1225:             "in avvio"
+ 1226:         } else {
+ 1227:             "non avviato"
+ 1228:         }
+ 1229:     }
+ 1230: 
+ 1231:     pub fn trigger_background_start(&self) -> bool {
+ 1232:         let (already_port, already_starting, already_failed) = {
+ 1233:             let s = self.0.lock().unwrap_or_else(|e| e.into_inner());
+ 1234:             (s.port, s.starting, s.auto_start_failed)
+ 1235:         };
+ 1236:         if already_starting || already_failed {
+ 1237:             return false;
+ 1238:         }
+ 1239:         // check_health eseguito FUORI DAL BLOCCO MUTEX (Difetto minore Fase 5g)
+ 1240:         if already_port > 0 && check_health(already_port) {
+ 1241:             return false;
+ 1242:         }
+ 1243: 
+ 1244:         {
+ 1245:             let mut s = self.0.lock().unwrap_or_else(|e| e.into_inner());
+ 1246:             if s.starting || s.auto_start_failed {
+ 1247:                 return false;
+ 1248:             }
+ 1249:             s.starting = true;
+ 1250:             s.last_error = None;
+ 1251:         }
+ 1252: 
+ 1253:         let state = self.clone();
+ 1254:         std::thread::spawn(move || {
+ 1255:             let mut bg_guard = StartingGuard(state.clone(), true);
+ 1256:             let t0 = Instant::now();
+ 1257:             log_local_model_timing_meta(
+ 1258:                 "BACKGROUND_START_BEGIN",
+ 1259:                 0,
+ 1260:                 None,
+ 1261:                 None,
+ 1262:                 None,
+ 1263:                 "Avvio del servizio locale in background richiesto all'apertura",
+ 1264:             );
+ 1265: 
+ 1266:             // 1. Prima controlla se c'è un servizio esterno attivo bge-m3
+ 1267:             if let Ok((port, pid)) = find_active_bge_m3_service_with_pid() {
+ 1268:                 state.adopt_service(port, pid);
+ 1269:                 bg_guard.1 = false; // Disarma la guardia, adopt_service azzera starting
+ 1270:                 let elapsed = t0.elapsed().as_millis() as u64;
+ 1271:                 log_local_model_timing_meta(
+ 1272:                     "BACKGROUND_ADOPT_SUCCESS",
+ 1273:                     elapsed,
+ 1274:                     None,
+ 1275:                     pid,
+ 1276:                     Some(port),
+ 1277:                     &format!("port={}, pid={:?}", port, pid),
+ 1278:                 );
+ 1279:                 return;
+ 1280:             }
+ 1281: 
+ 1282:             // 2. Altrimenti avvia il proprio servizio mantenendo l'attesa di /health a 25 s
+ 1283:             // Disarma bg_guard perché start_internal gestisce il proprio StartingGuard
+ 1284:             bg_guard.1 = false;
+ 1285:             match state.start_internal(Duration::from_secs(25)) {
+ 1286:                 Ok(rep) if rep.healthy => {
+ 1287:                     let elapsed = t0.elapsed().as_millis() as u64;
+ 1288:                     log_local_model_timing_meta(
+ 1289:                         "BACKGROUND_START_SUCCESS",
+ 1290:                         elapsed,
+ 1291:                         detect_llama_server_binary().as_deref(),
+ 1292:                         rep.pid,
+ 1293:                         Some(rep.port),
+ 1294:                         &format!("port={}, pid={:?}", rep.port, rep.pid),
+ 1295:                     );
+ 1296:                 }
+ 1297:                 Ok(rep) => {
+ 1298:                     let mut s = state.0.lock().unwrap_or_else(|e| e.into_inner());
+ 1299:                     s.starting = false;
+ 1300:                     s.auto_start_failed = true;
+ 1301:                     s.auto_start_failure_reason = rep.last_error.clone();
+ 1302:                     let elapsed = t0.elapsed().as_millis() as u64;
+ 1303:                     log_local_model_timing_meta(
+ 1304:                         "BACKGROUND_START_FAILED",
+ 1305:                         elapsed,
+ 1306:                         detect_llama_server_binary().as_deref(),
+ 1307:                         rep.pid,
+ 1308:                         Some(rep.port),
+ 1309:                         &format!("non pronto su porta {}: {:?}", rep.port, rep.last_error),
+ 1310:                     );
+ 1311:                 }
+ 1312:                 Err(err) => {
+ 1313:                     let mut s = state.0.lock().unwrap_or_else(|e| e.into_inner());
+ 1314:                     s.starting = false;
+ 1315:                     s.auto_start_failed = true;
+ 1316:                     s.auto_start_failure_reason = Some(err.clone());
+ 1317:                     let elapsed = t0.elapsed().as_millis() as u64;
+ 1318:                     log_local_model_timing_meta(
+ 1319:                         "BACKGROUND_START_FAILED",
+ 1320:                         elapsed,
+ 1321:                         None,
+ 1322:                         None,
+ 1323:                         None,
+ 1324:                         &format!("errore: {}", err),
+ 1325:                     );
+ 1326:                 }
+ 1327:             }
+ 1328:         });
+ 1329:         true
+ 1330:     }
+ 1331: 
+ 1332:     pub fn on_app_startup(&self) {
+ 1333:         let model_rep = local_model_status();
+ 1334:         if !model_rep.installed || !model_rep.sha256_ok {
+ 1335:             return;
+ 1336:         }
+ 1337:         if !crate::ai::is_local_provider_configured() {
+ 1338:             return;
+ 1339:         }
+ 1340:         self.trigger_background_start();
+ 1341:     }
+ 1342: 
+ 1343:     pub fn get_or_adopt_or_start_service(&self) -> (Option<u16>, Option<u32>, bool, String, Option<String>) {
+ 1344:         let timeout = service_preparation_timeout();
+ 1345:         self.get_or_adopt_or_start_service_with_timeout(timeout)
+ 1346:     }
+ 1347: 
+ 1348:     pub fn get_or_adopt_or_start_service_with_timeout(
+ 1349:         &self,
+ 1350:         timeout: Duration,
+ 1351:     ) -> (Option<u16>, Option<u32>, bool, String, Option<String>) {
+ 1352:         let t_start = Instant::now();
+ 1353: 
+ 1354:         // 1. Servizio già attivo e pronto nell'istanza corrente
+ 1355:         let s = self.status();
+ 1356:         if s.healthy && s.port > 0 {
+ 1357:             let state_str = if self.0.lock().unwrap_or_else(|e| e.into_inner()).adopted_pid.is_some() {
+ 1358:                 "esterno adottato"
+ 1359:             } else {
+ 1360:                 "pronto"
+ 1361:             };
+ 1362:             return (Some(s.port), s.pid, true, state_str.to_string(), None);
+ 1363:         }
+ 1364: 
+ 1365:         // 2. Controllo se l'avvio è già fallito per un guasto vero nella sessione (Regola 3)
+ 1366:         let (auto_start_failed, prev_reason, is_already_starting) = {
+ 1367:             let guard = self.0.lock().unwrap_or_else(|e| e.into_inner());
+ 1368:             (guard.auto_start_failed, guard.auto_start_failure_reason.clone(), guard.starting)
+ 1369:         };
+ 1370:         if auto_start_failed {
+ 1371:             let reason = format!(
+ 1372:                 "Avvio automatico del servizio locale fallito ({}): ripiego sulla ricerca per parole. Per riprovare, premi AVVIA SERVIZIO LOCALE.",
+ 1373:                 prev_reason.unwrap_or_else(|| "errore precedente".to_string())
+ 1374:             );
+ 1375:             return (None, None, false, "fallito".to_string(), Some(reason));
+ 1376:         }
+ 1377: 
+ 1378:         // 3. Scoperta servizio esterno (se il nostro servizio non è già in avvio)
+ 1379:         if !is_already_starting {
+ 1380:             let discover_res = find_active_bge_m3_service_with_pid();
+ 1381:             if let Ok((port, pid)) = discover_res {
+ 1382:                 self.adopt_service(port, pid);
+ 1383:                 return (Some(port), pid, true, "esterno adottato".to_string(), None);
+ 1384:             }
+ 1385:         }
+ 1386: 
+ 1387:         // 4. Se il servizio non è già in avvio, avvia in background (senza bloccare la sessione)
+ 1388:         if !is_already_starting {
+ 1389:             let model_rep = local_model_status();
+ 1390:             if !model_rep.installed || !model_rep.sha256_ok {
+ 1391:                 let mut guard = self.0.lock().unwrap_or_else(|e| e.into_inner());
+ 1392:                 guard.auto_start_failed = true;
+ 1393:                 let err = "Modello locale bge-m3 non installato o non integro".to_string();
+ 1394:                 guard.auto_start_failure_reason = Some(err.clone());
+ 1395:                 return (
+ 1396:                     None,
+ 1397:                     None,
+ 1398:                     false,
+ 1399:                     "fallito".to_string(),
+ 1400:                     Some(format!("{}: ripiego sulla ricerca per parole.", err)),
+ 1401:                 );
+ 1402:             }
+ 1403:             if detect_llama_server_binary().is_none() {
+ 1404:                 let mut guard = self.0.lock().unwrap_or_else(|e| e.into_inner());
+ 1405:                 guard.auto_start_failed = true;
+ 1406:                 let err = "Binario llama-server non trovato".to_string();
+ 1407:                 guard.auto_start_failure_reason = Some(err.clone());
+ 1408:                 return (
+ 1409:                     None,
+ 1410:                     None,
+ 1411:                     false,
+ 1412:                     "fallito".to_string(),
+ 1413:                     Some(format!("{}: ripiego sulla ricerca per parole.", err)),
+ 1414:                 );
+ 1415:             }
+ 1416: 
+ 1417:             self.trigger_background_start();
+ 1418:         }
+ 1419: 
+ 1420:         // 5. Attesa attiva di salute fino al tempo limite di preparazione della domanda
+ 1421:         let deadline = t_start + timeout;
+ 1422:         while Instant::now() < deadline {
+ 1423:             std::thread::sleep(Duration::from_millis(50));
+ 1424:             let (port, pid, failed, fail_reason, adopted) = {
+ 1425:                 let guard = self.0.lock().unwrap_or_else(|e| e.into_inner());
+ 1426:                 let pid = guard.child.as_ref().map(|c| c.id()).or(guard.adopted_pid);
+ 1427:                 (guard.port, pid, guard.auto_start_failed, guard.auto_start_failure_reason.clone(), guard.adopted_pid.is_some())
+ 1428:             };
+ 1429: 
+ 1430:             let healthy = port > 0 && check_health(port);
+ 1431:             if healthy {
+ 1432:                 let st = if adopted { "esterno adottato" } else { "pronto" };
+ 1433:                 return (Some(port), pid, true, st.to_string(), None);
+ 1434:             }
+ 1435:             if failed {
+ 1436:                 let reason = format!(
+ 1437:                     "Avvio servizio locale fallito ({}): ripiego sulla ricerca per parole.",
+ 1438:                     fail_reason.unwrap_or_else(|| "errore durante l'avvio".to_string())
+ 1439:                 );
+ 1440:                 return (None, None, false, "fallito".to_string(), Some(reason));
+ 1441:             }
+ 1442:         }
+ 1443: 
+ 1444:         // 6. Timeout di preparazione della domanda scaduto (Regola 2):
+ 1445:         // NON chiude il servizio in avvio! L'avvio prosegue in background.
+ 1446:         // Questa domanda ripiega sulla ricerca per parole con motivo visibile.
+ 1447:         let (port_opt, pid_opt) = {
+ 1448:             let guard = self.0.lock().unwrap_or_else(|e| e.into_inner());
+ 1449:             let pid = guard.child.as_ref().map(|c| c.id()).or(guard.adopted_pid);
+ 1450:             (if guard.port > 0 { Some(guard.port) } else { None }, pid)
+ 1451:         };
+ 1452:         (
+ 1453:             port_opt,
+ 1454:             pid_opt,
+ 1455:             false,
+ 1456:             "in avvio".to_string(),
+ 1457:             Some("Servizio locale in avvio: ripiego temporaneo sulla ricerca per parole per questa domanda.".to_string()),
+ 1458:         )
+ 1459:     }
+ 1460: 
+ 1461:     pub fn start(&self) -> Result<LocalServerReport, String> {
+ 1462:         self.reset_auto_start_failure();
+ 1463:         self.start_internal(Duration::from_secs(25))
+ 1464:     }
+ 1465: 
+ 1466:     pub fn start_with_timeout(&self, timeout: Duration) -> Result<LocalServerReport, String> {
+ 1467:         self.start_internal(timeout)
+ 1468:     }
+ 1469: 
+ 1470:     pub fn start_internal(&self, timeout: Duration) -> Result<LocalServerReport, String> {
+ 1471:         let t_start = Instant::now();
+ 1472: 
+ 1473:         // 0. Controllo concorrenza: se un avvio è già in corso in un altro thread, NON avviare
+ 1474:         // un secondo processo (Item 5). Attendi invece il completamento dell'avvio già attivo.
+ 1475:         let already_starting = {
+ 1476:             let s = self.0.lock().unwrap_or_else(|e| e.into_inner());
+ 1477:             s.starting
+ 1478:         };
+ 1479:         if already_starting {
+ 1480:             let deadline = t_start + timeout;
+ 1481:             while Instant::now() < deadline {
+ 1482:                 std::thread::sleep(Duration::from_millis(100));
+ 1483:                 let (port, starting, failed, fail_reason) = {
+ 1484:                     let s = self.0.lock().unwrap_or_else(|e| e.into_inner());
+ 1485:                     (s.port, s.starting, s.auto_start_failed, s.auto_start_failure_reason.clone())
+ 1486:                 };
+ 1487:                 if port > 0 && check_health(port) {
+ 1488:                     return Ok(self.status());
+ 1489:                 }
+ 1490:                 if !starting {
+ 1491:                     if port > 0 && check_health(port) {
+ 1492:                         return Ok(self.status());
+ 1493:                     }
+ 1494:                     if failed {
+ 1495:                         return Err(fail_reason.unwrap_or_else(|| "Avvio del servizio locale fallito".to_string()));
+ 1496:                     }
+ 1497:                     break;
+ 1498:                 }
+ 1499:             }
+ 1500:             let s = self.0.lock().unwrap_or_else(|e| e.into_inner());
+ 1501:             if s.starting {
+ 1502:                 return Err(format!("Timeout attesa avvio del servizio in corso ({:.1}s).", timeout.as_secs_f32()));
+ 1503:             }
+ 1504:         }
+ 1505: 
+ 1506:         // 1. Verify model is installed
+ 1507:         let model_rep = local_model_status();
+ 1508:         if !model_rep.installed || !model_rep.sha256_ok {
+ 1509:             let mut s = self.0.lock().unwrap_or_else(|e| e.into_inner());
+ 1510:             s.starting = false;
+ 1511:             s.auto_start_failed = true;
+ 1512:             let err = "Modello locale bge-m3-Q8_0.gguf non installato o non integro. Esegui il download dalle impostazioni.".to_string();
+ 1513:             s.auto_start_failure_reason = Some(err.clone());
+ 1514:             return Err(err);
+ 1515:         }
+ 1516:         let model_path = PathBuf::from(model_rep.path);
+ 1517: 
+ 1518:         // 2. Check if already healthy (verifica di rete eseguita FUORI dal mutex)
+ 1519:         let already_port = {
+ 1520:             let s = self.0.lock().unwrap_or_else(|e| e.into_inner());
+ 1521:             s.port
+ 1522:         };
+ 1523:         if already_port > 0 && check_health(already_port) {
+ 1524:             let mut s = self.0.lock().unwrap_or_else(|e| e.into_inner());
+ 1525:             s.starting = false;
+ 1526:             return Ok(self.status());
+ 1527:         }
+ 1528: 
+ 1529:         // 2b. Un server orfano di un'istanza precedente (app uccisa) va terminato prima di avviarne un altro
+ 1530:         let _ = reap_orphan_server();
+ 1531: 
+ 1532:         // 3. Find standalone or system binary
+ 1533:         let binary = match detect_llama_server_binary() {
+ 1534:             Some(b) => b,
+ 1535:             None => {
+ 1536:                 let mut s = self.0.lock().unwrap_or_else(|e| e.into_inner());
+ 1537:                 s.starting = false;
+ 1538:                 s.auto_start_failed = true;
+ 1539:                 let err = "Binario llama-server non disponibile nel pacchetto o nel sistema.".to_string();
+ 1540:                 s.auto_start_failure_reason = Some(err.clone());
+ 1541:                 return Err(err);
+ 1542:             }
+ 1543:         };
+ 1544: 
+ 1545:         // Acquisizione flag starting con guardia RAII (garantisce azzeramento anche su panic/errore)
+ 1546:         {
+ 1547:             let mut s = self.0.lock().unwrap_or_else(|e| e.into_inner());
+ 1548:             s.starting = true;
+ 1549:             s.last_error = None;
+ 1550:         }
+ 1551:         let mut starting_guard = StartingGuard(self.clone(), true);
+ 1552: 
+ 1553:         // 4. Choose free port
+ 1554:         let free_port = match find_free_port() {
+ 1555:             Ok(p) => p,
+ 1556:             Err(e) => {
+ 1557:                 let mut s = self.0.lock().unwrap_or_else(|e| e.into_inner());
+ 1558:                 s.starting = false;
+ 1559:                 s.auto_start_failed = true;
+ 1560:                 s.auto_start_failure_reason = Some(e.clone());
+ 1561:                 return Err(e);
+ 1562:             }
+ 1563:         };
+ 1564: 
+ 1565:         // 5. Spawn llama-server with exact arguments
+ 1566:         let mut cmd = Command::new(&binary);
+ 1567:         cmd.args([
+ 1568:             "-m", &model_path.to_string_lossy(),
+ 1569:             "--embedding",
+ 1570:             "--host", "127.0.0.1",
+ 1571:             "--port", &free_port.to_string(),
+ 1572:             "-ub", "2048",
+ 1573:             "-b", "2048",
+ 1574:         ]);
+ 1575: 
+ 1576:         if let Some(metal) = binary.parent().map(|d| d.join("libggml-metal.so")).filter(|p| p.is_file()) {
+ 1577:             cmd.env("GGML_BACKEND_PATH", metal);
+ 1578:         }
+ 1579: 
+ 1580:         #[cfg(unix)]
+ 1581:         {
+ 1582:             use std::os::unix::process::CommandExt;
+ 1583:             cmd.process_group(0);
+ 1584:         }
+ 1585:         #[cfg(windows)]
+ 1586:         {
+ 1587:             use std::os::windows::process::CommandExt;
+ 1588:             const CREATE_NO_WINDOW: u32 = 0x08000000;
+ 1589:             cmd.creation_flags(CREATE_NO_WINDOW);
+ 1590:         }
+ 1591: 
+ 1592:         cmd.stdin(Stdio::null());
+ 1593:         cmd.stdout(Stdio::null());
+ 1594:         cmd.stderr(Stdio::piped());
+ 1595: 
+ 1596:         let mut child = match cmd.spawn() {
+ 1597:             Ok(c) => c,
+ 1598:             Err(e) => {
+ 1599:                 let mut s = self.0.lock().unwrap_or_else(|e| e.into_inner());
+ 1600:                 s.starting = false;
+ 1601:                 s.auto_start_failed = true;
+ 1602:                 let err = format!("Impossibile avviare il processo llama-server: {}", e);
+ 1603:                 s.auto_start_failure_reason = Some(err.clone());
+ 1604:                 return Err(err);
+ 1605:             }
+ 1606:         };
+ 1607: 
+ 1608:         let child_pid = child.id();
+ 1609:         let stderr_opt = child.stderr.take();
+ 1610: 
+ 1611:         // 5b. Registri per avvio: file proprio con timestamp UTC e PID, conservando almeno gli ultimi 20 file (Item 1)
+ 1612:         if let Some(parent) = model_path.parent() {
+ 1613:             let logs_dir = parent.join("logs");
+ 1614:             let _ = fs::create_dir_all(&logs_dir);
+ 1615:             rotate_llama_server_logs(&logs_dir, 20);
+ 1616: 
+ 1617:             let utc_now = chrono::Utc::now().format("%Y%m%dT%H%M%SZ").to_string();
+ 1618:             let per_run_log_path = logs_dir.join(format!("llama-server_{}_{}.log", utc_now, child_pid));
+ 1619:             let legacy_log_path = parent.join("llama-server.log");
+ 1620: 
+ 1621:             if let Some(mut stderr) = stderr_opt {
+ 1622:                 std::thread::spawn(move || {
+ 1623:                     use std::io::Read;
+ 1624:                     let mut file_per_run = fs::File::create(&per_run_log_path).ok();
+ 1625:                     let mut file_legacy = fs::File::create(&legacy_log_path).ok();
+ 1626:                     let mut buf = [0u8; 4096];
+ 1627:                     while let Ok(n) = stderr.read(&mut buf) {
+ 1628:                         if n == 0 {
+ 1629:                             break;
+ 1630:                         }
+ 1631:                         if let Some(ref mut f) = file_per_run {
+ 1632:                             let _ = f.write_all(&buf[..n]);
+ 1633:                         }
+ 1634:                         if let Some(ref mut f) = file_legacy {
+ 1635:                             let _ = f.write_all(&buf[..n]);
+ 1636:                         }
+ 1637:                     }
+ 1638:                 });
+ 1639:             }
+ 1640:         }
+ 1641: 
+ 1642:         let _ = write_service_registration(child_pid, free_port);
+ 1643:         {
+ 1644:             let mut s = self.0.lock().unwrap_or_else(|e| e.into_inner());
+ 1645:             s.child = Some(child);
+ 1646:             s.owned_pid = Some(child_pid);
+ 1647:             s.port = free_port;
+ 1648:             s.model_path = model_path.clone();
+ 1649:             s.binary_path = Some(binary.clone());
+ 1650:             s.starting = true;
+ 1651:         }
+ 1652: 
+ 1653:         let port = free_port;
+ 1654: 
+ 1655:         // 6. Poll /health endpoint up to timeout
+ 1656:         let deadline = Instant::now() + timeout;
+ 1657:         let mut healthy = false;
+ 1658:         let log_path = model_path.parent().map(|p| p.join("llama-server.log"));
+ 1659:         while Instant::now() < deadline {
+ 1660:             std::thread::sleep(Duration::from_millis(100));
+ 1661:             if check_health(port) {
+ 1662:                 healthy = true;
+ 1663:                 break;
+ 1664:             }
+ 1665: 
+ 1666:             // Check if crashed (guasto vero, Regola 3)
+ 1667:             let mut guard = self.0.lock().map_err(|e| e.to_string())?;
+ 1668:             if let Some(c) = guard.child.as_mut() {
+ 1669:                 if let Ok(Some(code)) = c.try_wait() {
+ 1670:                     guard.child = None;
+ 1671:                     guard.starting = false;
+ 1672:                     guard.auto_start_failed = true;
+ 1673:                     let tail = log_path
+ 1674:                         .as_ref()
+ 1675:                         .and_then(|p| std::fs::read_to_string(p).ok())
+ 1676:                         .map(|t| {
+ 1677:                             let mut last: Vec<&str> = t.lines().filter(|l| !l.trim().is_empty()).collect();
+ 1678:                             let keep = last.len().saturating_sub(3);
+ 1679:                             last.drain(..keep);
+ 1680:                             last.join(" | ")
+ 1681:                         })
+ 1682:                         .unwrap_or_default();
+ 1683:                     let detail = if tail.is_empty() { String::new() } else { format!(" — {}", tail) };
+ 1684:                     let err = format!("llama-server uscito con codice {}{}", code, detail);
+ 1685:                     guard.auto_start_failure_reason = Some(err.clone());
+ 1686:                     guard.last_error = Some(err.clone());
+ 1687:                     let elapsed = t_start.elapsed().as_millis() as u64;
+ 1688:                     log_local_model_timing_meta(
+ 1689:                         "SERVICE_START_FAILED",
+ 1690:                         elapsed,
+ 1691:                         Some(&binary),
+ 1692:                         Some(child_pid),
+ 1693:                         Some(port),
+ 1694:                         &err,
+ 1695:                     );
+ 1696:                     return Err(err);
+ 1697:                 }
+ 1698:             }
+ 1699:         }
+ 1700: 
+ 1701:         if !healthy {
+ 1702:             self.stop()?;
+ 1703:             let mut guard = self.0.lock().map_err(|e| e.to_string())?;
+ 1704:             guard.starting = false;
+ 1705:             guard.auto_start_failed = true;
+ 1706:             let err = format!("Timeout: llama-server non ha risposto sull'endpoint /health entro {:.1}s.", timeout.as_secs_f32());
+ 1707:             guard.auto_start_failure_reason = Some(err.clone());
+ 1708:             guard.last_error = Some(err.clone());
+ 1709:             let elapsed = t_start.elapsed().as_millis() as u64;
+ 1710:             log_local_model_timing_meta(
+ 1711:                 "SERVICE_START_FAILED",
+ 1712:                 elapsed,
+ 1713:                 Some(&binary),
+ 1714:                 Some(child_pid),
+ 1715:                 Some(port),
+ 1716:                 &err,
+ 1717:             );
+ 1718:             return Err(err);
+ 1719:         }
+ 1720: 
+ 1721:         // 7. Verify dimensions are exactly 1024 (guasto vero, Regola 3)
+ 1722:         if let Err(e) = verify_dimensions(port) {
+ 1723:             let _ = self.stop();
+ 1724:             let mut guard = self.0.lock().map_err(|e| e.to_string())?;
+ 1725:             guard.starting = false;
+ 1726:             guard.auto_start_failed = true;
+ 1727:             let err = format!("Controllo dimensioni vettore fallito: {}", e);
+ 1728:             guard.auto_start_failure_reason = Some(err.clone());
+ 1729:             guard.last_error = Some(err.clone());
+ 1730:             let elapsed = t_start.elapsed().as_millis() as u64;
+ 1731:             log_local_model_timing_meta(
+ 1732:                 "SERVICE_START_FAILED",
+ 1733:                 elapsed,
+ 1734:                 Some(&binary),
+ 1735:                 Some(child_pid),
+ 1736:                 Some(port),
+ 1737:                 &err,
+ 1738:             );
+ 1739:             return Err(err);
+ 1740:         }
+ 1741: 
+ 1742:         starting_guard.1 = false; // Disarma StartingGuard: avvio completato con successo
+ 1743:         {
+ 1744:             let mut guard = self.0.lock().map_err(|e| e.to_string())?;
+ 1745:             guard.starting = false;
+ 1746:             guard.auto_start_failed = false;
+ 1747:             guard.auto_start_failure_reason = None;
+ 1748:         }
+ 1749: 
+ 1750:         let elapsed = t_start.elapsed().as_millis() as u64;
+ 1751:         log_local_model_timing_meta(
+ 1752:             "SERVICE_START",
+ 1753:             elapsed,
+ 1754:             Some(&binary),
+ 1755:             Some(child_pid),
+ 1756:             Some(port),
+ 1757:             &format!("port={}, pid={:?}", port, child_pid),
+ 1758:         );
+ 1759: 
+ 1760:         Ok(self.status())
+ 1761:     }
+ 1762: 
+ 1763:     pub fn ensure_running(&self) -> Result<u16, String> {
+ 1764:         let port = {
+ 1765:             let s = self.0.lock().map_err(|e| e.to_string())?;
+ 1766:             s.port
+ 1767:         };
+ 1768:         if port > 0 && check_health(port) {
+ 1769:             return Ok(port);
+ 1770:         }
+ 1771: 
+ 1772:         // Try restart up to 3 times (Gate A10 compliance)
+ 1773:         for attempt in 1..=3 {
+ 1774:             match self.start() {
+ 1775:                 Ok(rep) if rep.healthy => {
+ 1776:                     let mut guard = self.0.lock().unwrap_or_else(|e| e.into_inner());
+ 1777:                     guard.crash_count = 0;
+ 1778:                     return Ok(rep.port);
+ 1779:                 }
+ 1780:                 Ok(_) => {}
+ 1781:                 Err(e) => {
+ 1782:                     eprintln!("[llama] Tentativo avvio {}/3 fallito: {}", attempt, e);
+ 1783:                     if attempt == 3 {
+ 1784:                         return Err(format!("Riavvio automatico fallito dopo 3 tentativi: {}", e));
+ 1785:                     }
+ 1786:                     std::thread::sleep(Duration::from_millis(500));
+ 1787:                 }
+ 1788:             }
+ 1789:         }
+ 1790:         Err("Impossibile avviare il servizio llama-server dopo 3 tentativi".into())
+ 1791:     }
+ 1792: 
+ 1793:     pub fn stop(&self) -> Result<LocalServerReport, String> {
+ 1794:         let (child, owned_pid) = {
+ 1795:             let mut s = self.0.lock().map_err(|e| e.to_string())?;
+ 1796:             s.port = 0;
+ 1797:             s.adopted_pid = None;
+ 1798:             s.last_error = None;
+ 1799:             s.starting = false;
+ 1800:             let owned = s.child.as_ref().map(|c| c.id()).or(s.owned_pid);
+ 1801:             s.owned_pid = None;
+ 1802:             (s.child.take(), owned)
+ 1803:         }; // Lock rilasciato IMMEDIATAMENTE: nessuna attesa su processi o I/O sotto lock!
+ 1804: 
+ 1805:         if let Some(mut c) = child {
+ 1806:             #[cfg(unix)]
+ 1807:             unsafe {
+ 1808:                 let pid = c.id() as i32;
+ 1809:                 libc::kill(-pid, libc::SIGTERM);
+ 1810:                 libc::kill(pid, libc::SIGTERM);
+ 1811:             }
+ 1812:             #[cfg(windows)]
+ 1813:             {
+ 1814:                 let _ = c.kill(); // Termina esplicitamente SOLO il figlio posseduto dall'app
+ 1815:             }
+ 1816:             for _ in 0..20 {
+ 1817:                 if c.try_wait().ok().flatten().is_some() {
+ 1818:                     break;
+ 1819:                 }
+ 1820:                 std::thread::sleep(Duration::from_millis(50));
+ 1821:             }
+ 1822:             #[cfg(unix)]
+ 1823:             unsafe {
+ 1824:                 let pid = c.id() as i32;
+ 1825:                 libc::kill(-pid, libc::SIGKILL);
+ 1826:                 libc::kill(pid, libc::SIGKILL);
+ 1827:             }
+ 1828:             #[cfg(windows)]
+ 1829:             {
+ 1830:                 let _ = c.kill();
+ 1831:             }
+ 1832:             for _ in 0..10 {
+ 1833:                 if c.try_wait().ok().flatten().is_some() {
+ 1834:                     break;
+ 1835:                 }
+ 1836:                 std::thread::sleep(Duration::from_millis(50));
+ 1837:             }
+ 1838:         }
+ 1839: 
+ 1840:         if let Some(pid) = owned_pid {
+ 1841:             remove_service_registration_if_owned(pid);
+ 1842:         }
+ 1843: 
+ 1844:         Ok(self.status())
+ 1845:     }
+ 1846: }
+ 1847: 
+ 1848: impl Drop for LlamaServerState {
+ 1849:     fn drop(&mut self) {
+ 1850:         if Arc::strong_count(&self.0) == 1 {
+ 1851:             let _ = self.stop();
+ 1852:         }
+ 1853:     }
+ 1854: }
+ 1855: 
+ 1856: #[cfg(test)]
+ 1857: mod tests {
+ 1858:     use super::*;
+ 1859: 
+ 1860:     #[test]
+ 1861:     fn test_model_expected_constants() {
+ 1862:         assert_eq!(EXPECTED_MODEL_SIZE_BYTES, 634_553_760);
+ 1863:         assert_eq!(
+ 1864:             EXPECTED_MODEL_SHA256,
+ 1865:             "950f4a8e5e19477a6d3c26d2f162233c20002c601f75e4b002e3239997821167"
+ 1866:         );
+ 1867:         assert_eq!(EXPECTED_EMBEDDINGS_DIMENSIONS, 1024);
+ 1868:     }
+ 1869: 
+ 1870:     #[test]
+ 1871:     fn test_local_model_status_returns_struct() {
+ 1872:         let rep = local_model_status();
+ 1873:         println!("Local model status: {:?}", rep);
+ 1874:         assert!(rep.bytes == 0 || rep.bytes == EXPECTED_MODEL_SIZE_BYTES);
+ 1875:     }
+ 1876: 
+ 1877:     #[test]
+ 1878:     fn test_second_status_call_uses_cache_zero_hash_recalculation() {
+ 1879:         let tmp = tempfile::tempdir().unwrap();
+ 1880:         let target = tmp.path().join("model.gguf");
+ 1881:         let cache_file = tmp.path().join("model.gguf.sha256.json");
+ 1882:         let content = b"dummy-model-content-for-test-cache";
+ 1883:         fs::write(&target, content).unwrap();
+ 1884:         let meta = fs::metadata(&target).unwrap();
+ 1885:         let size = meta.len();
+ 1886:         let expected_hash = compute_file_sha256(&target).unwrap();
+ 1887: 
+ 1888:         // 1. Prima chiamata: calcola lo SHA-256 e scrive la cache
+ 1889:         let rep1 = model_status_for_paths(&target, &cache_file, size, &expected_hash, false);
+ 1890:         assert!(rep1.installed);
+ 1891:         assert!(rep1.sha256_ok);
+ 1892:         assert!(cache_file.exists());
+ 1893: 
+ 1894:         let cache_meta1 = fs::metadata(&cache_file).unwrap();
+ 1895:         let cache_mtime1 = cache_meta1.modified().unwrap();
+ 1896: 
+ 1897:         // 2. Seconda chiamata: deve entrare nel fast-path della cache
+ 1898:         let rep2 = model_status_for_paths(&target, &cache_file, size, &expected_hash, false);
+ 1899:         assert!(rep2.installed);
+ 1900:         assert!(rep2.sha256_ok);
+ 1901: 
+ 1902:         let cache_meta2 = fs::metadata(&cache_file).unwrap();
+ 1903:         assert_eq!(
+ 1904:             cache_meta2.modified().unwrap(),
+ 1905:             cache_mtime1,
+ 1906:             "La seconda chiamata deve usare la cache esistente senza riscriverla né ricalcolare"
+ 1907:         );
+ 1908:     }
+ 1909: 
+ 1910:     #[test]
+ 1911:     fn test_model_modified_mtime_triggers_recomputation() {
+ 1912:         let tmp = tempfile::tempdir().unwrap();
+ 1913:         let target = tmp.path().join("model.gguf");
+ 1914:         let cache_file = tmp.path().join("model.gguf.sha256.json");
+ 1915:         let content = b"initial-valid-content";
+ 1916:         fs::write(&target, content).unwrap();
+ 1917:         let size = fs::metadata(&target).unwrap().len();
+ 1918:         let expected_hash = compute_file_sha256(&target).unwrap();
+ 1919: 
+ 1920:         // Popola la cache iniziale
+ 1921:         let rep1 = model_status_for_paths(&target, &cache_file, size, &expected_hash, false);
+ 1922:         assert!(rep1.sha256_ok);
+ 1923:         assert!(cache_file.exists());
+ 1924: 
+ 1925:         // Modifica del file (stessa dimensione ma contenuto diverso)
+ 1926:         std::thread::sleep(Duration::from_millis(50));
+ 1927:         fs::write(&target, b"altered-bytes-content").unwrap();
+ 1928: 
+ 1929:         // Su NTFS (confronto esatto mtime) la modifica dell'mtime invalida la cache e forza il ricalcolo
+ 1930:         let rep2 = model_status_for_paths(&target, &cache_file, size, &expected_hash, false);
+ 1931:         assert!(!rep2.sha256_ok, "Il file modificato deve fallire la verifica di integrità");
+ 1932:         assert!(!cache_file.exists(), "La cache non valida deve essere rimossa");
+ 1933:     }
+ 1934: 
+ 1935:     #[test]
+ 1936:     fn test_model_replaced_same_size_detected() {
+ 1937:         let tmp = tempfile::tempdir().unwrap();
+ 1938:         let target = tmp.path().join("model.gguf");
+ 1939:         let cache_file = tmp.path().join("model.gguf.sha256.json");
+ 1940:         let content = b"original-data-123";
+ 1941:         fs::write(&target, content).unwrap();
+ 1942:         let size = fs::metadata(&target).unwrap().len();
+ 1943:         let expected_hash = compute_file_sha256(&target).unwrap();
+ 1944: 
+ 1945:         // Crea cache valida iniziale
+ 1946:         let rep1 = model_status_for_paths(&target, &cache_file, size, &expected_hash, false);
+ 1947:         assert!(rep1.sha256_ok);
+ 1948: 
+ 1949:         // Sostituzione con contenuto differente di identica lunghezza (17 byte)
+ 1950:         std::thread::sleep(Duration::from_millis(50));
+ 1951:         fs::write(&target, b"replaced-data-456").unwrap();
+ 1952: 
+ 1953:         // 1. Verifica automatica tramite mtime
+ 1954:         let rep2 = model_status_for_paths(&target, &cache_file, size, &expected_hash, false);
+ 1955:         assert!(!rep2.sha256_ok, "Il file sostituito con stessa dimensione deve essere rilevato");
+ 1956: 
+ 1957:         // 2. Verifica forzata (pulsante 'Verifica integrità')
+ 1958:         let rep_forced = model_status_for_paths(&target, &cache_file, size, &expected_hash, true);
+ 1959:         assert!(!rep_forced.sha256_ok, "La verifica forzata deve rilevare l'impronta non valida");
+ 1960:     }
+ 1961: 
+ 1962:     #[test]
+ 1963:     fn test_install_from_file_single_io_pass() {
+ 1964:         let tmp = tempfile::tempdir().unwrap();
+ 1965:         let source = tmp.path().join("source.gguf");
+ 1966:         let target = tmp.path().join("installed.gguf");
+ 1967:         let cache_file = tmp.path().join("installed.gguf.sha256.json");
+ 1968:         let content = b"model-binary-stream-test";
+ 1969:         fs::write(&source, content).unwrap();
+ 1970:         let size = fs::metadata(&source).unwrap().len();
+ 1971:         let expected_hash = compute_file_sha256(&source).unwrap();
+ 1972: 
+ 1973:         let rep = install_model_for_paths(&source, &target, &cache_file, size, &expected_hash).unwrap();
+ 1974:         assert!(rep.installed);
+ 1975:         assert!(rep.sha256_ok);
+ 1976:         assert_eq!(rep.bytes, size);
+ 1977:         assert!(target.exists());
+ 1978:         assert!(cache_file.exists());
+ 1979:     }
+ 1980: 
+ 1981:     #[test]
+ 1982:     fn test_cache_with_unexpected_hash_triggers_recomputation() {
+ 1983:         let tmp = tempfile::tempdir().unwrap();
+ 1984:         let target = tmp.path().join("model.gguf");
+ 1985:         let cache_file = tmp.path().join("model.gguf.sha256.json");
+ 1986:         let content = b"real-model-content-abc";
+ 1987:         fs::write(&target, content).unwrap();
+ 1988:         let meta = fs::metadata(&target).unwrap();
+ 1989:         let size = meta.len();
+ 1990:         let mtime_ms = meta
+ 1991:             .modified()
+ 1992:             .unwrap()
+ 1993:             .duration_since(std::time::UNIX_EPOCH)
+ 1994:             .unwrap()
+ 1995:             .as_millis() as u64;
+ 1996:         let real_hash = compute_file_sha256(&target).unwrap();
+ 1997: 
+ 1998:         // Scrive una cache con un hash vecchio o di un altro modello
+ 1999:         save_model_cache(
+ 2000:             &cache_file,
+ 2001:             &ModelVerificationCache {
+ 2002:                 path: target.to_string_lossy().to_string(),
+ 2003:                 bytes: size,
+ 2004:                 mtime_ms,
+ 2005:                 sha256: "0000000000000000000000000000000000000000000000000000000000000000".into(),
+ 2006:                 sha256_ok: true,
+ 2007:                 verified_at: chrono::Utc::now().to_rfc3339(),
+ 2008:             },
+ 2009:         ).unwrap();
+ 2010: 
+ 2011:         // Chiamata con l'hash atteso reale
+ 2012:         let rep = model_status_for_paths(&target, &cache_file, size, &real_hash, false);
+ 2013:         // Poiché la cache aveva un hash diverso, la via rapida NON deve accettarla;
+ 2014:         // passa alla verifica completa, riscontra l'hash reale e aggiorna la cache.
+ 2015:         assert!(rep.installed);
+ 2016:         assert!(rep.sha256_ok);
+ 2017:         let updated_cache = read_model_cache(&cache_file).unwrap();
+ 2018:         assert_eq!(updated_cache.sha256, real_hash);
+ 2019:     }
+ 2020: 
+ 2021:     #[test]
+ 2022:     fn test_unexpected_size_reports_not_installed() {
+ 2023:         let tmp = tempfile::tempdir().unwrap();
+ 2024:         let target = tmp.path().join("model.gguf");
+ 2025:         let cache_file = tmp.path().join("model.gguf.sha256.json");
+ 2026:         fs::write(&target, b"short-content").unwrap();
+ 2027:         let meta = fs::metadata(&target).unwrap();
+ 2028:         let actual_size = meta.len();
+ 2029: 
+ 2030:         // Chiamata con dimensione attesa diversa
+ 2031:         let rep = model_status_for_paths(
+ 2032:             &target,
+ 2033:             &cache_file,
+ 2034:             actual_size + 100, // dimensione attesa differente
+ 2035:             "any-sha256",
+ 2036:             false,
+ 2037:         );
+ 2038:         assert!(!rep.installed, "Dimensione diversa deve restituire non installato");
+ 2039:         assert!(!rep.sha256_ok);
+ 2040:         assert!(!cache_file.exists());
+ 2041:     }
+ 2042: 
+ 2043:     #[test]
+ 2044:     fn test_execution_does_not_modify_userprofile_limen_vault() {
+ 2045:         let test_log_path = get_local_model_timing_log_path();
+ 2046:         assert!(
+ 2047:             test_log_path.starts_with(std::env::temp_dir()),
+ 2048:             "Nei test il registro deve andare nella directory temporanea: {:?}",
+ 2049:             test_log_path
+ 2050:         );
+ 2051: 
+ 2052:         let user_vault_dir = PathBuf::from(std::env::var("USERPROFILE").unwrap_or_else(|_| ".".into()))
+ 2053:             .join(".limen-vault");
+ 2054:         let user_log = user_vault_dir.join("local_model_timing.log");
+ 2055:         let before_mod = if user_log.exists() {
+ 2056:             fs::metadata(&user_log).ok().and_then(|m| m.modified().ok())
+ 2057:         } else {
+ 2058:             None
+ 2059:         };
+ 2060: 
+ 2061:         log_local_model_timing("TEST_EVENT", 42, "unit-test-verification");
+ 2062: 
+ 2063:         let after_mod = if user_log.exists() {
+ 2064:             fs::metadata(&user_log).ok().and_then(|m| m.modified().ok())
+ 2065:         } else {
+ 2066:             None
+ 2067:         };
+ 2068: 
+ 2069:         assert_eq!(
+ 2070:             before_mod, after_mod,
+ 2071:             "L'esecuzione dei test NON deve modificare o scrivere nel log reale in ~/.limen-vault"
+ 2072:         );
+ 2073:     }
+ 2074: 
+ 2075:     #[test]
+ 2076:     fn test_pid_file_roundtrip_and_orphan_decision() {
+ 2077:         let tmp = tempfile::tempdir().unwrap();
+ 2078:         let p = tmp.path().join("llama-server.pid");
+ 2079:         assert_eq!(read_pid_file(&p), None);
+ 2080:         write_pid_file(&p, 4242);
+ 2081:         assert_eq!(read_pid_file(&p), Some(4242));
+ 2082:         fs::write(&p, "non-un-pid").unwrap();
+ 2083:         assert_eq!(read_pid_file(&p), None);
+ 2084: 
+ 2085:         let ours = "/Applications/LIMEN Vault v3.app/Contents/Resources/native/llama-server -m m.gguf --embedding --host 127.0.0.1 --port 1";
+ 2086:         assert!(is_orphan_llama_server(1, ours), "genitore launchd + nostro server = orfano");
+ 2087:         assert!(!is_orphan_llama_server(4321, ours), "genitore vivo: appartiene a un'istanza attiva, non si tocca");
+ 2088:         assert!(!is_orphan_llama_server(1, "/usr/bin/python3 server.py"), "pid riusato da un altro processo");
+ 2089:         assert!(!is_orphan_llama_server(1, "/opt/homebrew/bin/llama-server -m chat.gguf --port 8080"), "llama-server non in modalita' embedding");
+ 2090:     }
+ 2091: 
+ 2092:     #[test]
+ 2093:     fn test_process_parent_and_command_reads_live_process_only() {
+ 2094:         std::env::set_var("LIMEN_DISCOVERY_COMMAND_TIMEOUT_MS", "6000");
+ 2095:         let me = std::process::id();
+ 2096:         let (ppid, cmd) = process_parent_and_command(me).expect("ps deve leggere il processo corrente");
+ 2097:         std::env::remove_var("LIMEN_DISCOVERY_COMMAND_TIMEOUT_MS");
+ 2098:         assert!(ppid > 0);
+ 2099:         assert!(!cmd.is_empty());
+ 2100:         assert_eq!(process_parent_and_command(u32::MAX - 7), None, "pid inesistente");
+ 2101:     }
+ 2102: 
+ 2103:     #[test]
+ 2104:     fn test_detect_llama_server_binary() {
+ 2105:         let bin = detect_llama_server_binary();
+ 2106:         assert!(bin.is_some(), "llama-server binary should be detectable");
+ 2107:     }
+ 2108: 
+ 2109:     #[test]
+ 2110:     fn test_find_free_port() {
+ 2111:         let port = find_free_port().unwrap();
+ 2112:         assert!(port > 1024);
+ 2113:     }
+ 2114: 
+ 2115:     #[test]
+ 2116:     fn test_p1_server_with_invalid_embeddings_fails_bounded_and_status_available() {
+ 2117:         use std::io::{Read, Write};
+ 2118:         use std::net::TcpListener;
+ 2119: 
+ 2120:         // 1. Avvia un mock HTTP server su 127.0.0.1 (porta libera casuale del sistema)
+ 2121:         let listener = TcpListener::bind("127.0.0.1:0").expect("Failed to bind mock listener");
+ 2122:         let mock_port = listener.local_addr().unwrap().port();
+ 2123:         let running_flag = Arc::new(std::sync::atomic::AtomicBool::new(true));
+ 2124:         let flag_clone = running_flag.clone();
+ 2125: 
+ 2126:         // Server thread che risponde /health = 200 OK, ma /v1/embeddings = risposta JSON non valida
+ 2127:         let server_thread = std::thread::spawn(move || {
+ 2128:             let _ = listener.set_nonblocking(true);
+ 2129:             while flag_clone.load(std::sync::atomic::Ordering::SeqCst) {
+ 2130:                 if let Ok((mut socket, _)) = listener.accept() {
+ 2131:                     let mut buf = [0u8; 1024];
+ 2132:                     let mut read_bytes = 0;
+ 2133:                     while let Ok(n) = socket.read(&mut buf[read_bytes..]) {
+ 2134:                         if n == 0 { break; }
+ 2135:                         read_bytes += n;
+ 2136:                         if buf[..read_bytes].windows(4).any(|w| w == b"\r\n\r\n") {
+ 2137:                             break;
+ 2138:                         }
+ 2139:                     }
+ 2140:                     let req_str = String::from_utf8_lossy(&buf[..read_bytes]);
+ 2141:                     if req_str.contains("GET /health") {
+ 2142:                         let resp = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 15\r\nConnection: close\r\n\r\n{\"status\":\"ok\"}";
+ 2143:                         let _ = socket.write_all(resp.as_bytes());
+ 2144:                     } else if req_str.contains("POST /v1/embeddings") {
+ 2145:                         // Risposta HTTP valida ma payload JSON non contenente il vettore corretto
+ 2146:                         let resp = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 29\r\nConnection: close\r\n\r\n{\"error\":\"mock_invalid_json\"}";
+ 2147:                         let _ = socket.write_all(resp.as_bytes());
+ 2148:                     }
+ 2149:                 }
+ 2150:                 std::thread::sleep(Duration::from_millis(10));
+ 2151:             }
+ 2152:         });
+ 2153: 
+ 2154:         // 2. Avvia un mock child process posseduto da LlamaServerState
+ 2155:         #[cfg(windows)]
+ 2156:         let mut mock_child = Command::new("cmd")
+ 2157:             .args(["/c", "ping -n 30 127.0.0.1 > nul"])
+ 2158:             .spawn()
+ 2159:             .expect("Failed to spawn mock child process");
+ 2160:         #[cfg(unix)]
+ 2161:         let mut mock_child = Command::new("sleep")
+ 2162:             .arg("30")
+ 2163:             .spawn()
+ 2164:             .expect("Failed to spawn mock child process");
+ 2165: 
+ 2166:         let mock_child_pid = mock_child.id();
+ 2167:         assert!(mock_child.try_wait().unwrap().is_none(), "Mock child must be alive initially");
+ 2168: 
+ 2169:         // 3. Inizializza LlamaServerState con il processo figlio posseduto e la porta del mock server
+ 2170:         let state = Arc::new(LlamaServerState::default());
+ 2171:         {
+ 2172:             let mut s = state.0.lock().unwrap();
+ 2173:             s.port = mock_port;
+ 2174:             s.child = Some(mock_child);
+ 2175:         }
+ 2176: 
+ 2177:         // Verifica che status() sia reattivo e non resti mai bloccato dal mutex (< 500ms)
+ 2178:         let t0 = Instant::now();
+ 2179:         let rep_before = state.status();
+ 2180:         assert!(t0.elapsed() < Duration::from_millis(500), "status() must return without deadlock");
+ 2181:         assert_eq!(rep_before.port, mock_port);
+ 2182:         assert!(rep_before.healthy, "/health mock server deve risultare healthy");
+ 2183:         assert!(rep_before.running);
+ 2184: 
+ 2185:         // 4. Esegui la verifica dimensioni: deve fallire a causa del payload non valido
+ 2186:         let verify_res = verify_dimensions(mock_port);
+ 2187:         assert!(verify_res.is_err(), "verify_dimensions must fail on mock invalid embeddings");
+ 2188: 
+ 2189:         // 5. Invocazione di stop(): deve terminare il figlio posseduto entro il limite dichiarato (< 3s)
+ 2190:         let t_stop = Instant::now();
+ 2191:         let stop_res = state.stop();
+ 2192:         let stop_duration = t_stop.elapsed();
+ 2193:         assert!(stop_res.is_ok(), "stop() must succeed");
+ 2194:         assert!(stop_duration < Duration::from_secs(3), "stop() must terminate within bounded timeout (took {:?})", stop_duration);
+ 2195: 
+ 2196:         // 6. Verifica che SOLO il figlio posseduto sia stato terminato
+ 2197:         std::thread::sleep(Duration::from_millis(200));
+ 2198:         let proc_info = process_parent_and_command(mock_child_pid);
+ 2199:         assert!(proc_info.is_none(), "Mock child PID {} must be dead after stop()", mock_child_pid);
+ 2200: 
+ 2201:         // 7. status() deve restare disponibile e non bloccato
+ 2202:         let t_stat = Instant::now();
+ 2203:         let rep_after = state.status();
+ 2204:         assert!(t_stat.elapsed() < Duration::from_millis(200), "status() must return immediately");
+ 2205:         assert_eq!(rep_after.port, 0);
+ 2206:         assert!(!rep_after.healthy);
+ 2207:         assert!(!rep_after.running);
+ 2208: 
+ 2209:         // Cleanup mock server thread
+ 2210:         running_flag.store(false, std::sync::atomic::Ordering::SeqCst);
+ 2211:         let _ = server_thread.join();
+ 2212:     }
+ 2213: 
+ 2214:     #[test]
+ 2215:     fn test_p2_registered_service_adoption_and_fallback() {
+ 2216:         use std::io::{Read, Write};
+ 2217:         use std::net::TcpListener;
+ 2218:         use std::sync::atomic::{AtomicBool, Ordering};
+ 2219: 
+ 2220:         let listener = TcpListener::bind("127.0.0.1:0").expect("Failed to bind mock listener");
+ 2221:         let mock_port = listener.local_addr().unwrap().port();
+ 2222:         let running_flag = Arc::new(AtomicBool::new(true));
+ 2223:         let flag_clone = running_flag.clone();
+ 2224:         let return_1024d = Arc::new(AtomicBool::new(true));
+ 2225:         let dim_clone = return_1024d.clone();
+ 2226: 
+ 2227:         let server_thread = std::thread::spawn(move || {
+ 2228:             listener.set_nonblocking(true).unwrap();
+ 2229:             while flag_clone.load(Ordering::SeqCst) {
+ 2230:                 if let Ok((mut stream, _)) = listener.accept() {
+ 2231:                     let mut req_buf = [0u8; 1024];
+ 2232:                     let n = stream.read(&mut req_buf).unwrap_or(0);
+ 2233:                     let req_str = String::from_utf8_lossy(&req_buf[..n]);
+ 2234: 
+ 2235:                     if req_str.contains("/health") {
+ 2236:                         let resp = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 15\r\n\r\n{\"status\":\"ok\"}";
+ 2237:                         let _ = stream.write_all(resp.as_bytes());
+ 2238:                     } else if req_str.contains("/v1/embeddings") {
+ 2239:                         if dim_clone.load(Ordering::SeqCst) {
+ 2240:                             let floats_1024 = vec!["0.1"; 1024].join(",");
+ 2241:                             let json_body = format!("{{\"data\":[{{\"embedding\":[{}]}}]}}", floats_1024);
+ 2242:                             let resp = format!(
+ 2243:                                 "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{}",
+ 2244:                                 json_body.len(),
+ 2245:                                 json_body
+ 2246:                             );
+ 2247:                             let _ = stream.write_all(resp.as_bytes());
+ 2248:                         } else {
+ 2249:                             // Ritorna solo 768 dimensioni (modello errato)
+ 2250:                             let floats_768 = vec!["0.1"; 768].join(",");
+ 2251:                             let json_body = format!("{{\"data\":[{{\"embedding\":[{}]}}]}}", floats_768);
+ 2252:                             let resp = format!(
+ 2253:                                 "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{}",
+ 2254:                                 json_body.len(),
+ 2255:                                 json_body
+ 2256:                             );
+ 2257:                             let _ = stream.write_all(resp.as_bytes());
+ 2258:                         }
+ 2259:                     } else {
+ 2260:                         let resp = "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n";
+ 2261:                         let _ = stream.write_all(resp.as_bytes());
+ 2262:                     }
+ 2263:                 } else {
+ 2264:                     std::thread::sleep(Duration::from_millis(10));
+ 2265:                 }
+ 2266:             }
+ 2267:         });
+ 2268: 
+ 2269:         // 1. Verifica che con 1024d e porta registrata venga adottato il servizio senza avviare nuovo processo
+ 2270:         std::env::set_var("LIMEN_LOCAL_PORT", mock_port.to_string());
+ 2271:         let verified = find_active_bge_m3_service_with_pid();
+ 2272:         assert!(verified.is_ok(), "find_active_bge_m3_service_with_pid deve rilevare il mock server a 1024d");
+ 2273:         let (port_found, _) = verified.unwrap();
+ 2274:         assert_eq!(port_found, mock_port);
+ 2275: 
+ 2276:         let state = LlamaServerState::default();
+ 2277:         let (port_opt, _pid_opt, is_ready, status, fallback_reason) = state.get_or_adopt_or_start_service();
+ 2278:         assert!(is_ready, "Servizio registrato valido deve risultare pronto");
+ 2279:         assert_eq!(port_opt, Some(mock_port));
+ 2280:         assert_eq!(status, "esterno adottato");
+ 2281:         assert!(fallback_reason.is_none());
+ 2282: 
+ 2283:         let rep = state.status();
+ 2284:         assert!(rep.running);
+ 2285:         assert!(rep.healthy);
+ 2286:         assert_eq!(rep.port, mock_port);
+ 2287: 
+ 2288:         // stop() rilascia l'adozione senza uccidere il mock server esterno
+ 2289:         let _ = state.stop();
+ 2290:         assert_eq!(state.status().port, 0);
+ 2291: 
+ 2292:         // 2. Verifica che se le dimensioni sono errate (768d), non adotti il servizio e segnali il fallback
+ 2293:         return_1024d.store(false, Ordering::SeqCst);
+ 2294:         let verified_wrong = find_active_bge_m3_service_with_pid();
+ 2295:         assert!(verified_wrong.is_err(), "find_active_bge_m3_service_with_pid deve rifiutare 768d");
+ 2296: 
+ 2297:         // Cleanup
+ 2298:         std::env::remove_var("LIMEN_LOCAL_PORT");
+ 2299:         running_flag.store(false, Ordering::SeqCst);
+ 2300:         let _ = server_thread.join();
+ 2301:     }
+ 2302: 
+ 2303:     #[test]
+ 2304:     fn test_p3_two_instances_service_registration_ownership() {
+ 2305:         let temp_dir = tempfile::tempdir().unwrap();
+ 2306:         let pid_path = temp_dir.path().join("llama-server.pid");
+ 2307:         let port_path = temp_dir.path().join("llama-server.port");
+ 2308: 
+ 2309:         let pid_a = 11111u32;
+ 2310:         let port_a = 8081u16;
+ 2311: 
+ 2312:         // 1. Scrittura consistente della coppia (pid_a, port_a)
+ 2313:         let res_a = write_service_registration_to_paths(&pid_path, &port_path, pid_a, port_a);
+ 2314:         assert!(res_a.is_ok(), "La scrittura iniziale della registrazione deve riuscire");
+ 2315:         assert_eq!(read_pid_file(&pid_path), Some(pid_a));
+ 2316:         assert_eq!(read_port_file(&port_path), Some(port_a));
+ 2317: 
+ 2318:         // 2. Istanza B (PID 22222) tenta di rimuovere la registrazione di A:
+ 2319:         // Poiché non ne possiede la titolarità, NON deve cancellare i file di A
+ 2320:         let pid_b = 22222u32;
+ 2321:         remove_service_registration_from_paths_if_owned(&pid_path, &port_path, pid_b);
+ 2322:         assert!(pid_path.exists(), "llama-server.pid non deve essere cancellato da istanza diversa");
+ 2323:         assert!(port_path.exists(), "llama-server.port non deve essere cancellato da istanza diversa");
+ 2324:         assert_eq!(read_pid_file(&pid_path), Some(pid_a));
+ 2325:         assert_eq!(read_port_file(&port_path), Some(port_a));
+ 2326: 
+ 2327:         // 3. Test con 2 istanze di LlamaServerState:
+ 2328:         // Istanza A avvia/possiede il servizio, Istanza B lo adotta
+ 2329:         let state_a = LlamaServerState::default();
+ 2330:         {
+ 2331:             let mut s = state_a.0.lock().unwrap();
+ 2332:             s.owned_pid = Some(pid_a);
+ 2333:             s.port = port_a;
+ 2334:         }
+ 2335: 
+ 2336:         let state_b = LlamaServerState::default();
+ 2337:         state_b.adopt_service(port_a, Some(pid_a));
+ 2338:         assert_eq!(state_b.status().port, port_a);
+ 2339: 
+ 2340:         // Quando Istanza B viene chiusa o esegue stop():
+ 2341:         // NON deve cancellare la registrazione su disco né terminare il processo di A
+ 2342:         let stop_b = state_b.stop();
+ 2343:         assert!(stop_b.is_ok());
+ 2344:         assert_eq!(state_b.status().port, 0);
+ 2345:         assert!(pid_path.exists(), "La chiusura dell'istanza B che ha adottato il servizio non cancella i file");
+ 2346:         assert!(port_path.exists(), "La chiusura dell'istanza B che ha adottato il servizio non cancella i file");
+ 2347: 
+ 2348:         // 4. Istanza A (titolare legittimo) esegue la rimozione:
+ 2349:         // Avendo la titolarità del proprio PID, rimuove consistentemente la coppia
+ 2350:         remove_service_registration_from_paths_if_owned(&pid_path, &port_path, pid_a);
+ 2351:         assert!(!pid_path.exists(), "llama-server.pid deve essere cancellato dal titolare legittimo");
+ 2352:         assert!(!port_path.exists(), "llama-server.port deve essere cancellato dal titolare legittimo");
+ 2353:     }
+ 2354: 
+ 2355:     #[test]
+ 2356:     fn test_fase5f_run_command_with_timeout_terminates_hanging_process() {
+ 2357:         #[cfg(windows)]
+ 2358:         let mut cmd = std::process::Command::new("powershell");
+ 2359:         #[cfg(windows)]
+ 2360:         cmd.args(["-NoProfile", "-Command", "Start-Sleep -Seconds 10"]);
+ 2361: 
+ 2362:         #[cfg(unix)]
+ 2363:         let mut cmd = std::process::Command::new("sleep");
+ 2364:         #[cfg(unix)]
+ 2365:         cmd.arg("10");
+ 2366: 
+ 2367:         let t0 = Instant::now();
+ 2368:         let out = run_command_with_timeout(cmd, Duration::from_millis(300));
+ 2369:         let elapsed = t0.elapsed();
+ 2370: 
+ 2371:         assert!(out.is_none(), "run_command_with_timeout deve restituire None se il comando supera il timeout");
+ 2372:         assert!(elapsed < Duration::from_millis(2500), "Il timeout deve arrestare il processo entro tempi contenuti (impiegati {:?})", elapsed);
+ 2373:     }
+ 2374: 
+ 2375:     #[test]
+ 2376:     fn test_fase5f_discovery_external_command_hang_terminates_within_timeout_with_fallback() {
+ 2377:         std::env::set_var("LIMEN_TEST_DISABLE_ADOPTION", "1");
+ 2378:         let state = LlamaServerState::default();
+ 2379:         let timeout = Duration::from_millis(50);
+ 2380:         let t0 = Instant::now();
+ 2381:         let (port, pid, is_ready, status, fallback_reason) = state.get_or_adopt_or_start_service_with_timeout(timeout);
+ 2382:         let elapsed = t0.elapsed();
+ 2383:         std::env::remove_var("LIMEN_TEST_DISABLE_ADOPTION");
+ 2384: 
+ 2385:         assert!(!is_ready, "Il servizio non deve risultare pronto se il timeout di preparazione spira");
+ 2386:         assert!(port.is_none(), "Nessuna porta deve essere associata");
+ 2387:         assert!(pid.is_none());
+ 2388:         assert_eq!(status, "in avvio");
+ 2389:         assert!(elapsed < Duration::from_millis(3000), "La preparazione deve terminare entro il tempo massimo dichiarato (impiegati {:?})", elapsed);
+ 2390: 
+ 2391:         let reason = fallback_reason.expect("Deve essere presente il motivo del ripiego");
+ 2392:         assert!(
+ 2393:             reason.contains("ripiego"),
+ 2394:             "Il motivo deve esplicitare il ripiego sulla ricerca per parole: {}", reason
+ 2395:         );
+ 2396:     }
+ 2397: 
+ 2398:     #[test]
+ 2399:     fn test_fase5f_failed_auto_start_prevents_retry_on_subsequent_question() {
+ 2400:         let state = LlamaServerState::default();
+ 2401: 
+ 2402:         // 1. Simula la registrazione di un fallimento di avvio (come avviene quando start_with_timeout fallisce)
+ 2403:         {
+ 2404:             let mut guard = state.0.lock().unwrap();
+ 2405:             guard.auto_start_failed = true;
+ 2406:             guard.auto_start_failure_reason = Some("Avvio llama-server fallito: modello non presente".to_string());
+ 2407:         }
+ 2408: 
+ 2409:         assert!(state.is_auto_start_failed(), "Lo stato deve registrare auto_start_failed = true");
+ 2410: 
+ 2411:         // 2. Seconda richiesta (domanda successiva): NON deve tentare nuovamente start()!
+ 2412:         // Deve ritornare istantaneamente con il motivo del fallimento precedente
+ 2413:         let t_start2 = Instant::now();
+ 2414:         let (port2, pid2, is_ready2, status2, fallback_reason2) = state.get_or_adopt_or_start_service();
+ 2415:         let elapsed2 = t_start2.elapsed();
+ 2416: 
+ 2417:         assert!(!is_ready2);
+ 2418:         assert!(port2.is_none());
+ 2419:         assert!(pid2.is_none());
+ 2420:         assert_eq!(status2, "fallito");
+ 2421:         assert!(elapsed2 < Duration::from_millis(150), "La seconda domanda non deve ritentare l'avvio e deve terminare immediatamente (impiegati {:?})", elapsed2);
+ 2422: 
+ 2423:         let r2 = fallback_reason2.expect("Motivo fallback atteso alla seconda domanda");
+ 2424:         assert!(
+ 2425:             r2.contains("fallito"),
+ 2426:             "Il motivo deve indicare che l'avvio è già fallito nella sessione: {}", r2
+ 2427:         );
+ 2428:         assert!(r2.contains("ripiego sulla ricerca per parole"));
+ 2429: 
+ 2430:         // 3. L'utente clicca 'AVVIA SERVIZIO LOCALE': il blocco viene resettato
+ 2431:         state.reset_auto_start_failure();
+ 2432:         assert!(!state.is_auto_start_failed(), "reset_auto_start_failure deve riabilitare i tentativi");
+ 2433:     }
+ 2434: 
+ 2435:     #[test]
+ 2436:     fn test_fase5g_startup_in_progress_does_not_kill_and_subsequent_succeeds() {
+ 2437:         let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+ 2438:         let mock_port = listener.local_addr().unwrap().port();
+ 2439:         let is_ready_flag = Arc::new(std::sync::atomic::AtomicBool::new(false));
+ 2440:         let flag_clone = is_ready_flag.clone();
+ 2441:         let stop_flag = Arc::new(std::sync::atomic::AtomicBool::new(false));
+ 2442:         let stop_clone = stop_flag.clone();
+ 2443: 
+ 2444:         let server_thread = std::thread::spawn(move || {
+ 2445:             listener.set_nonblocking(true).unwrap();
+ 2446:             while !stop_clone.load(Ordering::SeqCst) {
+ 2447:                 if let Ok((mut stream, _)) = listener.accept() {
+ 2448:                     let mut buf = [0u8; 1024];
+ 2449:                     let _ = stream.read(&mut buf);
+ 2450:                     if flag_clone.load(Ordering::SeqCst) {
+ 2451:                         let resp = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 15\r\n\r\n{\"status\":\"ok\"}";
+ 2452:                         let _ = stream.write_all(resp.as_bytes());
+ 2453:                     } else {
+ 2454:                         let resp = "HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\n\r\n";
+ 2455:                         let _ = stream.write_all(resp.as_bytes());
+ 2456:                     }
+ 2457:                 }
+ 2458:                 std::thread::sleep(Duration::from_millis(10));
+ 2459:             }
+ 2460:         });
+ 2461: 
+ 2462:         let state = LlamaServerState::default();
+ 2463:         // Simula il servizio in fase di avvio con porta mock_port
+ 2464:         {
+ 2465:             let mut guard = state.0.lock().unwrap();
+ 2466:             guard.starting = true;
+ 2467:             guard.port = mock_port;
+ 2468:             guard.owned_pid = Some(99999);
+ 2469:         }
+ 2470: 
+ 2471:         // Prima domanda: timeout breve (80 ms), server non ancora pronto
+ 2472:         let (_port1, _pid1, is_ready1, status1, reason1) = state.get_or_adopt_or_start_service_with_timeout(Duration::from_millis(80));
+ 2473:         assert!(!is_ready1, "La prima domanda non deve risultare pronta");
+ 2474:         assert_eq!(status1, "in avvio", "Lo stato deve essere 'in avvio'");
+ 2475:         assert!(reason1.as_ref().unwrap().contains("in avvio"), "Il motivo deve indicare 'in avvio'");
+ 2476:         assert!(!state.is_auto_start_failed(), "Un timeout di preparazione domanda NON è un guasto e non deve impostare auto_start_failed");
+ 2477:         assert!(state.is_starting(), "Il processo deve continuare l'avvio in background");
+ 2478: 
+ 2479:         // Simula il completamento dell'avvio (server diventa pronto)
+ 2480:         is_ready_flag.store(true, Ordering::SeqCst);
+ 2481:         std::thread::sleep(Duration::from_millis(50));
+ 2482: 
+ 2483:         // Seconda domanda: il servizio è pronto e risponde a /health
+ 2484:         let (port2, _pid2, is_ready2, status2, reason2) = state.get_or_adopt_or_start_service_with_timeout(Duration::from_secs(1));
+ 2485:         assert!(is_ready2, "La seconda domanda deve trovare il servizio pronto");
+ 2486:         assert_eq!(port2, Some(mock_port));
+ 2487:         assert_eq!(status2, "pronto");
+ 2488:         assert!(reason2.is_none());
+ 2489: 
+ 2490:         stop_flag.store(true, Ordering::SeqCst);
+ 2491:         let _ = state.stop();
+ 2492:         let _ = server_thread.join();
+ 2493:     }
+ 2494: 
+ 2495:     #[test]
+ 2496:     fn test_fase5g_missing_binary_sets_auto_start_failed_until_button_reset() {
+ 2497:         std::env::set_var("LIMEN_TEST_DISABLE_ADOPTION", "1");
+ 2498:         let state = LlamaServerState::default();
+ 2499:         // Imposta una variabile che fa fallire la scoperta del binario
+ 2500:         std::env::set_var("LLAMA_SERVER_PATH", "E:\\non_existent_llama_binary_path_fase5g.exe");
+ 2501: 
+ 2502:         let (_port, _pid, is_ready, status, reason) = state.get_or_adopt_or_start_service_with_timeout(Duration::from_millis(200));
+ 2503:         std::env::remove_var("LLAMA_SERVER_PATH");
+ 2504: 
+ 2505:         assert!(!is_ready);
+ 2506:         assert_eq!(status, "fallito");
+ 2507:         assert!(reason.unwrap().contains("ripiego"));
+ 2508:         assert!(state.is_auto_start_failed(), "Eseguibile mancante è un guasto vero e deve impostare auto_start_failed = true");
+ 2509: 
+ 2510:         // Domanda successiva non ritenta
+ 2511:         let t0 = Instant::now();
+ 2512:         let (_p2, _pid2, is_ready2, status2, reason2) = state.get_or_adopt_or_start_service();
+ 2513:         let elapsed = t0.elapsed();
+ 2514:         std::env::remove_var("LIMEN_TEST_DISABLE_ADOPTION");
+ 2515: 
+ 2516:         assert!(!is_ready2);
+ 2517:         assert_eq!(status2, "fallito");
+ 2518:         assert!(elapsed < Duration::from_millis(200));
+ 2519:         assert!(reason2.unwrap().contains("fallito"));
+ 2520: 
+ 2521:         // L'utente preme 'AVVIA SERVIZIO LOCALE': reset
+ 2522:         state.reset_auto_start_failure();
+ 2523:         assert!(!state.is_auto_start_failed());
+ 2524:     }
+ 2525: 
+ 2526:     #[test]
+ 2527:     fn test_fase5g_on_app_startup_starts_service_in_background_without_question() {
+ 2528:         let temp_dir = tempfile::tempdir().unwrap();
+ 2529:         let timing_log = temp_dir.path().join("local_model_timing.log");
+ 2530:         std::env::set_var("LIMEN_LOCAL_MODEL_TIMING_LOG", &timing_log);
+ 2531:         std::env::set_var("LIMEN_EMBEDDINGS_PROVIDER", "local");
+ 2532: 
+ 2533:         let state = LlamaServerState::default();
+ 2534:         // Simula la chiamata che l'app esegue all'avvio senza domande
+ 2535:         state.trigger_background_start();
+ 2536: 
+ 2537:         // Verifica che lo stato sia passato in avvio
+ 2538:         assert!(state.is_starting() || state.status().running || state.is_auto_start_failed());
+ 2539: 
+ 2540:         // Attendi che il thread registri l'evento di inizio
+ 2541:         std::thread::sleep(Duration::from_millis(100));
+ 2542: 
+ 2543:         let log_content = std::fs::read_to_string(&timing_log).unwrap_or_default();
+ 2544:         assert!(
+ 2545:             log_content.contains("BACKGROUND_START_BEGIN"),
+ 2546:             "Il registro local_model_timing.log deve contenere l'inizio dell'avvio in background all'apertura dell'app. Contenuto: {}",
+ 2547:             log_content
+ 2548:         );
+ 2549: 
+ 2550:         let _ = state.stop();
+ 2551:         std::env::remove_var("LIMEN_LOCAL_MODEL_TIMING_LOG");
+ 2552:         std::env::remove_var("LIMEN_EMBEDDINGS_PROVIDER");
+ 2553:     }
+ 2554: 
+ 2555:     #[test]
+ 2556:     fn test_fase5h_adoption_of_existing_instance_service_without_second_process() {
+ 2557:         let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+ 2558:         let mock_port = listener.local_addr().unwrap().port();
+ 2559:         let stop_flag = Arc::new(std::sync::atomic::AtomicBool::new(false));
+ 2560:         let stop_clone = stop_flag.clone();
+ 2561: 
+ 2562:         let server_thread = std::thread::spawn(move || {
+ 2563:             listener.set_nonblocking(true).unwrap();
+ 2564:             while !stop_clone.load(Ordering::SeqCst) {
+ 2565:                 if let Ok((mut stream, _)) = listener.accept() {
+ 2566:                     let mut buf = [0u8; 1024];
+ 2567:                     let n = stream.read(&mut buf).unwrap_or(0);
+ 2568:                     let req = String::from_utf8_lossy(&buf[..n]);
+ 2569:                     if req.contains("GET /health") {
+ 2570:                         let resp = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 15\r\n\r\n{\"status\":\"ok\"}";
+ 2571:                         let _ = stream.write_all(resp.as_bytes());
+ 2572:                     } else if req.contains("POST /v1/embeddings") {
+ 2573:                         // Risposta con 1024 float
+ 2574:                         let embedding: Vec<f32> = vec![0.01; 1024];
+ 2575:                         let emb_json = serde_json::to_string(&embedding).unwrap();
+ 2576:                         let body = format!("{{\"data\":[{{\"embedding\":{}}}]}}", emb_json);
+ 2577:                         let resp = format!(
+ 2578:                             "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{}",
+ 2579:                             body.len(),
+ 2580:                             body
+ 2581:                         );
+ 2582:                         let _ = stream.write_all(resp.as_bytes());
+ 2583:                     }
+ 2584:                 }
+ 2585:                 std::thread::sleep(Duration::from_millis(10));
+ 2586:             }
+ 2587:         });
+ 2588: 
+ 2589:         std::env::set_var("LIMEN_LOCAL_PORT", mock_port.to_string());
+ 2590:         let state = LlamaServerState::default();
+ 2591: 
+ 2592:         let (port, _pid, is_ready, status, reason) = state.get_or_adopt_or_start_service();
+ 2593:         std::env::remove_var("LIMEN_LOCAL_PORT");
+ 2594: 
+ 2595:         assert!(is_ready, "Il servizio esistente verificato deve essere adottato e pronto");
+ 2596:         assert_eq!(port, Some(mock_port));
+ 2597:         assert_eq!(status, "esterno adottato", "Lo stato deve essere 'esterno adottato'");
+ 2598:         assert!(reason.is_none());
+ 2599:         assert!(!state.is_starting());
+ 2600:         assert!(!state.is_auto_start_failed());
+ 2601: 
+ 2602:         stop_flag.store(true, Ordering::SeqCst);
+ 2603:         let _ = server_thread.join();
+ 2604:     }
+ 2605: 
+ 2606:     #[test]
+ 2607:     fn test_fase5h_start_prevents_duplicate_process_while_starting() {
+ 2608:         let state = LlamaServerState::default();
+ 2609:         {
+ 2610:             let mut s = state.0.lock().unwrap();
+ 2611:             s.starting = true;
+ 2612:         }
+ 2613: 
+ 2614:         // Chiamata concorrente a start_internal con timeout breve: non deve avviare alcun processo,
+ 2615:         // ma deve attendere e fallire per timeout dell'avvio già in corso.
+ 2616:         let t0 = Instant::now();
+ 2617:         let res = state.start_internal(Duration::from_millis(150));
+ 2618:         let elapsed = t0.elapsed();
+ 2619: 
+ 2620:         assert!(res.is_err());
+ 2621:         assert!(elapsed >= Duration::from_millis(100));
+ 2622:         let err = res.unwrap_err();
+ 2623:         assert!(
+ 2624:             err.contains("in corso"),
+ 2625:             "L'errore deve segnalare l'avvio già in corso senza creare nuovi processi: {}",
+ 2626:             err
+ 2627:         );
+ 2628: 
+ 2629:         // Reset
+ 2630:         state.0.lock().unwrap().starting = false;
+ 2631:     }
+ 2632: 
+ 2633:     #[test]
+ 2634:     fn test_fase5h_starting_guard_resets_flag_on_thread_panic() {
+ 2635:         let state = LlamaServerState::default();
+ 2636:         {
+ 2637:             let mut s = state.0.lock().unwrap();
+ 2638:             s.starting = true;
+ 2639:         }
+ 2640:         assert!(state.is_starting());
+ 2641: 
+ 2642:         let state_clone = state.clone();
+ 2643:         let handle = std::thread::spawn(move || {
+ 2644:             let _guard = StartingGuard(state_clone, true);
+ 2645:             panic!("Simulated thread panic during startup");
+ 2646:         });
+ 2647: 
+ 2648:         assert!(handle.join().is_err(), "Il thread deve andare in panic");
+ 2649:         assert!(
+ 2650:             !state.is_starting(),
+ 2651:             "StartingGuard deve aver azzerato starting = false anche a fronte di un panic"
+ 2652:         );
+ 2653:     }
+ 2654: 
+ 2655:     #[test]
+ 2656:     fn test_fase5h_log_rotation_and_per_startup_files() {
+ 2657:         let tmp = tempfile::tempdir().unwrap();
+ 2658:         let logs_dir = tmp.path().join("logs");
+ 2659:         fs::create_dir_all(&logs_dir).unwrap();
+ 2660: 
+ 2661:         // Crea 25 file di log simulati
+ 2662:         for i in 1..=25 {
+ 2663:             let filename = format!("llama-server_20260924T{:02}0000Z_1000{}.log", i, i);
+ 2664:             fs::write(logs_dir.join(filename), b"log content").unwrap();
+ 2665:         }
+ 2666: 
+ 2667:         // Ruota a max 20 file
+ 2668:         rotate_llama_server_logs(&logs_dir, 20);
+ 2669: 
+ 2670:         let remaining: Vec<_> = fs::read_dir(&logs_dir)
+ 2671:             .unwrap()
+ 2672:             .filter_map(|e| e.ok())
+ 2673:             .collect();
+ 2674:         assert_eq!(remaining.len(), 20, "Devono rimanere esattamente 20 file");
+ 2675: 
+ 2676:         // Verifica che i 5 file più vecchi (da 01 a 05) siano stati rimossi
+ 2677:         for i in 1..=5 {
+ 2678:             let filename = format!("llama-server_20260924T{:02}0000Z_1000{}.log", i, i);
+ 2679:             assert!(!logs_dir.join(filename).exists(), "I file più vecchi devono essere rimossi");
+ 2680:         }
+ 2681:         // Verifica che i file più recenti (da 06 a 25) siano presenti
+ 2682:         for i in 6..=25 {
+ 2683:             let filename = format!("llama-server_20260924T{:02}0000Z_1000{}.log", i, i);
+ 2684:             assert!(logs_dir.join(filename).exists(), "I file recenti devono essere conservati");
+ 2685:         }
+ 2686:     }
+ 2687: 
+ 2688:     #[test]
+ 2689:     fn test_fase5h_local_model_timing_log_includes_app_and_service_metadata() {
+ 2690:         let tmp = tempfile::tempdir().unwrap();
+ 2691:         let log_file = tmp.path().join("local_model_timing.log");
+ 2692:         std::env::set_var("LIMEN_LOCAL_MODEL_TIMING_LOG", &log_file);
+ 2693: 
+ 2694:         log_local_model_timing_meta(
+ 2695:             "SERVICE_START",
+ 2696:             4321,
+ 2697:             Some(Path::new("dummy/native/llama-server.exe")),
+ 2698:             Some(36844),
+ 2699:             Some(49950),
+ 2700:             "test_adoption_details",
+ 2701:         );
+ 2702: 
+ 2703:         let content = fs::read_to_string(&log_file).unwrap();
+ 2704:         assert!(content.contains("app_exe="), "Deve contenere app_exe: {}", content);
+ 2705:         assert!(content.contains("app_pid="), "Deve contenere app_pid: {}", content);
+ 2706:         assert!(content.contains("service_exe="), "Deve contenere service_exe: {}", content);
+ 2707:         assert!(content.contains("service_pid=36844"), "Deve contenere service_pid=36844: {}", content);
+ 2708:         assert!(content.contains("service_port=49950"), "Deve contenere service_port=49950: {}", content);
+ 2709: 
+ 2710:         std::env::remove_var("LIMEN_LOCAL_MODEL_TIMING_LOG");
+ 2711:     }
+ 2712: 
+ 2713:     #[test]
+ 2714:     fn test_fase5h_codex_fixture_acceptance() {
+ 2715:         // 1. Usa cartella target separata (NON target/release/llama-server.exe)
+ 2716:         let separate_target = tempfile::tempdir().unwrap();
+ 2717:         let fixture_exe = separate_target.path().join(if cfg!(windows) { "llama-server.exe" } else { "llama-server" });
+ 2718: 
+ 2719:         let source_fixture = PathBuf::from("E:\\Projects\\vault_memai_obsi\\IMPLEMENTATION\\AUDIT_OPENAI\\evidenze\\session_1215\\invalid_embeddings.exe");
+ 2720:         if !source_fixture.is_file() {
+ 2721:             let source_rs = PathBuf::from("E:\\Projects\\vault_memai_obsi\\IMPLEMENTATION\\AUDIT_OPENAI\\evidenze\\session_1215\\invalid_embeddings.rs");
+ 2722:             if source_rs.is_file() {
+ 2723:                 let status = std::process::Command::new("rustc")
+ 2724:                     .arg(&source_rs)
+ 2725:                     .arg("-o")
+ 2726:                     .arg(&fixture_exe)
+ 2727:                     .status();
+ 2728:                 assert!(status.map(|s| s.success()).unwrap_or(false), "Compilazione del fixture fallita");
+ 2729:             } else {
+ 2730:                 return;
+ 2731:             }
+ 2732:         } else {
+ 2733:             std::fs::copy(&source_fixture, &fixture_exe).expect("Copia del fixture nel target separato");
+ 2734:         }
+ 2735: 
+ 2736:         // Imposta LLAMA_SERVER_PATH verso la cartella separata
+ 2737:         std::env::set_var("LLAMA_SERVER_PATH", &fixture_exe);
+ 2738: 
+ 2739:         // Verifica che target/release/llama-server.exe NON sia toccato
+ 2740:         let release_target = PathBuf::from("apps/desktop/src-tauri/target/release/llama-server.exe");
+ 2741:         let release_exists_before = release_target.exists();
+ 2742: 
+ 2743:         let state = LlamaServerState::default();
+ 2744:         let start_time = Instant::now();
+ 2745: 
+ 2746:         // Esegui l'avvio del fixture con il timeout dichiarato (5 secondi)
+ 2747:         let prep_timeout = Duration::from_secs(5);
+ 2748:         let start_res = state.start_with_timeout(prep_timeout);
+ 2749: 
+ 2750:         let elapsed = start_time.elapsed();
+ 2751: 
+ 2752:         // Pulizia immediata della variabile d'ambiente
+ 2753:         std::env::remove_var("LLAMA_SERVER_PATH");
+ 2754: 
+ 2755:         // Asserzioni fondamentali della prova di accettazione:
+ 2756:         // A) Deve terminare entro il tempo massimo dichiarato (senza bloccarsi)
+ 2757:         assert!(
+ 2758:             elapsed <= prep_timeout + Duration::from_secs(3),
+ 2759:             "La preparazione con fixture non deve bloccarsi né superare il timeout (impiegati {:?}, timeout {:?})",
+ 2760:             elapsed, prep_timeout
+ 2761:         );
+ 2762: 
+ 2763:         // B) L'avvio con vettori a 3 dimensioni deve fallire
+ 2764:         assert!(start_res.is_err(), "L'avvio con fixture a 3 dimensioni deve fallire");
+ 2765:         let start_err = start_res.unwrap_err();
+ 2766:         assert!(
+ 2767:             start_err.contains("Dimensioni vettore errate") || start_err.contains("Controllo dimensioni vettore fallito"),
+ 2768:             "L'errore restituito deve menzionare il fallimento del controllo dimensioni: '{}'",
+ 2769:             start_err
+ 2770:         );
+ 2771: 
+ 2772:         // C) Lo stato non deve rimanere 'in avvio' permanente né 'pronto'
+ 2773:         let (auto_start_failed, starting, auto_reason) = {
+ 2774:             let guard = state.0.lock().unwrap();
+ 2775:             (
+ 2776:                 guard.auto_start_failed,
+ 2777:                 guard.starting,
+ 2778:                 guard.auto_start_failure_reason.clone().expect("auto_start_failure_reason presente"),
+ 2779:             )
+ 2780:         };
+ 2781:         assert!(auto_start_failed, "auto_start_failed deve essere true");
+ 2782:         assert!(!starting, "starting deve essere false (non 'in avvio' permanente)");
+ 2783: 
+ 2784:         let rep = state.status();
+ 2785:         assert!(!rep.healthy, "Il servizio con vettori invalidi non deve essere dichiarato pronto");
+ 2786:         assert_eq!(rep.port, 0, "Nessuna porta deve essere restituita come valida");
+ 2787: 
+ 2788:         assert!(
+ 2789:             auto_reason.contains("Dimensioni vettore errate") || auto_reason.contains("Controllo dimensioni vettore fallito"),
+ 2790:             "Il motivo mostrato deve indicare chiaramente l'errore di dimensioni vettori: '{}'",
+ 2791:             auto_reason
+ 2792:         );
+ 2793: 
+ 2794:         // D) Prova di preview: deve terminare con ripiego sulle parole e motivo visibile
+ 2795:         let vault_dir = tempfile::tempdir().unwrap();
+ 2796:         std::fs::create_dir(vault_dir.path().join("00_SYSTEM")).unwrap();
+ 2797:         std::fs::create_dir(vault_dir.path().join("01_CLIENTS")).unwrap();
+ 2798:         std::fs::write(
+ 2799:             vault_dir.path().join("01_CLIENTS/approved.md"),
+ 2800:             "---\nid: approved\ntitle: Progetto BNXT\nstatus: approved\nclient: Acme\n---\nTesto del progetto BNXT con parole chiave.\n",
+ 2801:         ).unwrap();
+ 2802:         crate::search::index_vault_search(vault_dir.path()).unwrap();
+ 2803: 
+ 2804:         let ai_state = crate::ai::AiState::default();
+ 2805:         let preview_res = tokio::runtime::Runtime::new().unwrap().block_on(async {
+ 2806:             ai_state.preview_with_service_info(
+ 2807:                 vault_dir.path().to_path_buf(),
+ 2808:                 crate::ai::Options {
+ 2809:                     prompt: "test query".to_string(),
+ 2810:                     model: "gpt-4o".to_string(),
+ 2811:                     include_drafts: false,
+ 2812:                     source_ids: vec![],
+ 2813:                     category: None,
+ 2814:                     client: None,
+ 2815:                     project: None,
+ 2816:                     tags: None,
+ 2817:                 },
+ 2818:                 None,
+ 2819:                 None,
+ 2820:                 false,
+ 2821:                 Some("fallito".to_string()),
+ 2822:                 Some(auto_reason.clone()),
+ 2823:                 Some(start_time),
+ 2824:                 elapsed.as_millis() as u64,
+ 2825:             ).await
+ 2826:         });
+ 2827:         let prev = match preview_res {
+ 2828:             Ok(p) => p,
+ 2829:             Err(e) => panic!("La preview deve completarsi con ripiego sulle parole, ma ha fallito con: {}", e),
+ 2830:         };
+ 2831:         assert!(!prev.semantic_used, "La ricerca semantica non deve essere utilizzata");
+ 2832:         let sem_reason = prev.semantic_fallback_reason.expect("Motivo fallback semantico visibile");
+ 2833:         assert!(
+ 2834:             sem_reason.contains("Dimensioni vettore errate") || sem_reason.contains("Controllo dimensioni vettore fallito"),
+ 2835:             "Il motivo di ripiego visibile deve spiegare il fallimento del controllo dimensioni: '{}'",
+ 2836:             sem_reason
+ 2837:         );
+ 2838: 
+ 2839:         // E) Se c'era un PID, verifica che il processo figlio sia terminato
+ 2840:         if let Some(p) = rep.pid {
+ 2841:             #[cfg(windows)]
+ 2842:             {
+ 2843:                 use std::process::Command;
+ 2844:                 let out = Command::new("powershell")
+ 2845:                     .args(&["-NoProfile", "-Command", &format!("Get-Process -Id {} -ErrorAction SilentlyContinue", p)])
+ 2846:                     .output();
+ 2847:                 if let Ok(output) = out {
+ 2848:                     assert!(!output.status.success() || output.stdout.is_empty(), "Il fixture PID {} non deve rimanere in esecuzione", p);
+ 2849:                 }
+ 2850:             }
+ 2851:         }
+ 2852: 
+ 2853:         // F) Verifica che NON sia stato lasciato alcun file in apps/desktop/src-tauri/target/release/llama-server.exe
+ 2854:         if !release_exists_before {
+ 2855:             assert!(!release_target.exists(), "Il fixture NON deve essere lasciato in target/release/llama-server.exe");
+ 2856:         }
+ 2857:     }
+ 2858: }

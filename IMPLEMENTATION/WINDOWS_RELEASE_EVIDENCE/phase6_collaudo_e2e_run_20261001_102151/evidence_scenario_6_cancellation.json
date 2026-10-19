@@ -1,0 +1,16 @@
+{
+  "Level": "Prova applicativa con misura tempi e verifica socket",
+  "Description": "Annullamento prima del contenuto e durante streaming attivo, misura ripristino UI e assenza token residui",
+  "PreStreamCancel": {
+    "CancelButtonDetected": true,
+    "UIResetTimeMs": 107,
+    "FollowUpClean": true
+  },
+  "ActiveStreamCancel": {
+    "StreamingActiveConfirmed": true,
+    "UIResetTimeMs": 109,
+    "IncompleteMessageRendered": false,
+    "FollowUpClean": true
+  },
+  "Outcome": "PASS"
+}

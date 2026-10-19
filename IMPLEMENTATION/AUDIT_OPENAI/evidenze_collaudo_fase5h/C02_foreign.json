@@ -1,0 +1,9 @@
+{
+  "At": "2026-09-24T15:21:57.6512909+08:00",
+  "PID": 27004,
+  "Port": 62362,
+  "Path": "E:\\Projects\\vault_memai_obsi_audit_67da90f\\apps\\desktop\\src-tauri\\target\\release\\native\\llama-server.exe",
+  "SHA256": "45438F026845B4611474E3A7A21B486CAB83D3AC39CA60D591CEB88300D8EE4C",
+  "StartTime": "2026-09-24T15:21:57.6135049+08:00",
+  "ParentPID": 15976
+}

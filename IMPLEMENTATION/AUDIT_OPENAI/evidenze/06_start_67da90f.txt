@@ -1,0 +1,19 @@
+2026-09-24T09:41:47.6415024+08:00
+
+Id        : 20772
+Path      : E:\Projects\vault_memai_obsi\apps\desktop\src-tauri\target\release\limen-vault.exe
+StartTime : 24/09/2026 09:35:27
+
+Id        : 31524
+Path      : E:\Projects\vault_memai_obsi\apps\desktop\src-tauri\target\release\native\llama-server.exe
+StartTime : 24/09/2026 09:36:57
+
+shared_pid=31524 shared_port=52944
+FOREIGN_REGISTERED port=52944 pid=31524 healthy=true
+FRESH_APP_STATUS LocalServerReport { running: false, port: 0, pid: None, model: "bge-m3-Q8_0.gguf", healthy: false, last_error: None }
+HARNESS orphan reaping disabled
+HARNESS_LOG SERVICE_START 222 port=62725, pid=Some(16224)
+START_RESULT Ok(LocalServerReport { running: true, port: 62725, pid: Some(16224), model: "bge-m3-Q8_0.gguf", healthy: true, last_error: None }) elapsed_ms=227
+FILES_AFTER pid=16224 port=62725
+FOREIGN_STILL_HEALTHY true
+OWN_HELPER_NATURAL_EXIT ExitStatus(ExitStatus(0))

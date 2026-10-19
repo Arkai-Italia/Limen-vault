@@ -1,0 +1,158 @@
+{"at":"2026-09-24T04:58:55.934Z","caseStart":"2026-09-24T04:58:32.522Z","elapsedMs":23412}
+Window: "LIMEN Vault v4", App: limen-vault.exe.
+	0 window LIMEN Vault v4 Secondary Actions: Raise
+		1 pane
+			13 pane LIMEN Vault v3
+				27 pane (disabled)
+				14 region LIMEN Vault v3 - Web content
+					15 region
+						16 region
+							17 region
+								18 region
+								19 region
+									20 region
+										21 region
+											22 region
+												23 region
+												28 document LIMEN Vault v3 Value: http://localhost:1420/ ID: RootWebArea
+													29 group ID: root
+														30 complementary
+															31 text L
+															32 text E:\VAULT WIN TEST
+															33 text LIMEN Vault v4
+															34 text (app nativa)
+															67 button CARICA DOCUMENTI ID: btn-upload-documents-global
+																68 graphic
+															35 navigation
+																36 button Chiedi
+																	37 graphic
+																38 button Documenti 376
+																	39 graphic
+																40 button Memoria 378
+																	41 graphic
+																42 button Avanzate
+																	43 graphic
+															44 button (disabled) Apri in Obsidian
+																45 graphic
+														46 header
+															235 text Chiedi al Vault
+															69 text VAULT WIN TEST DEV
+															48 button Aggiorna Description: Aggiorna stato, file e dati del Vault
+																49 graphic
+															70 text ●
+															71 text Pronto
+														51 main
+															72 text PRONTO
+															73 text E:\VAULT WIN TEST
+															74 text E:\VAULT WIN TEST DEV
+															75 text •
+															76 text 378
+															77 text File Markdown
+															78 button (disabled) Apri in Obsidian (Non disponibile) Description: Obsidian non rilevato su questo Mac
+															236 heading Cerca nel Vault & Chiedi all’AI
+															237 text Cerca nei passaggi estratti dei documenti e nelle note aziendali con ricerca ibrida locale, oppure invia la domanda a OpenAI con citazioni verificate.
+															238 button Aggiorna indice
+																239 graphic
+															240 graphic
+															241 edit (settable, string) Cerca parole chiave, contratti, clienti, passaggi di documenti... Description: Cerca parole chiave, contratti, clienti, passaggi di documenti...
+															242 combo box (settable, string) Value: Tutte le categorie
+															243 edit (settable, string) Filtra per cliente Description: Filtro cliente...
+															244 edit (settable, string) Filtra per progetto Description: Filtro progetto...
+															245 check box (settable, string) Ricerca Ibrida (Semantica + Lessicale) 🟢 RAG 100% LOCALE
+															246 text Ricerca Ibrida (Semantica + Lessicale)
+															247 text 🟢 RAG 100% LOCALE
+															248 graphic
+															249 heading Chiedi al Vault
+															250 text Fai una domanda per ottenere una risposta in prosa sintetizzata direttamente dai tuoi documenti.
+															251 text Modello:
+															252 combo box (settable, string) Seleziona modello AI Value: gpt-4o ID: ai-model-select
+															253 edit (settable, string) Domanda al Vault Description: Es. Cosa è il progetto BNXT e quali requisiti prevede? Value: Cosa è il progetto BNXT?
+															254 button Chiedi
+															255 check box (settable, string) Includi bozze e note non approvate
+															256 text Premere Invio per inviare
+															316 graphic
+															317 text Impossibile completare la risposta. Verifica la connessione o la chiave API.
+															318 details
+																319 disclosure triangle Dettaglio tecnico errore
+																	320 text Dettaglio tecnico errore
+															264 button Fonti consultate dal Vault per questa domanda (8)
+																265 graphic
+																266 graphic
+																267 heading Fonti consultate dal Vault per questa domanda (8)
+															270 group
+																271 graphic
+																272 text 32f2a4081d13410e-BNXT CRM
+																273 text raw_source
+																274 text Paragrafi 1-13, Paragrafi 52-68
+															275 group
+																276 graphic
+																277 text a86061ba2701d614-_Progetto - BNXT AUDIT VICENZA
+																278 text raw_source
+																279 text Paragrafi 1-8
+															280 group
+																281 graphic
+																282 text d70f1c7b1d36f912-STEFANO APP
+																283 text raw_source
+																284 text Paragrafi 224-234, Paragrafi 235-243
+															285 group
+																286 graphic
+																287 text 4245a51312c5c1f2-2026-04-07 - Workflow app iPhone nativa con Xcode
+																288 text raw_source
+																289 text Paragrafi 6-11, Paragrafi 12-25
+															290 group
+																291 graphic
+																292 text 5a54c2ce2f581cf2-verifica-walkthrough-ux-email-whatsapp-2026-09-10
+																293 text raw_source
+																294 text Paragrafi 1-3, Paragrafo 4
+															295 group
+																296 graphic
+																297 text 957b10627e45aa38-_INDICE
+																298 text raw_source
+																299 text Paragrafi 1-2
+															300 group
+																301 graphic
+																302 text abaef2b48c6e5b70-audit-localizzazione-EN-baseline-6f2f2b8
+																303 text raw_source
+																304 text Paragrafi 1-4, Paragrafo 5, Paragrafo 6
+															305 group
+																306 graphic
+																307 text 1e755ab82023a095-verifica-impl-plan-ux-email-whatsapp-2026-09-10
+																308 text raw_source
+																309 text Paragrafi 1-3, Paragrafo 4
+															321 text Basata su
+															322 text 0
+															323 text document
+															324 text i citati
+															325 text tra
+															326 text 8
+															327 text consultat
+															328 text i
+															329 graphic
+															330 text Risposta incompleta:
+															331 text 
+															332 text OpenAI network error or timeout: error sending request for url (https://api.openai.com/v1/responses)
+															333 button Salva risposta come bozza
+															334 text Risposta generata con OpenAI (
+															335 text gpt-4o
+															336 text )
+															337 details
+																338 disclosure triangle Dettagli tecnici
+																	339 text Dettagli tecnici
+								24 region
+						25 region
+						26 region
+		2 title bar (settable, string) Value: LIMEN Vault v4
+			3 menu bar System ID: MenuBar
+				4 menu item System
+			5 button Minimize
+			6 button Maximize
+			7 button Close
+		8 menu bar Application ID: MenuBar
+			9 menu item File
+			10 menu item Modifica
+			11 menu item Finestra
+			12 menu item Aiuto
+
+Document text: ```
+Cosa è il progetto BNXT?
+```

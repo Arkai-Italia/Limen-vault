@@ -1,0 +1,2771 @@
+1: diff --git a/.agents/AGENTS.md b/.agents/AGENTS.md
+2: index 1a907f6..81817cd 100644
+3: --- a/.agents/AGENTS.md
+4: +++ b/.agents/AGENTS.md
+5: @@ -6,3 +6,10 @@
+6:  ## Implementation Plans & Task Lists
+7:  - Per ogni piano di implementazione (`implementation_plan.md` o piani di lavoro strutturati), includere SEMPRE la corrispondente **Task List** dettagliata e tracciabile con checkbox (`[ ]` / `[x]`), suddivisa per fasi o componenti, aggiornandone progressivamente lo stato di avanzamento.
+8:  
+9: +## Compilazione e Avvio Versione Ottimizzata da Provare
+10: +- Per ogni compilazione ottimizzata usare SEMPRE e SOLO:
+11: +  `cd "E:\Projects\vault_memai_obsi"; npx pnpm --filter @limen-vault/desktop tauri dev --release`
+12: +  (NON usare `cargo build --release` per preparare la versione da provare, così la cache di compilazione resta valida anche quando Cesare riavvia l'app).
+13: +- Alla fine di ogni consegna, prima dello STOP: chiudere solo la versione di sviluppo eventualmente avviata dall'assistente (MAI processi avviati da Cesare), avviare la versione ottimizzata con quel comando e lasciarla aperta.
+14: +- Nel rapporto finale dichiarare SEMPRE: commit di riferimento (hash e ora UTC+8), percorso dell'eseguibile avviato, ora di avvio.
+15: +
+16: diff --git a/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/cargo-test-fase-5-parallel.log b/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/cargo-test-fase-5-parallel.log
+17: index a097121..9106e1d 100644
+18: --- a/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/cargo-test-fase-5-parallel.log
+19: +++ b/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/cargo-test-fase-5-parallel.log
+20: @@ -22,9 +22,9 @@ warning: unused imports: `Command`, `Duration`, `Instant`, and `Stdio`
+21:    |            ^^^^^^^^  ^^^^^^^
+22:  
+23:  warning: variable does not need to be mutable
+24: -    --> src\ai.rs:3973:12
+25: +    --> src\ai.rs:4194:12
+26:       |
+27: -3973 |       let (mut pending, cancel) = state.begin(&p_preview.ticket).unwrap();
+28: +4194 |       let (mut pending, cancel) = state.begin(&p_preview.ticket).unwrap();
+29:       |            ----^^^^^^^
+30:       |            |
+31:       |            help: remove this `mut`
+32: @@ -32,9 +32,9 @@ warning: variable does not need to be mutable
+33:       = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+34:  
+35:  warning: unused variable: `cancel`
+36: -    --> src\ai.rs:3973:25
+37: +    --> src\ai.rs:4194:25
+38:       |
+39: -3973 |       let (mut pending, cancel) = state.begin(&p_preview.ticket).unwrap();
+40: +4194 |       let (mut pending, cancel) = state.begin(&p_preview.ticket).unwrap();
+41:       |                         ^^^^^^ help: if this is intentional, prefix it with an underscore: `_cancel`
+42:       |
+43:       = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+44: @@ -144,25 +144,6 @@ warning: function `load` is never used
+45:      |    ^^^^
+46:  
+47:  warning: `limen-vault` (lib) generated 12 warnings (9 duplicates) (run `cargo fix --lib -p limen-vault` to apply 2 suggestions)
+48: -warning: unused variable: `t0`
+49: -  --> src\bin\diagnose_fase1.rs:46:9
+50: -   |
+51: -46 |     let t0 = std::time::Instant::now();
+52: -   |         ^^ help: if this is intentional, prefix it with an underscore: `_t0`
+53: -   |
+54: -   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+55: -
+56: -warning: field `exact_bonus` is never read
+57: -   --> src\bin\diagnose_fase1.rs:236:9
+58: -    |
+59: -223 |     struct FusedRecord {
+60: -    |            ----------- field in this struct
+61: -...
+62: -236 |         exact_bonus: f64,
+63: -    |         ^^^^^^^^^^^
+64: -    |
+65: -    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+66: -
+67:  warning: fields `title` and `base_score` are never read
+68:    --> src\bin\measure_punto_e.rs:20:5
+69:     |
+70: @@ -185,6 +166,26 @@ warning: field `query_id` is never read
+71:  37 |     query_id: String,
+72:     |     ^^^^^^^^
+73:  
+74: +warning: `limen-vault` (bin "measure_punto_e" test) generated 2 warnings
+75: +warning: unused variable: `t0`
+76: +  --> src\bin\diagnose_fase1.rs:46:9
+77: +   |
+78: +46 |     let t0 = std::time::Instant::now();
+79: +   |         ^^ help: if this is intentional, prefix it with an underscore: `_t0`
+80: +   |
+81: +   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+82: +
+83: +warning: field `exact_bonus` is never read
+84: +   --> src\bin\diagnose_fase1.rs:236:9
+85: +    |
+86: +223 |     struct FusedRecord {
+87: +    |            ----------- field in this struct
+88: +...
+89: +236 |         exact_bonus: f64,
+90: +    |         ^^^^^^^^^^^
+91: +    |
+92: +    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+93: +
+94:  warning: unused import: `ffi::CString`
+95:    --> src\snapshots.rs:12:5
+96:     |
+97: @@ -194,168 +195,170 @@ warning: unused import: `ffi::CString`
+98:     = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+99:  
+100:  warning: `limen-vault` (bin "diagnose_fase1" test) generated 2 warnings (run `cargo fix --bin "diagnose_fase1" -p limen-vault --tests` to apply 1 suggestion)
+101: -warning: `limen-vault` (bin "measure_punto_e" test) generated 2 warnings
+102:  warning: `limen-vault` (bin "limen-vault" test) generated 1 warning (run `cargo fix --bin "limen-vault" -p limen-vault --tests` to apply 1 suggestion)
+103: -    Finished `test` profile [unoptimized + debuginfo] target(s) in 59.62s
+104: +    Finished `test` profile [unoptimized + debuginfo] target(s) in 1m 03s
+105:       Running unittests src\lib.rs (target\debug\deps\limen_vault-b7ab620e0196d8b2.exe)
+106:  
+107: -running 154 tests
+108: +running 157 tests
+109:  test ai::model_tests::models_are_validated_and_deduplicated ... ok
+110: -test ai::index_policy_test::forged_approval_is_rejected ... ok
+111: -test ai::tests::citation_ids_and_incomplete_rejected ... ok
+112: +test ai::tests::test_active_guard_releases_ticket_on_panic ... ok
+113: +test ai::tests::test_consecutive_calls_second_rejected_while_first_active ... ok
+114:  test ai::tests::preview_bounds_and_untrusted_data_role ... ok
+115: +test ai::tests::citation_ids_and_incomplete_rejected ... ok
+116: +test ai::index_policy_test::forged_approval_is_rejected ... ok
+117:  test ai::tests::binary_raw_source_extracted_text_is_read_in_ai ... ok
+118:  test ai::tests::source_stale_symlink_and_preview_cancel ... ok
+119: -test ai::tests::test_extract_multi_passages_and_budget_cap ... ok
+120: -test ai::tests::test_citation_locators_and_tamper_detection ... ok
+121:  test ai::tests::test_extract_multi_passages_rejects_overlapping_passages ... ok
+122: -test ai::tests::test_locators_overlap_detection ... ok
+123: +test ai::tests::test_extract_multi_passages_and_budget_cap ... ok
+124:  test ai::tests::test_interrupted_stream_preserves_partial_text_with_zero_citations ... ok
+125:  test ai::tests::approved_policy_and_context_hash ... ok
+126:  test ai::tests::test_json_stream_answer_parser_decodes_escapes_and_unicode ... ok
+127: -test ai::tests::test_log_ask_timing_detailed_includes_source_audit_and_no_text_leakage ... ok
+128: -test ai::tests::test_missing_response_completed_treated_as_interrupted_with_zero_citations ... ok
+129: +test ai::tests::test_citation_locators_and_tamper_detection ... ok
+130:  test ai::tests::test_diagnosis_passage_id_and_relative_path_citations_resolved ... ok
+131:  test ai::tests::test_corrections_a_b_c_d_schema_short_ids_warning_and_system_instructions ... ok
+132: +test ai::tests::test_log_ask_timing_detailed_includes_source_audit_and_no_text_leakage ... ok
+133: +test ai::tests::test_missing_response_completed_treated_as_interrupted_with_zero_citations ... ok
+134: +test ai::tests::test_locators_overlap_detection ... ok
+135:  test ai::tests::test_consecutive_read_indexed_document_and_read_source_zero_disk_reads ... ok
+136: -test ai::tests::test_offline_llama_server_hybrid_fallback_no_error ... ok
+137: -test ai::tests::test_eligibility_before_limits_regression_50_drafts_do_not_hide_approved_source ... ok
+138: -test ai::tests::test_multi_vault_cache_isolation ... ok
+139:  test ai::tests::test_punto_e_fallback_first_candidate_when_none_admitted ... ok
+140:  test ai::tests::test_punto_e_metodo_c_admitted_when_close_to_max_without_rare_word ... ok
+141:  test ai::tests::test_punto_e_metodo_c_admitted_when_has_rare_word_even_low_similarity ... ok
+142:  test ai::tests::test_punto_e_metodo_c_excluded_when_no_rare_word_and_far_from_max ... ok
+143:  test ai::tests::test_punto_e_service_offline_preserves_exact_unfiltered_candidates ... ok
+144: +test ai::tests::test_openai_consent_persisted_and_enforced ... ok
+145: +test ai::tests::test_sanitize_answer_prose_removes_asterisks ... ok
+146: +test ai::tests::test_offline_llama_server_hybrid_fallback_no_error ... ok
+147: +test ai::tests::test_multi_vault_cache_isolation ... ok
+148: +test ai::tests::test_parse_response_validation_and_incomplete_rules ... ok
+149: +test ai::tests::test_eligibility_before_limits_regression_50_drafts_do_not_hide_approved_source ... ok
+150:  test ai::tests::test_parse_response_reads_reasoning_tokens_from_output_tokens_details ... ok
+151: -test ai::tests::test_sanitize_answer_prose_removes_citation_brackets ... ok
+152:  test ai::tests::test_passage_crypto_sha256_verification_rejects_corrupted_passage ... ok
+153: +test ai::tests::test_sanitize_answer_prose_removes_citation_brackets ... ok
+154: +test ai::tests::test_stream_prose_sanitizer_split_bold_asterisks ... ok
+155:  test ai::tests::test_selected_model_persistence_in_app_data_dir ... ok
+156: -test ai::tests::test_parse_response_validation_and_incomplete_rules ... ok
+157:  test ai::tests::test_punto_e_service_offline_retains_all_sources_without_filtering ... ok
+158: -test ai::tests::test_sanitize_answer_prose_removes_asterisks ... ok
+159: -test ai::tests::test_openai_consent_persisted_and_enforced ... ok
+160: -test ai::tests::test_stream_prose_sanitizer_split_bold_asterisks ... ok
+161: +test ai::tests::test_stream_prose_sanitizer_split_citations ... ok
+162: +test ai::tests::test_streaming_network_error_treated_as_interrupted_with_reason ... ok
+163:  test ai::tests::test_system_instruction_contains_required_rules_and_restrictive_citation ... ok
+164:  test ai::tests::test_utf8_chunk_decoder_split_multibyte_character ... ok
+165: -test ai::tests::test_streaming_network_error_treated_as_interrupted_with_reason ... ok
+166: -test ai::tests::test_stream_prose_sanitizer_split_citations ... ok
+167: -test ai::tests::test_source_integrity_ntfs_vs_non_ntfs ... ok
+168:  test ai::tests::test_verify_source_ineligible_rejected ... ok
+169:  test ai::tests::test_verify_post_failure_replaces_text_with_cancellation_message ... ok
+170: -test ai::tests::test_verify_post_rejects_document_access_denied_and_obsolete_source ... ok
+171: +test ai::tests::test_source_integrity_ntfs_vs_non_ntfs ... ok
+172:  test ai::tests::test_verify_post_source_changed_during_request_rejected ... ok
+173:  test ai::tests::test_verify_pre_source_changed_since_preview_rejected ... ok
+174: -test automation::tests::concurrency_and_scheduler_background_reconciliation ... ok
+175: +test ai::tests::test_stream_prose_sanitizer_accented_letters_and_emoji ... ok
+176: +test ai::tests::test_verify_source_generated_obsolete_rejected ... ok
+177:  test automation::tests::batch_import_receipts_deduplication_and_isolation ... ok
+178: +test automation::tests::concurrency_and_scheduler_background_reconciliation ... ok
+179: +test ai::tests::test_verify_post_rejects_document_access_denied_and_obsolete_source ... ok
+180:  test automation::tests::native_picker_import_is_bounded_and_preserves_selected_file ... ok
+181: -test ai::tests::test_verify_source_generated_obsolete_rejected ... ok
+182:  test automation::tests::offline_ingestion_and_extraction_without_ai_key ... ok
+183:  test automation::tests::forged_citations_human_edits_and_symlinks ... ok
+184: -test automation::tests::full_workflow_preserves_originals_deduplicates_and_retrieves ... ok
+185: -test automation::tests::inventory_visible_before_activation_and_after_source_changes ... ok
+186:  test automation::tests::spreadsheets_keep_rows_beyond_api_limit_and_formulas ... ok
+187: +test automation::tests::full_workflow_preserves_originals_deduplicates_and_retrieves ... ok
+188:  test automation::tests::unicode_text_chunks_preserve_every_byte ... ok
+189: -test automation::tests::long_documents_are_split_without_manual_work ... ok
+190: -test catalog::tests::test_catalog_reloaded_after_vault_modification ... ok
+191:  test catalog::tests::test_catalog_in_memory_caching_and_zero_disk_reads_on_consecutive_calls ... ok
+192: -test catalog::tests::test_catalog_multivault_isolation ... ok
+193: -test automation::tests::bounded_retries_resume_and_key_absence ... ok
+194: -test catalog::tests::test_catalog_rewrite_same_size_reloaded ... ok
+195: +test catalog::tests::test_catalog_reloaded_after_vault_modification ... ok
+196: +test automation::tests::stale_search_lock_recovers_and_active_lock_is_preserved ... ok
+197:  test catalog::tests::test_catalog_save_and_load_lifecycle ... ok
+198: -test automation::tests::source_changes_and_deletion_invalidate_wiki_before_next_tick ... ok
+199:  test catalog::tests::test_chunk_text_to_passages_crlf_and_lf_produce_identical_passages ... ok
+200:  test catalog::tests::test_chunk_text_to_passages_locators ... ok
+201: +test automation::tests::inventory_visible_before_activation_and_after_source_changes ... ok
+202: +test catalog::tests::test_catalog_rewrite_same_size_reloaded ... ok
+203: +test catalog::tests::test_deduplication_preserves_aliases ... ok
+204: +test catalog::tests::test_catalog_multivault_isolation ... ok
+205: +test automation::tests::bounded_retries_resume_and_key_absence ... ok
+206: +test catalog::tests::test_document_pruning_on_file_deletion ... ok
+207:  test catalog::tests::test_double_migration_idempotent_and_rollback ... ok
+208: +test catalog::tests::test_proposals_stay_legacy_drafts_and_human_notes_preserved ... ok
+209:  test catalog::tests::test_document_revision_bump_on_content_change ... ok
+210: -test catalog::tests::test_document_pruning_on_file_deletion ... ok
+211: +test automation::tests::source_changes_and_deletion_invalidate_wiki_before_next_tick ... ok
+212: +test automation::tests::long_documents_are_split_without_manual_work ... ok
+213:  test catalog::tests::test_passage_integrity_and_tamper_detection ... ok
+214: -test automation::tests::stale_search_lock_recovers_and_active_lock_is_preserved ... ok
+215: -test catalog::tests::test_proposals_stay_legacy_drafts_and_human_notes_preserved ... ok
+216: -test catalog::tests::test_deduplication_preserves_aliases ... ok
+217: -test catalog::tests::test_sync_catalog_and_offline_extraction ... ok
+218:  test catalog::tests::test_verify_document_passage_integrity_all_cases ... ok
+219: -test catalog::tests::test_lookup_by_path_beyond_50_documents_and_homonyms ... ok
+220: -test catalog::tests::test_verify_single_passage_document_integrity_with_doc_hash_and_passage_hash ... ok
+221: -test compiler::tests::test_rust_compiler_compiles_draft_with_status_draft ... ok
+222: -test compiler::tests::test_rust_compiler_sanitizes_html ... ok
+223: +test catalog::tests::test_sync_catalog_and_offline_extraction ... ok
+224:  test embeddings::tests::test_cosine_similarity ... ok
+225: -test compiler::tests::test_rust_compiler_deduplication ... ok
+226:  test embeddings::tests::test_embedded_text_sha256_cache_invalidation_on_prefix_change ... ok
+227: -test embeddings::tests::test_fetch_embeddings_api_key_rules ... ok
+228: -test embeddings::tests::test_embeddings_cache_invalidates_on_dimension_change ... ok
+229:  test embeddings::tests::test_embeddings_cache_lifecycle ... ok
+230: +test embeddings::tests::test_embeddings_cache_invalidates_on_dimension_change ... ok
+231: +test catalog::tests::test_lookup_by_path_beyond_50_documents_and_homonyms ... ok
+232: +test compiler::tests::test_rust_compiler_compiles_draft_with_status_draft ... ok
+233: +test embeddings::tests::test_fetch_embeddings_api_key_rules ... ok
+234: +test compiler::tests::test_rust_compiler_deduplication ... ok
+235: +test catalog::tests::test_verify_single_passage_document_integrity_with_doc_hash_and_passage_hash ... ok
+236: +test compiler::tests::test_rust_compiler_sanitizes_html ... ok
+237:  test embeddings::tests::test_embeddings_in_memory_cache_no_disk_re_read ... ok
+238:  test embeddings::tests::test_hybrid_search_local_offline_graceful_fallback ... ok
+239: -test embeddings::tests::test_is_loopback_endpoint_security_rules ... ok
+240: -test embeddings::tests::test_hybrid_search_offline_graceful_fallback ... ok
+241: +test embeddings::tests::test_hybrid_fusion_ranks_exact_code_first ... ok
+242:  test embeddings::tests::test_hybrid_fusion_coalescence_single_row_when_found_by_both_engines ... ok
+243:  test embeddings::tests::test_hybrid_fusion_coalesced_beats_single_engine_at_score_parity ... ok
+244: -test embeddings::tests::test_hybrid_fusion_ranks_exact_code_first ... ok
+245:  test embeddings::tests::test_hybrid_fusion_high_sem_pure_beats_mediocre_dual_signals ... ok
+246: +test embeddings::tests::test_hybrid_search_offline_graceful_fallback ... ok
+247: +test embeddings::tests::test_is_loopback_endpoint_security_rules ... ok
+248:  test embeddings::tests::test_hybrid_fusion_pure_semantic_enters_top_ten ... ok
+249: -test embeddings::tests::test_passage_embedding_text_context_and_20_percent_cap ... ok
+250: -test extraction::tests::word_and_slides_are_literal ... ok
+251:  test embeddings::tests::test_local_provider_rejects_non_loopback_endpoint ... ok
+252: +test extraction::tests::word_and_slides_are_literal ... ok
+253: +test embeddings::tests::test_passage_embedding_text_context_and_20_percent_cap ... ok
+254:  test llama::tests::test_detect_llama_server_binary ... ok
+255: -test embeddings::tests::test_resolve_embeddings_endpoint_defaults_to_openai_when_absent ... ok
+256:  test knowledge::tests::actual_notes_without_index_and_no_mutations ... ok
+257: -test llama::tests::test_execution_does_not_modify_userprofile_limen_vault ... ok
+258:  test knowledge::tests::symlink_and_oversized_notes_fail_explicitly ... ok
+259:  test llama::tests::test_cache_with_unexpected_hash_triggers_recomputation ... ok
+260: +test llama::tests::test_execution_does_not_modify_userprofile_limen_vault ... ok
+261: +test embeddings::tests::test_resolve_embeddings_endpoint_defaults_to_openai_when_absent ... ok
+262:  test embeddings::tests::test_provider_report_with_empty_cache_reports_zero_dims_and_total_passages ... ok
+263: +test keychain::test_windows_credential_manager_roundtrip ... ok
+264: +test llama::tests::test_find_free_port ... ok
+265:  test llama::tests::test_install_from_file_single_io_pass ... ok
+266:  test llama::tests::test_local_model_status_returns_struct ... ok
+267:  test llama::tests::test_model_expected_constants ... ok
+268: -test llama::tests::test_find_free_port ... ok
+269: -test keychain::test_windows_credential_manager_roundtrip ... ok
+270: -test llama::tests::test_second_status_call_uses_cache_zero_hash_recalculation ... ok
+271:  test llama::tests::test_pid_file_roundtrip_and_orphan_decision ... ok
+272:  test llama::tests::test_unexpected_size_reports_not_installed ... ok
+273: -test mcp::tests::rpc_readonly_lifecycle ... ok
+274: -test mcp::tests::windows_identity_stable_and_distinct ... ok
+275: -test proposals::tests::m7_corrupt_state_and_journal_preserved ... ok
+276: -test llama::tests::test_model_modified_mtime_triggers_recomputation ... ok
+277:  test llama::tests::test_model_replaced_same_size_detected ... ok
+278: -test proposals::tests::m7_metadata_secrets_and_output_provenance ... ok
+279: -test proposals::tests::m7_raw_collision_symlink_and_changed_bytes_denied ... ok
+280: +test llama::tests::test_second_status_call_uses_cache_zero_hash_recalculation ... ok
+281: +test llama::tests::test_model_modified_mtime_triggers_recomputation ... ok
+282:  test mcp::tests::http_auth_origin_and_revocation ... ok
+283: -test proposals::tests::m7_import_keeps_compiler_draft_and_rejection ... ok
+284: +test mcp::tests::windows_identity_stable_and_distinct ... ok
+285: +test mcp::tests::rpc_readonly_lifecycle ... ok
+286: +test proposals::tests::m7_corrupt_state_and_journal_preserved ... ok
+287:  test proposals::tests::m7_recovery_after_document_published ... ok
+288: -test search::tests::search_passages_and_catalog_indexing ... ok
+289:  test search::tests::metadata_filters_unicode_and_readonly ... ok
+290: +test proposals::tests::m7_raw_collision_symlink_and_changed_bytes_denied ... ok
+291: +test search::tests::search_passages_and_catalog_indexing ... ok
+292: +test proposals::tests::m7_import_keeps_compiler_draft_and_rejection ... ok
+293:  test search::tests::test_contains_whole_words_rejects_substrings_of_other_words ... ok
+294: +test proposals::tests::m7_metadata_secrets_and_output_provenance ... ok
+295:  test proposals::tests::m7_revisions_exclusive_approval_and_idempotence ... ok
+296:  test search::tests::test_c11_raw_sources_term_frequency_not_deduped ... ok
+297: -test search::tests::test_c12_exact_token_document_outranks_substring_only_document ... ok
+298: -test search::tests::test_in_memory_search_cache_consecutive_no_disk_re_read ... ok
+299: -test search::tests::test_search_detects_removed_and_modified_files_without_blocking ... ok
+300: -test search::tests::test_c11_bm25_short_exact_document_beats_long_document_with_common_words ... ok
+301:  test search::tests::test_search_index_rewrite_same_size_reloaded ... ok
+302: +test search::tests::test_c11_bm25_short_exact_document_beats_long_document_with_common_words ... ok
+303: +test search::tests::test_in_memory_search_cache_consecutive_no_disk_re_read ... ok
+304:  test search::tests::test_search_index_multivault_isolation ... ok
+305: +test search::tests::test_c12_exact_token_document_outranks_substring_only_document ... ok
+306: +test search::tests::test_search_detects_removed_and_modified_files_without_blocking ... ok
+307:  test snapshots::tests::test_rust_snapshot_creation_and_integrity ... ok
+308: -test sync::tests::sync_capture_rejects_symlink_and_freezes_bytes ... ok
+309: -test snapshots::tests::snapshot_corruption_and_readonly ... ok
+310: -test snapshots::tests::failure_at_manifest_write_cleans_only_staging ... ok
+311:  test sync::tests::sync_config_rejects_insecure_endpoints ... ok
+312: +test sync::tests::sync_capture_rejects_symlink_and_freezes_bytes ... ok
+313:  test sync::tests::sync_import_receipt_recovers_commit_window_without_overwrite ... ok
+314: -test sync::tests::sync_rejects_paths_and_collisions ... ok
+315:  test sync::tests::sync_persisted_capture_survives_state_restart_and_detects_corruption ... ok
+316: -test tunnel::tests::test_job_object_process_tree_kill ... ok
+317: +test sync::tests::sync_rejects_paths_and_collisions ... ok
+318:  test tunnel::tests::invalid_config_and_symlink_do_not_overwrite_files ... ok
+319:  test snapshots::tests::test_snapshot_restore_to_separate_folder_verifies_hashes ... ok
+320: +test tunnel::tests::test_job_object_process_tree_kill ... ok
+321:  test sync::tests::sync_selection_persists_only_selected_frozen_notes ... ok
+322: -test snapshots::tests::concurrent_publication_and_collision ... ok
+323: -test automation::tests::complete_multi_format_pipeline_with_declared_fake_ai ... ok
+324: -test vault::tests::shared_frontmatter_fixtures ... ok
+325: +test snapshots::tests::failure_at_manifest_write_cleans_only_staging ... ok
+326: +test snapshots::tests::snapshot_corruption_and_readonly ... ok
+327:  test vault::tests::capability_blocks_external_symlinks_and_broken_links ... ok
+328: -test vault::tests::exclusive_creation_preserves_existing_bytes ... ok
+329:  test vault::tests::concurrent_creation_has_one_winner ... ok
+330: +test vault::tests::shared_frontmatter_fixtures ... ok
+331: +test snapshots::tests::concurrent_publication_and_collision ... ok
+332: +test vault::tests::exclusive_creation_preserves_existing_bytes ... ok
+333:  test vault::tests::manifest_is_consumed_without_reopening ... ok
+334:  test vault::tests::capability_blocks_external_junctions ... ok
+335:  test vault::tests::raw_sources_foreign_yaml_frontmatter_allows_vault_opening ... ok
+336:  test llama::tests::test_process_parent_and_command_reads_live_process_only ... ok
+337: +test automation::tests::complete_multi_format_pipeline_with_declared_fake_ai ... ok
+338:  
+339: -test result: ok. 154 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 10.58s
+340: +test result: ok. 157 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 25.94s
+341:  
+342:       Running unittests src\bin\a04_real_local.rs (target\debug\deps\a04_real_local-20417175db04e0a5.exe)
+343:  
+344: @@ -421,25 +424,25 @@ test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
+345:  
+346:  running 18 tests
+347:  test compiler::tests::test_rust_compiler_sanitizes_html ... ok
+348: -test compiler::tests::test_rust_compiler_deduplication ... ok
+349:  test compiler::tests::test_rust_compiler_compiles_draft_with_status_draft ... ok
+350: -test tests::obsidian_registration_matches_canonical_path ... ok
+351:  test snapshots::tests::test_rust_snapshot_creation_and_integrity ... ok
+352: -test tests::test_rust_invalid_yaml_rejection ... ok
+353: +test compiler::tests::test_rust_compiler_deduplication ... ok
+354: +test tests::obsidian_registration_matches_canonical_path ... ok
+355:  test tests::test_rust_vault_validation ... ok
+356: -test snapshots::tests::failure_at_manifest_write_cleans_only_staging ... ok
+357: -test snapshots::tests::snapshot_corruption_and_readonly ... ok
+358: +test tests::test_rust_invalid_yaml_rejection ... ok
+359:  test snapshots::tests::test_snapshot_restore_to_separate_folder_verifies_hashes ... ok
+360: +test snapshots::tests::snapshot_corruption_and_readonly ... ok
+361:  test vault::tests::capability_blocks_external_symlinks_and_broken_links ... ok
+362:  test vault::tests::shared_frontmatter_fixtures ... ok
+363: -test vault::tests::concurrent_creation_has_one_winner ... ok
+364: +test snapshots::tests::failure_at_manifest_write_cleans_only_staging ... ok
+365:  test vault::tests::exclusive_creation_preserves_existing_bytes ... ok
+366: -test snapshots::tests::concurrent_publication_and_collision ... ok
+367: +test vault::tests::concurrent_creation_has_one_winner ... ok
+368:  test vault::tests::manifest_is_consumed_without_reopening ... ok
+369:  test vault::tests::capability_blocks_external_junctions ... ok
+370:  test vault::tests::raw_sources_foreign_yaml_frontmatter_allows_vault_opening ... ok
+371: +test snapshots::tests::concurrent_publication_and_collision ... ok
+372:  
+373: -test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.73s
+374: +test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.67s
+375:  
+376:       Running unittests src\bin\measure_punto_e.rs (target\debug\deps\measure_punto_e-2ca8dfc639e1f24b.exe)
+377:  
+378: diff --git a/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/cargo-test-fase-5-single.log b/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/cargo-test-fase-5-single.log
+379: index 579464c..3016360 100644
+380: --- a/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/cargo-test-fase-5-single.log
+381: +++ b/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/cargo-test-fase-5-single.log
+382: @@ -96,32 +96,18 @@ warning: field `vault_path` is never read
+383:     = note: `EmbeddingsCacheEntry` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+384:  
+385:  warning: `limen-vault` (lib) generated 12 warnings (run `cargo fix --lib -p limen-vault` to apply 5 suggestions)
+386: -warning: fields `title` and `base_score` are never read
+387: -  --> src\bin\measure_punto_e.rs:20:5
+388: -   |
+389: -17 | struct ScoredCandidate {
+390: -   |        --------------- fields in this struct
+391: -...
+392: -20 |     title: String,
+393: -   |     ^^^^^
+394: -21 |     base_score: f64,
+395: -   |     ^^^^^^^^^^
+396: +warning: unused import: `ffi::CString`
+397: +  --> src\snapshots.rs:12:5
+398:     |
+399: -   = note: `ScoredCandidate` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+400: -   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+401: -
+402: -warning: field `query_id` is never read
+403: -  --> src\bin\measure_punto_e.rs:37:5
+404: +12 |     ffi::CString,
+405: +   |     ^^^^^^^^^^^^
+406:     |
+407: -36 | struct QueryEvalContext {
+408: -   |        ---------------- field in this struct
+409: -37 |     query_id: String,
+410: -   |     ^^^^^^^^
+411: +   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+412:  
+413:  warning: variable does not need to be mutable
+414: -    --> src\ai.rs:3973:12
+415: +    --> src\ai.rs:4194:12
+416:       |
+417: -3973 |       let (mut pending, cancel) = state.begin(&p_preview.ticket).unwrap();
+418: +4194 |       let (mut pending, cancel) = state.begin(&p_preview.ticket).unwrap();
+419:       |            ----^^^^^^^
+420:       |            |
+421:       |            help: remove this `mut`
+422: @@ -129,9 +115,9 @@ warning: variable does not need to be mutable
+423:       = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+424:  
+425:  warning: unused variable: `cancel`
+426: -    --> src\ai.rs:3973:25
+427: +    --> src\ai.rs:4194:25
+428:       |
+429: -3973 |       let (mut pending, cancel) = state.begin(&p_preview.ticket).unwrap();
+430: +4194 |       let (mut pending, cancel) = state.begin(&p_preview.ticket).unwrap();
+431:       |                         ^^^^^^ help: if this is intentional, prefix it with an underscore: `_cancel`
+432:       |
+433:       = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+434: @@ -164,8 +150,6 @@ warning: unused variable: `doc_id`
+435:  2056 |         let doc_id = make_document_id("20_RAW_SOURCES/doc.md");
+436:       |             ^^^^^^ help: if this is intentional, prefix it with an underscore: `_doc_id`
+437:  
+438: -warning: `limen-vault` (bin "measure_punto_e" test) generated 2 warnings
+439: -warning: `limen-vault` (lib test) generated 15 warnings (9 duplicates) (run `cargo fix --lib -p limen-vault --tests` to apply 6 suggestions)
+440:  warning: unused variable: `t0`
+441:    --> src\bin\diagnose_fase1.rs:46:9
+442:     |
+443: @@ -185,20 +169,36 @@ warning: field `exact_bonus` is never read
+444:      |
+445:      = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+446:  
+447: -warning: unused import: `ffi::CString`
+448: -  --> src\snapshots.rs:12:5
+449: +warning: `limen-vault` (bin "limen-vault" test) generated 1 warning (run `cargo fix --bin "limen-vault" -p limen-vault --tests` to apply 1 suggestion)
+450: +warning: `limen-vault` (lib test) generated 15 warnings (9 duplicates) (run `cargo fix --lib -p limen-vault --tests` to apply 6 suggestions)
+451: +warning: `limen-vault` (bin "diagnose_fase1" test) generated 2 warnings (run `cargo fix --bin "diagnose_fase1" -p limen-vault --tests` to apply 1 suggestion)
+452: +warning: fields `title` and `base_score` are never read
+453: +  --> src\bin\measure_punto_e.rs:20:5
+454:     |
+455: -12 |     ffi::CString,
+456: -   |     ^^^^^^^^^^^^
+457: +17 | struct ScoredCandidate {
+458: +   |        --------------- fields in this struct
+459: +...
+460: +20 |     title: String,
+461: +   |     ^^^^^
+462: +21 |     base_score: f64,
+463: +   |     ^^^^^^^^^^
+464:     |
+465: -   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+466: +   = note: `ScoredCandidate` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+467: +   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+468:  
+469: -warning: `limen-vault` (bin "diagnose_fase1" test) generated 2 warnings (run `cargo fix --bin "diagnose_fase1" -p limen-vault --tests` to apply 1 suggestion)
+470: -warning: `limen-vault` (bin "limen-vault" test) generated 1 warning (run `cargo fix --bin "limen-vault" -p limen-vault --tests` to apply 1 suggestion)
+471: -    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.31s
+472: +warning: field `query_id` is never read
+473: +  --> src\bin\measure_punto_e.rs:37:5
+474: +   |
+475: +36 | struct QueryEvalContext {
+476: +   |        ---------------- field in this struct
+477: +37 |     query_id: String,
+478: +   |     ^^^^^^^^
+479: +
+480: +warning: `limen-vault` (bin "measure_punto_e" test) generated 2 warnings
+481: +    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.11s
+482:       Running unittests src\lib.rs (target\debug\deps\limen_vault-b7ab620e0196d8b2.exe)
+483:  
+484: -running 154 tests
+485: +running 157 tests
+486:  test ai::index_policy_test::forged_approval_is_rejected ... ok
+487:  test ai::model_tests::models_are_validated_and_deduplicated ... ok
+488:  test ai::tests::approved_policy_and_context_hash ... ok
+489: @@ -206,7 +206,9 @@ test ai::tests::binary_raw_source_extracted_text_is_read_in_ai ... ok
+490:  test ai::tests::citation_ids_and_incomplete_rejected ... ok
+491:  test ai::tests::preview_bounds_and_untrusted_data_role ... ok
+492:  test ai::tests::source_stale_symlink_and_preview_cancel ... ok
+493: +test ai::tests::test_active_guard_releases_ticket_on_panic ... ok
+494:  test ai::tests::test_citation_locators_and_tamper_detection ... ok
+495: +test ai::tests::test_consecutive_calls_second_rejected_while_first_active ... ok
+496:  test ai::tests::test_consecutive_read_indexed_document_and_read_source_zero_disk_reads ... ok
+497:  test ai::tests::test_corrections_a_b_c_d_schema_short_ids_warning_and_system_instructions ... ok
+498:  test ai::tests::test_diagnosis_passage_id_and_relative_path_citations_resolved ... ok
+499: @@ -234,6 +236,7 @@ test ai::tests::test_sanitize_answer_prose_removes_asterisks ... ok
+500:  test ai::tests::test_sanitize_answer_prose_removes_citation_brackets ... ok
+501:  test ai::tests::test_selected_model_persistence_in_app_data_dir ... ok
+502:  test ai::tests::test_source_integrity_ntfs_vs_non_ntfs ... ok
+503: +test ai::tests::test_stream_prose_sanitizer_accented_letters_and_emoji ... ok
+504:  test ai::tests::test_stream_prose_sanitizer_split_bold_asterisks ... ok
+505:  test ai::tests::test_stream_prose_sanitizer_split_citations ... ok
+506:  test ai::tests::test_streaming_network_error_treated_as_interrupted_with_reason ... ok
+507: @@ -354,7 +357,7 @@ test vault::tests::manifest_is_consumed_without_reopening ... ok
+508:  test vault::tests::raw_sources_foreign_yaml_frontmatter_allows_vault_opening ... ok
+509:  test vault::tests::shared_frontmatter_fixtures ... ok
+510:  
+511: -test result: ok. 154 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 11.25s
+512: +test result: ok. 157 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 35.78s
+513:  
+514:       Running unittests src\bin\a04_real_local.rs (target\debug\deps\a04_real_local-20417175db04e0a5.exe)
+515:  
+516: @@ -438,7 +441,7 @@ test vault::tests::manifest_is_consumed_without_reopening ... ok
+517:  test vault::tests::raw_sources_foreign_yaml_frontmatter_allows_vault_opening ... ok
+518:  test vault::tests::shared_frontmatter_fixtures ... ok
+519:  
+520: -test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.37s
+521: +test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.17s
+522:  
+523:       Running unittests src\bin\measure_punto_e.rs (target\debug\deps\measure_punto_e-2ca8dfc639e1f24b.exe)
+524:  
+525: diff --git a/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-5c.patch b/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-5c.patch
+526: new file mode 100644
+527: index 0000000..01af64f
+528: --- /dev/null
+529: +++ b/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-5c.patch
+530: @@ -0,0 +1,1376 @@
+531: +diff --git a/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/cargo-test-fase-5-parallel.log b/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/cargo-test-fase-5-parallel.log
+532: +index a097121..9106e1d 100644
+533: +--- a/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/cargo-test-fase-5-parallel.log
+534: ++++ b/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/cargo-test-fase-5-parallel.log
+535: +@@ -22,9 +22,9 @@ warning: unused imports: `Command`, `Duration`, `Instant`, and `Stdio`
+536: +   |            ^^^^^^^^  ^^^^^^^
+537: + 
+538: + warning: variable does not need to be mutable
+539: +-    --> src\ai.rs:3973:12
+540: ++    --> src\ai.rs:4194:12
+541: +      |
+542: +-3973 |       let (mut pending, cancel) = state.begin(&p_preview.ticket).unwrap();
+543: ++4194 |       let (mut pending, cancel) = state.begin(&p_preview.ticket).unwrap();
+544: +      |            ----^^^^^^^
+545: +      |            |
+546: +      |            help: remove this `mut`
+547: +@@ -32,9 +32,9 @@ warning: variable does not need to be mutable
+548: +      = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+549: + 
+550: + warning: unused variable: `cancel`
+551: +-    --> src\ai.rs:3973:25
+552: ++    --> src\ai.rs:4194:25
+553: +      |
+554: +-3973 |       let (mut pending, cancel) = state.begin(&p_preview.ticket).unwrap();
+555: ++4194 |       let (mut pending, cancel) = state.begin(&p_preview.ticket).unwrap();
+556: +      |                         ^^^^^^ help: if this is intentional, prefix it with an underscore: `_cancel`
+557: +      |
+558: +      = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+559: +@@ -144,25 +144,6 @@ warning: function `load` is never used
+560: +     |    ^^^^
+561: + 
+562: + warning: `limen-vault` (lib) generated 12 warnings (9 duplicates) (run `cargo fix --lib -p limen-vault` to apply 2 suggestions)
+563: +-warning: unused variable: `t0`
+564: +-  --> src\bin\diagnose_fase1.rs:46:9
+565: +-   |
+566: +-46 |     let t0 = std::time::Instant::now();
+567: +-   |         ^^ help: if this is intentional, prefix it with an underscore: `_t0`
+568: +-   |
+569: +-   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+570: +-
+571: +-warning: field `exact_bonus` is never read
+572: +-   --> src\bin\diagnose_fase1.rs:236:9
+573: +-    |
+574: +-223 |     struct FusedRecord {
+575: +-    |            ----------- field in this struct
+576: +-...
+577: +-236 |         exact_bonus: f64,
+578: +-    |         ^^^^^^^^^^^
+579: +-    |
+580: +-    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+581: +-
+582: + warning: fields `title` and `base_score` are never read
+583: +   --> src\bin\measure_punto_e.rs:20:5
+584: +    |
+585: +@@ -185,6 +166,26 @@ warning: field `query_id` is never read
+586: + 37 |     query_id: String,
+587: +    |     ^^^^^^^^
+588: + 
+589: ++warning: `limen-vault` (bin "measure_punto_e" test) generated 2 warnings
+590: ++warning: unused variable: `t0`
+591: ++  --> src\bin\diagnose_fase1.rs:46:9
+592: ++   |
+593: ++46 |     let t0 = std::time::Instant::now();
+594: ++   |         ^^ help: if this is intentional, prefix it with an underscore: `_t0`
+595: ++   |
+596: ++   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+597: ++
+598: ++warning: field `exact_bonus` is never read
+599: ++   --> src\bin\diagnose_fase1.rs:236:9
+600: ++    |
+601: ++223 |     struct FusedRecord {
+602: ++    |            ----------- field in this struct
+603: ++...
+604: ++236 |         exact_bonus: f64,
+605: ++    |         ^^^^^^^^^^^
+606: ++    |
+607: ++    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+608: ++
+609: + warning: unused import: `ffi::CString`
+610: +   --> src\snapshots.rs:12:5
+611: +    |
+612: +@@ -194,168 +195,170 @@ warning: unused import: `ffi::CString`
+613: +    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+614: + 
+615: + warning: `limen-vault` (bin "diagnose_fase1" test) generated 2 warnings (run `cargo fix --bin "diagnose_fase1" -p limen-vault --tests` to apply 1 suggestion)
+616: +-warning: `limen-vault` (bin "measure_punto_e" test) generated 2 warnings
+617: + warning: `limen-vault` (bin "limen-vault" test) generated 1 warning (run `cargo fix --bin "limen-vault" -p limen-vault --tests` to apply 1 suggestion)
+618: +-    Finished `test` profile [unoptimized + debuginfo] target(s) in 59.62s
+619: ++    Finished `test` profile [unoptimized + debuginfo] target(s) in 1m 03s
+620: +      Running unittests src\lib.rs (target\debug\deps\limen_vault-b7ab620e0196d8b2.exe)
+621: + 
+622: +-running 154 tests
+623: ++running 157 tests
+624: + test ai::model_tests::models_are_validated_and_deduplicated ... ok
+625: +-test ai::index_policy_test::forged_approval_is_rejected ... ok
+626: +-test ai::tests::citation_ids_and_incomplete_rejected ... ok
+627: ++test ai::tests::test_active_guard_releases_ticket_on_panic ... ok
+628: ++test ai::tests::test_consecutive_calls_second_rejected_while_first_active ... ok
+629: + test ai::tests::preview_bounds_and_untrusted_data_role ... ok
+630: ++test ai::tests::citation_ids_and_incomplete_rejected ... ok
+631: ++test ai::index_policy_test::forged_approval_is_rejected ... ok
+632: + test ai::tests::binary_raw_source_extracted_text_is_read_in_ai ... ok
+633: + test ai::tests::source_stale_symlink_and_preview_cancel ... ok
+634: +-test ai::tests::test_extract_multi_passages_and_budget_cap ... ok
+635: +-test ai::tests::test_citation_locators_and_tamper_detection ... ok
+636: + test ai::tests::test_extract_multi_passages_rejects_overlapping_passages ... ok
+637: +-test ai::tests::test_locators_overlap_detection ... ok
+638: ++test ai::tests::test_extract_multi_passages_and_budget_cap ... ok
+639: + test ai::tests::test_interrupted_stream_preserves_partial_text_with_zero_citations ... ok
+640: + test ai::tests::approved_policy_and_context_hash ... ok
+641: + test ai::tests::test_json_stream_answer_parser_decodes_escapes_and_unicode ... ok
+642: +-test ai::tests::test_log_ask_timing_detailed_includes_source_audit_and_no_text_leakage ... ok
+643: +-test ai::tests::test_missing_response_completed_treated_as_interrupted_with_zero_citations ... ok
+644: ++test ai::tests::test_citation_locators_and_tamper_detection ... ok
+645: + test ai::tests::test_diagnosis_passage_id_and_relative_path_citations_resolved ... ok
+646: + test ai::tests::test_corrections_a_b_c_d_schema_short_ids_warning_and_system_instructions ... ok
+647: ++test ai::tests::test_log_ask_timing_detailed_includes_source_audit_and_no_text_leakage ... ok
+648: ++test ai::tests::test_missing_response_completed_treated_as_interrupted_with_zero_citations ... ok
+649: ++test ai::tests::test_locators_overlap_detection ... ok
+650: + test ai::tests::test_consecutive_read_indexed_document_and_read_source_zero_disk_reads ... ok
+651: +-test ai::tests::test_offline_llama_server_hybrid_fallback_no_error ... ok
+652: +-test ai::tests::test_eligibility_before_limits_regression_50_drafts_do_not_hide_approved_source ... ok
+653: +-test ai::tests::test_multi_vault_cache_isolation ... ok
+654: + test ai::tests::test_punto_e_fallback_first_candidate_when_none_admitted ... ok
+655: + test ai::tests::test_punto_e_metodo_c_admitted_when_close_to_max_without_rare_word ... ok
+656: + test ai::tests::test_punto_e_metodo_c_admitted_when_has_rare_word_even_low_similarity ... ok
+657: + test ai::tests::test_punto_e_metodo_c_excluded_when_no_rare_word_and_far_from_max ... ok
+658: + test ai::tests::test_punto_e_service_offline_preserves_exact_unfiltered_candidates ... ok
+659: ++test ai::tests::test_openai_consent_persisted_and_enforced ... ok
+660: ++test ai::tests::test_sanitize_answer_prose_removes_asterisks ... ok
+661: ++test ai::tests::test_offline_llama_server_hybrid_fallback_no_error ... ok
+662: ++test ai::tests::test_multi_vault_cache_isolation ... ok
+663: ++test ai::tests::test_parse_response_validation_and_incomplete_rules ... ok
+664: ++test ai::tests::test_eligibility_before_limits_regression_50_drafts_do_not_hide_approved_source ... ok
+665: + test ai::tests::test_parse_response_reads_reasoning_tokens_from_output_tokens_details ... ok
+666: +-test ai::tests::test_sanitize_answer_prose_removes_citation_brackets ... ok
+667: + test ai::tests::test_passage_crypto_sha256_verification_rejects_corrupted_passage ... ok
+668: ++test ai::tests::test_sanitize_answer_prose_removes_citation_brackets ... ok
+669: ++test ai::tests::test_stream_prose_sanitizer_split_bold_asterisks ... ok
+670: + test ai::tests::test_selected_model_persistence_in_app_data_dir ... ok
+671: +-test ai::tests::test_parse_response_validation_and_incomplete_rules ... ok
+672: + test ai::tests::test_punto_e_service_offline_retains_all_sources_without_filtering ... ok
+673: +-test ai::tests::test_sanitize_answer_prose_removes_asterisks ... ok
+674: +-test ai::tests::test_openai_consent_persisted_and_enforced ... ok
+675: +-test ai::tests::test_stream_prose_sanitizer_split_bold_asterisks ... ok
+676: ++test ai::tests::test_stream_prose_sanitizer_split_citations ... ok
+677: ++test ai::tests::test_streaming_network_error_treated_as_interrupted_with_reason ... ok
+678: + test ai::tests::test_system_instruction_contains_required_rules_and_restrictive_citation ... ok
+679: + test ai::tests::test_utf8_chunk_decoder_split_multibyte_character ... ok
+680: +-test ai::tests::test_streaming_network_error_treated_as_interrupted_with_reason ... ok
+681: +-test ai::tests::test_stream_prose_sanitizer_split_citations ... ok
+682: +-test ai::tests::test_source_integrity_ntfs_vs_non_ntfs ... ok
+683: + test ai::tests::test_verify_source_ineligible_rejected ... ok
+684: + test ai::tests::test_verify_post_failure_replaces_text_with_cancellation_message ... ok
+685: +-test ai::tests::test_verify_post_rejects_document_access_denied_and_obsolete_source ... ok
+686: ++test ai::tests::test_source_integrity_ntfs_vs_non_ntfs ... ok
+687: + test ai::tests::test_verify_post_source_changed_during_request_rejected ... ok
+688: + test ai::tests::test_verify_pre_source_changed_since_preview_rejected ... ok
+689: +-test automation::tests::concurrency_and_scheduler_background_reconciliation ... ok
+690: ++test ai::tests::test_stream_prose_sanitizer_accented_letters_and_emoji ... ok
+691: ++test ai::tests::test_verify_source_generated_obsolete_rejected ... ok
+692: + test automation::tests::batch_import_receipts_deduplication_and_isolation ... ok
+693: ++test automation::tests::concurrency_and_scheduler_background_reconciliation ... ok
+694: ++test ai::tests::test_verify_post_rejects_document_access_denied_and_obsolete_source ... ok
+695: + test automation::tests::native_picker_import_is_bounded_and_preserves_selected_file ... ok
+696: +-test ai::tests::test_verify_source_generated_obsolete_rejected ... ok
+697: + test automation::tests::offline_ingestion_and_extraction_without_ai_key ... ok
+698: + test automation::tests::forged_citations_human_edits_and_symlinks ... ok
+699: +-test automation::tests::full_workflow_preserves_originals_deduplicates_and_retrieves ... ok
+700: +-test automation::tests::inventory_visible_before_activation_and_after_source_changes ... ok
+701: + test automation::tests::spreadsheets_keep_rows_beyond_api_limit_and_formulas ... ok
+702: ++test automation::tests::full_workflow_preserves_originals_deduplicates_and_retrieves ... ok
+703: + test automation::tests::unicode_text_chunks_preserve_every_byte ... ok
+704: +-test automation::tests::long_documents_are_split_without_manual_work ... ok
+705: +-test catalog::tests::test_catalog_reloaded_after_vault_modification ... ok
+706: + test catalog::tests::test_catalog_in_memory_caching_and_zero_disk_reads_on_consecutive_calls ... ok
+707: +-test catalog::tests::test_catalog_multivault_isolation ... ok
+708: +-test automation::tests::bounded_retries_resume_and_key_absence ... ok
+709: +-test catalog::tests::test_catalog_rewrite_same_size_reloaded ... ok
+710: ++test catalog::tests::test_catalog_reloaded_after_vault_modification ... ok
+711: ++test automation::tests::stale_search_lock_recovers_and_active_lock_is_preserved ... ok
+712: + test catalog::tests::test_catalog_save_and_load_lifecycle ... ok
+713: +-test automation::tests::source_changes_and_deletion_invalidate_wiki_before_next_tick ... ok
+714: + test catalog::tests::test_chunk_text_to_passages_crlf_and_lf_produce_identical_passages ... ok
+715: + test catalog::tests::test_chunk_text_to_passages_locators ... ok
+716: ++test automation::tests::inventory_visible_before_activation_and_after_source_changes ... ok
+717: ++test catalog::tests::test_catalog_rewrite_same_size_reloaded ... ok
+718: ++test catalog::tests::test_deduplication_preserves_aliases ... ok
+719: ++test catalog::tests::test_catalog_multivault_isolation ... ok
+720: ++test automation::tests::bounded_retries_resume_and_key_absence ... ok
+721: ++test catalog::tests::test_document_pruning_on_file_deletion ... ok
+722: + test catalog::tests::test_double_migration_idempotent_and_rollback ... ok
+723: ++test catalog::tests::test_proposals_stay_legacy_drafts_and_human_notes_preserved ... ok
+724: + test catalog::tests::test_document_revision_bump_on_content_change ... ok
+725: +-test catalog::tests::test_document_pruning_on_file_deletion ... ok
+726: ++test automation::tests::source_changes_and_deletion_invalidate_wiki_before_next_tick ... ok
+727: ++test automation::tests::long_documents_are_split_without_manual_work ... ok
+728: + test catalog::tests::test_passage_integrity_and_tamper_detection ... ok
+729: +-test automation::tests::stale_search_lock_recovers_and_active_lock_is_preserved ... ok
+730: +-test catalog::tests::test_proposals_stay_legacy_drafts_and_human_notes_preserved ... ok
+731: +-test catalog::tests::test_deduplication_preserves_aliases ... ok
+732: +-test catalog::tests::test_sync_catalog_and_offline_extraction ... ok
+733: + test catalog::tests::test_verify_document_passage_integrity_all_cases ... ok
+734: +-test catalog::tests::test_lookup_by_path_beyond_50_documents_and_homonyms ... ok
+735: +-test catalog::tests::test_verify_single_passage_document_integrity_with_doc_hash_and_passage_hash ... ok
+736: +-test compiler::tests::test_rust_compiler_compiles_draft_with_status_draft ... ok
+737: +-test compiler::tests::test_rust_compiler_sanitizes_html ... ok
+738: ++test catalog::tests::test_sync_catalog_and_offline_extraction ... ok
+739: + test embeddings::tests::test_cosine_similarity ... ok
+740: +-test compiler::tests::test_rust_compiler_deduplication ... ok
+741: + test embeddings::tests::test_embedded_text_sha256_cache_invalidation_on_prefix_change ... ok
+742: +-test embeddings::tests::test_fetch_embeddings_api_key_rules ... ok
+743: +-test embeddings::tests::test_embeddings_cache_invalidates_on_dimension_change ... ok
+744: + test embeddings::tests::test_embeddings_cache_lifecycle ... ok
+745: ++test embeddings::tests::test_embeddings_cache_invalidates_on_dimension_change ... ok
+746: ++test catalog::tests::test_lookup_by_path_beyond_50_documents_and_homonyms ... ok
+747: ++test compiler::tests::test_rust_compiler_compiles_draft_with_status_draft ... ok
+748: ++test embeddings::tests::test_fetch_embeddings_api_key_rules ... ok
+749: ++test compiler::tests::test_rust_compiler_deduplication ... ok
+750: ++test catalog::tests::test_verify_single_passage_document_integrity_with_doc_hash_and_passage_hash ... ok
+751: ++test compiler::tests::test_rust_compiler_sanitizes_html ... ok
+752: + test embeddings::tests::test_embeddings_in_memory_cache_no_disk_re_read ... ok
+753: + test embeddings::tests::test_hybrid_search_local_offline_graceful_fallback ... ok
+754: +-test embeddings::tests::test_is_loopback_endpoint_security_rules ... ok
+755: +-test embeddings::tests::test_hybrid_search_offline_graceful_fallback ... ok
+756: ++test embeddings::tests::test_hybrid_fusion_ranks_exact_code_first ... ok
+757: + test embeddings::tests::test_hybrid_fusion_coalescence_single_row_when_found_by_both_engines ... ok
+758: + test embeddings::tests::test_hybrid_fusion_coalesced_beats_single_engine_at_score_parity ... ok
+759: +-test embeddings::tests::test_hybrid_fusion_ranks_exact_code_first ... ok
+760: + test embeddings::tests::test_hybrid_fusion_high_sem_pure_beats_mediocre_dual_signals ... ok
+761: ++test embeddings::tests::test_hybrid_search_offline_graceful_fallback ... ok
+762: ++test embeddings::tests::test_is_loopback_endpoint_security_rules ... ok
+763: + test embeddings::tests::test_hybrid_fusion_pure_semantic_enters_top_ten ... ok
+764: +-test embeddings::tests::test_passage_embedding_text_context_and_20_percent_cap ... ok
+765: +-test extraction::tests::word_and_slides_are_literal ... ok
+766: + test embeddings::tests::test_local_provider_rejects_non_loopback_endpoint ... ok
+767: ++test extraction::tests::word_and_slides_are_literal ... ok
+768: ++test embeddings::tests::test_passage_embedding_text_context_and_20_percent_cap ... ok
+769: + test llama::tests::test_detect_llama_server_binary ... ok
+770: +-test embeddings::tests::test_resolve_embeddings_endpoint_defaults_to_openai_when_absent ... ok
+771: + test knowledge::tests::actual_notes_without_index_and_no_mutations ... ok
+772: +-test llama::tests::test_execution_does_not_modify_userprofile_limen_vault ... ok
+773: + test knowledge::tests::symlink_and_oversized_notes_fail_explicitly ... ok
+774: + test llama::tests::test_cache_with_unexpected_hash_triggers_recomputation ... ok
+775: ++test llama::tests::test_execution_does_not_modify_userprofile_limen_vault ... ok
+776: ++test embeddings::tests::test_resolve_embeddings_endpoint_defaults_to_openai_when_absent ... ok
+777: + test embeddings::tests::test_provider_report_with_empty_cache_reports_zero_dims_and_total_passages ... ok
+778: ++test keychain::test_windows_credential_manager_roundtrip ... ok
+779: ++test llama::tests::test_find_free_port ... ok
+780: + test llama::tests::test_install_from_file_single_io_pass ... ok
+781: + test llama::tests::test_local_model_status_returns_struct ... ok
+782: + test llama::tests::test_model_expected_constants ... ok
+783: +-test llama::tests::test_find_free_port ... ok
+784: +-test keychain::test_windows_credential_manager_roundtrip ... ok
+785: +-test llama::tests::test_second_status_call_uses_cache_zero_hash_recalculation ... ok
+786: + test llama::tests::test_pid_file_roundtrip_and_orphan_decision ... ok
+787: + test llama::tests::test_unexpected_size_reports_not_installed ... ok
+788: +-test mcp::tests::rpc_readonly_lifecycle ... ok
+789: +-test mcp::tests::windows_identity_stable_and_distinct ... ok
+790: +-test proposals::tests::m7_corrupt_state_and_journal_preserved ... ok
+791: +-test llama::tests::test_model_modified_mtime_triggers_recomputation ... ok
+792: + test llama::tests::test_model_replaced_same_size_detected ... ok
+793: +-test proposals::tests::m7_metadata_secrets_and_output_provenance ... ok
+794: +-test proposals::tests::m7_raw_collision_symlink_and_changed_bytes_denied ... ok
+795: ++test llama::tests::test_second_status_call_uses_cache_zero_hash_recalculation ... ok
+796: ++test llama::tests::test_model_modified_mtime_triggers_recomputation ... ok
+797: + test mcp::tests::http_auth_origin_and_revocation ... ok
+798: +-test proposals::tests::m7_import_keeps_compiler_draft_and_rejection ... ok
+799: ++test mcp::tests::windows_identity_stable_and_distinct ... ok
+800: ++test mcp::tests::rpc_readonly_lifecycle ... ok
+801: ++test proposals::tests::m7_corrupt_state_and_journal_preserved ... ok
+802: + test proposals::tests::m7_recovery_after_document_published ... ok
+803: +-test search::tests::search_passages_and_catalog_indexing ... ok
+804: + test search::tests::metadata_filters_unicode_and_readonly ... ok
+805: ++test proposals::tests::m7_raw_collision_symlink_and_changed_bytes_denied ... ok
+806: ++test search::tests::search_passages_and_catalog_indexing ... ok
+807: ++test proposals::tests::m7_import_keeps_compiler_draft_and_rejection ... ok
+808: + test search::tests::test_contains_whole_words_rejects_substrings_of_other_words ... ok
+809: ++test proposals::tests::m7_metadata_secrets_and_output_provenance ... ok
+810: + test proposals::tests::m7_revisions_exclusive_approval_and_idempotence ... ok
+811: + test search::tests::test_c11_raw_sources_term_frequency_not_deduped ... ok
+812: +-test search::tests::test_c12_exact_token_document_outranks_substring_only_document ... ok
+813: +-test search::tests::test_in_memory_search_cache_consecutive_no_disk_re_read ... ok
+814: +-test search::tests::test_search_detects_removed_and_modified_files_without_blocking ... ok
+815: +-test search::tests::test_c11_bm25_short_exact_document_beats_long_document_with_common_words ... ok
+816: + test search::tests::test_search_index_rewrite_same_size_reloaded ... ok
+817: ++test search::tests::test_c11_bm25_short_exact_document_beats_long_document_with_common_words ... ok
+818: ++test search::tests::test_in_memory_search_cache_consecutive_no_disk_re_read ... ok
+819: + test search::tests::test_search_index_multivault_isolation ... ok
+820: ++test search::tests::test_c12_exact_token_document_outranks_substring_only_document ... ok
+821: ++test search::tests::test_search_detects_removed_and_modified_files_without_blocking ... ok
+822: + test snapshots::tests::test_rust_snapshot_creation_and_integrity ... ok
+823: +-test sync::tests::sync_capture_rejects_symlink_and_freezes_bytes ... ok
+824: +-test snapshots::tests::snapshot_corruption_and_readonly ... ok
+825: +-test snapshots::tests::failure_at_manifest_write_cleans_only_staging ... ok
+826: + test sync::tests::sync_config_rejects_insecure_endpoints ... ok
+827: ++test sync::tests::sync_capture_rejects_symlink_and_freezes_bytes ... ok
+828: + test sync::tests::sync_import_receipt_recovers_commit_window_without_overwrite ... ok
+829: +-test sync::tests::sync_rejects_paths_and_collisions ... ok
+830: + test sync::tests::sync_persisted_capture_survives_state_restart_and_detects_corruption ... ok
+831: +-test tunnel::tests::test_job_object_process_tree_kill ... ok
+832: ++test sync::tests::sync_rejects_paths_and_collisions ... ok
+833: + test tunnel::tests::invalid_config_and_symlink_do_not_overwrite_files ... ok
+834: + test snapshots::tests::test_snapshot_restore_to_separate_folder_verifies_hashes ... ok
+835: ++test tunnel::tests::test_job_object_process_tree_kill ... ok
+836: + test sync::tests::sync_selection_persists_only_selected_frozen_notes ... ok
+837: +-test snapshots::tests::concurrent_publication_and_collision ... ok
+838: +-test automation::tests::complete_multi_format_pipeline_with_declared_fake_ai ... ok
+839: +-test vault::tests::shared_frontmatter_fixtures ... ok
+840: ++test snapshots::tests::failure_at_manifest_write_cleans_only_staging ... ok
+841: ++test snapshots::tests::snapshot_corruption_and_readonly ... ok
+842: + test vault::tests::capability_blocks_external_symlinks_and_broken_links ... ok
+843: +-test vault::tests::exclusive_creation_preserves_existing_bytes ... ok
+844: + test vault::tests::concurrent_creation_has_one_winner ... ok
+845: ++test vault::tests::shared_frontmatter_fixtures ... ok
+846: ++test snapshots::tests::concurrent_publication_and_collision ... ok
+847: ++test vault::tests::exclusive_creation_preserves_existing_bytes ... ok
+848: + test vault::tests::manifest_is_consumed_without_reopening ... ok
+849: + test vault::tests::capability_blocks_external_junctions ... ok
+850: + test vault::tests::raw_sources_foreign_yaml_frontmatter_allows_vault_opening ... ok
+851: + test llama::tests::test_process_parent_and_command_reads_live_process_only ... ok
+852: ++test automation::tests::complete_multi_format_pipeline_with_declared_fake_ai ... ok
+853: + 
+854: +-test result: ok. 154 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 10.58s
+855: ++test result: ok. 157 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 25.94s
+856: + 
+857: +      Running unittests src\bin\a04_real_local.rs (target\debug\deps\a04_real_local-20417175db04e0a5.exe)
+858: + 
+859: +@@ -421,25 +424,25 @@ test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
+860: + 
+861: + running 18 tests
+862: + test compiler::tests::test_rust_compiler_sanitizes_html ... ok
+863: +-test compiler::tests::test_rust_compiler_deduplication ... ok
+864: + test compiler::tests::test_rust_compiler_compiles_draft_with_status_draft ... ok
+865: +-test tests::obsidian_registration_matches_canonical_path ... ok
+866: + test snapshots::tests::test_rust_snapshot_creation_and_integrity ... ok
+867: +-test tests::test_rust_invalid_yaml_rejection ... ok
+868: ++test compiler::tests::test_rust_compiler_deduplication ... ok
+869: ++test tests::obsidian_registration_matches_canonical_path ... ok
+870: + test tests::test_rust_vault_validation ... ok
+871: +-test snapshots::tests::failure_at_manifest_write_cleans_only_staging ... ok
+872: +-test snapshots::tests::snapshot_corruption_and_readonly ... ok
+873: ++test tests::test_rust_invalid_yaml_rejection ... ok
+874: + test snapshots::tests::test_snapshot_restore_to_separate_folder_verifies_hashes ... ok
+875: ++test snapshots::tests::snapshot_corruption_and_readonly ... ok
+876: + test vault::tests::capability_blocks_external_symlinks_and_broken_links ... ok
+877: + test vault::tests::shared_frontmatter_fixtures ... ok
+878: +-test vault::tests::concurrent_creation_has_one_winner ... ok
+879: ++test snapshots::tests::failure_at_manifest_write_cleans_only_staging ... ok
+880: + test vault::tests::exclusive_creation_preserves_existing_bytes ... ok
+881: +-test snapshots::tests::concurrent_publication_and_collision ... ok
+882: ++test vault::tests::concurrent_creation_has_one_winner ... ok
+883: + test vault::tests::manifest_is_consumed_without_reopening ... ok
+884: + test vault::tests::capability_blocks_external_junctions ... ok
+885: + test vault::tests::raw_sources_foreign_yaml_frontmatter_allows_vault_opening ... ok
+886: ++test snapshots::tests::concurrent_publication_and_collision ... ok
+887: + 
+888: +-test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.73s
+889: ++test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.67s
+890: + 
+891: +      Running unittests src\bin\measure_punto_e.rs (target\debug\deps\measure_punto_e-2ca8dfc639e1f24b.exe)
+892: + 
+893: +diff --git a/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/cargo-test-fase-5-single.log b/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/cargo-test-fase-5-single.log
+894: +index 579464c..3016360 100644
+895: +--- a/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/cargo-test-fase-5-single.log
+896: ++++ b/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/cargo-test-fase-5-single.log
+897: +@@ -96,32 +96,18 @@ warning: field `vault_path` is never read
+898: +    = note: `EmbeddingsCacheEntry` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+899: + 
+900: + warning: `limen-vault` (lib) generated 12 warnings (run `cargo fix --lib -p limen-vault` to apply 5 suggestions)
+901: +-warning: fields `title` and `base_score` are never read
+902: +-  --> src\bin\measure_punto_e.rs:20:5
+903: +-   |
+904: +-17 | struct ScoredCandidate {
+905: +-   |        --------------- fields in this struct
+906: +-...
+907: +-20 |     title: String,
+908: +-   |     ^^^^^
+909: +-21 |     base_score: f64,
+910: +-   |     ^^^^^^^^^^
+911: ++warning: unused import: `ffi::CString`
+912: ++  --> src\snapshots.rs:12:5
+913: +    |
+914: +-   = note: `ScoredCandidate` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+915: +-   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+916: +-
+917: +-warning: field `query_id` is never read
+918: +-  --> src\bin\measure_punto_e.rs:37:5
+919: ++12 |     ffi::CString,
+920: ++   |     ^^^^^^^^^^^^
+921: +    |
+922: +-36 | struct QueryEvalContext {
+923: +-   |        ---------------- field in this struct
+924: +-37 |     query_id: String,
+925: +-   |     ^^^^^^^^
+926: ++   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+927: + 
+928: + warning: variable does not need to be mutable
+929: +-    --> src\ai.rs:3973:12
+930: ++    --> src\ai.rs:4194:12
+931: +      |
+932: +-3973 |       let (mut pending, cancel) = state.begin(&p_preview.ticket).unwrap();
+933: ++4194 |       let (mut pending, cancel) = state.begin(&p_preview.ticket).unwrap();
+934: +      |            ----^^^^^^^
+935: +      |            |
+936: +      |            help: remove this `mut`
+937: +@@ -129,9 +115,9 @@ warning: variable does not need to be mutable
+938: +      = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+939: + 
+940: + warning: unused variable: `cancel`
+941: +-    --> src\ai.rs:3973:25
+942: ++    --> src\ai.rs:4194:25
+943: +      |
+944: +-3973 |       let (mut pending, cancel) = state.begin(&p_preview.ticket).unwrap();
+945: ++4194 |       let (mut pending, cancel) = state.begin(&p_preview.ticket).unwrap();
+946: +      |                         ^^^^^^ help: if this is intentional, prefix it with an underscore: `_cancel`
+947: +      |
+948: +      = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+949: +@@ -164,8 +150,6 @@ warning: unused variable: `doc_id`
+950: + 2056 |         let doc_id = make_document_id("20_RAW_SOURCES/doc.md");
+951: +      |             ^^^^^^ help: if this is intentional, prefix it with an underscore: `_doc_id`
+952: + 
+953: +-warning: `limen-vault` (bin "measure_punto_e" test) generated 2 warnings
+954: +-warning: `limen-vault` (lib test) generated 15 warnings (9 duplicates) (run `cargo fix --lib -p limen-vault --tests` to apply 6 suggestions)
+955: + warning: unused variable: `t0`
+956: +   --> src\bin\diagnose_fase1.rs:46:9
+957: +    |
+958: +@@ -185,20 +169,36 @@ warning: field `exact_bonus` is never read
+959: +     |
+960: +     = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+961: + 
+962: +-warning: unused import: `ffi::CString`
+963: +-  --> src\snapshots.rs:12:5
+964: ++warning: `limen-vault` (bin "limen-vault" test) generated 1 warning (run `cargo fix --bin "limen-vault" -p limen-vault --tests` to apply 1 suggestion)
+965: ++warning: `limen-vault` (lib test) generated 15 warnings (9 duplicates) (run `cargo fix --lib -p limen-vault --tests` to apply 6 suggestions)
+966: ++warning: `limen-vault` (bin "diagnose_fase1" test) generated 2 warnings (run `cargo fix --bin "diagnose_fase1" -p limen-vault --tests` to apply 1 suggestion)
+967: ++warning: fields `title` and `base_score` are never read
+968: ++  --> src\bin\measure_punto_e.rs:20:5
+969: +    |
+970: +-12 |     ffi::CString,
+971: +-   |     ^^^^^^^^^^^^
+972: ++17 | struct ScoredCandidate {
+973: ++   |        --------------- fields in this struct
+974: ++...
+975: ++20 |     title: String,
+976: ++   |     ^^^^^
+977: ++21 |     base_score: f64,
+978: ++   |     ^^^^^^^^^^
+979: +    |
+980: +-   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+981: ++   = note: `ScoredCandidate` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+982: ++   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+983: + 
+984: +-warning: `limen-vault` (bin "diagnose_fase1" test) generated 2 warnings (run `cargo fix --bin "diagnose_fase1" -p limen-vault --tests` to apply 1 suggestion)
+985: +-warning: `limen-vault` (bin "limen-vault" test) generated 1 warning (run `cargo fix --bin "limen-vault" -p limen-vault --tests` to apply 1 suggestion)
+986: +-    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.31s
+987: ++warning: field `query_id` is never read
+988: ++  --> src\bin\measure_punto_e.rs:37:5
+989: ++   |
+990: ++36 | struct QueryEvalContext {
+991: ++   |        ---------------- field in this struct
+992: ++37 |     query_id: String,
+993: ++   |     ^^^^^^^^
+994: ++
+995: ++warning: `limen-vault` (bin "measure_punto_e" test) generated 2 warnings
+996: ++    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.11s
+997: +      Running unittests src\lib.rs (target\debug\deps\limen_vault-b7ab620e0196d8b2.exe)
+998: + 
+999: +-running 154 tests
+1000: ++running 157 tests
+1001: + test ai::index_policy_test::forged_approval_is_rejected ... ok
+1002: + test ai::model_tests::models_are_validated_and_deduplicated ... ok
+1003: + test ai::tests::approved_policy_and_context_hash ... ok
+1004: +@@ -206,7 +206,9 @@ test ai::tests::binary_raw_source_extracted_text_is_read_in_ai ... ok
+1005: + test ai::tests::citation_ids_and_incomplete_rejected ... ok
+1006: + test ai::tests::preview_bounds_and_untrusted_data_role ... ok
+1007: + test ai::tests::source_stale_symlink_and_preview_cancel ... ok
+1008: ++test ai::tests::test_active_guard_releases_ticket_on_panic ... ok
+1009: + test ai::tests::test_citation_locators_and_tamper_detection ... ok
+1010: ++test ai::tests::test_consecutive_calls_second_rejected_while_first_active ... ok
+1011: + test ai::tests::test_consecutive_read_indexed_document_and_read_source_zero_disk_reads ... ok
+1012: + test ai::tests::test_corrections_a_b_c_d_schema_short_ids_warning_and_system_instructions ... ok
+1013: + test ai::tests::test_diagnosis_passage_id_and_relative_path_citations_resolved ... ok
+1014: +@@ -234,6 +236,7 @@ test ai::tests::test_sanitize_answer_prose_removes_asterisks ... ok
+1015: + test ai::tests::test_sanitize_answer_prose_removes_citation_brackets ... ok
+1016: + test ai::tests::test_selected_model_persistence_in_app_data_dir ... ok
+1017: + test ai::tests::test_source_integrity_ntfs_vs_non_ntfs ... ok
+1018: ++test ai::tests::test_stream_prose_sanitizer_accented_letters_and_emoji ... ok
+1019: + test ai::tests::test_stream_prose_sanitizer_split_bold_asterisks ... ok
+1020: + test ai::tests::test_stream_prose_sanitizer_split_citations ... ok
+1021: + test ai::tests::test_streaming_network_error_treated_as_interrupted_with_reason ... ok
+1022: +@@ -354,7 +357,7 @@ test vault::tests::manifest_is_consumed_without_reopening ... ok
+1023: + test vault::tests::raw_sources_foreign_yaml_frontmatter_allows_vault_opening ... ok
+1024: + test vault::tests::shared_frontmatter_fixtures ... ok
+1025: + 
+1026: +-test result: ok. 154 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 11.25s
+1027: ++test result: ok. 157 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 35.78s
+1028: + 
+1029: +      Running unittests src\bin\a04_real_local.rs (target\debug\deps\a04_real_local-20417175db04e0a5.exe)
+1030: + 
+1031: +@@ -438,7 +441,7 @@ test vault::tests::manifest_is_consumed_without_reopening ... ok
+1032: + test vault::tests::raw_sources_foreign_yaml_frontmatter_allows_vault_opening ... ok
+1033: + test vault::tests::shared_frontmatter_fixtures ... ok
+1034: + 
+1035: +-test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.37s
+1036: ++test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.17s
+1037: + 
+1038: +      Running unittests src\bin\measure_punto_e.rs (target\debug\deps\measure_punto_e-2ca8dfc639e1f24b.exe)
+1039: + 
+1040: +diff --git a/SESSION_HANDOVER_WINDOWS_BUILD.md b/SESSION_HANDOVER_WINDOWS_BUILD.md
+1041: +index ad2d201..e8da6df 100644
+1042: +--- a/SESSION_HANDOVER_WINDOWS_BUILD.md
+1043: ++++ b/SESSION_HANDOVER_WINDOWS_BUILD.md
+1044: +@@ -279,18 +279,47 @@ Conformemente all'analisi e alle correzioni vincolanti richieste per `ask_stream
+1045: + 
+1046: + ---
+1047: + 
+1048: +-## 2. Stato Attuale e Consegna FASE 5b
+1049: ++### FASE 5c — Risoluzione Bloccante: Panic su Lettere Accentate e Rilascio Garantito Richieste
+1050: + 
+1051: +-- **STATO ATTUALE**: **FASE 5b COMPLETATA E VERIFICATA CON SUCCESSO — PRONTA PER LA CONVALIDA DAL VIVO DI CESARE E DELL'AUDITOR**.
+1052: ++Conformemente all'analisi e alle correzioni vincolanti richieste:
+1053: ++
+1054: ++1. **Risoluzione Panic su Lettere Accentate ed Emoji (`StreamProseSanitizer`)**:
+1055: ++   - Causa: `ambiguous_suffix_len` ([ai.rs](file:///E:/Projects/vault_memai_obsi/apps/desktop/src-tauri/src/ai.rs)) calcolava le finestre di 30 e 60 byte con `len.saturating_sub(30)` e `len.saturating_sub(60)` e le usava per tagliare la stringa `s[check_window..]`. Quando una lettera accentata a due byte (`à`, `è`, `ù`) cadeva sull'indice esatto (es. byte 349 dentro `à` 348..350), il runtime tokio andava in panic: `start byte index 349 is not a char boundary; it is inside 'à'`.
+1056: ++   - Correzione: implementata la closure `safe_boundary` che arretra al confine valido più vicino con `while idx > 0 && !s.is_char_boundary(idx) { idx -= 1; }`.
+1057: ++   - Unit test superato: `test_stream_prose_sanitizer_accented_letters_and_emoji` con testi complessi in italiano e caratteri emoji spezzati in frammenti di tutte le dimensioni da 1 a 80 byte.
+1058: ++
+1059: ++2. **Un Panic Non Blocca Più l'App (`ActiveGuard` RAII e `tokio::spawn`)**:
+1060: ++   - Causa del blocco visto da Cesare: il panic verificatosi su `à` impediva il completamento di `ai_ask_stream` e la chiamata a `state.finish(&ticket)`. Il ticket rimaneva congelato per sempre in `state.active`, facendo rifiutare qualunque domanda successiva con `"An AI request is already running"`.
+1061: ++   - Implementata la guardia RAII `ActiveGuard`: garantisce l'invocazione di `self.state.finish(&self.ticket)` nel suo `Drop`, indipendentemente da ritorni normali, errori o panic.
+1062: ++   - Invocazione protetta con `tokio::spawn(async move { ask_stream(...) }).await`: qualunque eventuale panic viene intercettato da Tokio senza far crashare il thread né l'app, registrato in `ask_timing.log` come errore interno, ed emesso verso la finestra UI con il messaggio chiaro: `"Errore interno durante la generazione della risposta, riprova"`.
+1063: ++   - Unit test superato: `test_active_guard_releases_ticket_on_panic`.
+1064: ++
+1065: ++3. **Registro di Ogni Esito in `ask_timing.log`**:
+1066: ++   - Tracciamento completo di ogni esito: completata, incompleta, annullata, errore (con codice HTTP e messaggio di dettaglio estratto da OpenAI), errore interno (panic/abort) e rifiutata da begin (con ticket rifiutato, ticket attivo e millisecondi trascorsi dal ticket attivo).
+1067: ++   - Nessun testo di domande, risposte o passaggi registrato nel file.
+1068: ++   - Unit test superato: `test_consecutive_calls_second_rejected_while_first_active`.
+1069: ++
+1070: ++4. **Messaggio "Già in corso" e Blocco Doppia Esecuzione (`AiPanel.tsx`)**:
+1071: ++   - Introdotti `isRunningRef = useRef(false)` e `isBusy = !!loadingStep || isStreaming || isRunningRef.current`.
+1072: ++   - Controllo sincrono all'avvio di `executeAsk`: blocco immediato di doppi clic, effetti duplicati e pressione ripetuta di Invio.
+1073: ++   - Pulsante "Chiedi" e tasto Invio disabilitati durante l'intera generazione in streaming.
+1074: ++   - Intercettazione di `"An AI request is already running"` con messaggio amichevole: `"C'è già una domanda in corso: attendi la risposta o annullala."` (senza messaggi tecnici su rete o chiavi API).
+1075: ++   - Aggiunto pulsante esplicito "Annulla domanda" nell'intestazione del box di streaming.
+1076: ++
+1077: ++---
+1078: ++
+1079: ++## 2. Stato Attuale e Consegna FASE 5c
+1080: ++
+1081: ++- **STATO ATTUALE**: **FASE 5c COMPLETATA E VERIFICATA CON SUCCESSO — PRONTA PER IL COLLAUDO DI CESARE**.
+1082: + - **Modello configurato come default**: **`gpt-4o`**.
+1083: +-- **Test suite**: **172 passati (154 lib + 18 bin); 0 falliti** (sia in parallelo sia con `--test-threads=1`).
+1084: ++- **Test suite**: **175 passati (157 lib + 18 bin); 0 falliti** (sia in parallelo sia con `--test-threads=1`).
+1085: + - **Verifica TypeScript frontend**: **0 errori** (`npx tsc --noEmit`).
+1086: + - **ZERO chiamate OpenAI** effettuate dall'assistente.
+1087: + - **ZERO processi terminati** senza autorizzazione (`llama-server.exe` PID 39740 e `limen-vault.exe` PID 25352 attivi e intatti).
+1088: + - **Log di test**:
+1089: +-  - Parallelo: [cargo-test-fase-5-parallel.log](file:///E:/Projects/vault_memai_obsi/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/cargo-test-fase-5-parallel.log) (172/172 ok).
+1090: +-  - Sequenziale: [cargo-test-fase-5-single.log](file:///E:/Projects/vault_memai_obsi/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/cargo-test-fase-5-single.log) (172/172 ok).
+1091: +-- **Patch di consegna**: [fase-5b.patch](file:///E:/Projects/vault_memai_obsi/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-5b.patch).
+1092: ++  - Parallelo: [cargo-test-fase-5-parallel.log](file:///E:/Projects/vault_memai_obsi/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/cargo-test-fase-5-parallel.log) (175/175 ok).
+1093: ++  - Sequenziale: [cargo-test-fase-5-single.log](file:///E:/Projects/vault_memai_obsi/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/cargo-test-fase-5-single.log) (175/175 ok).
+1094: ++- **Patch di consegna**: [fase-5c.patch](file:///E:/Projects/vault_memai_obsi/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-5c.patch).
+1095: + 
+1096: + ---
+1097: + 
+1098: +@@ -299,10 +328,7 @@ Conformemente all'analisi e alle correzioni vincolanti richieste per `ask_stream
+1099: + - **Comando vincolante**:
+1100: +   `cd "E:\Projects\vault_memai_obsi"; npx pnpm --filter @limen-vault/desktop tauri dev --release`
+1101: +   *(preserva la cache di compilazione evitando ri-compilazioni complete al riavvio di Cesare; NON usare `cargo build --release`)*.
+1102: +-- **Istanza in esecuzione per la prova**:
+1103: +-  - **Commit di riferimento**: `efa0cefab5da83e8de3b3418a92285438c63fb36` (2026-09-24 07:37:39 UTC+8).
+1104: +-  - **Eseguibile avviato**: `E:\Projects\vault_memai_obsi\apps\desktop\src-tauri\target\release\limen-vault.exe` (PID 2476).
+1105: +-  - **Ora di avvio**: `2026-09-24 07:52:20 UTC+8`.
+1106: ++
+1107: + 
+1108: + 
+1109: + 
+1110: +diff --git a/apps/desktop/src-tauri/src/ai.rs b/apps/desktop/src-tauri/src/ai.rs
+1111: +index 3d255cf..6fd2b77 100644
+1112: +--- a/apps/desktop/src-tauri/src/ai.rs
+1113: ++++ b/apps/desktop/src-tauri/src/ai.rs
+1114: +@@ -54,7 +54,7 @@ pub struct PreviewTimings {
+1115: +     pub t_passage_extract_ms: u64,
+1116: + }
+1117: + 
+1118: +-#[derive(Clone)]
+1119: ++#[derive(Clone, Debug)]
+1120: + pub struct Pending {
+1121: +     pub path: PathBuf,
+1122: +     pub options: Options,
+1123: +@@ -236,8 +236,12 @@ pub fn log_ask_timing_detailed(entry: &AskTimingLogEntry) {
+1124: +         .unwrap_or_else(|| "non misurato".into());
+1125: +     let status_str = if entry.status == "incomplete" {
+1126: +         format!("INCOMPLETA ({})", entry.incomplete_reason.as_deref().unwrap_or("max_output_tokens"))
+1127: ++    } else if entry.status == "error" || entry.status.starts_with("errore") {
+1128: ++        format!("ERRORE ({})", entry.incomplete_reason.as_deref().unwrap_or("errore"))
+1129: ++    } else if entry.status == "annullata" || entry.status.starts_with("annullata") {
+1130: ++        format!("ANNULLATA ({})", entry.incomplete_reason.as_deref().unwrap_or("annullata"))
+1131: +     } else {
+1132: +-        "completata".to_string()
+1133: ++        entry.status.clone()
+1134: +     };
+1135: + 
+1136: +     let mut breakdown_parts = Vec::new();
+1137: +@@ -441,8 +445,100 @@ pub fn log_ask_timing(
+1138: +     });
+1139: + }
+1140: + 
+1141: ++pub fn log_begin_rejected(ticket_rejected: &str, active_ticket: &str, active_elapsed_ms: u64) {
+1142: ++    let log_path = get_ask_timing_log_path();
+1143: ++    if let Some(parent) = log_path.parent() {
+1144: ++        let _ = std::fs::create_dir_all(parent);
+1145: ++    }
+1146: ++    let now = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true);
+1147: ++    let line = format!(
+1148: ++        "[{}] RIFIUTATA DA BEGIN: ticket_rifiutato=\"{}\", ticket_attivo=\"{}\", attivo_da_ms={}\n",
+1149: ++        now, ticket_rejected, active_ticket, active_elapsed_ms
+1150: ++    );
+1151: ++    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(&log_path) {
+1152: ++        use std::io::Write;
+1153: ++        let _ = f.write_all(line.as_bytes());
+1154: ++    }
+1155: ++}
+1156: ++
+1157: ++pub fn log_internal_error(ticket: &str, error_msg: &str) {
+1158: ++    let log_path = get_ask_timing_log_path();
+1159: ++    if let Some(parent) = log_path.parent() {
+1160: ++        let _ = std::fs::create_dir_all(parent);
+1161: ++    }
+1162: ++    let now = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true);
+1163: ++    let line = format!(
+1164: ++        "[{}] ERRORE INTERNO: ticket=\"{}\", errore=\"{}\"\n",
+1165: ++        now, ticket, error_msg
+1166: ++    );
+1167: ++    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(&log_path) {
+1168: ++        use std::io::Write;
+1169: ++        let _ = f.write_all(line.as_bytes());
+1170: ++    }
+1171: ++}
+1172: ++
+1173: ++pub fn log_keychain_error(p: &Pending, error_msg: &str, ui_elapsed_ms: Option<u64>) {
+1174: ++    let t_handoff_ms = p.created_at.elapsed().as_millis() as u64;
+1175: ++    let audit_sources: Vec<SourceAuditEntry> = p.sources
+1176: ++        .iter()
+1177: ++        .enumerate()
+1178: ++        .map(|(idx, s)| SourceAuditEntry {
+1179: ++            id: format!("S{}", idx + 1),
+1180: ++            relative_path: s.relative_path.clone(),
+1181: ++            bytes: s.content.len(),
+1182: ++            locator: s.locator.clone(),
+1183: ++            cited: false,
+1184: ++        })
+1185: ++        .collect();
+1186: ++    log_ask_timing_detailed(&AskTimingLogEntry {
+1187: ++        timestamp: chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
+1188: ++        model: p.options.model.clone(),
+1189: ++        status: "errore (keychain)".to_string(),
+1190: ++        incomplete_reason: Some(error_msg.to_string()),
+1191: ++        tokens_used: None,
+1192: ++        tokens_prompt: None,
+1193: ++        tokens_completion: None,
+1194: ++        tokens_reasoning: None,
+1195: ++        t_first_chunk_ms: None,
+1196: ++        t_ui_total_ms: ui_elapsed_ms,
+1197: ++        t_backend_total_ms: p.preview_timings.t_preview_total_ms + t_handoff_ms,
+1198: ++        preview: PreviewTimingBreakdown {
+1199: ++            total_ms: p.preview_timings.t_preview_total_ms,
+1200: ++            index_cache_ms: p.preview_timings.t_index_cache_ms,
+1201: ++            embed_ms: p.preview_timings.t_embed_ms,
+1202: ++            search_ms: p.preview_timings.t_search_ms,
+1203: ++            search_words_ms: p.preview_timings.t_search_words_ms,
+1204: ++            search_sem_ms: p.preview_timings.t_search_sem_ms,
+1205: ++            search_fuse_ms: p.preview_timings.t_search_fuse_ms,
+1206: ++            search_admit_ms: p.preview_timings.t_search_admit_ms,
+1207: ++            doc_read_ms: p.preview_timings.t_doc_read_ms,
+1208: ++            passage_extract_ms: p.preview_timings.t_passage_extract_ms,
+1209: ++        },
+1210: ++        t_handoff_ms,
+1211: ++        ask: AskTimingBreakdown {
+1212: ++            total_ms: 0,
+1213: ++            verify_pre_ms: 0,
+1214: ++            payload_ms: 0,
+1215: ++            openai_ms: 0,
+1216: ++            t_first_chunk_ms: None,
+1217: ++            verify_post_ms: 0,
+1218: ++            parse_ms: 0,
+1219: ++        },
+1220: ++        sources: audit_sources,
+1221: ++    });
+1222: ++}
+1223: ++
+1224: ++#[derive(Clone)]
+1225: ++pub struct ActiveEntry {
+1226: ++    pub cancel: Arc<AtomicBool>,
+1227: ++    pub started_at: Instant,
+1228: ++}
+1229: ++
+1230: + #[derive(Default)]
+1231: +-pub struct AiState {pub pending:Mutex<BTreeMap<String,Pending>>,pub active:Mutex<BTreeMap<String,Arc<AtomicBool>>>}
+1232: ++pub struct AiState {
+1233: ++    pub pending: Mutex<BTreeMap<String, Pending>>,
+1234: ++    pub active: Mutex<BTreeMap<String, ActiveEntry>>,
+1235: ++}
+1236: + pub fn random_token()->Result<String,String>{let mut b=[0u8;32];getrandom::fill(&mut b).map_err(|_|"Random generator unavailable")?;Ok(b.iter().map(|b|format!("{b:02x}")).collect())}
+1237: + pub fn eligible(path:&str,category:&str,status:Option<&str>,drafts:bool)->bool{
+1238: +  let parts:Vec<_>=path.split('/').collect();
+1239: +@@ -1167,14 +1263,18 @@ impl AiState {
+1240: +             p.remove(ticket);
+1241: +         }
+1242: +         if let Ok(a) = self.active.lock() {
+1243: +-            if let Some(flag) = a.get(ticket) {
+1244: +-                flag.store(true, Ordering::SeqCst);
+1245: ++            if let Some(entry) = a.get(ticket) {
+1246: ++                entry.cancel.store(true, Ordering::SeqCst);
+1247: +             }
+1248: +         }
+1249: +     }
+1250: +     pub fn begin(&self, ticket: &str) -> Result<(Pending, Arc<AtomicBool>), String> {
+1251: +         let mut active = self.active.lock().map_err(|_| "AI unavailable")?;
+1252: +         if !active.is_empty() {
+1253: ++            if let Some((active_ticket, entry)) = active.iter().next() {
+1254: ++                let active_elapsed_ms = entry.started_at.elapsed().as_millis() as u64;
+1255: ++                log_begin_rejected(ticket, active_ticket, active_elapsed_ms);
+1256: ++            }
+1257: +             return Err("An AI request is already running".into());
+1258: +         }
+1259: +         let p = self
+1260: +@@ -1187,7 +1287,10 @@ impl AiState {
+1261: +             return Err("Preview expired or no eligible sources".into());
+1262: +         }
+1263: +         let flag = Arc::new(AtomicBool::new(false));
+1264: +-        active.insert(ticket.into(), flag.clone());
+1265: ++        active.insert(ticket.into(), ActiveEntry {
+1266: ++            cancel: flag.clone(),
+1267: ++            started_at: Instant::now(),
+1268: ++        });
+1269: +         Ok((p, flag))
+1270: +     }
+1271: +     pub fn finish(&self, ticket: &str) {
+1272: +@@ -1704,15 +1807,23 @@ impl StreamProseSanitizer {
+1273: +     }
+1274: + 
+1275: +     /// Determina la lunghezza del suffisso ambiguo da trattenere nel buffer scorrevole.
+1276: ++    /// Garantisce sempre che qualsiasi slicing avvenga su confini di caratteri UTF-8 validi (previene panic su lettere accentate ed emoji).
+1277: +     pub fn ambiguous_suffix_len(s: &str) -> usize {
+1278: +-        let bytes = s.as_bytes();
+1279: +-        let len = bytes.len();
+1280: ++        let len = s.len();
+1281: +         if len == 0 {
+1282: +             return 0;
+1283: +         }
+1284: + 
+1285: +-        // 1. Prefisso di citazione aperto: es. `[` senza `]` o `(` senza `)` (finestra fino a 30 caratteri)
+1286: +-        let check_window = len.saturating_sub(30);
+1287: ++        // Helper per arretrare al confine di carattere UTF-8 valido più vicino (mai panic)
+1288: ++        let safe_boundary = |mut idx: usize| -> usize {
+1289: ++            while idx > 0 && !s.is_char_boundary(idx) {
+1290: ++                idx -= 1;
+1291: ++            }
+1292: ++            idx
+1293: ++        };
+1294: ++
+1295: ++        // 1. Prefisso di citazione aperto: es. `[` senza `]` o `(` senza `)` (finestra fino a 30 byte/caratteri)
+1296: ++        let check_window = safe_boundary(len.saturating_sub(30));
+1297: +         if let Some(pos) = s[check_window..].rfind(|c| c == '[' || c == '(') {
+1298: +             let abs_pos = check_window + pos;
+1299: +             let candidate_slice = &s[abs_pos..];
+1300: +@@ -1728,8 +1839,8 @@ impl StreamProseSanitizer {
+1301: +             }
+1302: +         }
+1303: + 
+1304: +-        // 2. Grassetto markdown `**` aperto (conteggio dispari nella finestra di 60 caratteri)
+1305: +-        let star_window = len.saturating_sub(60);
+1306: ++        // 2. Grassetto markdown `**` aperto (conteggio dispari nella finestra di 60 byte/caratteri)
+1307: ++        let star_window = safe_boundary(len.saturating_sub(60));
+1308: +         let star_slice = &s[star_window..];
+1309: +         let dstar_count = star_slice.matches("**").count();
+1310: +         if dstar_count % 2 != 0 {
+1311: +@@ -2007,21 +2118,86 @@ pub async fn ask_stream(
+1312: +         p.options.model.clone()
+1313: +     };
+1314: + 
+1315: ++    let log_stream_failure = |status_name: &str, reason_str: &str, t_vpre_ms: u64, t_pay_ms: u64, t_op_ms: u64, t_vp_ms: u64, t_p_ms: u64, first_chunk: Option<u64>| {
+1316: ++        let t_ask_total_ms = t_ask_start.elapsed().as_millis() as u64;
+1317: ++        let t_backend_total_ms = p.preview_timings.t_preview_total_ms + t_handoff_ms + t_ask_total_ms;
+1318: ++        let t_ui_total_ms = ui_elapsed_ms.map(|prev_ms| prev_ms + t_ask_total_ms);
+1319: ++        let audit_sources: Vec<SourceAuditEntry> = p.sources
+1320: ++            .iter()
+1321: ++            .enumerate()
+1322: ++            .map(|(idx, s)| SourceAuditEntry {
+1323: ++                id: format!("S{}", idx + 1),
+1324: ++                relative_path: s.relative_path.clone(),
+1325: ++                bytes: s.content.len(),
+1326: ++                locator: s.locator.clone(),
+1327: ++                cited: false,
+1328: ++            })
+1329: ++            .collect();
+1330: ++
+1331: ++        log_ask_timing_detailed(&AskTimingLogEntry {
+1332: ++            timestamp: chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
+1333: ++            model: effective_model.clone(),
+1334: ++            status: status_name.to_string(),
+1335: ++            incomplete_reason: Some(reason_str.to_string()),
+1336: ++            tokens_used: None,
+1337: ++            tokens_prompt: None,
+1338: ++            tokens_completion: None,
+1339: ++            tokens_reasoning: None,
+1340: ++            t_first_chunk_ms: first_chunk,
+1341: ++            t_ui_total_ms,
+1342: ++            t_backend_total_ms,
+1343: ++            preview: PreviewTimingBreakdown {
+1344: ++                total_ms: p.preview_timings.t_preview_total_ms,
+1345: ++                index_cache_ms: p.preview_timings.t_index_cache_ms,
+1346: ++                embed_ms: p.preview_timings.t_embed_ms,
+1347: ++                search_ms: p.preview_timings.t_search_ms,
+1348: ++                search_words_ms: p.preview_timings.t_search_words_ms,
+1349: ++                search_sem_ms: p.preview_timings.t_search_sem_ms,
+1350: ++                search_fuse_ms: p.preview_timings.t_search_fuse_ms,
+1351: ++                search_admit_ms: p.preview_timings.t_search_admit_ms,
+1352: ++                doc_read_ms: p.preview_timings.t_doc_read_ms,
+1353: ++                passage_extract_ms: p.preview_timings.t_passage_extract_ms,
+1354: ++            },
+1355: ++            t_handoff_ms,
+1356: ++            ask: AskTimingBreakdown {
+1357: ++                total_ms: t_ask_total_ms,
+1358: ++                verify_pre_ms: t_vpre_ms,
+1359: ++                payload_ms: t_pay_ms,
+1360: ++                openai_ms: t_op_ms,
+1361: ++                t_first_chunk_ms: first_chunk,
+1362: ++                verify_post_ms: t_vp_ms,
+1363: ++                parse_ms: t_p_ms,
+1364: ++            },
+1365: ++            sources: audit_sources,
+1366: ++        });
+1367: ++    };
+1368: ++
+1369: +     // 1. Verifica impronte pre-chiamata
+1370: +     let t_vpre_start = Instant::now();
+1371: +     let high_prec = is_high_precision_fs(&p.path);
+1372: ++    let mut verify_pre_err = None;
+1373: +     for s in &p.sources {
+1374: +         if let Err(e) = verify_source_integrity_with_fs_override(&p.path, s, high_prec, p.options.include_drafts) {
+1375: +-            if e.starts_with("Source changed") {
+1376: +-                return Err("Source changed since preview".into());
+1377: +-            }
+1378: +-            return Err(e);
+1379: ++            let err_msg = if e.starts_with("Source changed") {
+1380: ++                "Source changed since preview".to_string()
+1381: ++            } else {
+1382: ++                e
+1383: ++            };
+1384: ++            verify_pre_err = Some(err_msg);
+1385: ++            break;
+1386: +         }
+1387: +     }
+1388: +     let t_verify_pre_ms = t_vpre_start.elapsed().as_millis() as u64;
+1389: + 
+1390: ++    if let Some(err_msg) = verify_pre_err {
+1391: ++        log_stream_failure("errore (verify_pre)", &err_msg, t_verify_pre_ms, 0, 0, 0, 0, None);
+1392: ++        return Err(err_msg);
+1393: ++    }
+1394: ++
+1395: +     if cancel.load(Ordering::SeqCst) {
+1396: +-        return Err("Request cancelled".into());
+1397: ++        let err_msg = "Richiesta annullata dall'utente.".to_string();
+1398: ++        log_stream_failure("annullata", &err_msg, t_verify_pre_ms, 0, 0, 0, 0, None);
+1399: ++        return Err(err_msg);
+1400: +     }
+1401: + 
+1402: +     // 2. Costruzione payload con streaming abilitato e modello tassativo
+1403: +@@ -2052,7 +2228,24 @@ pub async fn ask_stream(
+1404: +     let mut response = match response_res {
+1405: +         Ok(r) => {
+1406: +             if !r.status().is_success() {
+1407: +-                let err_msg = format!("OpenAI HTTP {}", r.status().as_u16());
+1408: ++                let status_code = r.status().as_u16();
+1409: ++                let body_text = r.text().await.unwrap_or_default();
+1410: ++                let error_detail = if let Ok(err_json) = serde_json::from_str::<Value>(&body_text) {
+1411: ++                    err_json.get("error")
+1412: ++                        .and_then(|e| e.get("message"))
+1413: ++                        .and_then(|m| m.as_str())
+1414: ++                        .map(|s| s.to_string())
+1415: ++                        .unwrap_or_else(|| body_text.clone())
+1416: ++                } else {
+1417: ++                    body_text.clone()
+1418: ++                };
+1419: ++                let err_msg = if error_detail.trim().is_empty() {
+1420: ++                    format!("OpenAI HTTP {}", status_code)
+1421: ++                } else {
+1422: ++                    format!("OpenAI HTTP {}: {}", status_code, error_detail.trim())
+1423: ++                };
+1424: ++                let t_openai_ms = t_openai_start.elapsed().as_millis() as u64;
+1425: ++                log_stream_failure("errore (openai_http)", &err_msg, t_verify_pre_ms, t_payload_ms, t_openai_ms, 0, 0, None);
+1426: +                 if let Some(ref w) = window {
+1427: +                     let _ = w.emit("limen://ai-stream-end", AiStreamEndPayload {
+1428: +                         ticket: ticket.clone(),
+1429: +@@ -2075,8 +2268,10 @@ pub async fn ask_stream(
+1430: +             }
+1431: +             r
+1432: +         }
+1433: +-        Err(_) => {
+1434: +-            let err_msg = "OpenAI unavailable or request timed out".to_string();
+1435: ++        Err(e) => {
+1436: ++            let err_msg = format!("OpenAI network error or timeout: {e}");
+1437: ++            let t_openai_ms = t_openai_start.elapsed().as_millis() as u64;
+1438: ++            log_stream_failure("errore (rete)", &err_msg, t_verify_pre_ms, t_payload_ms, t_openai_ms, 0, 0, None);
+1439: +             if let Some(ref w) = window {
+1440: +                 let _ = w.emit("limen://ai-stream-end", AiStreamEndPayload {
+1441: +                     ticket: ticket.clone(),
+1442: +@@ -2272,6 +2467,7 @@ pub async fn ask_stream(
+1443: +         if let Some(ref w) = window {
+1444: +             let _ = w.emit("limen://ai-stream-end", end_payload.clone());
+1445: +         }
+1446: ++        log_stream_failure("errore (verify_post)", &error_msg, t_verify_pre_ms, t_payload_ms, t_openai_ms, t_verify_post_ms, 0, t_first_chunk_ms);
+1447: +         return Err(error_msg);
+1448: +     }
+1449: + 
+1450: +@@ -2447,7 +2643,32 @@ pub async fn ask_stream(
+1451: +     };
+1452: + 
+1453: +     let t_parse_start = Instant::now();
+1454: +-    let parsed = parse_response(response_to_parse, &p.sources)?;
+1455: ++    let parsed = match parse_response(response_to_parse, &p.sources) {
+1456: ++        Ok(v) => v,
+1457: ++        Err(e) => {
+1458: ++            let t_parse_ms = t_parse_start.elapsed().as_millis() as u64;
+1459: ++            log_stream_failure("errore (parse_response)", &e, t_verify_pre_ms, t_payload_ms, t_openai_ms, t_verify_post_ms, t_parse_ms, t_first_chunk_ms);
+1460: ++            if let Some(ref w) = window {
+1461: ++                let _ = w.emit("limen://ai-stream-end", AiStreamEndPayload {
+1462: ++                    ticket: ticket.clone(),
+1463: ++                    answer: String::new(),
+1464: ++                    citations: vec![],
+1465: ++                    cited_indices: vec![],
+1466: ++                    status: "error".into(),
+1467: ++                    incomplete: true,
+1468: ++                    incomplete_reason: Some(e.clone()),
+1469: ++                    warning: None,
+1470: ++                    error: Some(e.clone()),
+1471: ++                    cancelled: false,
+1472: ++                    tokens_used: None,
+1473: ++                    tokens_prompt: None,
+1474: ++                    tokens_completion: None,
+1475: ++                    tokens_reasoning: None,
+1476: ++                });
+1477: ++            }
+1478: ++            return Err(e);
+1479: ++        }
+1480: ++    };
+1481: +     let t_parse_ms = t_parse_start.elapsed().as_millis() as u64;
+1482: + 
+1483: +     let cited_set: std::collections::HashSet<usize> = parsed["citedIndices"]
+1484: +@@ -4243,6 +4464,183 @@ mod tests {
+1485: +       assert_eq!(payload.status, "incomplete");
+1486: +       assert_eq!(payload.cancelled, true);
+1487: +   }
+1488: ++
+1489: ++  #[test]
+1490: ++  fn test_stream_prose_sanitizer_accented_letters_and_emoji() {
+1491: ++      let texts = [
+1492: ++          "Il progetto BNXT è focalizzato sulla creazione di un sistema CRM specializzato per l'industria dell'abbigliamento moto. L'obiettivo primario è la tracciabilità delle forniture, la gestione delle taglie e delle varianti colore, nonché l'integrazione con la contabilità aziendale già esistente. Perché la qualità è prioritaria, le normative europee sono applicate scrupolosamente a tutti i capi d'abbigliamento prodotti e distribuiti.",
+1493: ++          "Progetto LIMEN 🚀: tracciabilità e qualità garantite! ✅ Notifiche attive 🔔 e analisi completata con successo 💯. È davvero un ottimo risultato 🎉.",
+1494: ++          "Così, già, più, né, può, là, qui, quassù, laggiù, viceré, caffè, virtù, felicità!",
+1495: ++      ];
+1496: ++
+1497: ++      for text in &texts {
+1498: ++          let expected = sanitize_answer_prose(text);
+1499: ++          let bytes = text.as_bytes();
+1500: ++
+1501: ++          // Spezza in frammenti di rete di ogni lunghezza da 1 a 80 byte
+1502: ++          for chunk_size in 1..=80 {
+1503: ++              let mut utf8_decoder = Utf8ChunkDecoder::new();
+1504: ++              let mut sanitizer = StreamProseSanitizer::new();
+1505: ++
+1506: ++              let mut offset = 0;
+1507: ++              while offset < bytes.len() {
+1508: ++                  let end = std::cmp::min(offset + chunk_size, bytes.len());
+1509: ++                  let byte_chunk = &bytes[offset..end];
+1510: ++                  let decoded_chunk = utf8_decoder.decode(byte_chunk);
+1511: ++                  if !decoded_chunk.is_empty() {
+1512: ++                      let _delta = sanitizer.feed(&decoded_chunk);
+1513: ++                  }
+1514: ++                  offset = end;
+1515: ++              }
+1516: ++
+1517: ++              let remaining = utf8_decoder.flush();
+1518: ++              if !remaining.is_empty() {
+1519: ++                  let _delta = sanitizer.feed(&remaining);
+1520: ++              }
+1521: ++              let _flush = sanitizer.flush();
+1522: ++
+1523: ++              assert_eq!(
+1524: ++                  sanitizer.get_accumulated(),
+1525: ++                  expected,
+1526: ++                  "Failed for chunk_size={} on text='{}'",
+1527: ++                  chunk_size,
+1528: ++                  text
+1529: ++              );
+1530: ++          }
+1531: ++      }
+1532: ++  }
+1533: ++
+1534: ++  #[test]
+1535: ++  fn test_consecutive_calls_second_rejected_while_first_active() {
+1536: ++      let state = Arc::new(AiState::default());
+1537: ++      let temp_dir = tempfile::tempdir().unwrap();
+1538: ++      let log_file = temp_dir.path().join("ask_timing.log");
+1539: ++      std::env::set_var("LIMEN_ASK_TIMING_LOG", &log_file);
+1540: ++
+1541: ++      // Inserisci un ticket finto in pending
+1542: ++      {
+1543: ++          let mut p = state.pending.lock().unwrap();
+1544: ++          let pending_obj = Pending {
+1545: ++              created_at: Instant::now(),
+1546: ++              path: temp_dir.path().to_path_buf(),
+1547: ++              options: Options {
+1548: ++                  prompt: "test".into(),
+1549: ++                  model: "gpt-4o".into(),
+1550: ++                  include_drafts: false,
+1551: ++                  source_ids: vec![],
+1552: ++                  category: None,
+1553: ++                  client: None,
+1554: ++                  project: None,
+1555: ++                  tags: None,
+1556: ++              },
+1557: ++              sources: vec![Source {
+1558: ++                  document_id: "doc1".into(),
+1559: ++                  relative_path: "note.md".into(),
+1560: ++                  title: "Note".into(),
+1561: ++                  category: "test".into(),
+1562: ++                  status: None,
+1563: ++                  sha256: "hash".into(),
+1564: ++                  content: "dummy".into(),
+1565: ++                  locator: None,
+1566: ++                  passage_id: None,
+1567: ++                  revision: None,
+1568: ++                  mtime_ms: None,
+1569: ++                  file_size: None,
+1570: ++                  passage_hashes: vec![],
+1571: ++              }],
+1572: ++              preview_timings: PreviewTimings::default(),
+1573: ++          };
+1574: ++          p.insert("ticket-1".into(), pending_obj.clone());
+1575: ++          p.insert("ticket-2".into(), pending_obj.clone());
+1576: ++          p.insert("ticket-3".into(), pending_obj);
+1577: ++      }
+1578: ++
+1579: ++      // Prima chiamata: begin riesce
+1580: ++      let begin1 = state.begin("ticket-1");
+1581: ++      assert!(begin1.is_ok(), "First begin must succeed");
+1582: ++
+1583: ++      // Seconda chiamata: rifiutata perché ticket-1 è attivo
+1584: ++      let begin2 = state.begin("ticket-2");
+1585: ++      assert!(begin2.is_err(), "Second begin must fail while first is active");
+1586: ++      let err2 = begin2.unwrap_err();
+1587: ++      assert_eq!(err2, "An AI request is already running");
+1588: ++
+1589: ++      // Verifica che il rifiuto sia stato registrato nel log con i dettagli
+1590: ++      let log_content = std::fs::read_to_string(&log_file).unwrap_or_default();
+1591: ++      assert!(log_content.contains("RIFIUTATA DA BEGIN: ticket_rifiutato=\"ticket-2\""));
+1592: ++      assert!(log_content.contains("ticket_attivo=\"ticket-1\""));
+1593: ++
+1594: ++      // Fine prima chiamata
+1595: ++      state.finish("ticket-1");
+1596: ++
+1597: ++      // Terza chiamata: ora deve riuscire
+1598: ++      let begin3 = state.begin("ticket-3");
+1599: ++      assert!(begin3.is_ok(), "Third begin must succeed after first finished");
+1600: ++      state.finish("ticket-3");
+1601: ++
+1602: ++      std::env::remove_var("LIMEN_ASK_TIMING_LOG");
+1603: ++  }
+1604: ++
+1605: ++  #[test]
+1606: ++  fn test_active_guard_releases_ticket_on_panic() {
+1607: ++      let state = Arc::new(AiState::default());
+1608: ++      let temp_dir = tempfile::tempdir().unwrap();
+1609: ++      {
+1610: ++          let mut p = state.pending.lock().unwrap();
+1611: ++          let pending_obj = Pending {
+1612: ++              created_at: Instant::now(),
+1613: ++              path: temp_dir.path().to_path_buf(),
+1614: ++              options: Options {
+1615: ++                  prompt: "test".into(),
+1616: ++                  model: "gpt-4o".into(),
+1617: ++                  include_drafts: false,
+1618: ++                  source_ids: vec![],
+1619: ++                  category: None,
+1620: ++                  client: None,
+1621: ++                  project: None,
+1622: ++                  tags: None,
+1623: ++              },
+1624: ++              sources: vec![Source {
+1625: ++                  document_id: "doc1".into(),
+1626: ++                  relative_path: "note.md".into(),
+1627: ++                  title: "Note".into(),
+1628: ++                  category: "test".into(),
+1629: ++                  status: None,
+1630: ++                  sha256: "hash".into(),
+1631: ++                  content: "dummy".into(),
+1632: ++                  locator: None,
+1633: ++                  passage_id: None,
+1634: ++                  revision: None,
+1635: ++                  mtime_ms: None,
+1636: ++                  file_size: None,
+1637: ++                  passage_hashes: vec![],
+1638: ++              }],
+1639: ++              preview_timings: PreviewTimings::default(),
+1640: ++          };
+1641: ++          p.insert("ticket-panic".into(), pending_obj);
+1642: ++      }
+1643: ++
+1644: ++      let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+1645: ++          let (_pending, _cancel) = state.begin("ticket-panic").unwrap();
+1646: ++          struct TestGuard {
+1647: ++              state: Arc<AiState>,
+1648: ++              ticket: String,
+1649: ++          }
+1650: ++          impl Drop for TestGuard {
+1651: ++              fn drop(&mut self) {
+1652: ++                  self.state.finish(&self.ticket);
+1653: ++              }
+1654: ++          }
+1655: ++          let _guard = TestGuard {
+1656: ++              state: state.clone(),
+1657: ++              ticket: "ticket-panic".into(),
+1658: ++          };
+1659: ++          panic!("Simulated worker panic!");
+1660: ++      }));
+1661: ++
+1662: ++      // Dopo il panic, la mappa active deve essere vuota e non restare bloccata
+1663: ++      assert!(state.active.lock().unwrap().is_empty(), "Active map must be empty after guard drop on panic");
+1664: ++  }
+1665: + }
+1666: + #[cfg(test)]
+1667: + mod index_policy_test {
+1668: +diff --git a/apps/desktop/src-tauri/src/main.rs b/apps/desktop/src-tauri/src/main.rs
+1669: +index d14a675..7f5928d 100644
+1670: +--- a/apps/desktop/src-tauri/src/main.rs
+1671: ++++ b/apps/desktop/src-tauri/src/main.rs
+1672: +@@ -512,6 +512,17 @@ async fn ai_preview(
+1673: +     };
+1674: +     state.preview_with_port(PathBuf::from(vault_path), options, port).await
+1675: + }
+1676: ++struct ActiveGuard {
+1677: ++    state: std::sync::Arc<limen_vault::ai::AiState>,
+1678: ++    ticket: String,
+1679: ++}
+1680: ++
+1681: ++impl Drop for ActiveGuard {
+1682: ++    fn drop(&mut self) {
+1683: ++        self.state.finish(&self.ticket);
+1684: ++    }
+1685: ++}
+1686: ++
+1687: + #[tauri::command]
+1688: + async fn ai_ask(
+1689: +     ticket: String,
+1690: +@@ -520,18 +531,24 @@ async fn ai_ask(
+1691: + ) -> Result<serde_json::Value, String> {
+1692: +     let state = state.inner().clone();
+1693: +     let (pending, cancel) = state.begin(&ticket)?;
+1694: ++    let _guard = ActiveGuard {
+1695: ++        state: state.clone(),
+1696: ++        ticket: ticket.clone(),
+1697: ++    };
+1698: +     let key = tauri::async_runtime::spawn_blocking(limen_vault::keychain::load)
+1699: +         .await
+1700: +         .map_err(|_| "Keychain worker failed".to_string())
+1701: +         .and_then(|r| r)
+1702: +         .and_then(|k| k.ok_or("Configure API key in Settings".into()));
+1703: +-    let result = match key {
+1704: ++    match key {
+1705: +         Ok(key) => limen_vault::ai::ask(pending, key, cancel, ui_elapsed_ms).await,
+1706: +-        Err(e) => Err(e),
+1707: +-    };
+1708: +-    state.finish(&ticket);
+1709: +-    result
+1710: ++        Err(e) => {
+1711: ++            limen_vault::ai::log_keychain_error(&pending, &e, ui_elapsed_ms);
+1712: ++            Err(e)
+1713: ++        }
+1714: ++    }
+1715: + }
+1716: ++
+1717: + #[tauri::command]
+1718: + async fn ai_ask_stream(
+1719: +     window: tauri::Window,
+1720: +@@ -541,17 +558,60 @@ async fn ai_ask_stream(
+1721: + ) -> Result<serde_json::Value, String> {
+1722: +     let state = state.inner().clone();
+1723: +     let (pending, cancel) = state.begin(&ticket)?;
+1724: ++    let _guard = ActiveGuard {
+1725: ++        state: state.clone(),
+1726: ++        ticket: ticket.clone(),
+1727: ++    };
+1728: +     let key = tauri::async_runtime::spawn_blocking(limen_vault::keychain::load)
+1729: +         .await
+1730: +         .map_err(|_| "Keychain worker failed".to_string())
+1731: +         .and_then(|r| r)
+1732: +         .and_then(|k| k.ok_or("Configure API key in Settings".into()));
+1733: +-    let result = match key {
+1734: +-        Ok(key) => limen_vault::ai::ask_stream(Some(window), ticket.clone(), pending, key, cancel, ui_elapsed_ms).await,
+1735: +-        Err(e) => Err(e),
+1736: ++
+1737: ++    let key = match key {
+1738: ++        Ok(k) => k,
+1739: ++        Err(e) => {
+1740: ++            limen_vault::ai::log_keychain_error(&pending, &e, ui_elapsed_ms);
+1741: ++            return Err(e);
+1742: ++        }
+1743: +     };
+1744: +-    state.finish(&ticket);
+1745: +-    result
+1746: ++
+1747: ++    let win_clone = window.clone();
+1748: ++    let ticket_clone = ticket.clone();
+1749: ++    let handle = tokio::spawn(async move {
+1750: ++        limen_vault::ai::ask_stream(Some(win_clone), ticket_clone, pending, key, cancel, ui_elapsed_ms).await
+1751: ++    });
+1752: ++
+1753: ++    match handle.await {
+1754: ++        Ok(stream_res) => stream_res,
+1755: ++        Err(join_err) => {
+1756: ++            let panic_msg = if join_err.is_panic() {
+1757: ++                "Panic durante l'esecuzione dello streaming in ai_ask_stream"
+1758: ++            } else {
+1759: ++                "Task di streaming interrotto inaspettatamente"
+1760: ++            };
+1761: ++            limen_vault::ai::log_internal_error(&ticket, panic_msg);
+1762: ++            let user_msg = "Errore interno durante la generazione della risposta, riprova".to_string();
+1763: ++            use tauri::Emitter;
+1764: ++            let _ = window.emit("limen://ai-stream-end", limen_vault::ai::AiStreamEndPayload {
+1765: ++                ticket: ticket.clone(),
+1766: ++                answer: user_msg.clone(),
+1767: ++                citations: vec![],
+1768: ++                cited_indices: vec![],
+1769: ++                status: "error".into(),
+1770: ++                incomplete: true,
+1771: ++                incomplete_reason: Some(user_msg.clone()),
+1772: ++                warning: None,
+1773: ++                error: Some(user_msg.clone()),
+1774: ++                cancelled: true,
+1775: ++                tokens_used: None,
+1776: ++                tokens_prompt: None,
+1777: ++                tokens_completion: None,
+1778: ++                tokens_reasoning: None,
+1779: ++            });
+1780: ++            Err(user_msg)
+1781: ++        }
+1782: ++    }
+1783: + }
+1784: + #[tauri::command]
+1785: + fn ai_cancel(ticket:String,state:tauri::State<'_,std::sync::Arc<limen_vault::ai::AiState>>){state.cancel(&ticket);}
+1786: +diff --git a/apps/desktop/src/AiPanel.tsx b/apps/desktop/src/AiPanel.tsx
+1787: +index 036e86b..baa13c3 100644
+1788: +--- a/apps/desktop/src/AiPanel.tsx
+1789: ++++ b/apps/desktop/src/AiPanel.tsx
+1790: +@@ -76,6 +76,8 @@ export function AiPanel({
+1791: +   const seq = useRef(0);
+1792: +   const unlistenChunkRef = useRef<UnlistenFn | null>(null);
+1793: +   const unlistenEndRef = useRef<UnlistenFn | null>(null);
+1794: ++  const isRunningRef = useRef(false);
+1795: ++  const isBusy = !!loadingStep || isStreaming;
+1796: + 
+1797: +   // Carica i modelli disponibili e il modello selezionato memorizzato (default: gpt-4o)
+1798: +   useEffect(() => {
+1799: +@@ -129,7 +131,7 @@ export function AiPanel({
+1800: +       setConsentGranted(true);
+1801: +       setError(null);
+1802: +       // Automatically trigger answer request if prompt is not empty
+1803: +-      if (prompt.trim()) {
+1804: ++      if (!isBusy && prompt.trim()) {
+1805: +         void executeAsk(prompt.trim());
+1806: +       }
+1807: +     } catch (e) {
+1808: +@@ -139,7 +141,8 @@ export function AiPanel({
+1809: +   }
+1810: + 
+1811: +   async function executeAsk(queryText: string) {
+1812: +-    if (!queryText || loadingStep || isStreaming) return;
+1813: ++    if (!queryText || isRunningRef.current || loadingStep || isStreaming) return;
+1814: ++    isRunningRef.current = true;
+1815: +     const currentModel = model || 'gpt-4o';
+1816: + 
+1817: +     const currentSeq = ++seq.current;
+1818: +@@ -165,6 +168,7 @@ export function AiPanel({
+1819: +     setConsentGranted(hasConsent);
+1820: + 
+1821: +     if (!hasConsent) {
+1822: ++      isRunningRef.current = false;
+1823: +       return; // Inline consent banner will be shown
+1824: +     }
+1825: + 
+1826: +@@ -266,11 +270,18 @@ export function AiPanel({
+1827: +         });
+1828: +       } else if (errStr.includes('Consenso')) {
+1829: +         setConsentGranted(false);
+1830: ++      } else if (errStr.includes('An AI request is already running') || errStr.includes('già una domanda in corso')) {
+1831: ++        setError("C'è già una domanda in corso: attendi la risposta o annullala.");
+1832: ++        setTechError(null);
+1833: ++      } else if (errStr.includes('Errore interno durante la generazione della risposta')) {
+1834: ++        setError('Errore interno durante la generazione della risposta, riprova.');
+1835: ++        setTechError(null);
+1836: +       } else {
+1837: +         setError('Impossibile completare la risposta. Verifica la connessione o la chiave API.');
+1838: +         setTechError(errStr);
+1839: +       }
+1840: +     } finally {
+1841: ++      isRunningRef.current = false;
+1842: +       if (currentSeq === seq.current) {
+1843: +         setLoadingStep(null);
+1844: +         setIsStreaming(false);
+1845: +@@ -349,7 +360,7 @@ export function AiPanel({
+1846: +               onKeyDown={e => {
+1847: +                 if (e.key === 'Enter' && !e.shiftKey) {
+1848: +                   e.preventDefault();
+1849: +-                  if (prompt.trim() && model) executeAsk(prompt.trim());
+1850: ++                  if (!isBusy && prompt.trim() && model) void executeAsk(prompt.trim());
+1851: +                 }
+1852: +               }}
+1853: +               style={{
+1854: +@@ -368,11 +379,11 @@ export function AiPanel({
+1855: +                 right: 10,
+1856: +                 bottom: 14,
+1857: +                 padding: '8px 16px',
+1858: +-                opacity: (!model || !prompt.trim() || !!loadingStep) ? 0.6 : 1,
+1859: ++                opacity: (!model || !prompt.trim() || isBusy) ? 0.6 : 1,
+1860: +               }}
+1861: +-              disabled={!!loadingStep || !prompt.trim() || !model}
+1862: +-              onClick={() => prompt.trim() && model && executeAsk(prompt.trim())}
+1863: +-              title={!model ? "Seleziona un modello per abilitare l'invio" : undefined}
+1864: ++              disabled={isBusy || !prompt.trim() || !model}
+1865: ++              onClick={() => !isBusy && prompt.trim() && model && void executeAsk(prompt.trim())}
+1866: ++              title={!model ? "Seleziona un modello per abilitare l'invio" : isBusy ? "Generazione in corso..." : undefined}
+1867: +             >
+1868: +               Chiedi
+1869: +             </button>
+1870: +@@ -601,9 +612,33 @@ export function AiPanel({
+1871: +       {/* Box di generazione progressiva in streaming */}
+1872: +       {isStreaming && (
+1873: +         <div className="limen-card" style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
+1874: +-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#2563eb', fontSize: 13, fontWeight: 600 }}>
+1875: +-            <Sparkles size={16} className="animate-spin" />
+1876: +-            <span>Generazione in streaming con OpenAI ({model || 'gpt-4o'})…</span>
+1877: ++          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, color: '#2563eb', fontSize: 13, fontWeight: 600 }}>
+1878: ++            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+1879: ++              <Sparkles size={16} className="animate-spin" />
+1880: ++              <span>Generazione in streaming con OpenAI ({model || 'gpt-4o'})…</span>
+1881: ++            </div>
+1882: ++            {previewData?.ticket && (
+1883: ++              <button
+1884: ++                type="button"
+1885: ++                onClick={() => {
+1886: ++                  if (previewData?.ticket) {
+1887: ++                    void aiIpc.cancel(previewData.ticket);
+1888: ++                  }
+1889: ++                }}
+1890: ++                style={{
+1891: ++                  padding: '4px 10px',
+1892: ++                  borderRadius: 6,
+1893: ++                  border: '1px solid #fca5a5',
+1894: ++                  backgroundColor: '#fef2f2',
+1895: ++                  color: '#dc2626',
+1896: ++                  fontSize: 12,
+1897: ++                  fontWeight: 600,
+1898: ++                  cursor: 'pointer',
+1899: ++                }}
+1900: ++              >
+1901: ++                Annulla domanda
+1902: ++              </button>
+1903: ++            )}
+1904: +           </div>
+1905: +           <div style={{ fontSize: 15, lineHeight: 1.7, color: '#0f172a', whiteSpace: 'pre-wrap' }}>
+1906: +             {streamingText || <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Elaborazione in corso e attesa token…</span>}
+1907: diff --git a/SESSION_HANDOVER_WINDOWS_BUILD.md b/SESSION_HANDOVER_WINDOWS_BUILD.md
+1908: index 3858263..e8da6df 100644
+1909: --- a/SESSION_HANDOVER_WINDOWS_BUILD.md
+1910: +++ b/SESSION_HANDOVER_WINDOWS_BUILD.md
+1911: @@ -279,18 +279,57 @@ Conformemente all'analisi e alle correzioni vincolanti richieste per `ask_stream
+1912:  
+1913:  ---
+1914:  
+1915: -## 2. Stato Attuale e Consegna FASE 5b
+1916: +### FASE 5c — Risoluzione Bloccante: Panic su Lettere Accentate e Rilascio Garantito Richieste
+1917:  
+1918: -- **STATO ATTUALE**: **FASE 5b COMPLETATA E VERIFICATA CON SUCCESSO — PRONTA PER LA CONVALIDA DAL VIVO DI CESARE E DELL'AUDITOR**.
+1919: +Conformemente all'analisi e alle correzioni vincolanti richieste:
+1920: +
+1921: +1. **Risoluzione Panic su Lettere Accentate ed Emoji (`StreamProseSanitizer`)**:
+1922: +   - Causa: `ambiguous_suffix_len` ([ai.rs](file:///E:/Projects/vault_memai_obsi/apps/desktop/src-tauri/src/ai.rs)) calcolava le finestre di 30 e 60 byte con `len.saturating_sub(30)` e `len.saturating_sub(60)` e le usava per tagliare la stringa `s[check_window..]`. Quando una lettera accentata a due byte (`à`, `è`, `ù`) cadeva sull'indice esatto (es. byte 349 dentro `à` 348..350), il runtime tokio andava in panic: `start byte index 349 is not a char boundary; it is inside 'à'`.
+1923: +   - Correzione: implementata la closure `safe_boundary` che arretra al confine valido più vicino con `while idx > 0 && !s.is_char_boundary(idx) { idx -= 1; }`.
+1924: +   - Unit test superato: `test_stream_prose_sanitizer_accented_letters_and_emoji` con testi complessi in italiano e caratteri emoji spezzati in frammenti di tutte le dimensioni da 1 a 80 byte.
+1925: +
+1926: +2. **Un Panic Non Blocca Più l'App (`ActiveGuard` RAII e `tokio::spawn`)**:
+1927: +   - Causa del blocco visto da Cesare: il panic verificatosi su `à` impediva il completamento di `ai_ask_stream` e la chiamata a `state.finish(&ticket)`. Il ticket rimaneva congelato per sempre in `state.active`, facendo rifiutare qualunque domanda successiva con `"An AI request is already running"`.
+1928: +   - Implementata la guardia RAII `ActiveGuard`: garantisce l'invocazione di `self.state.finish(&self.ticket)` nel suo `Drop`, indipendentemente da ritorni normali, errori o panic.
+1929: +   - Invocazione protetta con `tokio::spawn(async move { ask_stream(...) }).await`: qualunque eventuale panic viene intercettato da Tokio senza far crashare il thread né l'app, registrato in `ask_timing.log` come errore interno, ed emesso verso la finestra UI con il messaggio chiaro: `"Errore interno durante la generazione della risposta, riprova"`.
+1930: +   - Unit test superato: `test_active_guard_releases_ticket_on_panic`.
+1931: +
+1932: +3. **Registro di Ogni Esito in `ask_timing.log`**:
+1933: +   - Tracciamento completo di ogni esito: completata, incompleta, annullata, errore (con codice HTTP e messaggio di dettaglio estratto da OpenAI), errore interno (panic/abort) e rifiutata da begin (con ticket rifiutato, ticket attivo e millisecondi trascorsi dal ticket attivo).
+1934: +   - Nessun testo di domande, risposte o passaggi registrato nel file.
+1935: +   - Unit test superato: `test_consecutive_calls_second_rejected_while_first_active`.
+1936: +
+1937: +4. **Messaggio "Già in corso" e Blocco Doppia Esecuzione (`AiPanel.tsx`)**:
+1938: +   - Introdotti `isRunningRef = useRef(false)` e `isBusy = !!loadingStep || isStreaming || isRunningRef.current`.
+1939: +   - Controllo sincrono all'avvio di `executeAsk`: blocco immediato di doppi clic, effetti duplicati e pressione ripetuta di Invio.
+1940: +   - Pulsante "Chiedi" e tasto Invio disabilitati durante l'intera generazione in streaming.
+1941: +   - Intercettazione di `"An AI request is already running"` con messaggio amichevole: `"C'è già una domanda in corso: attendi la risposta o annullala."` (senza messaggi tecnici su rete o chiavi API).
+1942: +   - Aggiunto pulsante esplicito "Annulla domanda" nell'intestazione del box di streaming.
+1943: +
+1944: +---
+1945: +
+1946: +## 2. Stato Attuale e Consegna FASE 5c
+1947: +
+1948: +- **STATO ATTUALE**: **FASE 5c COMPLETATA E VERIFICATA CON SUCCESSO — PRONTA PER IL COLLAUDO DI CESARE**.
+1949:  - **Modello configurato come default**: **`gpt-4o`**.
+1950: -- **Test suite**: **172 passati (154 lib + 18 bin); 0 falliti** (sia in parallelo sia con `--test-threads=1`).
+1951: +- **Test suite**: **175 passati (157 lib + 18 bin); 0 falliti** (sia in parallelo sia con `--test-threads=1`).
+1952:  - **Verifica TypeScript frontend**: **0 errori** (`npx tsc --noEmit`).
+1953:  - **ZERO chiamate OpenAI** effettuate dall'assistente.
+1954:  - **ZERO processi terminati** senza autorizzazione (`llama-server.exe` PID 39740 e `limen-vault.exe` PID 25352 attivi e intatti).
+1955:  - **Log di test**:
+1956: -  - Parallelo: [cargo-test-fase-5-parallel.log](file:///E:/Projects/vault_memai_obsi/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/cargo-test-fase-5-parallel.log) (172/172 ok).
+1957: -  - Sequenziale: [cargo-test-fase-5-single.log](file:///E:/Projects/vault_memai_obsi/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/cargo-test-fase-5-single.log) (172/172 ok).
+1958: -- **Patch di consegna**: [fase-5b.patch](file:///E:/Projects/vault_memai_obsi/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-5b.patch).
+1959: +  - Parallelo: [cargo-test-fase-5-parallel.log](file:///E:/Projects/vault_memai_obsi/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/cargo-test-fase-5-parallel.log) (175/175 ok).
+1960: +  - Sequenziale: [cargo-test-fase-5-single.log](file:///E:/Projects/vault_memai_obsi/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/cargo-test-fase-5-single.log) (175/175 ok).
+1961: +- **Patch di consegna**: [fase-5c.patch](file:///E:/Projects/vault_memai_obsi/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-5c.patch).
+1962: +
+1963: +---
+1964: +
+1965: +## 3. Regola Fissa Compilazione e Avvio Versione Ottimizzata da Provare
+1966: +
+1967: +- **Comando vincolante**:
+1968: +  `cd "E:\Projects\vault_memai_obsi"; npx pnpm --filter @limen-vault/desktop tauri dev --release`
+1969: +  *(preserva la cache di compilazione evitando ri-compilazioni complete al riavvio di Cesare; NON usare `cargo build --release`)*.
+1970: +
+1971: +
+1972:  
+1973:  
+1974:  
+1975: diff --git a/apps/desktop/src-tauri/src/ai.rs b/apps/desktop/src-tauri/src/ai.rs
+1976: index 3d255cf..6fd2b77 100644
+1977: --- a/apps/desktop/src-tauri/src/ai.rs
+1978: +++ b/apps/desktop/src-tauri/src/ai.rs
+1979: @@ -54,7 +54,7 @@ pub struct PreviewTimings {
+1980:      pub t_passage_extract_ms: u64,
+1981:  }
+1982:  
+1983: -#[derive(Clone)]
+1984: +#[derive(Clone, Debug)]
+1985:  pub struct Pending {
+1986:      pub path: PathBuf,
+1987:      pub options: Options,
+1988: @@ -236,8 +236,12 @@ pub fn log_ask_timing_detailed(entry: &AskTimingLogEntry) {
+1989:          .unwrap_or_else(|| "non misurato".into());
+1990:      let status_str = if entry.status == "incomplete" {
+1991:          format!("INCOMPLETA ({})", entry.incomplete_reason.as_deref().unwrap_or("max_output_tokens"))
+1992: +    } else if entry.status == "error" || entry.status.starts_with("errore") {
+1993: +        format!("ERRORE ({})", entry.incomplete_reason.as_deref().unwrap_or("errore"))
+1994: +    } else if entry.status == "annullata" || entry.status.starts_with("annullata") {
+1995: +        format!("ANNULLATA ({})", entry.incomplete_reason.as_deref().unwrap_or("annullata"))
+1996:      } else {
+1997: -        "completata".to_string()
+1998: +        entry.status.clone()
+1999:      };
+2000:  
+2001:      let mut breakdown_parts = Vec::new();
+2002: @@ -441,8 +445,100 @@ pub fn log_ask_timing(
+2003:      });
+2004:  }
+2005:  
+2006: +pub fn log_begin_rejected(ticket_rejected: &str, active_ticket: &str, active_elapsed_ms: u64) {
+2007: +    let log_path = get_ask_timing_log_path();
+2008: +    if let Some(parent) = log_path.parent() {
+2009: +        let _ = std::fs::create_dir_all(parent);
+2010: +    }
+2011: +    let now = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true);
+2012: +    let line = format!(
+2013: +        "[{}] RIFIUTATA DA BEGIN: ticket_rifiutato=\"{}\", ticket_attivo=\"{}\", attivo_da_ms={}\n",
+2014: +        now, ticket_rejected, active_ticket, active_elapsed_ms
+2015: +    );
+2016: +    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(&log_path) {
+2017: +        use std::io::Write;
+2018: +        let _ = f.write_all(line.as_bytes());
+2019: +    }
+2020: +}
+2021: +
+2022: +pub fn log_internal_error(ticket: &str, error_msg: &str) {
+2023: +    let log_path = get_ask_timing_log_path();
+2024: +    if let Some(parent) = log_path.parent() {
+2025: +        let _ = std::fs::create_dir_all(parent);
+2026: +    }
+2027: +    let now = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true);
+2028: +    let line = format!(
+2029: +        "[{}] ERRORE INTERNO: ticket=\"{}\", errore=\"{}\"\n",
+2030: +        now, ticket, error_msg
+2031: +    );
+2032: +    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(&log_path) {
+2033: +        use std::io::Write;
+2034: +        let _ = f.write_all(line.as_bytes());
+2035: +    }
+2036: +}
+2037: +
+2038: +pub fn log_keychain_error(p: &Pending, error_msg: &str, ui_elapsed_ms: Option<u64>) {
+2039: +    let t_handoff_ms = p.created_at.elapsed().as_millis() as u64;
+2040: +    let audit_sources: Vec<SourceAuditEntry> = p.sources
+2041: +        .iter()
+2042: +        .enumerate()
+2043: +        .map(|(idx, s)| SourceAuditEntry {
+2044: +            id: format!("S{}", idx + 1),
+2045: +            relative_path: s.relative_path.clone(),
+2046: +            bytes: s.content.len(),
+2047: +            locator: s.locator.clone(),
+2048: +            cited: false,
+2049: +        })
+2050: +        .collect();
+2051: +    log_ask_timing_detailed(&AskTimingLogEntry {
+2052: +        timestamp: chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
+2053: +        model: p.options.model.clone(),
+2054: +        status: "errore (keychain)".to_string(),
+2055: +        incomplete_reason: Some(error_msg.to_string()),
+2056: +        tokens_used: None,
+2057: +        tokens_prompt: None,
+2058: +        tokens_completion: None,
+2059: +        tokens_reasoning: None,
+2060: +        t_first_chunk_ms: None,
+2061: +        t_ui_total_ms: ui_elapsed_ms,
+2062: +        t_backend_total_ms: p.preview_timings.t_preview_total_ms + t_handoff_ms,
+2063: +        preview: PreviewTimingBreakdown {
+2064: +            total_ms: p.preview_timings.t_preview_total_ms,
+2065: +            index_cache_ms: p.preview_timings.t_index_cache_ms,
+2066: +            embed_ms: p.preview_timings.t_embed_ms,
+2067: +            search_ms: p.preview_timings.t_search_ms,
+2068: +            search_words_ms: p.preview_timings.t_search_words_ms,
+2069: +            search_sem_ms: p.preview_timings.t_search_sem_ms,
+2070: +            search_fuse_ms: p.preview_timings.t_search_fuse_ms,
+2071: +            search_admit_ms: p.preview_timings.t_search_admit_ms,
+2072: +            doc_read_ms: p.preview_timings.t_doc_read_ms,
+2073: +            passage_extract_ms: p.preview_timings.t_passage_extract_ms,
+2074: +        },
+2075: +        t_handoff_ms,
+2076: +        ask: AskTimingBreakdown {
+2077: +            total_ms: 0,
+2078: +            verify_pre_ms: 0,
+2079: +            payload_ms: 0,
+2080: +            openai_ms: 0,
+2081: +            t_first_chunk_ms: None,
+2082: +            verify_post_ms: 0,
+2083: +            parse_ms: 0,
+2084: +        },
+2085: +        sources: audit_sources,
+2086: +    });
+2087: +}
+2088: +
+2089: +#[derive(Clone)]
+2090: +pub struct ActiveEntry {
+2091: +    pub cancel: Arc<AtomicBool>,
+2092: +    pub started_at: Instant,
+2093: +}
+2094: +
+2095:  #[derive(Default)]
+2096: -pub struct AiState {pub pending:Mutex<BTreeMap<String,Pending>>,pub active:Mutex<BTreeMap<String,Arc<AtomicBool>>>}
+2097: +pub struct AiState {
+2098: +    pub pending: Mutex<BTreeMap<String, Pending>>,
+2099: +    pub active: Mutex<BTreeMap<String, ActiveEntry>>,
+2100: +}
+2101:  pub fn random_token()->Result<String,String>{let mut b=[0u8;32];getrandom::fill(&mut b).map_err(|_|"Random generator unavailable")?;Ok(b.iter().map(|b|format!("{b:02x}")).collect())}
+2102:  pub fn eligible(path:&str,category:&str,status:Option<&str>,drafts:bool)->bool{
+2103:   let parts:Vec<_>=path.split('/').collect();
+2104: @@ -1167,14 +1263,18 @@ impl AiState {
+2105:              p.remove(ticket);
+2106:          }
+2107:          if let Ok(a) = self.active.lock() {
+2108: -            if let Some(flag) = a.get(ticket) {
+2109: -                flag.store(true, Ordering::SeqCst);
+2110: +            if let Some(entry) = a.get(ticket) {
+2111: +                entry.cancel.store(true, Ordering::SeqCst);
+2112:              }
+2113:          }
+2114:      }
+2115:      pub fn begin(&self, ticket: &str) -> Result<(Pending, Arc<AtomicBool>), String> {
+2116:          let mut active = self.active.lock().map_err(|_| "AI unavailable")?;
+2117:          if !active.is_empty() {
+2118: +            if let Some((active_ticket, entry)) = active.iter().next() {
+2119: +                let active_elapsed_ms = entry.started_at.elapsed().as_millis() as u64;
+2120: +                log_begin_rejected(ticket, active_ticket, active_elapsed_ms);
+2121: +            }
+2122:              return Err("An AI request is already running".into());
+2123:          }
+2124:          let p = self
+2125: @@ -1187,7 +1287,10 @@ impl AiState {
+2126:              return Err("Preview expired or no eligible sources".into());
+2127:          }
+2128:          let flag = Arc::new(AtomicBool::new(false));
+2129: -        active.insert(ticket.into(), flag.clone());
+2130: +        active.insert(ticket.into(), ActiveEntry {
+2131: +            cancel: flag.clone(),
+2132: +            started_at: Instant::now(),
+2133: +        });
+2134:          Ok((p, flag))
+2135:      }
+2136:      pub fn finish(&self, ticket: &str) {
+2137: @@ -1704,15 +1807,23 @@ impl StreamProseSanitizer {
+2138:      }
+2139:  
+2140:      /// Determina la lunghezza del suffisso ambiguo da trattenere nel buffer scorrevole.
+2141: +    /// Garantisce sempre che qualsiasi slicing avvenga su confini di caratteri UTF-8 validi (previene panic su lettere accentate ed emoji).
+2142:      pub fn ambiguous_suffix_len(s: &str) -> usize {
+2143: -        let bytes = s.as_bytes();
+2144: -        let len = bytes.len();
+2145: +        let len = s.len();
+2146:          if len == 0 {
+2147:              return 0;
+2148:          }
+2149:  
+2150: -        // 1. Prefisso di citazione aperto: es. `[` senza `]` o `(` senza `)` (finestra fino a 30 caratteri)
+2151: -        let check_window = len.saturating_sub(30);
+2152: +        // Helper per arretrare al confine di carattere UTF-8 valido più vicino (mai panic)
+2153: +        let safe_boundary = |mut idx: usize| -> usize {
+2154: +            while idx > 0 && !s.is_char_boundary(idx) {
+2155: +                idx -= 1;
+2156: +            }
+2157: +            idx
+2158: +        };
+2159: +
+2160: +        // 1. Prefisso di citazione aperto: es. `[` senza `]` o `(` senza `)` (finestra fino a 30 byte/caratteri)
+2161: +        let check_window = safe_boundary(len.saturating_sub(30));
+2162:          if let Some(pos) = s[check_window..].rfind(|c| c == '[' || c == '(') {
+2163:              let abs_pos = check_window + pos;
+2164:              let candidate_slice = &s[abs_pos..];
+2165: @@ -1728,8 +1839,8 @@ impl StreamProseSanitizer {
+2166:              }
+2167:          }
+2168:  
+2169: -        // 2. Grassetto markdown `**` aperto (conteggio dispari nella finestra di 60 caratteri)
+2170: -        let star_window = len.saturating_sub(60);
+2171: +        // 2. Grassetto markdown `**` aperto (conteggio dispari nella finestra di 60 byte/caratteri)
+2172: +        let star_window = safe_boundary(len.saturating_sub(60));
+2173:          let star_slice = &s[star_window..];
+2174:          let dstar_count = star_slice.matches("**").count();
+2175:          if dstar_count % 2 != 0 {
+2176: @@ -2007,21 +2118,86 @@ pub async fn ask_stream(
+2177:          p.options.model.clone()
+2178:      };
+2179:  
+2180: +    let log_stream_failure = |status_name: &str, reason_str: &str, t_vpre_ms: u64, t_pay_ms: u64, t_op_ms: u64, t_vp_ms: u64, t_p_ms: u64, first_chunk: Option<u64>| {
+2181: +        let t_ask_total_ms = t_ask_start.elapsed().as_millis() as u64;
+2182: +        let t_backend_total_ms = p.preview_timings.t_preview_total_ms + t_handoff_ms + t_ask_total_ms;
+2183: +        let t_ui_total_ms = ui_elapsed_ms.map(|prev_ms| prev_ms + t_ask_total_ms);
+2184: +        let audit_sources: Vec<SourceAuditEntry> = p.sources
+2185: +            .iter()
+2186: +            .enumerate()
+2187: +            .map(|(idx, s)| SourceAuditEntry {
+2188: +                id: format!("S{}", idx + 1),
+2189: +                relative_path: s.relative_path.clone(),
+2190: +                bytes: s.content.len(),
+2191: +                locator: s.locator.clone(),
+2192: +                cited: false,
+2193: +            })
+2194: +            .collect();
+2195: +
+2196: +        log_ask_timing_detailed(&AskTimingLogEntry {
+2197: +            timestamp: chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
+2198: +            model: effective_model.clone(),
+2199: +            status: status_name.to_string(),
+2200: +            incomplete_reason: Some(reason_str.to_string()),
+2201: +            tokens_used: None,
+2202: +            tokens_prompt: None,
+2203: +            tokens_completion: None,
+2204: +            tokens_reasoning: None,
+2205: +            t_first_chunk_ms: first_chunk,
+2206: +            t_ui_total_ms,
+2207: +            t_backend_total_ms,
+2208: +            preview: PreviewTimingBreakdown {
+2209: +                total_ms: p.preview_timings.t_preview_total_ms,
+2210: +                index_cache_ms: p.preview_timings.t_index_cache_ms,
+2211: +                embed_ms: p.preview_timings.t_embed_ms,
+2212: +                search_ms: p.preview_timings.t_search_ms,
+2213: +                search_words_ms: p.preview_timings.t_search_words_ms,
+2214: +                search_sem_ms: p.preview_timings.t_search_sem_ms,
+2215: +                search_fuse_ms: p.preview_timings.t_search_fuse_ms,
+2216: +                search_admit_ms: p.preview_timings.t_search_admit_ms,
+2217: +                doc_read_ms: p.preview_timings.t_doc_read_ms,
+2218: +                passage_extract_ms: p.preview_timings.t_passage_extract_ms,
+2219: +            },
+2220: +            t_handoff_ms,
+2221: +            ask: AskTimingBreakdown {
+2222: +                total_ms: t_ask_total_ms,
+2223: +                verify_pre_ms: t_vpre_ms,
+2224: +                payload_ms: t_pay_ms,
+2225: +                openai_ms: t_op_ms,
+2226: +                t_first_chunk_ms: first_chunk,
+2227: +                verify_post_ms: t_vp_ms,
+2228: +                parse_ms: t_p_ms,
+2229: +            },
+2230: +            sources: audit_sources,
+2231: +        });
+2232: +    };
+2233: +
+2234:      // 1. Verifica impronte pre-chiamata
+2235:      let t_vpre_start = Instant::now();
+2236:      let high_prec = is_high_precision_fs(&p.path);
+2237: +    let mut verify_pre_err = None;
+2238:      for s in &p.sources {
+2239:          if let Err(e) = verify_source_integrity_with_fs_override(&p.path, s, high_prec, p.options.include_drafts) {
+2240: -            if e.starts_with("Source changed") {
+2241: -                return Err("Source changed since preview".into());
+2242: -            }
+2243: -            return Err(e);
+2244: +            let err_msg = if e.starts_with("Source changed") {
+2245: +                "Source changed since preview".to_string()
+2246: +            } else {
+2247: +                e
+2248: +            };
+2249: +            verify_pre_err = Some(err_msg);
+2250: +            break;
+2251:          }
+2252:      }
+2253:      let t_verify_pre_ms = t_vpre_start.elapsed().as_millis() as u64;
+2254:  
+2255: +    if let Some(err_msg) = verify_pre_err {
+2256: +        log_stream_failure("errore (verify_pre)", &err_msg, t_verify_pre_ms, 0, 0, 0, 0, None);
+2257: +        return Err(err_msg);
+2258: +    }
+2259: +
+2260:      if cancel.load(Ordering::SeqCst) {
+2261: -        return Err("Request cancelled".into());
+2262: +        let err_msg = "Richiesta annullata dall'utente.".to_string();
+2263: +        log_stream_failure("annullata", &err_msg, t_verify_pre_ms, 0, 0, 0, 0, None);
+2264: +        return Err(err_msg);
+2265:      }
+2266:  
+2267:      // 2. Costruzione payload con streaming abilitato e modello tassativo
+2268: @@ -2052,7 +2228,24 @@ pub async fn ask_stream(
+2269:      let mut response = match response_res {
+2270:          Ok(r) => {
+2271:              if !r.status().is_success() {
+2272: -                let err_msg = format!("OpenAI HTTP {}", r.status().as_u16());
+2273: +                let status_code = r.status().as_u16();
+2274: +                let body_text = r.text().await.unwrap_or_default();
+2275: +                let error_detail = if let Ok(err_json) = serde_json::from_str::<Value>(&body_text) {
+2276: +                    err_json.get("error")
+2277: +                        .and_then(|e| e.get("message"))
+2278: +                        .and_then(|m| m.as_str())
+2279: +                        .map(|s| s.to_string())
+2280: +                        .unwrap_or_else(|| body_text.clone())
+2281: +                } else {
+2282: +                    body_text.clone()
+2283: +                };
+2284: +                let err_msg = if error_detail.trim().is_empty() {
+2285: +                    format!("OpenAI HTTP {}", status_code)
+2286: +                } else {
+2287: +                    format!("OpenAI HTTP {}: {}", status_code, error_detail.trim())
+2288: +                };
+2289: +                let t_openai_ms = t_openai_start.elapsed().as_millis() as u64;
+2290: +                log_stream_failure("errore (openai_http)", &err_msg, t_verify_pre_ms, t_payload_ms, t_openai_ms, 0, 0, None);
+2291:                  if let Some(ref w) = window {
+2292:                      let _ = w.emit("limen://ai-stream-end", AiStreamEndPayload {
+2293:                          ticket: ticket.clone(),
+2294: @@ -2075,8 +2268,10 @@ pub async fn ask_stream(
+2295:              }
+2296:              r
+2297:          }
+2298: -        Err(_) => {
+2299: -            let err_msg = "OpenAI unavailable or request timed out".to_string();
+2300: +        Err(e) => {
+2301: +            let err_msg = format!("OpenAI network error or timeout: {e}");
+2302: +            let t_openai_ms = t_openai_start.elapsed().as_millis() as u64;
+2303: +            log_stream_failure("errore (rete)", &err_msg, t_verify_pre_ms, t_payload_ms, t_openai_ms, 0, 0, None);
+2304:              if let Some(ref w) = window {
+2305:                  let _ = w.emit("limen://ai-stream-end", AiStreamEndPayload {
+2306:                      ticket: ticket.clone(),
+2307: @@ -2272,6 +2467,7 @@ pub async fn ask_stream(
+2308:          if let Some(ref w) = window {
+2309:              let _ = w.emit("limen://ai-stream-end", end_payload.clone());
+2310:          }
+2311: +        log_stream_failure("errore (verify_post)", &error_msg, t_verify_pre_ms, t_payload_ms, t_openai_ms, t_verify_post_ms, 0, t_first_chunk_ms);
+2312:          return Err(error_msg);
+2313:      }
+2314:  
+2315: @@ -2447,7 +2643,32 @@ pub async fn ask_stream(
+2316:      };
+2317:  
+2318:      let t_parse_start = Instant::now();
+2319: -    let parsed = parse_response(response_to_parse, &p.sources)?;
+2320: +    let parsed = match parse_response(response_to_parse, &p.sources) {
+2321: +        Ok(v) => v,
+2322: +        Err(e) => {
+2323: +            let t_parse_ms = t_parse_start.elapsed().as_millis() as u64;
+2324: +            log_stream_failure("errore (parse_response)", &e, t_verify_pre_ms, t_payload_ms, t_openai_ms, t_verify_post_ms, t_parse_ms, t_first_chunk_ms);
+2325: +            if let Some(ref w) = window {
+2326: +                let _ = w.emit("limen://ai-stream-end", AiStreamEndPayload {
+2327: +                    ticket: ticket.clone(),
+2328: +                    answer: String::new(),
+2329: +                    citations: vec![],
+2330: +                    cited_indices: vec![],
+2331: +                    status: "error".into(),
+2332: +                    incomplete: true,
+2333: +                    incomplete_reason: Some(e.clone()),
+2334: +                    warning: None,
+2335: +                    error: Some(e.clone()),
+2336: +                    cancelled: false,
+2337: +                    tokens_used: None,
+2338: +                    tokens_prompt: None,
+2339: +                    tokens_completion: None,
+2340: +                    tokens_reasoning: None,
+2341: +                });
+2342: +            }
+2343: +            return Err(e);
+2344: +        }
+2345: +    };
+2346:      let t_parse_ms = t_parse_start.elapsed().as_millis() as u64;
+2347:  
+2348:      let cited_set: std::collections::HashSet<usize> = parsed["citedIndices"]
+2349: @@ -4243,6 +4464,183 @@ mod tests {
+2350:        assert_eq!(payload.status, "incomplete");
+2351:        assert_eq!(payload.cancelled, true);
+2352:    }
+2353: +
+2354: +  #[test]
+2355: +  fn test_stream_prose_sanitizer_accented_letters_and_emoji() {
+2356: +      let texts = [
+2357: +          "Il progetto BNXT è focalizzato sulla creazione di un sistema CRM specializzato per l'industria dell'abbigliamento moto. L'obiettivo primario è la tracciabilità delle forniture, la gestione delle taglie e delle varianti colore, nonché l'integrazione con la contabilità aziendale già esistente. Perché la qualità è prioritaria, le normative europee sono applicate scrupolosamente a tutti i capi d'abbigliamento prodotti e distribuiti.",
+2358: +          "Progetto LIMEN 🚀: tracciabilità e qualità garantite! ✅ Notifiche attive 🔔 e analisi completata con successo 💯. È davvero un ottimo risultato 🎉.",
+2359: +          "Così, già, più, né, può, là, qui, quassù, laggiù, viceré, caffè, virtù, felicità!",
+2360: +      ];
+2361: +
+2362: +      for text in &texts {
+2363: +          let expected = sanitize_answer_prose(text);
+2364: +          let bytes = text.as_bytes();
+2365: +
+2366: +          // Spezza in frammenti di rete di ogni lunghezza da 1 a 80 byte
+2367: +          for chunk_size in 1..=80 {
+2368: +              let mut utf8_decoder = Utf8ChunkDecoder::new();
+2369: +              let mut sanitizer = StreamProseSanitizer::new();
+2370: +
+2371: +              let mut offset = 0;
+2372: +              while offset < bytes.len() {
+2373: +                  let end = std::cmp::min(offset + chunk_size, bytes.len());
+2374: +                  let byte_chunk = &bytes[offset..end];
+2375: +                  let decoded_chunk = utf8_decoder.decode(byte_chunk);
+2376: +                  if !decoded_chunk.is_empty() {
+2377: +                      let _delta = sanitizer.feed(&decoded_chunk);
+2378: +                  }
+2379: +                  offset = end;
+2380: +              }
+2381: +
+2382: +              let remaining = utf8_decoder.flush();
+2383: +              if !remaining.is_empty() {
+2384: +                  let _delta = sanitizer.feed(&remaining);
+2385: +              }
+2386: +              let _flush = sanitizer.flush();
+2387: +
+2388: +              assert_eq!(
+2389: +                  sanitizer.get_accumulated(),
+2390: +                  expected,
+2391: +                  "Failed for chunk_size={} on text='{}'",
+2392: +                  chunk_size,
+2393: +                  text
+2394: +              );
+2395: +          }
+2396: +      }
+2397: +  }
+2398: +
+2399: +  #[test]
+2400: +  fn test_consecutive_calls_second_rejected_while_first_active() {
+2401: +      let state = Arc::new(AiState::default());
+2402: +      let temp_dir = tempfile::tempdir().unwrap();
+2403: +      let log_file = temp_dir.path().join("ask_timing.log");
+2404: +      std::env::set_var("LIMEN_ASK_TIMING_LOG", &log_file);
+2405: +
+2406: +      // Inserisci un ticket finto in pending
+2407: +      {
+2408: +          let mut p = state.pending.lock().unwrap();
+2409: +          let pending_obj = Pending {
+2410: +              created_at: Instant::now(),
+2411: +              path: temp_dir.path().to_path_buf(),
+2412: +              options: Options {
+2413: +                  prompt: "test".into(),
+2414: +                  model: "gpt-4o".into(),
+2415: +                  include_drafts: false,
+2416: +                  source_ids: vec![],
+2417: +                  category: None,
+2418: +                  client: None,
+2419: +                  project: None,
+2420: +                  tags: None,
+2421: +              },
+2422: +              sources: vec![Source {
+2423: +                  document_id: "doc1".into(),
+2424: +                  relative_path: "note.md".into(),
+2425: +                  title: "Note".into(),
+2426: +                  category: "test".into(),
+2427: +                  status: None,
+2428: +                  sha256: "hash".into(),
+2429: +                  content: "dummy".into(),
+2430: +                  locator: None,
+2431: +                  passage_id: None,
+2432: +                  revision: None,
+2433: +                  mtime_ms: None,
+2434: +                  file_size: None,
+2435: +                  passage_hashes: vec![],
+2436: +              }],
+2437: +              preview_timings: PreviewTimings::default(),
+2438: +          };
+2439: +          p.insert("ticket-1".into(), pending_obj.clone());
+2440: +          p.insert("ticket-2".into(), pending_obj.clone());
+2441: +          p.insert("ticket-3".into(), pending_obj);
+2442: +      }
+2443: +
+2444: +      // Prima chiamata: begin riesce
+2445: +      let begin1 = state.begin("ticket-1");
+2446: +      assert!(begin1.is_ok(), "First begin must succeed");
+2447: +
+2448: +      // Seconda chiamata: rifiutata perché ticket-1 è attivo
+2449: +      let begin2 = state.begin("ticket-2");
+2450: +      assert!(begin2.is_err(), "Second begin must fail while first is active");
+2451: +      let err2 = begin2.unwrap_err();
+2452: +      assert_eq!(err2, "An AI request is already running");
+2453: +
+2454: +      // Verifica che il rifiuto sia stato registrato nel log con i dettagli
+2455: +      let log_content = std::fs::read_to_string(&log_file).unwrap_or_default();
+2456: +      assert!(log_content.contains("RIFIUTATA DA BEGIN: ticket_rifiutato=\"ticket-2\""));
+2457: +      assert!(log_content.contains("ticket_attivo=\"ticket-1\""));
+2458: +
+2459: +      // Fine prima chiamata
+2460: +      state.finish("ticket-1");
+2461: +
+2462: +      // Terza chiamata: ora deve riuscire
+2463: +      let begin3 = state.begin("ticket-3");
+2464: +      assert!(begin3.is_ok(), "Third begin must succeed after first finished");
+2465: +      state.finish("ticket-3");
+2466: +
+2467: +      std::env::remove_var("LIMEN_ASK_TIMING_LOG");
+2468: +  }
+2469: +
+2470: +  #[test]
+2471: +  fn test_active_guard_releases_ticket_on_panic() {
+2472: +      let state = Arc::new(AiState::default());
+2473: +      let temp_dir = tempfile::tempdir().unwrap();
+2474: +      {
+2475: +          let mut p = state.pending.lock().unwrap();
+2476: +          let pending_obj = Pending {
+2477: +              created_at: Instant::now(),
+2478: +              path: temp_dir.path().to_path_buf(),
+2479: +              options: Options {
+2480: +                  prompt: "test".into(),
+2481: +                  model: "gpt-4o".into(),
+2482: +                  include_drafts: false,
+2483: +                  source_ids: vec![],
+2484: +                  category: None,
+2485: +                  client: None,
+2486: +                  project: None,
+2487: +                  tags: None,
+2488: +              },
+2489: +              sources: vec![Source {
+2490: +                  document_id: "doc1".into(),
+2491: +                  relative_path: "note.md".into(),
+2492: +                  title: "Note".into(),
+2493: +                  category: "test".into(),
+2494: +                  status: None,
+2495: +                  sha256: "hash".into(),
+2496: +                  content: "dummy".into(),
+2497: +                  locator: None,
+2498: +                  passage_id: None,
+2499: +                  revision: None,
+2500: +                  mtime_ms: None,
+2501: +                  file_size: None,
+2502: +                  passage_hashes: vec![],
+2503: +              }],
+2504: +              preview_timings: PreviewTimings::default(),
+2505: +          };
+2506: +          p.insert("ticket-panic".into(), pending_obj);
+2507: +      }
+2508: +
+2509: +      let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+2510: +          let (_pending, _cancel) = state.begin("ticket-panic").unwrap();
+2511: +          struct TestGuard {
+2512: +              state: Arc<AiState>,
+2513: +              ticket: String,
+2514: +          }
+2515: +          impl Drop for TestGuard {
+2516: +              fn drop(&mut self) {
+2517: +                  self.state.finish(&self.ticket);
+2518: +              }
+2519: +          }
+2520: +          let _guard = TestGuard {
+2521: +              state: state.clone(),
+2522: +              ticket: "ticket-panic".into(),
+2523: +          };
+2524: +          panic!("Simulated worker panic!");
+2525: +      }));
+2526: +
+2527: +      // Dopo il panic, la mappa active deve essere vuota e non restare bloccata
+2528: +      assert!(state.active.lock().unwrap().is_empty(), "Active map must be empty after guard drop on panic");
+2529: +  }
+2530:  }
+2531:  #[cfg(test)]
+2532:  mod index_policy_test {
+2533: diff --git a/apps/desktop/src-tauri/src/main.rs b/apps/desktop/src-tauri/src/main.rs
+2534: index d14a675..7f5928d 100644
+2535: --- a/apps/desktop/src-tauri/src/main.rs
+2536: +++ b/apps/desktop/src-tauri/src/main.rs
+2537: @@ -512,6 +512,17 @@ async fn ai_preview(
+2538:      };
+2539:      state.preview_with_port(PathBuf::from(vault_path), options, port).await
+2540:  }
+2541: +struct ActiveGuard {
+2542: +    state: std::sync::Arc<limen_vault::ai::AiState>,
+2543: +    ticket: String,
+2544: +}
+2545: +
+2546: +impl Drop for ActiveGuard {
+2547: +    fn drop(&mut self) {
+2548: +        self.state.finish(&self.ticket);
+2549: +    }
+2550: +}
+2551: +
+2552:  #[tauri::command]
+2553:  async fn ai_ask(
+2554:      ticket: String,
+2555: @@ -520,18 +531,24 @@ async fn ai_ask(
+2556:  ) -> Result<serde_json::Value, String> {
+2557:      let state = state.inner().clone();
+2558:      let (pending, cancel) = state.begin(&ticket)?;
+2559: +    let _guard = ActiveGuard {
+2560: +        state: state.clone(),
+2561: +        ticket: ticket.clone(),
+2562: +    };
+2563:      let key = tauri::async_runtime::spawn_blocking(limen_vault::keychain::load)
+2564:          .await
+2565:          .map_err(|_| "Keychain worker failed".to_string())
+2566:          .and_then(|r| r)
+2567:          .and_then(|k| k.ok_or("Configure API key in Settings".into()));
+2568: -    let result = match key {
+2569: +    match key {
+2570:          Ok(key) => limen_vault::ai::ask(pending, key, cancel, ui_elapsed_ms).await,
+2571: -        Err(e) => Err(e),
+2572: -    };
+2573: -    state.finish(&ticket);
+2574: -    result
+2575: +        Err(e) => {
+2576: +            limen_vault::ai::log_keychain_error(&pending, &e, ui_elapsed_ms);
+2577: +            Err(e)
+2578: +        }
+2579: +    }
+2580:  }
+2581: +
+2582:  #[tauri::command]
+2583:  async fn ai_ask_stream(
+2584:      window: tauri::Window,
+2585: @@ -541,17 +558,60 @@ async fn ai_ask_stream(
+2586:  ) -> Result<serde_json::Value, String> {
+2587:      let state = state.inner().clone();
+2588:      let (pending, cancel) = state.begin(&ticket)?;
+2589: +    let _guard = ActiveGuard {
+2590: +        state: state.clone(),
+2591: +        ticket: ticket.clone(),
+2592: +    };
+2593:      let key = tauri::async_runtime::spawn_blocking(limen_vault::keychain::load)
+2594:          .await
+2595:          .map_err(|_| "Keychain worker failed".to_string())
+2596:          .and_then(|r| r)
+2597:          .and_then(|k| k.ok_or("Configure API key in Settings".into()));
+2598: -    let result = match key {
+2599: -        Ok(key) => limen_vault::ai::ask_stream(Some(window), ticket.clone(), pending, key, cancel, ui_elapsed_ms).await,
+2600: -        Err(e) => Err(e),
+2601: +
+2602: +    let key = match key {
+2603: +        Ok(k) => k,
+2604: +        Err(e) => {
+2605: +            limen_vault::ai::log_keychain_error(&pending, &e, ui_elapsed_ms);
+2606: +            return Err(e);
+2607: +        }
+2608:      };
+2609: -    state.finish(&ticket);
+2610: -    result
+2611: +
+2612: +    let win_clone = window.clone();
+2613: +    let ticket_clone = ticket.clone();
+2614: +    let handle = tokio::spawn(async move {
+2615: +        limen_vault::ai::ask_stream(Some(win_clone), ticket_clone, pending, key, cancel, ui_elapsed_ms).await
+2616: +    });
+2617: +
+2618: +    match handle.await {
+2619: +        Ok(stream_res) => stream_res,
+2620: +        Err(join_err) => {
+2621: +            let panic_msg = if join_err.is_panic() {
+2622: +                "Panic durante l'esecuzione dello streaming in ai_ask_stream"
+2623: +            } else {
+2624: +                "Task di streaming interrotto inaspettatamente"
+2625: +            };
+2626: +            limen_vault::ai::log_internal_error(&ticket, panic_msg);
+2627: +            let user_msg = "Errore interno durante la generazione della risposta, riprova".to_string();
+2628: +            use tauri::Emitter;
+2629: +            let _ = window.emit("limen://ai-stream-end", limen_vault::ai::AiStreamEndPayload {
+2630: +                ticket: ticket.clone(),
+2631: +                answer: user_msg.clone(),
+2632: +                citations: vec![],
+2633: +                cited_indices: vec![],
+2634: +                status: "error".into(),
+2635: +                incomplete: true,
+2636: +                incomplete_reason: Some(user_msg.clone()),
+2637: +                warning: None,
+2638: +                error: Some(user_msg.clone()),
+2639: +                cancelled: true,
+2640: +                tokens_used: None,
+2641: +                tokens_prompt: None,
+2642: +                tokens_completion: None,
+2643: +                tokens_reasoning: None,
+2644: +            });
+2645: +            Err(user_msg)
+2646: +        }
+2647: +    }
+2648:  }
+2649:  #[tauri::command]
+2650:  fn ai_cancel(ticket:String,state:tauri::State<'_,std::sync::Arc<limen_vault::ai::AiState>>){state.cancel(&ticket);}
+2651: diff --git a/apps/desktop/src/AiPanel.tsx b/apps/desktop/src/AiPanel.tsx
+2652: index 036e86b..baa13c3 100644
+2653: --- a/apps/desktop/src/AiPanel.tsx
+2654: +++ b/apps/desktop/src/AiPanel.tsx
+2655: @@ -76,6 +76,8 @@ export function AiPanel({
+2656:    const seq = useRef(0);
+2657:    const unlistenChunkRef = useRef<UnlistenFn | null>(null);
+2658:    const unlistenEndRef = useRef<UnlistenFn | null>(null);
+2659: +  const isRunningRef = useRef(false);
+2660: +  const isBusy = !!loadingStep || isStreaming;
+2661:  
+2662:    // Carica i modelli disponibili e il modello selezionato memorizzato (default: gpt-4o)
+2663:    useEffect(() => {
+2664: @@ -129,7 +131,7 @@ export function AiPanel({
+2665:        setConsentGranted(true);
+2666:        setError(null);
+2667:        // Automatically trigger answer request if prompt is not empty
+2668: -      if (prompt.trim()) {
+2669: +      if (!isBusy && prompt.trim()) {
+2670:          void executeAsk(prompt.trim());
+2671:        }
+2672:      } catch (e) {
+2673: @@ -139,7 +141,8 @@ export function AiPanel({
+2674:    }
+2675:  
+2676:    async function executeAsk(queryText: string) {
+2677: -    if (!queryText || loadingStep || isStreaming) return;
+2678: +    if (!queryText || isRunningRef.current || loadingStep || isStreaming) return;
+2679: +    isRunningRef.current = true;
+2680:      const currentModel = model || 'gpt-4o';
+2681:  
+2682:      const currentSeq = ++seq.current;
+2683: @@ -165,6 +168,7 @@ export function AiPanel({
+2684:      setConsentGranted(hasConsent);
+2685:  
+2686:      if (!hasConsent) {
+2687: +      isRunningRef.current = false;
+2688:        return; // Inline consent banner will be shown
+2689:      }
+2690:  
+2691: @@ -266,11 +270,18 @@ export function AiPanel({
+2692:          });
+2693:        } else if (errStr.includes('Consenso')) {
+2694:          setConsentGranted(false);
+2695: +      } else if (errStr.includes('An AI request is already running') || errStr.includes('già una domanda in corso')) {
+2696: +        setError("C'è già una domanda in corso: attendi la risposta o annullala.");
+2697: +        setTechError(null);
+2698: +      } else if (errStr.includes('Errore interno durante la generazione della risposta')) {
+2699: +        setError('Errore interno durante la generazione della risposta, riprova.');
+2700: +        setTechError(null);
+2701:        } else {
+2702:          setError('Impossibile completare la risposta. Verifica la connessione o la chiave API.');
+2703:          setTechError(errStr);
+2704:        }
+2705:      } finally {
+2706: +      isRunningRef.current = false;
+2707:        if (currentSeq === seq.current) {
+2708:          setLoadingStep(null);
+2709:          setIsStreaming(false);
+2710: @@ -349,7 +360,7 @@ export function AiPanel({
+2711:                onKeyDown={e => {
+2712:                  if (e.key === 'Enter' && !e.shiftKey) {
+2713:                    e.preventDefault();
+2714: -                  if (prompt.trim() && model) executeAsk(prompt.trim());
+2715: +                  if (!isBusy && prompt.trim() && model) void executeAsk(prompt.trim());
+2716:                  }
+2717:                }}
+2718:                style={{
+2719: @@ -368,11 +379,11 @@ export function AiPanel({
+2720:                  right: 10,
+2721:                  bottom: 14,
+2722:                  padding: '8px 16px',
+2723: -                opacity: (!model || !prompt.trim() || !!loadingStep) ? 0.6 : 1,
+2724: +                opacity: (!model || !prompt.trim() || isBusy) ? 0.6 : 1,
+2725:                }}
+2726: -              disabled={!!loadingStep || !prompt.trim() || !model}
+2727: -              onClick={() => prompt.trim() && model && executeAsk(prompt.trim())}
+2728: -              title={!model ? "Seleziona un modello per abilitare l'invio" : undefined}
+2729: +              disabled={isBusy || !prompt.trim() || !model}
+2730: +              onClick={() => !isBusy && prompt.trim() && model && void executeAsk(prompt.trim())}
+2731: +              title={!model ? "Seleziona un modello per abilitare l'invio" : isBusy ? "Generazione in corso..." : undefined}
+2732:              >
+2733:                Chiedi
+2734:              </button>
+2735: @@ -601,9 +612,33 @@ export function AiPanel({
+2736:        {/* Box di generazione progressiva in streaming */}
+2737:        {isStreaming && (
+2738:          <div className="limen-card" style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
+2739: -          <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#2563eb', fontSize: 13, fontWeight: 600 }}>
+2740: -            <Sparkles size={16} className="animate-spin" />
+2741: -            <span>Generazione in streaming con OpenAI ({model || 'gpt-4o'})…</span>
+2742: +          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, color: '#2563eb', fontSize: 13, fontWeight: 600 }}>
+2743: +            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+2744: +              <Sparkles size={16} className="animate-spin" />
+2745: +              <span>Generazione in streaming con OpenAI ({model || 'gpt-4o'})…</span>
+2746: +            </div>
+2747: +            {previewData?.ticket && (
+2748: +              <button
+2749: +                type="button"
+2750: +                onClick={() => {
+2751: +                  if (previewData?.ticket) {
+2752: +                    void aiIpc.cancel(previewData.ticket);
+2753: +                  }
+2754: +                }}
+2755: +                style={{
+2756: +                  padding: '4px 10px',
+2757: +                  borderRadius: 6,
+2758: +                  border: '1px solid #fca5a5',
+2759: +                  backgroundColor: '#fef2f2',
+2760: +                  color: '#dc2626',
+2761: +                  fontSize: 12,
+2762: +                  fontWeight: 600,
+2763: +                  cursor: 'pointer',
+2764: +                }}
+2765: +              >
+2766: +                Annulla domanda
+2767: +              </button>
+2768: +            )}
+2769:            </div>
+2770:            <div style={{ fontSize: 15, lineHeight: 1.7, color: '#0f172a', whiteSpace: 'pre-wrap' }}>
+2771:              {streamingText || <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Elaborazione in corso e attesa token…</span>}

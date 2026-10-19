@@ -1,0 +1,2002 @@
+[
+  {
+    "Case": "E01",
+    "Revision": "e0afe10",
+    "SHA": "e0afe105507b592b6eb34c5c0eac24b77ba14264",
+    "ExeHash": "4744963EE3895A5D14FBDB66BD20912317F4CC13001FDDF07C8C786021025145",
+    "ProcessesBefore": [
+      {
+        "ProcessId": 41760,
+        "ParentProcessId": 41656,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_e0afe10\\apps\\desktop\\src-tauri\\resources\\native\\llama-server.exe",
+        "CreationDate": "2026-09-24T12:18:25.663962+08:00"
+      },
+      {
+        "ProcessId": 35380,
+        "ParentProcessId": 12500,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_e0afe10\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+        "CreationDate": "2026-09-24T12:20:48.24404+08:00"
+      }
+    ],
+    "UIObservation": {
+      "startUtc": "2026-09-24T04:22:55.36Z",
+      "observedMs": 9578
+    },
+    "UISourceCount": 10,
+    "Metrics": {
+      "timestamp": "2026-09-24T04:22:56.912Z",
+      "model": "gpt-4o",
+      "status": "errore (rete)",
+      "incomplete_reason": "OpenAI network error or timeout: error sending request for url (https://api.openai.com/v1/responses)",
+      "tokens_used": null,
+      "t_ui_total_ms": 1385,
+      "t_backend_total_ms": 1382,
+      "preview": {
+        "total_ms": 1251,
+        "index_cache_ms": 23,
+        "embed_ms": 0,
+        "search_ms": 1142,
+        "search_words_ms": 1141,
+        "search_sem_ms": 0,
+        "search_fuse_ms": 0,
+        "search_admit_ms": 0,
+        "doc_read_ms": 11,
+        "passage_extract_ms": 3
+      },
+      "t_handoff_ms": 77,
+      "ask": {
+        "total_ms": 54,
+        "verify_pre_ms": 12,
+        "payload_ms": 0,
+        "openai_ms": 41,
+        "verify_post_ms": 0,
+        "parse_ms": 0
+      },
+      "sources": [
+        {
+          "id": "S1",
+          "relative_path": "20_RAW_SOURCES/32f2a4081d13410e-BNXT CRM.md",
+          "bytes": 2439,
+          "locator": "Paragrafi 1-13, Paragrafi 52-68",
+          "cited": false
+        },
+        {
+          "id": "S2",
+          "relative_path": "20_RAW_SOURCES/a86061ba2701d614-_Progetto - BNXT AUDIT VICENZA.md",
+          "bytes": 555,
+          "locator": "Paragrafi 1-8",
+          "cited": false
+        },
+        {
+          "id": "S3",
+          "relative_path": "20_RAW_SOURCES/957b10627e45aa38-_INDICE.md",
+          "bytes": 1104,
+          "locator": "Paragrafi 1-2",
+          "cited": false
+        },
+        {
+          "id": "S4",
+          "relative_path": "20_RAW_SOURCES/5a54c2ce2f581cf2-verifica-walkthrough-ux-email-whatsapp-2026-09-10.md",
+          "bytes": 1742,
+          "locator": "Paragrafi 1-3, Paragrafo 4",
+          "cited": false
+        },
+        {
+          "id": "S5",
+          "relative_path": "20_RAW_SOURCES/1e755ab82023a095-verifica-impl-plan-ux-email-whatsapp-2026-09-10.md",
+          "bytes": 1463,
+          "locator": "Paragrafi 1-3, Paragrafo 4",
+          "cited": false
+        },
+        {
+          "id": "S6",
+          "relative_path": "20_RAW_SOURCES/abaef2b48c6e5b70-audit-localizzazione-EN-baseline-6f2f2b8.md",
+          "bytes": 2394,
+          "locator": "Paragrafi 1-4, Paragrafo 5, Paragrafo 6",
+          "cited": false
+        },
+        {
+          "id": "S7",
+          "relative_path": "20_RAW_SOURCES/cb67beeece396682-2026-02-13 - Redesign UI home page macOS app.md",
+          "bytes": 2335,
+          "locator": "Paragrafi 18-28, Paragrafi 29-42",
+          "cited": false
+        },
+        {
+          "id": "S8",
+          "relative_path": "20_RAW_SOURCES/c428eb949fc0201f-areas - packaging-in-italy.md",
+          "bytes": 1205,
+          "locator": "Paragrafi 1-3",
+          "cited": false
+        },
+        {
+          "id": "S9",
+          "relative_path": "20_RAW_SOURCES/966ef623917316c7-2026-02-16 - Creazione file Localizable.strings per iOS.md",
+          "bytes": 2381,
+          "locator": "Paragrafi 13-25, Paragrafo 133",
+          "cited": false
+        },
+        {
+          "id": "S10",
+          "relative_path": "20_RAW_SOURCES/e86a061e0f5becb0-_Progetto - Progetto senza nome 19-08-2026.md",
+          "bytes": 341,
+          "locator": "Paragrafi 1-8",
+          "cited": false
+        }
+      ]
+    },
+    "AskLogDeltaEmpty": false
+  },
+  {
+    "Case": "M01",
+    "Revision": "e0afe10",
+    "SHA": "e0afe105507b592b6eb34c5c0eac24b77ba14264",
+    "ExeHash": "4744963EE3895A5D14FBDB66BD20912317F4CC13001FDDF07C8C786021025145",
+    "ProcessesBefore": [
+      {
+        "ProcessId": 35380,
+        "ParentProcessId": 12500,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_e0afe10\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+        "CreationDate": "2026-09-24T12:20:48.24404+08:00"
+      },
+      {
+        "ProcessId": 28060,
+        "ParentProcessId": 35380,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_e0afe10\\apps\\desktop\\src-tauri\\target\\release\\native\\llama-server.exe",
+        "CreationDate": "2026-09-24T12:24:09.682527+08:00"
+      }
+    ],
+    "UIObservation": null,
+    "UISourceCount": 8,
+    "Metrics": {
+      "timestamp": "2026-09-24T04:26:38.264Z",
+      "model": "gpt-4o",
+      "status": "errore (rete)",
+      "incomplete_reason": "OpenAI network error or timeout: error sending request for url (https://api.openai.com/v1/responses)",
+      "tokens_used": null,
+      "t_ui_total_ms": 1648,
+      "t_backend_total_ms": 1644,
+      "preview": {
+        "total_ms": 1554,
+        "index_cache_ms": 28,
+        "embed_ms": 57,
+        "search_ms": 1378,
+        "search_words_ms": 1311,
+        "search_sem_ms": 46,
+        "search_fuse_ms": 3,
+        "search_admit_ms": 10,
+        "doc_read_ms": 9,
+        "passage_extract_ms": 2
+      },
+      "t_handoff_ms": 26,
+      "ask": {
+        "total_ms": 64,
+        "verify_pre_ms": 17,
+        "payload_ms": 0,
+        "openai_ms": 46,
+        "verify_post_ms": 0,
+        "parse_ms": 0
+      },
+      "sources": [
+        {
+          "id": "S1",
+          "relative_path": "20_RAW_SOURCES/32f2a4081d13410e-BNXT CRM.md",
+          "bytes": 2439,
+          "locator": "Paragrafi 1-13, Paragrafi 52-68",
+          "cited": false
+        },
+        {
+          "id": "S2",
+          "relative_path": "20_RAW_SOURCES/a86061ba2701d614-_Progetto - BNXT AUDIT VICENZA.md",
+          "bytes": 555,
+          "locator": "Paragrafi 1-8",
+          "cited": false
+        },
+        {
+          "id": "S3",
+          "relative_path": "20_RAW_SOURCES/d70f1c7b1d36f912-STEFANO APP.md",
+          "bytes": 2350,
+          "locator": "Paragrafi 224-234, Paragrafi 235-243",
+          "cited": false
+        },
+        {
+          "id": "S4",
+          "relative_path": "20_RAW_SOURCES/4245a51312c5c1f2-2026-04-07 - Workflow app iPhone nativa con Xcode.md",
+          "bytes": 2412,
+          "locator": "Paragrafi 6-11, Paragrafi 12-25",
+          "cited": false
+        },
+        {
+          "id": "S5",
+          "relative_path": "20_RAW_SOURCES/5a54c2ce2f581cf2-verifica-walkthrough-ux-email-whatsapp-2026-09-10.md",
+          "bytes": 1742,
+          "locator": "Paragrafi 1-3, Paragrafo 4",
+          "cited": false
+        },
+        {
+          "id": "S6",
+          "relative_path": "20_RAW_SOURCES/957b10627e45aa38-_INDICE.md",
+          "bytes": 1104,
+          "locator": "Paragrafi 1-2",
+          "cited": false
+        },
+        {
+          "id": "S7",
+          "relative_path": "20_RAW_SOURCES/abaef2b48c6e5b70-audit-localizzazione-EN-baseline-6f2f2b8.md",
+          "bytes": 2394,
+          "locator": "Paragrafi 1-4, Paragrafo 5, Paragrafo 6",
+          "cited": false
+        },
+        {
+          "id": "S8",
+          "relative_path": "20_RAW_SOURCES/1e755ab82023a095-verifica-impl-plan-ux-email-whatsapp-2026-09-10.md",
+          "bytes": 1463,
+          "locator": "Paragrafi 1-3, Paragrafo 4",
+          "cited": false
+        }
+      ]
+    },
+    "AskLogDeltaEmpty": false
+  },
+  {
+    "Case": "M02",
+    "Revision": "e0afe10",
+    "SHA": "e0afe105507b592b6eb34c5c0eac24b77ba14264",
+    "ExeHash": "4744963EE3895A5D14FBDB66BD20912317F4CC13001FDDF07C8C786021025145",
+    "ProcessesBefore": [
+      {
+        "ProcessId": 41760,
+        "ParentProcessId": 41656,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_e0afe10\\apps\\desktop\\src-tauri\\resources\\native\\llama-server.exe",
+        "CreationDate": "2026-09-24T12:18:25.663962+08:00"
+      },
+      {
+        "ProcessId": 35380,
+        "ParentProcessId": 12500,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_e0afe10\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+        "CreationDate": "2026-09-24T12:20:48.24404+08:00"
+      },
+      {
+        "ProcessId": 28060,
+        "ParentProcessId": 35380,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_e0afe10\\apps\\desktop\\src-tauri\\target\\release\\native\\llama-server.exe",
+        "CreationDate": "2026-09-24T12:24:09.682527+08:00"
+      }
+    ],
+    "UIObservation": null,
+    "UISourceCount": 8,
+    "Metrics": {
+      "timestamp": "2026-09-24T04:25:35.957Z",
+      "model": "gpt-4o",
+      "status": "errore (rete)",
+      "incomplete_reason": "OpenAI network error or timeout: error sending request for url (https://api.openai.com/v1/responses)",
+      "tokens_used": null,
+      "t_ui_total_ms": 1624,
+      "t_backend_total_ms": 1624,
+      "preview": {
+        "total_ms": 1553,
+        "index_cache_ms": 31,
+        "embed_ms": 61,
+        "search_ms": 1326,
+        "search_words_ms": 1237,
+        "search_sem_ms": 61,
+        "search_fuse_ms": 8,
+        "search_admit_ms": 21,
+        "doc_read_ms": 13,
+        "passage_extract_ms": 5
+      },
+      "t_handoff_ms": 43,
+      "ask": {
+        "total_ms": 28,
+        "verify_pre_ms": 24,
+        "payload_ms": 0,
+        "openai_ms": 3,
+        "verify_post_ms": 0,
+        "parse_ms": 0
+      },
+      "sources": [
+        {
+          "id": "S1",
+          "relative_path": "20_RAW_SOURCES/32f2a4081d13410e-BNXT CRM.md",
+          "bytes": 2439,
+          "locator": "Paragrafi 1-13, Paragrafi 52-68",
+          "cited": false
+        },
+        {
+          "id": "S2",
+          "relative_path": "20_RAW_SOURCES/a86061ba2701d614-_Progetto - BNXT AUDIT VICENZA.md",
+          "bytes": 555,
+          "locator": "Paragrafi 1-8",
+          "cited": false
+        },
+        {
+          "id": "S3",
+          "relative_path": "20_RAW_SOURCES/d70f1c7b1d36f912-STEFANO APP.md",
+          "bytes": 2350,
+          "locator": "Paragrafi 224-234, Paragrafi 235-243",
+          "cited": false
+        },
+        {
+          "id": "S4",
+          "relative_path": "20_RAW_SOURCES/4245a51312c5c1f2-2026-04-07 - Workflow app iPhone nativa con Xcode.md",
+          "bytes": 2412,
+          "locator": "Paragrafi 6-11, Paragrafi 12-25",
+          "cited": false
+        },
+        {
+          "id": "S5",
+          "relative_path": "20_RAW_SOURCES/5a54c2ce2f581cf2-verifica-walkthrough-ux-email-whatsapp-2026-09-10.md",
+          "bytes": 1742,
+          "locator": "Paragrafi 1-3, Paragrafo 4",
+          "cited": false
+        },
+        {
+          "id": "S6",
+          "relative_path": "20_RAW_SOURCES/957b10627e45aa38-_INDICE.md",
+          "bytes": 1104,
+          "locator": "Paragrafi 1-2",
+          "cited": false
+        },
+        {
+          "id": "S7",
+          "relative_path": "20_RAW_SOURCES/abaef2b48c6e5b70-audit-localizzazione-EN-baseline-6f2f2b8.md",
+          "bytes": 2394,
+          "locator": "Paragrafi 1-4, Paragrafo 5, Paragrafo 6",
+          "cited": false
+        },
+        {
+          "id": "S8",
+          "relative_path": "20_RAW_SOURCES/1e755ab82023a095-verifica-impl-plan-ux-email-whatsapp-2026-09-10.md",
+          "bytes": 1463,
+          "locator": "Paragrafi 1-3, Paragrafo 4",
+          "cited": false
+        }
+      ]
+    },
+    "AskLogDeltaEmpty": false
+  },
+  {
+    "Case": "M03",
+    "Revision": "e0afe10",
+    "SHA": "e0afe105507b592b6eb34c5c0eac24b77ba14264",
+    "ExeHash": "4744963EE3895A5D14FBDB66BD20912317F4CC13001FDDF07C8C786021025145",
+    "ProcessesBefore": [
+      {
+        "ProcessId": 35380,
+        "ParentProcessId": 12500,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_e0afe10\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+        "CreationDate": "2026-09-24T12:20:48.24404+08:00"
+      },
+      {
+        "ProcessId": 43216,
+        "ParentProcessId": 35380,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_e0afe10\\apps\\desktop\\src-tauri\\target\\release\\llama-server.exe",
+        "CreationDate": "2026-09-24T12:28:52.972541+08:00"
+      }
+    ],
+    "UIObservation": {
+      "start": "2026-09-24T04:30:49.222Z",
+      "elapsedMs": 72657
+    },
+    "UISourceCount": 10,
+    "Metrics": {
+      "timestamp": "2026-09-24T04:32:57.954Z",
+      "model": "gpt-4o",
+      "status": "errore (rete)",
+      "incomplete_reason": "OpenAI network error or timeout: error sending request for url (https://api.openai.com/v1/responses)",
+      "tokens_used": null,
+      "t_ui_total_ms": 128560,
+      "t_backend_total_ms": 2292,
+      "preview": {
+        "total_ms": 1179,
+        "index_cache_ms": 24,
+        "embed_ms": 0,
+        "search_ms": 1041,
+        "search_words_ms": 1041,
+        "search_sem_ms": 0,
+        "search_fuse_ms": 0,
+        "search_admit_ms": 0,
+        "doc_read_ms": 28,
+        "passage_extract_ms": 7
+      },
+      "t_handoff_ms": 32,
+      "ask": {
+        "total_ms": 1081,
+        "verify_pre_ms": 27,
+        "payload_ms": 0,
+        "openai_ms": 1053,
+        "verify_post_ms": 0,
+        "parse_ms": 0
+      },
+      "sources": [
+        {
+          "id": "S1",
+          "relative_path": "20_RAW_SOURCES/32f2a4081d13410e-BNXT CRM.md",
+          "bytes": 2439,
+          "locator": "Paragrafi 1-13, Paragrafi 52-68",
+          "cited": false
+        },
+        {
+          "id": "S2",
+          "relative_path": "20_RAW_SOURCES/a86061ba2701d614-_Progetto - BNXT AUDIT VICENZA.md",
+          "bytes": 555,
+          "locator": "Paragrafi 1-8",
+          "cited": false
+        },
+        {
+          "id": "S3",
+          "relative_path": "20_RAW_SOURCES/957b10627e45aa38-_INDICE.md",
+          "bytes": 1104,
+          "locator": "Paragrafi 1-2",
+          "cited": false
+        },
+        {
+          "id": "S4",
+          "relative_path": "20_RAW_SOURCES/5a54c2ce2f581cf2-verifica-walkthrough-ux-email-whatsapp-2026-09-10.md",
+          "bytes": 1742,
+          "locator": "Paragrafi 1-3, Paragrafo 4",
+          "cited": false
+        },
+        {
+          "id": "S5",
+          "relative_path": "20_RAW_SOURCES/1e755ab82023a095-verifica-impl-plan-ux-email-whatsapp-2026-09-10.md",
+          "bytes": 1463,
+          "locator": "Paragrafi 1-3, Paragrafo 4",
+          "cited": false
+        },
+        {
+          "id": "S6",
+          "relative_path": "20_RAW_SOURCES/abaef2b48c6e5b70-audit-localizzazione-EN-baseline-6f2f2b8.md",
+          "bytes": 2394,
+          "locator": "Paragrafi 1-4, Paragrafo 5, Paragrafo 6",
+          "cited": false
+        },
+        {
+          "id": "S7",
+          "relative_path": "20_RAW_SOURCES/cb67beeece396682-2026-02-13 - Redesign UI home page macOS app.md",
+          "bytes": 2335,
+          "locator": "Paragrafi 18-28, Paragrafi 29-42",
+          "cited": false
+        },
+        {
+          "id": "S8",
+          "relative_path": "20_RAW_SOURCES/c428eb949fc0201f-areas - packaging-in-italy.md",
+          "bytes": 1205,
+          "locator": "Paragrafi 1-3",
+          "cited": false
+        },
+        {
+          "id": "S9",
+          "relative_path": "20_RAW_SOURCES/966ef623917316c7-2026-02-16 - Creazione file Localizable.strings per iOS.md",
+          "bytes": 2381,
+          "locator": "Paragrafi 13-25, Paragrafo 133",
+          "cited": false
+        },
+        {
+          "id": "S10",
+          "relative_path": "20_RAW_SOURCES/e86a061e0f5becb0-_Progetto - Progetto senza nome 19-08-2026.md",
+          "bytes": 341,
+          "locator": "Paragrafi 1-8",
+          "cited": false
+        }
+      ]
+    },
+    "AskLogDeltaEmpty": false
+  },
+  {
+    "Case": "M03R",
+    "Revision": "e0afe10",
+    "SHA": "e0afe105507b592b6eb34c5c0eac24b77ba14264",
+    "ExeHash": "4744963EE3895A5D14FBDB66BD20912317F4CC13001FDDF07C8C786021025145",
+    "ProcessesBefore": [
+      {
+        "ProcessId": 34592,
+        "ParentProcessId": 20092,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_e0afe10\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+        "CreationDate": "2026-09-24T13:26:17.82338+08:00"
+      },
+      {
+        "ProcessId": 27016,
+        "ParentProcessId": 34592,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_e0afe10\\apps\\desktop\\src-tauri\\target\\release\\llama-server.exe",
+        "CreationDate": "2026-09-24T13:27:16.230537+08:00"
+      }
+    ],
+    "UIObservation": {
+      "at": "2026-09-24T05:29:26.208Z",
+      "caseStart": "2026-09-24T05:28:12.923Z",
+      "elapsedMs": 73285
+    },
+    "UISourceCount": 10,
+    "Metrics": {
+      "timestamp": "2026-09-24T05:29:55.335Z",
+      "model": "gpt-4o",
+      "status": "errore (rete)",
+      "incomplete_reason": "OpenAI network error or timeout: error sending request for url (https://api.openai.com/v1/responses)",
+      "tokens_used": null,
+      "t_ui_total_ms": 102169,
+      "t_backend_total_ms": 2581,
+      "preview": {
+        "total_ms": 1371,
+        "index_cache_ms": 29,
+        "embed_ms": 0,
+        "search_ms": 1247,
+        "search_words_ms": 1247,
+        "search_sem_ms": 0,
+        "search_fuse_ms": 0,
+        "search_admit_ms": 0,
+        "doc_read_ms": 22,
+        "passage_extract_ms": 5
+      },
+      "t_handoff_ms": 126,
+      "ask": {
+        "total_ms": 1084,
+        "verify_pre_ms": 16,
+        "payload_ms": 0,
+        "openai_ms": 1067,
+        "verify_post_ms": 0,
+        "parse_ms": 0
+      },
+      "sources": [
+        {
+          "id": "S1",
+          "relative_path": "20_RAW_SOURCES/32f2a4081d13410e-BNXT CRM.md",
+          "bytes": 2439,
+          "locator": "Paragrafi 1-13, Paragrafi 52-68",
+          "cited": false
+        },
+        {
+          "id": "S2",
+          "relative_path": "20_RAW_SOURCES/a86061ba2701d614-_Progetto - BNXT AUDIT VICENZA.md",
+          "bytes": 555,
+          "locator": "Paragrafi 1-8",
+          "cited": false
+        },
+        {
+          "id": "S3",
+          "relative_path": "20_RAW_SOURCES/957b10627e45aa38-_INDICE.md",
+          "bytes": 1104,
+          "locator": "Paragrafi 1-2",
+          "cited": false
+        },
+        {
+          "id": "S4",
+          "relative_path": "20_RAW_SOURCES/5a54c2ce2f581cf2-verifica-walkthrough-ux-email-whatsapp-2026-09-10.md",
+          "bytes": 1742,
+          "locator": "Paragrafi 1-3, Paragrafo 4",
+          "cited": false
+        },
+        {
+          "id": "S5",
+          "relative_path": "20_RAW_SOURCES/1e755ab82023a095-verifica-impl-plan-ux-email-whatsapp-2026-09-10.md",
+          "bytes": 1463,
+          "locator": "Paragrafi 1-3, Paragrafo 4",
+          "cited": false
+        },
+        {
+          "id": "S6",
+          "relative_path": "20_RAW_SOURCES/abaef2b48c6e5b70-audit-localizzazione-EN-baseline-6f2f2b8.md",
+          "bytes": 2394,
+          "locator": "Paragrafi 1-4, Paragrafo 5, Paragrafo 6",
+          "cited": false
+        },
+        {
+          "id": "S7",
+          "relative_path": "20_RAW_SOURCES/cb67beeece396682-2026-02-13 - Redesign UI home page macOS app.md",
+          "bytes": 2335,
+          "locator": "Paragrafi 18-28, Paragrafi 29-42",
+          "cited": false
+        },
+        {
+          "id": "S8",
+          "relative_path": "20_RAW_SOURCES/c428eb949fc0201f-areas - packaging-in-italy.md",
+          "bytes": 1205,
+          "locator": "Paragrafi 1-3",
+          "cited": false
+        },
+        {
+          "id": "S9",
+          "relative_path": "20_RAW_SOURCES/966ef623917316c7-2026-02-16 - Creazione file Localizable.strings per iOS.md",
+          "bytes": 2381,
+          "locator": "Paragrafi 13-25, Paragrafo 133",
+          "cited": false
+        },
+        {
+          "id": "S10",
+          "relative_path": "20_RAW_SOURCES/e86a061e0f5becb0-_Progetto - Progetto senza nome 19-08-2026.md",
+          "bytes": 341,
+          "locator": "Paragrafi 1-8",
+          "cited": false
+        }
+      ]
+    },
+    "AskLogDeltaEmpty": false
+  },
+  {
+    "Case": "M04",
+    "Revision": "e0afe10",
+    "SHA": "e0afe105507b592b6eb34c5c0eac24b77ba14264",
+    "ExeHash": "4744963EE3895A5D14FBDB66BD20912317F4CC13001FDDF07C8C786021025145",
+    "ProcessesBefore": [
+      {
+        "ProcessId": 35380,
+        "ParentProcessId": 12500,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_e0afe10\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+        "CreationDate": "2026-09-24T12:20:48.24404+08:00"
+      },
+      {
+        "ProcessId": 13260,
+        "ParentProcessId": 21896,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_e0afe10\\apps\\desktop\\src-tauri\\resources\\native\\llama-server.exe",
+        "CreationDate": "2026-09-24T12:33:38.829662+08:00"
+      },
+      {
+        "ProcessId": 39204,
+        "ParentProcessId": 35380,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_e0afe10\\apps\\desktop\\src-tauri\\target\\release\\llama-server.exe",
+        "CreationDate": "2026-09-24T12:34:56.656044+08:00"
+      }
+    ],
+    "UIObservation": {
+      "start": "2026-09-24T04:36:03.954Z",
+      "elapsedMs": 87600
+    },
+    "UISourceCount": 10,
+    "Metrics": {
+      "timestamp": "2026-09-24T04:37:40.786Z",
+      "model": "gpt-4o",
+      "status": "errore (rete)",
+      "incomplete_reason": "OpenAI network error or timeout: error sending request for url (https://api.openai.com/v1/responses)",
+      "tokens_used": null,
+      "t_ui_total_ms": 96642,
+      "t_backend_total_ms": 1633,
+      "preview": {
+        "total_ms": 1534,
+        "index_cache_ms": 28,
+        "embed_ms": 0,
+        "search_ms": 1361,
+        "search_words_ms": 1361,
+        "search_sem_ms": 0,
+        "search_fuse_ms": 0,
+        "search_admit_ms": 0,
+        "doc_read_ms": 32,
+        "passage_extract_ms": 9
+      },
+      "t_handoff_ms": 29,
+      "ask": {
+        "total_ms": 70,
+        "verify_pre_ms": 16,
+        "payload_ms": 0,
+        "openai_ms": 54,
+        "verify_post_ms": 0,
+        "parse_ms": 0
+      },
+      "sources": [
+        {
+          "id": "S1",
+          "relative_path": "20_RAW_SOURCES/32f2a4081d13410e-BNXT CRM.md",
+          "bytes": 2439,
+          "locator": "Paragrafi 1-13, Paragrafi 52-68",
+          "cited": false
+        },
+        {
+          "id": "S2",
+          "relative_path": "20_RAW_SOURCES/a86061ba2701d614-_Progetto - BNXT AUDIT VICENZA.md",
+          "bytes": 555,
+          "locator": "Paragrafi 1-8",
+          "cited": false
+        },
+        {
+          "id": "S3",
+          "relative_path": "20_RAW_SOURCES/957b10627e45aa38-_INDICE.md",
+          "bytes": 1104,
+          "locator": "Paragrafi 1-2",
+          "cited": false
+        },
+        {
+          "id": "S4",
+          "relative_path": "20_RAW_SOURCES/5a54c2ce2f581cf2-verifica-walkthrough-ux-email-whatsapp-2026-09-10.md",
+          "bytes": 1742,
+          "locator": "Paragrafi 1-3, Paragrafo 4",
+          "cited": false
+        },
+        {
+          "id": "S5",
+          "relative_path": "20_RAW_SOURCES/1e755ab82023a095-verifica-impl-plan-ux-email-whatsapp-2026-09-10.md",
+          "bytes": 1463,
+          "locator": "Paragrafi 1-3, Paragrafo 4",
+          "cited": false
+        },
+        {
+          "id": "S6",
+          "relative_path": "20_RAW_SOURCES/abaef2b48c6e5b70-audit-localizzazione-EN-baseline-6f2f2b8.md",
+          "bytes": 2394,
+          "locator": "Paragrafi 1-4, Paragrafo 5, Paragrafo 6",
+          "cited": false
+        },
+        {
+          "id": "S7",
+          "relative_path": "20_RAW_SOURCES/cb67beeece396682-2026-02-13 - Redesign UI home page macOS app.md",
+          "bytes": 2335,
+          "locator": "Paragrafi 18-28, Paragrafi 29-42",
+          "cited": false
+        },
+        {
+          "id": "S8",
+          "relative_path": "20_RAW_SOURCES/c428eb949fc0201f-areas - packaging-in-italy.md",
+          "bytes": 1205,
+          "locator": "Paragrafi 1-3",
+          "cited": false
+        },
+        {
+          "id": "S9",
+          "relative_path": "20_RAW_SOURCES/966ef623917316c7-2026-02-16 - Creazione file Localizable.strings per iOS.md",
+          "bytes": 2381,
+          "locator": "Paragrafi 13-25, Paragrafo 133",
+          "cited": false
+        },
+        {
+          "id": "S10",
+          "relative_path": "20_RAW_SOURCES/e86a061e0f5becb0-_Progetto - Progetto senza nome 19-08-2026.md",
+          "bytes": 341,
+          "locator": "Paragrafi 1-8",
+          "cited": false
+        }
+      ]
+    },
+    "AskLogDeltaEmpty": false
+  },
+  {
+    "Case": "M05",
+    "Revision": "ef2532c",
+    "SHA": "ef2532ca700c712b4c68d25fd26324702dce0782",
+    "ExeHash": "CA24FE5B2AB1C7DF4C1F23BC831F90086CE2CC94F1AFF930CABE74C8976C73A1",
+    "ProcessesBefore": [
+      {
+        "ProcessId": 42180,
+        "ParentProcessId": 36812,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_ef2532c\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+        "CreationDate": "2026-09-24T12:55:56.874076+08:00"
+      },
+      {
+        "ProcessId": 30500,
+        "ParentProcessId": 42180,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_ef2532c\\apps\\desktop\\src-tauri\\target\\release\\native\\llama-server.exe",
+        "CreationDate": "2026-09-24T12:57:32.700896+08:00"
+      }
+    ],
+    "UIObservation": {
+      "at": "2026-09-24T04:59:44.964Z",
+      "caseStart": "2026-09-24T04:59:17.526Z",
+      "elapsedMs": 27438
+    },
+    "UISourceCount": 8,
+    "Metrics": {
+      "timestamp": "2026-09-24T04:59:19.288Z",
+      "model": "gpt-4o",
+      "status": "errore (rete)",
+      "incomplete_reason": "OpenAI network error or timeout: error sending request for url (https://api.openai.com/v1/responses)",
+      "tokens_used": null,
+      "t_ui_total_ms": 1554,
+      "t_backend_total_ms": 1556,
+      "preview": {
+        "total_ms": 1503,
+        "index_cache_ms": 24,
+        "embed_ms": 74,
+        "search_ms": 1316,
+        "search_words_ms": 1242,
+        "search_sem_ms": 48,
+        "search_fuse_ms": 4,
+        "search_admit_ms": 11,
+        "doc_read_ms": 10,
+        "passage_extract_ms": 2
+      },
+      "t_handoff_ms": 28,
+      "ask": {
+        "total_ms": 25,
+        "verify_pre_ms": 15,
+        "payload_ms": 0,
+        "openai_ms": 9,
+        "verify_post_ms": 0,
+        "parse_ms": 0
+      },
+      "sources": [
+        {
+          "id": "S1",
+          "relative_path": "20_RAW_SOURCES/32f2a4081d13410e-BNXT CRM.md",
+          "bytes": 2439,
+          "locator": "Paragrafi 1-13, Paragrafi 52-68",
+          "cited": false
+        },
+        {
+          "id": "S2",
+          "relative_path": "20_RAW_SOURCES/a86061ba2701d614-_Progetto - BNXT AUDIT VICENZA.md",
+          "bytes": 555,
+          "locator": "Paragrafi 1-8",
+          "cited": false
+        },
+        {
+          "id": "S3",
+          "relative_path": "20_RAW_SOURCES/d70f1c7b1d36f912-STEFANO APP.md",
+          "bytes": 2350,
+          "locator": "Paragrafi 224-234, Paragrafi 235-243",
+          "cited": false
+        },
+        {
+          "id": "S4",
+          "relative_path": "20_RAW_SOURCES/4245a51312c5c1f2-2026-04-07 - Workflow app iPhone nativa con Xcode.md",
+          "bytes": 2412,
+          "locator": "Paragrafi 6-11, Paragrafi 12-25",
+          "cited": false
+        },
+        {
+          "id": "S5",
+          "relative_path": "20_RAW_SOURCES/5a54c2ce2f581cf2-verifica-walkthrough-ux-email-whatsapp-2026-09-10.md",
+          "bytes": 1742,
+          "locator": "Paragrafi 1-3, Paragrafo 4",
+          "cited": false
+        },
+        {
+          "id": "S6",
+          "relative_path": "20_RAW_SOURCES/957b10627e45aa38-_INDICE.md",
+          "bytes": 1104,
+          "locator": "Paragrafi 1-2",
+          "cited": false
+        },
+        {
+          "id": "S7",
+          "relative_path": "20_RAW_SOURCES/abaef2b48c6e5b70-audit-localizzazione-EN-baseline-6f2f2b8.md",
+          "bytes": 2394,
+          "locator": "Paragrafi 1-4, Paragrafo 5, Paragrafo 6",
+          "cited": false
+        },
+        {
+          "id": "S8",
+          "relative_path": "20_RAW_SOURCES/1e755ab82023a095-verifica-impl-plan-ux-email-whatsapp-2026-09-10.md",
+          "bytes": 1463,
+          "locator": "Paragrafi 1-3, Paragrafo 4",
+          "cited": false
+        }
+      ]
+    },
+    "AskLogDeltaEmpty": false
+  },
+  {
+    "Case": "M06",
+    "Revision": "ef2532c",
+    "SHA": "ef2532ca700c712b4c68d25fd26324702dce0782",
+    "ExeHash": "CA24FE5B2AB1C7DF4C1F23BC831F90086CE2CC94F1AFF930CABE74C8976C73A1",
+    "ProcessesBefore": [
+      {
+        "ProcessId": 19976,
+        "ParentProcessId": 42304,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_67da90f\\apps\\desktop\\src-tauri\\resources\\native\\llama-server.exe",
+        "CreationDate": "2026-09-24T12:48:54.733203+08:00"
+      },
+      {
+        "ProcessId": 42180,
+        "ParentProcessId": 36812,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_ef2532c\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+        "CreationDate": "2026-09-24T12:55:56.874076+08:00"
+      },
+      {
+        "ProcessId": 30500,
+        "ParentProcessId": 42180,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_ef2532c\\apps\\desktop\\src-tauri\\target\\release\\native\\llama-server.exe",
+        "CreationDate": "2026-09-24T12:57:32.700896+08:00"
+      }
+    ],
+    "UIObservation": {
+      "at": "2026-09-24T04:58:55.934Z",
+      "caseStart": "2026-09-24T04:58:32.522Z",
+      "elapsedMs": 23412
+    },
+    "UISourceCount": 8,
+    "Metrics": {
+      "timestamp": "2026-09-24T04:58:33.913Z",
+      "model": "gpt-4o",
+      "status": "errore (rete)",
+      "incomplete_reason": "OpenAI network error or timeout: error sending request for url (https://api.openai.com/v1/responses)",
+      "tokens_used": null,
+      "t_ui_total_ms": 1220,
+      "t_backend_total_ms": 1218,
+      "preview": {
+        "total_ms": 1149,
+        "index_cache_ms": 23,
+        "embed_ms": 60,
+        "search_ms": 989,
+        "search_words_ms": 932,
+        "search_sem_ms": 39,
+        "search_fuse_ms": 3,
+        "search_admit_ms": 8,
+        "doc_read_ms": 5,
+        "passage_extract_ms": 0
+      },
+      "t_handoff_ms": 50,
+      "ask": {
+        "total_ms": 19,
+        "verify_pre_ms": 16,
+        "payload_ms": 0,
+        "openai_ms": 2,
+        "verify_post_ms": 0,
+        "parse_ms": 0
+      },
+      "sources": [
+        {
+          "id": "S1",
+          "relative_path": "20_RAW_SOURCES/32f2a4081d13410e-BNXT CRM.md",
+          "bytes": 2439,
+          "locator": "Paragrafi 1-13, Paragrafi 52-68",
+          "cited": false
+        },
+        {
+          "id": "S2",
+          "relative_path": "20_RAW_SOURCES/a86061ba2701d614-_Progetto - BNXT AUDIT VICENZA.md",
+          "bytes": 555,
+          "locator": "Paragrafi 1-8",
+          "cited": false
+        },
+        {
+          "id": "S3",
+          "relative_path": "20_RAW_SOURCES/d70f1c7b1d36f912-STEFANO APP.md",
+          "bytes": 2350,
+          "locator": "Paragrafi 224-234, Paragrafi 235-243",
+          "cited": false
+        },
+        {
+          "id": "S4",
+          "relative_path": "20_RAW_SOURCES/4245a51312c5c1f2-2026-04-07 - Workflow app iPhone nativa con Xcode.md",
+          "bytes": 2412,
+          "locator": "Paragrafi 6-11, Paragrafi 12-25",
+          "cited": false
+        },
+        {
+          "id": "S5",
+          "relative_path": "20_RAW_SOURCES/5a54c2ce2f581cf2-verifica-walkthrough-ux-email-whatsapp-2026-09-10.md",
+          "bytes": 1742,
+          "locator": "Paragrafi 1-3, Paragrafo 4",
+          "cited": false
+        },
+        {
+          "id": "S6",
+          "relative_path": "20_RAW_SOURCES/957b10627e45aa38-_INDICE.md",
+          "bytes": 1104,
+          "locator": "Paragrafi 1-2",
+          "cited": false
+        },
+        {
+          "id": "S7",
+          "relative_path": "20_RAW_SOURCES/abaef2b48c6e5b70-audit-localizzazione-EN-baseline-6f2f2b8.md",
+          "bytes": 2394,
+          "locator": "Paragrafi 1-4, Paragrafo 5, Paragrafo 6",
+          "cited": false
+        },
+        {
+          "id": "S8",
+          "relative_path": "20_RAW_SOURCES/1e755ab82023a095-verifica-impl-plan-ux-email-whatsapp-2026-09-10.md",
+          "bytes": 1463,
+          "locator": "Paragrafi 1-3, Paragrafo 4",
+          "cited": false
+        }
+      ]
+    },
+    "AskLogDeltaEmpty": false
+  },
+  {
+    "Case": "M07",
+    "Revision": "ef2532c",
+    "SHA": "ef2532ca700c712b4c68d25fd26324702dce0782",
+    "ExeHash": "CA24FE5B2AB1C7DF4C1F23BC831F90086CE2CC94F1AFF930CABE74C8976C73A1",
+    "ProcessesBefore": [
+      {
+        "ProcessId": 42180,
+        "ParentProcessId": 36812,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_ef2532c\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+        "CreationDate": "2026-09-24T12:55:56.874076+08:00"
+      },
+      {
+        "ProcessId": 11952,
+        "ParentProcessId": 42180,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_ef2532c\\apps\\desktop\\src-tauri\\target\\release\\llama-server.exe",
+        "CreationDate": "2026-09-24T13:00:28.783827+08:00"
+      }
+    ],
+    "UIObservation": {
+      "at": "2026-09-24T05:06:12.932Z",
+      "caseStart": "2026-09-24T05:04:53.273Z",
+      "elapsedMs": 79659
+    },
+    "UISourceCount": 10,
+    "Metrics": {
+      "timestamp": "2026-09-24T05:06:43.05Z",
+      "model": "gpt-4o",
+      "status": "errore (rete)",
+      "incomplete_reason": "OpenAI network error or timeout: error sending request for url (https://api.openai.com/v1/responses)",
+      "tokens_used": null,
+      "t_ui_total_ms": 109608,
+      "t_backend_total_ms": 2014,
+      "preview": {
+        "total_ms": 900,
+        "index_cache_ms": 28,
+        "embed_ms": 0,
+        "search_ms": 788,
+        "search_words_ms": 788,
+        "search_sem_ms": 0,
+        "search_fuse_ms": 0,
+        "search_admit_ms": 0,
+        "doc_read_ms": 15,
+        "passage_extract_ms": 2
+      },
+      "t_handoff_ms": 22,
+      "ask": {
+        "total_ms": 1092,
+        "verify_pre_ms": 15,
+        "payload_ms": 0,
+        "openai_ms": 1076,
+        "verify_post_ms": 0,
+        "parse_ms": 0
+      },
+      "sources": [
+        {
+          "id": "S1",
+          "relative_path": "20_RAW_SOURCES/32f2a4081d13410e-BNXT CRM.md",
+          "bytes": 2439,
+          "locator": "Paragrafi 1-13, Paragrafi 52-68",
+          "cited": false
+        },
+        {
+          "id": "S2",
+          "relative_path": "20_RAW_SOURCES/a86061ba2701d614-_Progetto - BNXT AUDIT VICENZA.md",
+          "bytes": 555,
+          "locator": "Paragrafi 1-8",
+          "cited": false
+        },
+        {
+          "id": "S3",
+          "relative_path": "20_RAW_SOURCES/957b10627e45aa38-_INDICE.md",
+          "bytes": 1104,
+          "locator": "Paragrafi 1-2",
+          "cited": false
+        },
+        {
+          "id": "S4",
+          "relative_path": "20_RAW_SOURCES/5a54c2ce2f581cf2-verifica-walkthrough-ux-email-whatsapp-2026-09-10.md",
+          "bytes": 1742,
+          "locator": "Paragrafi 1-3, Paragrafo 4",
+          "cited": false
+        },
+        {
+          "id": "S5",
+          "relative_path": "20_RAW_SOURCES/1e755ab82023a095-verifica-impl-plan-ux-email-whatsapp-2026-09-10.md",
+          "bytes": 1463,
+          "locator": "Paragrafi 1-3, Paragrafo 4",
+          "cited": false
+        },
+        {
+          "id": "S6",
+          "relative_path": "20_RAW_SOURCES/abaef2b48c6e5b70-audit-localizzazione-EN-baseline-6f2f2b8.md",
+          "bytes": 2394,
+          "locator": "Paragrafi 1-4, Paragrafo 5, Paragrafo 6",
+          "cited": false
+        },
+        {
+          "id": "S7",
+          "relative_path": "20_RAW_SOURCES/cb67beeece396682-2026-02-13 - Redesign UI home page macOS app.md",
+          "bytes": 2335,
+          "locator": "Paragrafi 18-28, Paragrafi 29-42",
+          "cited": false
+        },
+        {
+          "id": "S8",
+          "relative_path": "20_RAW_SOURCES/c428eb949fc0201f-areas - packaging-in-italy.md",
+          "bytes": 1205,
+          "locator": "Paragrafi 1-3",
+          "cited": false
+        },
+        {
+          "id": "S9",
+          "relative_path": "20_RAW_SOURCES/966ef623917316c7-2026-02-16 - Creazione file Localizable.strings per iOS.md",
+          "bytes": 2381,
+          "locator": "Paragrafi 13-25, Paragrafo 133",
+          "cited": false
+        },
+        {
+          "id": "S10",
+          "relative_path": "20_RAW_SOURCES/e86a061e0f5becb0-_Progetto - Progetto senza nome 19-08-2026.md",
+          "bytes": 341,
+          "locator": "Paragrafi 1-8",
+          "cited": false
+        }
+      ]
+    },
+    "AskLogDeltaEmpty": false
+  },
+  {
+    "Case": "M08",
+    "Revision": "ef2532c",
+    "SHA": "ef2532ca700c712b4c68d25fd26324702dce0782",
+    "ExeHash": "CA24FE5B2AB1C7DF4C1F23BC831F90086CE2CC94F1AFF930CABE74C8976C73A1",
+    "ProcessesBefore": [
+      {
+        "ProcessId": 42180,
+        "ParentProcessId": 36812,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_ef2532c\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+        "CreationDate": "2026-09-24T12:55:56.874076+08:00"
+      },
+      {
+        "ProcessId": 33100,
+        "ParentProcessId": 22036,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_ef2532c\\apps\\desktop\\src-tauri\\resources\\native\\llama-server.exe",
+        "CreationDate": "2026-09-24T13:07:15.971395+08:00"
+      },
+      {
+        "ProcessId": 6904,
+        "ParentProcessId": 42180,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_ef2532c\\apps\\desktop\\src-tauri\\target\\release\\llama-server.exe",
+        "CreationDate": "2026-09-24T13:07:57.337616+08:00"
+      }
+    ],
+    "UIObservation": {
+      "at": "2026-09-24T05:09:55.874Z",
+      "caseStart": "2026-09-24T05:08:36.128Z",
+      "elapsedMs": 79746
+    },
+    "UISourceCount": 10,
+    "Metrics": {
+      "timestamp": "2026-09-24T05:10:20.549Z",
+      "model": "gpt-4o",
+      "status": "errore (rete)",
+      "incomplete_reason": "OpenAI network error or timeout: error sending request for url (https://api.openai.com/v1/responses)",
+      "tokens_used": null,
+      "t_ui_total_ms": 104245,
+      "t_backend_total_ms": 2256,
+      "preview": {
+        "total_ms": 1166,
+        "index_cache_ms": 23,
+        "embed_ms": 0,
+        "search_ms": 1057,
+        "search_words_ms": 1057,
+        "search_sem_ms": 0,
+        "search_fuse_ms": 0,
+        "search_admit_ms": 0,
+        "doc_read_ms": 20,
+        "passage_extract_ms": 2
+      },
+      "t_handoff_ms": 25,
+      "ask": {
+        "total_ms": 1065,
+        "verify_pre_ms": 14,
+        "payload_ms": 0,
+        "openai_ms": 1051,
+        "verify_post_ms": 0,
+        "parse_ms": 0
+      },
+      "sources": [
+        {
+          "id": "S1",
+          "relative_path": "20_RAW_SOURCES/32f2a4081d13410e-BNXT CRM.md",
+          "bytes": 2439,
+          "locator": "Paragrafi 1-13, Paragrafi 52-68",
+          "cited": false
+        },
+        {
+          "id": "S2",
+          "relative_path": "20_RAW_SOURCES/a86061ba2701d614-_Progetto - BNXT AUDIT VICENZA.md",
+          "bytes": 555,
+          "locator": "Paragrafi 1-8",
+          "cited": false
+        },
+        {
+          "id": "S3",
+          "relative_path": "20_RAW_SOURCES/957b10627e45aa38-_INDICE.md",
+          "bytes": 1104,
+          "locator": "Paragrafi 1-2",
+          "cited": false
+        },
+        {
+          "id": "S4",
+          "relative_path": "20_RAW_SOURCES/5a54c2ce2f581cf2-verifica-walkthrough-ux-email-whatsapp-2026-09-10.md",
+          "bytes": 1742,
+          "locator": "Paragrafi 1-3, Paragrafo 4",
+          "cited": false
+        },
+        {
+          "id": "S5",
+          "relative_path": "20_RAW_SOURCES/1e755ab82023a095-verifica-impl-plan-ux-email-whatsapp-2026-09-10.md",
+          "bytes": 1463,
+          "locator": "Paragrafi 1-3, Paragrafo 4",
+          "cited": false
+        },
+        {
+          "id": "S6",
+          "relative_path": "20_RAW_SOURCES/abaef2b48c6e5b70-audit-localizzazione-EN-baseline-6f2f2b8.md",
+          "bytes": 2394,
+          "locator": "Paragrafi 1-4, Paragrafo 5, Paragrafo 6",
+          "cited": false
+        },
+        {
+          "id": "S7",
+          "relative_path": "20_RAW_SOURCES/cb67beeece396682-2026-02-13 - Redesign UI home page macOS app.md",
+          "bytes": 2335,
+          "locator": "Paragrafi 18-28, Paragrafi 29-42",
+          "cited": false
+        },
+        {
+          "id": "S8",
+          "relative_path": "20_RAW_SOURCES/c428eb949fc0201f-areas - packaging-in-italy.md",
+          "bytes": 1205,
+          "locator": "Paragrafi 1-3",
+          "cited": false
+        },
+        {
+          "id": "S9",
+          "relative_path": "20_RAW_SOURCES/966ef623917316c7-2026-02-16 - Creazione file Localizable.strings per iOS.md",
+          "bytes": 2381,
+          "locator": "Paragrafi 13-25, Paragrafo 133",
+          "cited": false
+        },
+        {
+          "id": "S10",
+          "relative_path": "20_RAW_SOURCES/e86a061e0f5becb0-_Progetto - Progetto senza nome 19-08-2026.md",
+          "bytes": 341,
+          "locator": "Paragrafi 1-8",
+          "cited": false
+        }
+      ]
+    },
+    "AskLogDeltaEmpty": false
+  },
+  {
+    "Case": "M09",
+    "Revision": "efa0cef",
+    "SHA": "efa0cefab5da83e8de3b3418a92285438c63fb36",
+    "ExeHash": "F34A5D97F13E2651239BB2E38B094427423645CAB4F0EF8C03AA60F8FEC3A712",
+    "ProcessesBefore": [
+      {
+        "ProcessId": 41388,
+        "ParentProcessId": 20716,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_efa0cef\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+        "CreationDate": "2026-09-24T13:13:52.73041+08:00"
+      },
+      {
+        "ProcessId": 19044,
+        "ParentProcessId": 41388,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_efa0cef\\apps\\desktop\\src-tauri\\target\\release\\native\\llama-server.exe",
+        "CreationDate": "2026-09-24T13:15:36.850724+08:00"
+      }
+    ],
+    "UIObservation": {
+      "at": "2026-09-24T05:18:37.231Z",
+      "caseStart": "2026-09-24T05:18:32.162Z",
+      "elapsedMs": 5069
+    },
+    "UISourceCount": 8,
+    "Metrics": null,
+    "AskLogDeltaEmpty": true
+  },
+  {
+    "Case": "M10",
+    "Revision": "efa0cef",
+    "SHA": "efa0cefab5da83e8de3b3418a92285438c63fb36",
+    "ExeHash": "F34A5D97F13E2651239BB2E38B094427423645CAB4F0EF8C03AA60F8FEC3A712",
+    "ProcessesBefore": [
+      {
+        "ProcessId": 33100,
+        "ParentProcessId": 22036,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_ef2532c\\apps\\desktop\\src-tauri\\resources\\native\\llama-server.exe",
+        "CreationDate": "2026-09-24T13:07:15.971395+08:00"
+      },
+      {
+        "ProcessId": 41388,
+        "ParentProcessId": 20716,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_efa0cef\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+        "CreationDate": "2026-09-24T13:13:52.73041+08:00"
+      },
+      {
+        "ProcessId": 19044,
+        "ParentProcessId": 41388,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_efa0cef\\apps\\desktop\\src-tauri\\target\\release\\native\\llama-server.exe",
+        "CreationDate": "2026-09-24T13:15:36.850724+08:00"
+      }
+    ],
+    "UIObservation": {
+      "at": "2026-09-24T05:16:34.323Z",
+      "caseStart": "2026-09-24T05:16:16.717Z",
+      "elapsedMs": 17606
+    },
+    "UISourceCount": 8,
+    "Metrics": null,
+    "AskLogDeltaEmpty": true
+  },
+  {
+    "Case": "M11",
+    "Revision": "efa0cef",
+    "SHA": "efa0cefab5da83e8de3b3418a92285438c63fb36",
+    "ExeHash": "F34A5D97F13E2651239BB2E38B094427423645CAB4F0EF8C03AA60F8FEC3A712",
+    "ProcessesBefore": [
+      {
+        "ProcessId": 41388,
+        "ParentProcessId": 20716,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_efa0cef\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+        "CreationDate": "2026-09-24T13:13:52.73041+08:00"
+      },
+      {
+        "ProcessId": 34716,
+        "ParentProcessId": 41388,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_efa0cef\\apps\\desktop\\src-tauri\\target\\release\\llama-server.exe",
+        "CreationDate": "2026-09-24T13:19:12.942655+08:00"
+      }
+    ],
+    "UIObservation": {
+      "at": "2026-09-24T05:21:21.921Z",
+      "caseStart": "2026-09-24T05:19:58.073Z",
+      "elapsedMs": 83849
+    },
+    "UISourceCount": 10,
+    "Metrics": null,
+    "AskLogDeltaEmpty": true
+  },
+  {
+    "Case": "M12",
+    "Revision": "efa0cef",
+    "SHA": "efa0cefab5da83e8de3b3418a92285438c63fb36",
+    "ExeHash": "F34A5D97F13E2651239BB2E38B094427423645CAB4F0EF8C03AA60F8FEC3A712",
+    "ProcessesBefore": [
+      {
+        "ProcessId": 41388,
+        "ParentProcessId": 20716,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_efa0cef\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+        "CreationDate": "2026-09-24T13:13:52.73041+08:00"
+      },
+      {
+        "ProcessId": 4736,
+        "ParentProcessId": 16304,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_efa0cef\\apps\\desktop\\src-tauri\\resources\\native\\llama-server.exe",
+        "CreationDate": "2026-09-24T13:22:04.862965+08:00"
+      },
+      {
+        "ProcessId": 28108,
+        "ParentProcessId": 41388,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_efa0cef\\apps\\desktop\\src-tauri\\target\\release\\llama-server.exe",
+        "CreationDate": "2026-09-24T13:22:47.985596+08:00"
+      }
+    ],
+    "UIObservation": {
+      "at": "2026-09-24T05:24:55.472Z",
+      "caseStart": "2026-09-24T05:23:33.573Z",
+      "elapsedMs": 81899
+    },
+    "UISourceCount": 10,
+    "Metrics": null,
+    "AskLogDeltaEmpty": true
+  },
+  {
+    "Case": "E02",
+    "Revision": "67da90f",
+    "SHA": "67da90f5aeb4af6817f20b8e7f64a1de1daa3662",
+    "ExeHash": "2FC44CC3722DA7B1472515D456F253AE5AAC1FCB17ACF37DC47CEF84ACB2EFEC",
+    "ProcessesBefore": [
+      {
+        "ProcessId": 13260,
+        "ParentProcessId": 21896,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_e0afe10\\apps\\desktop\\src-tauri\\resources\\native\\llama-server.exe",
+        "CreationDate": "2026-09-24T12:33:38.829662+08:00"
+      },
+      {
+        "ProcessId": 7112,
+        "ParentProcessId": 10956,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_67da90f\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+        "CreationDate": "2026-09-24T12:41:50.216155+08:00"
+      }
+    ],
+    "UIObservation": {
+      "at": "2026-09-24T04:43:06.968Z",
+      "caseStart": "2026-09-24T04:42:53.796Z",
+      "elapsedMs": 13172
+    },
+    "UISourceCount": 10,
+    "Metrics": {
+      "timestamp": "2026-09-24T04:42:55.222Z",
+      "model": "gpt-4o",
+      "status": "errore (rete)",
+      "incomplete_reason": "OpenAI network error or timeout: error sending request for url (https://api.openai.com/v1/responses)",
+      "tokens_used": null,
+      "t_ui_total_ms": 1277,
+      "t_backend_total_ms": 1276,
+      "preview": {
+        "total_ms": 1191,
+        "index_cache_ms": 20,
+        "embed_ms": 0,
+        "search_ms": 1078,
+        "search_words_ms": 1078,
+        "search_sem_ms": 0,
+        "search_fuse_ms": 0,
+        "search_admit_ms": 0,
+        "doc_read_ms": 24,
+        "passage_extract_ms": 7
+      },
+      "t_handoff_ms": 58,
+      "ask": {
+        "total_ms": 27,
+        "verify_pre_ms": 17,
+        "payload_ms": 0,
+        "openai_ms": 9,
+        "verify_post_ms": 0,
+        "parse_ms": 0
+      },
+      "sources": [
+        {
+          "id": "S1",
+          "relative_path": "20_RAW_SOURCES/32f2a4081d13410e-BNXT CRM.md",
+          "bytes": 2439,
+          "locator": "Paragrafi 1-13, Paragrafi 52-68",
+          "cited": false
+        },
+        {
+          "id": "S2",
+          "relative_path": "20_RAW_SOURCES/a86061ba2701d614-_Progetto - BNXT AUDIT VICENZA.md",
+          "bytes": 555,
+          "locator": "Paragrafi 1-8",
+          "cited": false
+        },
+        {
+          "id": "S3",
+          "relative_path": "20_RAW_SOURCES/957b10627e45aa38-_INDICE.md",
+          "bytes": 1104,
+          "locator": "Paragrafi 1-2",
+          "cited": false
+        },
+        {
+          "id": "S4",
+          "relative_path": "20_RAW_SOURCES/5a54c2ce2f581cf2-verifica-walkthrough-ux-email-whatsapp-2026-09-10.md",
+          "bytes": 1742,
+          "locator": "Paragrafi 1-3, Paragrafo 4",
+          "cited": false
+        },
+        {
+          "id": "S5",
+          "relative_path": "20_RAW_SOURCES/1e755ab82023a095-verifica-impl-plan-ux-email-whatsapp-2026-09-10.md",
+          "bytes": 1463,
+          "locator": "Paragrafi 1-3, Paragrafo 4",
+          "cited": false
+        },
+        {
+          "id": "S6",
+          "relative_path": "20_RAW_SOURCES/abaef2b48c6e5b70-audit-localizzazione-EN-baseline-6f2f2b8.md",
+          "bytes": 2394,
+          "locator": "Paragrafi 1-4, Paragrafo 5, Paragrafo 6",
+          "cited": false
+        },
+        {
+          "id": "S7",
+          "relative_path": "20_RAW_SOURCES/cb67beeece396682-2026-02-13 - Redesign UI home page macOS app.md",
+          "bytes": 2335,
+          "locator": "Paragrafi 18-28, Paragrafi 29-42",
+          "cited": false
+        },
+        {
+          "id": "S8",
+          "relative_path": "20_RAW_SOURCES/c428eb949fc0201f-areas - packaging-in-italy.md",
+          "bytes": 1205,
+          "locator": "Paragrafi 1-3",
+          "cited": false
+        },
+        {
+          "id": "S9",
+          "relative_path": "20_RAW_SOURCES/966ef623917316c7-2026-02-16 - Creazione file Localizable.strings per iOS.md",
+          "bytes": 2381,
+          "locator": "Paragrafi 13-25, Paragrafo 133",
+          "cited": false
+        },
+        {
+          "id": "S10",
+          "relative_path": "20_RAW_SOURCES/e86a061e0f5becb0-_Progetto - Progetto senza nome 19-08-2026.md",
+          "bytes": 341,
+          "locator": "Paragrafi 1-8",
+          "cited": false
+        }
+      ]
+    },
+    "AskLogDeltaEmpty": false
+  },
+  {
+    "Case": "M13",
+    "Revision": "67da90f",
+    "SHA": "67da90f5aeb4af6817f20b8e7f64a1de1daa3662",
+    "ExeHash": "2FC44CC3722DA7B1472515D456F253AE5AAC1FCB17ACF37DC47CEF84ACB2EFEC",
+    "ProcessesBefore": [
+      {
+        "ProcessId": 7112,
+        "ParentProcessId": 10956,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_67da90f\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+        "CreationDate": "2026-09-24T12:41:50.216155+08:00"
+      },
+      {
+        "ProcessId": 26916,
+        "ParentProcessId": 7112,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_67da90f\\apps\\desktop\\src-tauri\\target\\release\\native\\llama-server.exe",
+        "CreationDate": "2026-09-24T12:43:44.780862+08:00"
+      }
+    ],
+    "UIObservation": {
+      "at": "2026-09-24T04:45:22.107Z",
+      "caseStart": "2026-09-24T04:45:03.425Z",
+      "elapsedMs": 18682
+    },
+    "UISourceCount": 8,
+    "Metrics": {
+      "timestamp": "2026-09-24T04:45:05.018Z",
+      "model": "gpt-4o",
+      "status": "errore (rete)",
+      "incomplete_reason": "OpenAI network error or timeout: error sending request for url (https://api.openai.com/v1/responses)",
+      "tokens_used": null,
+      "t_ui_total_ms": 1399,
+      "t_backend_total_ms": 1411,
+      "preview": {
+        "total_ms": 1344,
+        "index_cache_ms": 25,
+        "embed_ms": 45,
+        "search_ms": 1182,
+        "search_words_ms": 1119,
+        "search_sem_ms": 46,
+        "search_fuse_ms": 3,
+        "search_admit_ms": 11,
+        "doc_read_ms": 11,
+        "passage_extract_ms": 3
+      },
+      "t_handoff_ms": 48,
+      "ask": {
+        "total_ms": 19,
+        "verify_pre_ms": 16,
+        "payload_ms": 0,
+        "openai_ms": 2,
+        "verify_post_ms": 0,
+        "parse_ms": 0
+      },
+      "sources": [
+        {
+          "id": "S1",
+          "relative_path": "20_RAW_SOURCES/32f2a4081d13410e-BNXT CRM.md",
+          "bytes": 2439,
+          "locator": "Paragrafi 1-13, Paragrafi 52-68",
+          "cited": false
+        },
+        {
+          "id": "S2",
+          "relative_path": "20_RAW_SOURCES/a86061ba2701d614-_Progetto - BNXT AUDIT VICENZA.md",
+          "bytes": 555,
+          "locator": "Paragrafi 1-8",
+          "cited": false
+        },
+        {
+          "id": "S3",
+          "relative_path": "20_RAW_SOURCES/d70f1c7b1d36f912-STEFANO APP.md",
+          "bytes": 2350,
+          "locator": "Paragrafi 224-234, Paragrafi 235-243",
+          "cited": false
+        },
+        {
+          "id": "S4",
+          "relative_path": "20_RAW_SOURCES/4245a51312c5c1f2-2026-04-07 - Workflow app iPhone nativa con Xcode.md",
+          "bytes": 2412,
+          "locator": "Paragrafi 6-11, Paragrafi 12-25",
+          "cited": false
+        },
+        {
+          "id": "S5",
+          "relative_path": "20_RAW_SOURCES/5a54c2ce2f581cf2-verifica-walkthrough-ux-email-whatsapp-2026-09-10.md",
+          "bytes": 1742,
+          "locator": "Paragrafi 1-3, Paragrafo 4",
+          "cited": false
+        },
+        {
+          "id": "S6",
+          "relative_path": "20_RAW_SOURCES/957b10627e45aa38-_INDICE.md",
+          "bytes": 1104,
+          "locator": "Paragrafi 1-2",
+          "cited": false
+        },
+        {
+          "id": "S7",
+          "relative_path": "20_RAW_SOURCES/abaef2b48c6e5b70-audit-localizzazione-EN-baseline-6f2f2b8.md",
+          "bytes": 2394,
+          "locator": "Paragrafi 1-4, Paragrafo 5, Paragrafo 6",
+          "cited": false
+        },
+        {
+          "id": "S8",
+          "relative_path": "20_RAW_SOURCES/1e755ab82023a095-verifica-impl-plan-ux-email-whatsapp-2026-09-10.md",
+          "bytes": 1463,
+          "locator": "Paragrafi 1-3, Paragrafo 4",
+          "cited": false
+        }
+      ]
+    },
+    "AskLogDeltaEmpty": false
+  },
+  {
+    "Case": "M14",
+    "Revision": "67da90f",
+    "SHA": "67da90f5aeb4af6817f20b8e7f64a1de1daa3662",
+    "ExeHash": "2FC44CC3722DA7B1472515D456F253AE5AAC1FCB17ACF37DC47CEF84ACB2EFEC",
+    "ProcessesBefore": [
+      {
+        "ProcessId": 13260,
+        "ParentProcessId": 21896,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_e0afe10\\apps\\desktop\\src-tauri\\resources\\native\\llama-server.exe",
+        "CreationDate": "2026-09-24T12:33:38.829662+08:00"
+      },
+      {
+        "ProcessId": 7112,
+        "ParentProcessId": 10956,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_67da90f\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+        "CreationDate": "2026-09-24T12:41:50.216155+08:00"
+      },
+      {
+        "ProcessId": 26916,
+        "ParentProcessId": 7112,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_67da90f\\apps\\desktop\\src-tauri\\target\\release\\native\\llama-server.exe",
+        "CreationDate": "2026-09-24T12:43:44.780862+08:00"
+      }
+    ],
+    "UIObservation": {
+      "at": "2026-09-24T04:44:45.243Z",
+      "caseStart": "2026-09-24T04:44:23.552Z",
+      "elapsedMs": 21691
+    },
+    "UISourceCount": 8,
+    "Metrics": {
+      "timestamp": "2026-09-24T04:44:25.12Z",
+      "model": "gpt-4o",
+      "status": "errore (rete)",
+      "incomplete_reason": "OpenAI network error or timeout: error sending request for url (https://api.openai.com/v1/responses)",
+      "tokens_used": null,
+      "t_ui_total_ms": 1385,
+      "t_backend_total_ms": 1378,
+      "preview": {
+        "total_ms": 1336,
+        "index_cache_ms": 26,
+        "embed_ms": 58,
+        "search_ms": 1141,
+        "search_words_ms": 1079,
+        "search_sem_ms": 41,
+        "search_fuse_ms": 4,
+        "search_admit_ms": 9,
+        "doc_read_ms": 12,
+        "passage_extract_ms": 2
+      },
+      "t_handoff_ms": 26,
+      "ask": {
+        "total_ms": 16,
+        "verify_pre_ms": 14,
+        "payload_ms": 0,
+        "openai_ms": 2,
+        "verify_post_ms": 0,
+        "parse_ms": 0
+      },
+      "sources": [
+        {
+          "id": "S1",
+          "relative_path": "20_RAW_SOURCES/32f2a4081d13410e-BNXT CRM.md",
+          "bytes": 2439,
+          "locator": "Paragrafi 1-13, Paragrafi 52-68",
+          "cited": false
+        },
+        {
+          "id": "S2",
+          "relative_path": "20_RAW_SOURCES/a86061ba2701d614-_Progetto - BNXT AUDIT VICENZA.md",
+          "bytes": 555,
+          "locator": "Paragrafi 1-8",
+          "cited": false
+        },
+        {
+          "id": "S3",
+          "relative_path": "20_RAW_SOURCES/d70f1c7b1d36f912-STEFANO APP.md",
+          "bytes": 2350,
+          "locator": "Paragrafi 224-234, Paragrafi 235-243",
+          "cited": false
+        },
+        {
+          "id": "S4",
+          "relative_path": "20_RAW_SOURCES/4245a51312c5c1f2-2026-04-07 - Workflow app iPhone nativa con Xcode.md",
+          "bytes": 2412,
+          "locator": "Paragrafi 6-11, Paragrafi 12-25",
+          "cited": false
+        },
+        {
+          "id": "S5",
+          "relative_path": "20_RAW_SOURCES/5a54c2ce2f581cf2-verifica-walkthrough-ux-email-whatsapp-2026-09-10.md",
+          "bytes": 1742,
+          "locator": "Paragrafi 1-3, Paragrafo 4",
+          "cited": false
+        },
+        {
+          "id": "S6",
+          "relative_path": "20_RAW_SOURCES/957b10627e45aa38-_INDICE.md",
+          "bytes": 1104,
+          "locator": "Paragrafi 1-2",
+          "cited": false
+        },
+        {
+          "id": "S7",
+          "relative_path": "20_RAW_SOURCES/abaef2b48c6e5b70-audit-localizzazione-EN-baseline-6f2f2b8.md",
+          "bytes": 2394,
+          "locator": "Paragrafi 1-4, Paragrafo 5, Paragrafo 6",
+          "cited": false
+        },
+        {
+          "id": "S8",
+          "relative_path": "20_RAW_SOURCES/1e755ab82023a095-verifica-impl-plan-ux-email-whatsapp-2026-09-10.md",
+          "bytes": 1463,
+          "locator": "Paragrafi 1-3, Paragrafo 4",
+          "cited": false
+        }
+      ]
+    },
+    "AskLogDeltaEmpty": false
+  },
+  {
+    "Case": "M15",
+    "Revision": "67da90f",
+    "SHA": "67da90f5aeb4af6817f20b8e7f64a1de1daa3662",
+    "ExeHash": "2FC44CC3722DA7B1472515D456F253AE5AAC1FCB17ACF37DC47CEF84ACB2EFEC",
+    "ProcessesBefore": [
+      {
+        "ProcessId": 7112,
+        "ParentProcessId": 10956,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_67da90f\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+        "CreationDate": "2026-09-24T12:41:50.216155+08:00"
+      },
+      {
+        "ProcessId": 8776,
+        "ParentProcessId": 7112,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_67da90f\\apps\\desktop\\src-tauri\\target\\release\\llama-server.exe",
+        "CreationDate": "2026-09-24T12:46:18.201579+08:00"
+      }
+    ],
+    "UIObservation": {
+      "at": "2026-09-24T04:48:18.759Z",
+      "caseStart": "2026-09-24T04:47:08.464Z",
+      "elapsedMs": 70295
+    },
+    "UISourceCount": 10,
+    "Metrics": {
+      "timestamp": "2026-09-24T04:48:28.104Z",
+      "model": "gpt-4o",
+      "status": "errore (rete)",
+      "incomplete_reason": "OpenAI network error or timeout: error sending request for url (https://api.openai.com/v1/responses)",
+      "tokens_used": null,
+      "t_ui_total_ms": 79475,
+      "t_backend_total_ms": 2150,
+      "preview": {
+        "total_ms": 1050,
+        "index_cache_ms": 29,
+        "embed_ms": 0,
+        "search_ms": 921,
+        "search_words_ms": 921,
+        "search_sem_ms": 0,
+        "search_fuse_ms": 0,
+        "search_admit_ms": 0,
+        "doc_read_ms": 23,
+        "passage_extract_ms": 6
+      },
+      "t_handoff_ms": 28,
+      "ask": {
+        "total_ms": 1072,
+        "verify_pre_ms": 21,
+        "payload_ms": 0,
+        "openai_ms": 1051,
+        "verify_post_ms": 0,
+        "parse_ms": 0
+      },
+      "sources": [
+        {
+          "id": "S1",
+          "relative_path": "20_RAW_SOURCES/32f2a4081d13410e-BNXT CRM.md",
+          "bytes": 2439,
+          "locator": "Paragrafi 1-13, Paragrafi 52-68",
+          "cited": false
+        },
+        {
+          "id": "S2",
+          "relative_path": "20_RAW_SOURCES/a86061ba2701d614-_Progetto - BNXT AUDIT VICENZA.md",
+          "bytes": 555,
+          "locator": "Paragrafi 1-8",
+          "cited": false
+        },
+        {
+          "id": "S3",
+          "relative_path": "20_RAW_SOURCES/957b10627e45aa38-_INDICE.md",
+          "bytes": 1104,
+          "locator": "Paragrafi 1-2",
+          "cited": false
+        },
+        {
+          "id": "S4",
+          "relative_path": "20_RAW_SOURCES/5a54c2ce2f581cf2-verifica-walkthrough-ux-email-whatsapp-2026-09-10.md",
+          "bytes": 1742,
+          "locator": "Paragrafi 1-3, Paragrafo 4",
+          "cited": false
+        },
+        {
+          "id": "S5",
+          "relative_path": "20_RAW_SOURCES/1e755ab82023a095-verifica-impl-plan-ux-email-whatsapp-2026-09-10.md",
+          "bytes": 1463,
+          "locator": "Paragrafi 1-3, Paragrafo 4",
+          "cited": false
+        },
+        {
+          "id": "S6",
+          "relative_path": "20_RAW_SOURCES/abaef2b48c6e5b70-audit-localizzazione-EN-baseline-6f2f2b8.md",
+          "bytes": 2394,
+          "locator": "Paragrafi 1-4, Paragrafo 5, Paragrafo 6",
+          "cited": false
+        },
+        {
+          "id": "S7",
+          "relative_path": "20_RAW_SOURCES/cb67beeece396682-2026-02-13 - Redesign UI home page macOS app.md",
+          "bytes": 2335,
+          "locator": "Paragrafi 18-28, Paragrafi 29-42",
+          "cited": false
+        },
+        {
+          "id": "S8",
+          "relative_path": "20_RAW_SOURCES/c428eb949fc0201f-areas - packaging-in-italy.md",
+          "bytes": 1205,
+          "locator": "Paragrafi 1-3",
+          "cited": false
+        },
+        {
+          "id": "S9",
+          "relative_path": "20_RAW_SOURCES/966ef623917316c7-2026-02-16 - Creazione file Localizable.strings per iOS.md",
+          "bytes": 2381,
+          "locator": "Paragrafi 13-25, Paragrafo 133",
+          "cited": false
+        },
+        {
+          "id": "S10",
+          "relative_path": "20_RAW_SOURCES/e86a061e0f5becb0-_Progetto - Progetto senza nome 19-08-2026.md",
+          "bytes": 341,
+          "locator": "Paragrafi 1-8",
+          "cited": false
+        }
+      ]
+    },
+    "AskLogDeltaEmpty": false
+  },
+  {
+    "Case": "M16",
+    "Revision": "67da90f",
+    "SHA": "67da90f5aeb4af6817f20b8e7f64a1de1daa3662",
+    "ExeHash": "2FC44CC3722DA7B1472515D456F253AE5AAC1FCB17ACF37DC47CEF84ACB2EFEC",
+    "ProcessesBefore": [
+      {
+        "ProcessId": 7112,
+        "ParentProcessId": 10956,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_67da90f\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+        "CreationDate": "2026-09-24T12:41:50.216155+08:00"
+      },
+      {
+        "ProcessId": 19976,
+        "ParentProcessId": 42304,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_67da90f\\apps\\desktop\\src-tauri\\resources\\native\\llama-server.exe",
+        "CreationDate": "2026-09-24T12:48:54.733203+08:00"
+      },
+      {
+        "ProcessId": 41744,
+        "ParentProcessId": 7112,
+        "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_67da90f\\apps\\desktop\\src-tauri\\target\\release\\llama-server.exe",
+        "CreationDate": "2026-09-24T12:49:58.927273+08:00"
+      }
+    ],
+    "UIObservation": {
+      "at": "2026-09-24T04:52:12.903Z",
+      "caseStart": "2026-09-24T04:50:44.573Z",
+      "elapsedMs": 88330
+    },
+    "UISourceCount": 10,
+    "Metrics": {
+      "timestamp": "2026-09-24T04:52:24.687Z",
+      "model": "gpt-4o",
+      "status": "errore (rete)",
+      "incomplete_reason": "OpenAI network error or timeout: error sending request for url (https://api.openai.com/v1/responses)",
+      "tokens_used": null,
+      "t_ui_total_ms": 99951,
+      "t_backend_total_ms": 2848,
+      "preview": {
+        "total_ms": 1728,
+        "index_cache_ms": 27,
+        "embed_ms": 0,
+        "search_ms": 1527,
+        "search_words_ms": 1527,
+        "search_sem_ms": 0,
+        "search_fuse_ms": 0,
+        "search_admit_ms": 0,
+        "doc_read_ms": 63,
+        "passage_extract_ms": 15
+      },
+      "t_handoff_ms": 47,
+      "ask": {
+        "total_ms": 1073,
+        "verify_pre_ms": 22,
+        "payload_ms": 0,
+        "openai_ms": 1050,
+        "verify_post_ms": 0,
+        "parse_ms": 0
+      },
+      "sources": [
+        {
+          "id": "S1",
+          "relative_path": "20_RAW_SOURCES/32f2a4081d13410e-BNXT CRM.md",
+          "bytes": 2439,
+          "locator": "Paragrafi 1-13, Paragrafi 52-68",
+          "cited": false
+        },
+        {
+          "id": "S2",
+          "relative_path": "20_RAW_SOURCES/a86061ba2701d614-_Progetto - BNXT AUDIT VICENZA.md",
+          "bytes": 555,
+          "locator": "Paragrafi 1-8",
+          "cited": false
+        },
+        {
+          "id": "S3",
+          "relative_path": "20_RAW_SOURCES/957b10627e45aa38-_INDICE.md",
+          "bytes": 1104,
+          "locator": "Paragrafi 1-2",
+          "cited": false
+        },
+        {
+          "id": "S4",
+          "relative_path": "20_RAW_SOURCES/5a54c2ce2f581cf2-verifica-walkthrough-ux-email-whatsapp-2026-09-10.md",
+          "bytes": 1742,
+          "locator": "Paragrafi 1-3, Paragrafo 4",
+          "cited": false
+        },
+        {
+          "id": "S5",
+          "relative_path": "20_RAW_SOURCES/1e755ab82023a095-verifica-impl-plan-ux-email-whatsapp-2026-09-10.md",
+          "bytes": 1463,
+          "locator": "Paragrafi 1-3, Paragrafo 4",
+          "cited": false
+        },
+        {
+          "id": "S6",
+          "relative_path": "20_RAW_SOURCES/abaef2b48c6e5b70-audit-localizzazione-EN-baseline-6f2f2b8.md",
+          "bytes": 2394,
+          "locator": "Paragrafi 1-4, Paragrafo 5, Paragrafo 6",
+          "cited": false
+        },
+        {
+          "id": "S7",
+          "relative_path": "20_RAW_SOURCES/cb67beeece396682-2026-02-13 - Redesign UI home page macOS app.md",
+          "bytes": 2335,
+          "locator": "Paragrafi 18-28, Paragrafi 29-42",
+          "cited": false
+        },
+        {
+          "id": "S8",
+          "relative_path": "20_RAW_SOURCES/c428eb949fc0201f-areas - packaging-in-italy.md",
+          "bytes": 1205,
+          "locator": "Paragrafi 1-3",
+          "cited": false
+        },
+        {
+          "id": "S9",
+          "relative_path": "20_RAW_SOURCES/966ef623917316c7-2026-02-16 - Creazione file Localizable.strings per iOS.md",
+          "bytes": 2381,
+          "locator": "Paragrafi 13-25, Paragrafo 133",
+          "cited": false
+        },
+        {
+          "id": "S10",
+          "relative_path": "20_RAW_SOURCES/e86a061e0f5becb0-_Progetto - Progetto senza nome 19-08-2026.md",
+          "bytes": 341,
+          "locator": "Paragrafi 1-8",
+          "cited": false
+        }
+      ]
+    },
+    "AskLogDeltaEmpty": false
+  }
+]

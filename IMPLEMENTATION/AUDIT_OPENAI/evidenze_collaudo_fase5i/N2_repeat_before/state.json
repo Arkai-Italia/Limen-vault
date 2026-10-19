@@ -1,0 +1,89 @@
+{
+  "Started": "2026-09-24T19:06:45.9863099+08:00",
+  "Case": "N2_repeat",
+  "Phase": "before",
+  "SHA": "d8ddd86ec04e3ff17cf13c2e1fb41ee4b29e8eac",
+  "Exe": {
+    "Path": "E:\\Projects\\vault_memai_obsi_collaudo_d8ddd86\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+    "Exists": true,
+    "Length": 22554624,
+    "Created": "2026-09-24T18:47:55.8871459+08:00",
+    "Modified": "2026-09-24T18:47:58.8858986+08:00",
+    "SHA256": "6CEDF05E91504CD275B9A9C5C3D81F6CBFA8A1F4523DBC6F442DCB3DB86CB6F3"
+  },
+  "Environment": [
+    {
+      "LIMEN_MODELS_DIR": null,
+      "Scope": "Process"
+    },
+    {
+      "LIMEN_MODELS_DIR": null,
+      "Scope": "User"
+    },
+    {
+      "LIMEN_MODELS_DIR": null,
+      "Scope": "Machine"
+    }
+  ],
+  "Processes": [
+    {
+      "ProcessId": 29636,
+      "ParentProcessId": 42460,
+      "ExecutablePath": "E:\\Projects\\vault_memai_obsi_collaudo_d8ddd86\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+      "CreationDate": "2026-09-24T18:57:12.605814+08:00",
+      "CommandLine": "\"E:\\Projects\\vault_memai_obsi_collaudo_d8ddd86\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe\""
+    }
+  ],
+  "Shared": [
+    {
+      "Path": "C:\\Users\\user\\LIMEN Vault\\models\\llama-server.pid",
+      "Exists": false
+    },
+    {
+      "Path": "C:\\Users\\user\\LIMEN Vault\\models\\llama-server.port",
+      "Exists": false
+    },
+    {
+      "Path": "C:\\Users\\user\\LIMEN Vault\\models\\llama-server.log",
+      "Exists": true,
+      "Length": 11339,
+      "Created": "2026-09-23T04:52:59.5270462+08:00",
+      "Modified": "2026-09-24T19:05:34.3943684+08:00",
+      "SHA256": "CBE80227154A62950BC660AAE004360AE57F2DCB1D94A8080EAF01CE1FE935A3"
+    },
+    {
+      "Path": "C:\\Users\\user\\.limen-vault\\ask_timing.log",
+      "Exists": true,
+      "Length": 323130,
+      "Created": "2026-09-23T08:45:19.0203945+08:00",
+      "Modified": "2026-09-24T19:05:23.9785787+08:00",
+      "SHA256": "BD9F5DADF375280010D3059360652B8AAB9C85ED43D59F499FA471FBE4211DB2"
+    },
+    {
+      "Path": "C:\\Users\\user\\.limen-vault\\local_model_timing.log",
+      "Exists": true,
+      "Length": 48173,
+      "Created": "2026-09-23T13:28:01.7827001+08:00",
+      "Modified": "2026-09-24T19:06:16.0221030+08:00",
+      "SHA256": "A9F30EAC836E1A7488B339EC0FE1A30BFDDD53D8C51BD1B2D402673CF57470ED"
+    },
+    {
+      "Path": "C:\\Users\\user\\.limen-vault\\ai_settings.json",
+      "Exists": true,
+      "Length": 66,
+      "Created": "2026-09-23T20:51:32.6312001+08:00",
+      "Modified": "2026-09-24T18:57:42.1649451+08:00",
+      "SHA256": "377DD59D15F4F5A9EBA4A70628E587386D0EFA588E2A21E733C5F809FF98E6BF"
+    }
+  ],
+  "Models": [],
+  "Catalog": {
+    "Path": "E:\\VAULT WIN TEST DEV\\00_SYSTEM\\VAULT_CATALOG.json",
+    "Exists": true,
+    "Length": 31605699,
+    "Created": "2026-09-24T18:57:45.7835491+08:00",
+    "Modified": "2026-09-24T18:57:45.8398925+08:00",
+    "SHA256": "764A1603374373DA41E45CFE62375BD7D34FA1FE74216026E0B5E59E2E63D4AE"
+  },
+  "Completed": "2026-09-24T19:06:46.6488744+08:00"
+}

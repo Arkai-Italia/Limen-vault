@@ -1,0 +1,32 @@
+2026-09-24T09:38:43.7155361+08:00
+
+Id          : 20772
+ProcessName : limen-vault
+Path        : E:\Projects\vault_memai_obsi\apps\desktop\src-tauri\target\release\limen-vault.exe
+StartTime   : 24/09/2026 09:35:27
+
+Id          : 31524
+ProcessName : llama-server
+Path        : E:\Projects\vault_memai_obsi\apps\desktop\src-tauri\target\release\native\llama-server.exe
+StartTime   : 24/09/2026 09:36:57
+
+FILE llama-server.pid
+31524
+FILE llama-server.port
+52944
+{
+  "embeddingsProvider": "local"
+}
+
+Name                     Length LastWriteTime
+----                     ------ -------------
+.m7-lock                      0 23/09/2026 04:52:16
+EMBEDDINGS_CACHE.json 311247199 23/09/2026 05:04:57
+HOME.md                    1159 23/09/2026 04:48:45
+OPENAI_CONSENT.json          76 23/09/2026 06:51:52
+SEARCH_INDEX.json     129047124 23/09/2026 14:34:06
+SYNC_PROFILE.json            35 23/09/2026 13:17:13
+VAULT_CATALOG.json     31605698 24/09/2026 09:36:55
+VAULT_MANIFEST.json         515 23/09/2026 04:48:45
+VAULT_RULES.md             1332 23/09/2026 04:48:45
+

@@ -1,0 +1,9 @@
+{
+  "Command": "Get-Process -Name 'llama-server' -ErrorAction SilentlyContinue | ForEach-Object { $p = $_.Id; Get-NetTCPConnection -OwningProcess $p -State Listen -ErrorAction SilentlyContinue | ForEach-Object { [string]$p + ':' + [string]$_.LocalPort } }",
+  "At": "2026-09-24T15:51:39.9759264+08:00",
+  "ExitCode": 0,
+  "Output": [
+    "30600:50958"
+  ],
+  "ElapsedMs": 1883
+}

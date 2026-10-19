@@ -1,0 +1,58 @@
+{
+  "model": [
+    {
+      "before": {
+        "Path": "C:\\Users\\user\\LIMEN Vault\\models\\bge-m3-Q8_0.gguf",
+        "Exists": true,
+        "Length": 634553760,
+        "Created": "2026-09-23T04:43:36.6134956+08:00",
+        "Modified": "2026-09-23T04:44:32.4284996+08:00",
+        "SHA256": "950F4A8E5E19477A6D3C26D2F162233C20002C601F75E4B002E3239997821167"
+      },
+      "after": {
+        "Path": "C:\\Users\\user\\LIMEN Vault\\models\\bge-m3-Q8_0.gguf",
+        "Exists": true,
+        "Length": 634553760,
+        "Created": "2026-09-23T04:43:36.6134956+08:00",
+        "Modified": "2026-09-23T04:44:32.4284996+08:00",
+        "SHA256": "950F4A8E5E19477A6D3C26D2F162233C20002C601F75E4B002E3239997821167"
+      }
+    }
+  ],
+  "settings": {
+    "before": {
+      "Path": "C:\\Users\\user\\.limen-vault\\ai_settings.json",
+      "Exists": true,
+      "Length": 66,
+      "Created": "2026-09-23T20:51:32.6312001+08:00",
+      "Modified": "2026-09-24T15:42:56.2850981+08:00",
+      "SHA256": "377DD59D15F4F5A9EBA4A70628E587386D0EFA588E2A21E733C5F809FF98E6BF"
+    },
+    "after": {
+      "Path": "C:\\Users\\user\\.limen-vault\\ai_settings.json",
+      "Exists": true,
+      "Length": 66,
+      "Created": "2026-09-23T20:51:32.6312001+08:00",
+      "Modified": "2026-09-24T18:57:42.1649451+08:00",
+      "SHA256": "377DD59D15F4F5A9EBA4A70628E587386D0EFA588E2A21E733C5F809FF98E6BF"
+    }
+  },
+  "catalog": {
+    "before": {
+      "Path": "E:\\VAULT WIN TEST DEV\\00_SYSTEM\\VAULT_CATALOG.json",
+      "Exists": true,
+      "Length": 31605699,
+      "Created": "2026-09-24T15:42:59.1450799+08:00",
+      "Modified": "2026-09-24T15:42:59.1917280+08:00",
+      "SHA256": "BC1F964216C18FDD364A8B8F5930BEE53C4F4705F050C7E36BFF88EF47A6F37E"
+    },
+    "after": {
+      "Path": "E:\\VAULT WIN TEST DEV\\00_SYSTEM\\VAULT_CATALOG.json",
+      "Exists": true,
+      "Length": 31605699,
+      "Created": "2026-09-24T18:57:45.7835491+08:00",
+      "Modified": "2026-09-24T18:57:45.8398925+08:00",
+      "SHA256": "764A1603374373DA41E45CFE62375BD7D34FA1FE74216026E0B5E59E2E63D4AE"
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "Prompt": "Cosa è ARKAI secondo i documenti?",
+  "AnswerLength": 0,
+  "AnswerSnippet": "",
+  "HashCount": 0,
+  "AnomalousLoopDetected": false,
+  "MentionsTargetTopic": false,
+  "GenerationTimeSec": "60.7",
+  "Success": false
+}

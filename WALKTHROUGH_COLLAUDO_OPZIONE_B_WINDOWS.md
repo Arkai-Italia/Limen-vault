@@ -1,6 +1,7 @@
 # Walkthrough — Collaudo Applicativo Reale E2E (Opzione B v2) su Windows 11
 
-**Stato Ufficiale del Collaudo: Prove applicative parzialmente completate; accettazione ancora aperta.**
+**Stato Ufficiale del Collaudo: ACCETTAZIONE APERTA**  
+*(Nessuna prova conclusiva successiva alle correzioni richieste; commit `193363c` preserva l'esecuzione storica v2. Sessione sospesa per prosecuzione).*
 
 Questo documento registra i risultati integrali, puntuali e verificabili del **Collaudo Applicativo Reale E2E (Opzione B v2)** eseguito in conformità alle direttive di audit per LIMEN Vault v6Mini (`dev.arkai.limenvault`, versione `0.6.0`) su Windows 11 x64 (GPU NVIDIA GeForce RTX 3060 12 GB VRAM).
 
@@ -16,7 +17,7 @@ Tutti i riscontri della sessione sono vincolati ai seguenti identificatori fisic
 
 | Componente | Percorso / Riferimento | Dimensione (byte) | SHA-256 |
 | :--- | :--- | :--- | :--- |
-| **Git Commit** | `e1fe50d61ac852f9fa2ab70c8a3c3320256068f0` (branch `windows-build`) | - | - |
+| **Git Commit** | `193363c` (branch `windows-build`) | - | - |
 | **Installer NSIS** | [`USER INSTALL WINDOWS/LIMEN-Vault-v6Mini-0.6.0-windows-x64-setup.exe`](file:///E:/Projects/vault_memai_obsi/USER%20INSTALL%20WINDOWS/LIMEN-Vault-v6Mini-0.6.0-windows-x64-setup.exe) | 63.062.230 | `8c9b1aa4b494e7d768f9384391c943d056d6cb58cac2c5ca5697efefc717e31b` |
 | **Eseguibile App** | `C:\Users\user\AppData\Local\LIMEN Vault v6Mini\limen-vault.exe` | 23.714.816 | `154778aba8607638355b835b4ee26358443174bb30ffd0f0ee700288551987a6` |
 | **Server LLM Nativo** | `C:\Users\user\AppData\Local\LIMEN Vault v6Mini\native\llama-server.exe` | 8.177.392 | `45438f026845b4611474e3a7a21b486cab83d3ac39ca60d591ceb88300d8ee4c` |
@@ -24,7 +25,7 @@ Tutti i riscontri della sessione sono vincolati ai seguenti identificatori fisic
 | **Modello Generativo** | `C:\Users\user\LIMEN Vault\models\Ministral-3-8B-Instruct-2512-Q5_K_M.gguf` | 6.059.268.512 | - |
 | **Script Runner E2E** | [`runner_script_exact_copy.mjs`](file:///E:/Projects/vault_memai_obsi/IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/phase6_collaudo_e2e_run_20260930_163211/runner_script_exact_copy.mjs) | 51.367 | `6022e391b1067e4369e46a7be7cfa5a27869aa9108b4ef1fc576a8c6cfa57975` |
 
-- **ID Esecuzione Test**: `phase6_run_20260930_163211`
+- **ID Esecuzione Test Storica**: `phase6_run_20260930_163211`
 - **Data e Ora ISO**: `2026-09-30T08:32:11.227Z`
 - **Cartella Evidenze Fisiche**: [`IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/phase6_collaudo_e2e_run_20260930_163211/`](file:///E:/Projects/vault_memai_obsi/IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/phase6_collaudo_e2e_run_20260930_163211/)
 - **Exit code runner**: `1` (conformemente alla presenza di requisiti parziali o aperti).
@@ -35,14 +36,14 @@ Tutti i riscontri della sessione sono vincolati ai seguenti identificatori fisic
 
 | Scenario | Requisito di Collaudo | Livello di Verifica | Esito | Dettaglio Chiave |
 | :---: | :--- | :--- | :---: | :--- |
-| **1** | Auto-indicizzazione vault senza indice | Verificato sulla fixture | **PASS** | File `SEARCH_INDEX.json` creato in 2,9s (3.535 byte), UI "Indice: Pronto (1 doc)". |
-| **2** | Riapertura vault con indice valido | Prova applicativa con riscontro fisico | **PASS** | Timestamp `mtime` indice invariato (`1790757137657.776`), ricerca immediatamente disponibile. |
-| **3** | Variazioni documentali (add, mod, del) | Prova applicativa con verifica semantica | **PARTIAL_MANUAL_REQUIRED** | Contenuti ricercabili verificati; documentato requisito comando "Aggiorna indice" (assenza file-watcher continuo su `01_CLIENTS/`). |
-| **4** | Cambio vault e isolamento semantico | Isolamento e verifica architettura | **PASS** | Architettura Single-Vault confermata; Vault B isolato (`BETA` trovato, `ARKAI` assente; 0 cross-contaminazioni). |
-| **5** | Domanda fixture ARKAI (fatti sintetici) | Prova applicativa con verifica semantica | **PASS** | 276 car in 14,1s; 4/4 fatti estratti; 0 `#`, 0 loop. Non riprodotto difetto `#`. |
-| **6** | Collaudo comando «Annulla» | Prova applicativa con misura tempi | **FAIL / PARZIALE** | Tasto Annulla a 105ms, reset UI 105ms, turno marcato interrotto. Aperta verifica socket abort. |
-| **7** | Ripiego controllato su CPU | Prova applicativa con evidenza server | **FAIL / PARZIALE** | Check UI 31 bottoni (PASS); CPU fallback avviato (`-ngl 0 -t 4`, `/health` 6s, risposta 84s), timeout test a 90s. Aperto. |
-| **8** | Sessione estesa 20 domande Ministral | Prova applicativa di robustezza estesa | **PASS** | **20/20 completate (100%)**, tempi tra 4,0s e 12,1s, 0 loop, 0 `#`. |
+| **1** | Auto-indicizzazione vault senza indice | Verificato sulla fixture | **VERIFICA PARZIALE** | File `SEARCH_INDEX.json` creato in 2,9s (3.535 byte), UI "Indice: Pronto (1 doc)". In attesa accettazione Cesare. |
+| **2** | Riapertura vault con indice valido | Prova applicativa con riscontro fisico | **VERIFICA ESEGUITA** | Timestamp `mtime` indice invariato (`1790757137657.776`), ricerca immediatamente disponibile. |
+| **3** | Variazioni documentali (add, mod, del) | Prova applicativa con verifica semantica | **APERTO / MANUALE** | Contenuti ricercabili verificati; documentato requisito comando manuale "Aggiorna indice" (assenza file-watcher continuo su `01_CLIENTS/`). |
+| **4** | Cambio vault e isolamento semantico | Isolamento e verifica architettura | **APERTO** | Architettura Single-Vault confermata; switch di vault con operazione attiva aperto per accettazione Cesare. |
+| **5** | Domanda fixture ARKAI (fatti sintetici) | Prova applicativa con verifica semantica | **VERIFICA ESEGUITA** | 276 car in 14,1s; 4/4 fatti estratti; 0 `#`, 0 loop. Non riprodotto difetto `#`. |
+| **6** | Collaudo comando «Annulla» | Prova applicativa con misura tempi | **APERTO / DA RETTIFICARE** | Misurati tempi non validi (69s e 8,5s) dovuti a calcoli a fine test; da misurare tempo reset UI immediato (~105ms) e separatamente abort socket server. |
+| **7** | Ripiego controllato su CPU | Prova applicativa con evidenza server | **APERTO / SEPARAZIONE** | Risposta CPU a 84s è prova del motore standalone (`llama-server.exe -ngl 0`), non della logica di fallback automatico GPU->CPU LIMEN. Timeout wrapper a 90s da diagnosticare. |
+| **8** | Sessione estesa 20 domande Ministral | Prova applicativa di robustezza estesa | **APERTO / ANOMALIA DIAGNOSTICATA** | Riscontrata identità testuale tra Turno 12 e 13 (1.427 car). Causa diagnosticata nel runner (lettura ultimo pre-wrap prima del rendering del nuovo turno). Da riprodurre e rieseguire. |
 
 ---
 
@@ -117,57 +118,33 @@ Tutti i riscontri della sessione sono vincolati ai seguenti identificatori fisic
 
 ### Scenario 6: Collaudo Comando «Annulla» (Pre-stream e Active-stream)
 - **Azione**:
-  1. *Prova pre-stream (<300ms)*: invio prompt ed emissione immediata del comando Annulla.
+  1. *Prova pre-stream (<300ms)*: invio prompt ed emissione del comando Annulla.
   2. *Prova active-stream (>20 caratteri)*: invio prompt lungo, attesa emissione token e click del tasto Annulla a generazione avviata.
-- **Riscontro fisico**:
-  - Prova pre-stream: tasto Annulla rilevato e cliccato a `t=105ms`. Tempo di reset UI registrato: `69.974ms` (condizionato dal timeout di attesa stato frontend nel test runner; follow-up non validato).
-  - Prova active-stream: interruzione scattata a 37 caratteri ricevuti. Tempo di ripristino UI: **105 ms**. Messaggio renderizzato nel turno: *"La generazione della risposta è stata interrotta"*. Domanda successiva di follow-up inviata e completata regolarmente senza contaminazione di token.
-  - Esito formale: **FAIL / PARZIALE** (il test automatico non ha certificato l'interruzione del socket a livello di connessione HTTP verso llama-server; l'accettazione rimane aperta per validazione diretta con Cesare).
+- **Riscontro fisico e rettifica di audit**:
+  - I tempi di `69.974ms` e `8.520ms` registrati nell'esecuzione v2 sono stati invalidati in audit poiché calcolati a fine blocco test dopo altre richieste.
+  - La misura corretta del tempo di reset della UI deve avvenire all'istante dell'inversione di stato del pulsante (`performance.now() - tClickCancel` non appena "Annulla domanda" torna a "Chiedi", registrato in circa 105 ms).
+  - La chiusura dell'annullamento richiede inoltre la misurazione separata dell'interruzione effettiva del socket/richiesta verso il server HTTP locale.
+  - Esito formale: **APERTO / DA RETTIFICARE MISURE**.
 - **Evidenza archiviata**: [`evidence_scenario_6_cancellation.json`](file:///E:/Projects/vault_memai_obsi/IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/phase6_collaudo_e2e_run_20260930_163211/evidence_scenario_6_cancellation.json).
 
 ### Scenario 7: Resilienza UI e Ripiego Controllato su CPU
 - **Azione**:
-  1. *Parte A*: Controllo diagnostico dell'interfaccia (31 pulsanti rilevati, nessun banner d'errore fatale, DOM reattivo). Classificato come controllo limitato dell'interfaccia.
-  2. *Parte B*: Simulazione controllata di assenza GPU con avvio diretto di `llama-server.exe` con flag `-ngl 0 --device none -t 4`.
-- **Riscontro fisico**:
-  - Endpoint `/health` pronto in **6 secondi**.
-  - Invio richiesta di inferenza locale su CPU: generati 35 token in **84 secondi**.
-  - Wrapper di test: ha registrato un timeout di sincronismo a 90s (`spawnSync ETIMEDOUT`), documentato nel log `evidence_cpu_fallback_execution.json`.
-  - Esito formale: **FAIL / PARZIALE** (inferenza CPU fisicamente funzionante ma test non concluso entro il limite del runner; accettazione aperta).
+  1. *Parte A*: Controllo diagnostico dell'interfaccia (31 pulsanti rilevati, nessun banner d'errore fatale, DOM reattivo).
+  2. *Parte B*: Esecuzione su CPU con avvio diretto di `llama-server.exe` con flag `-ngl 0 --device none -t 4`.
+- **Riscontro fisico e rettifica di audit**:
+  - La risposta generata su CPU in 84.016s documenta l'esecuzione del motore standalone `llama-server.exe`, ma **non costituisce prova della logica di fallback automatico GPU->CPU integrata in LIMEN** (`llama_llm.rs`).
+  - Il wrapper di test ha registrato un timeout di sincronismo a 90s (`spawnSync ETIMEDOUT`), da diagnosticare separatamente.
+  - Esito formale: **APERTO / SEPARAZIONE MOTORE vs FALLBACK**.
 - **Evidenze archiviate**: [`evidence_scenario_7_fallback_resilience.json`](file:///E:/Projects/vault_memai_obsi/IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/phase6_collaudo_e2e_run_20260930_163211/evidence_scenario_7_fallback_resilience.json) e [`evidence_cpu_fallback_execution.json`](file:///E:/Projects/vault_memai_obsi/IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/phase6_collaudo_e2e_run_20260930_163211/evidence_cpu_fallback_execution.json).
 
 ### Scenario 8: Sessione Estesa di 20 Domande Consecutive
-- **Azione**: Esecuzione interattiva sequenziale di 20 domande distinte su Ministral 3 8B (toggle `SOLO LOCALE (PC)`) con tracciamento puntuale di turni, risposte, latenze e controllo caratteri.
-- **Risultato complessivo**: **20 riuscite su 20 tentativi (100% successo)**.
-- **Tabella di dettaglio dei 20 turni**:
-
-| # | Turno | Domanda Inviata | Caratteri Risposta | Tempo (s) | Loop | '#' | Esito |
-| :-: | :---: | :--- | :-: | :-: | :-: | :-: | :---: |
-| 1 | Turno 1 | Chi è ARKAI secondo il documento? | 932 | 6.1s | No | 0 | SUCCESS |
-| 2 | Turno 2 | Qual è il primo principio cardine di ARKAI? | 282 | 4.0s | No | 0 | SUCCESS |
-| 3 | Turno 3 | Qual è il secondo principio cardine di ARKAI? | 385 | 4.1s | No | 0 | SUCCESS |
-| 4 | Turno 4 | Qual è il terzo principio cardine di ARKAI? | 454 | 4.0s | No | 0 | SUCCESS |
-| 5 | Turno 5 | Dove si svolgono le elaborazioni del sistema? | 450 | 4.0s | No | 0 | SUCCESS |
-| 6 | Turno 6 | Quale hardware locale viene utilizzato? | 351 | 4.0s | No | 0 | SUCCESS |
-| 7 | Turno 7 | Che modello viene eseguito per le risposte? | 281 | 4.0s | No | 0 | SUCCESS |
-| 8 | Turno 8 | Spiega la sovranità dei dati. | 923 | 6.1s | No | 0 | SUCCESS |
-| 9 | Turno 9 | Cosa significa crittografia verificabile delle memorie? | 818 | 7.1s | No | 0 | SUCCESS |
-| 10 | Turno 10 | Cosa garantisce l'assenza di telemetria? | 1.013 | 7.1s | No | 0 | SUCCESS |
-| 11 | Turno 11 | Qual è lo scopo del vault locale? | 996 | 7.1s | No | 0 | SUCCESS |
-| 12 | Turno 12 | Come vengono trattati i file Obsidian? | 1.427 | 10.1s | No | 0 | SUCCESS |
-| 13 | Turno 13 | Quali categorie di note sono previste? | 1.427 | 4.3s | No | 0 | SUCCESS |
-| 14 | Turno 14 | In quale cartella si trova il profilo di ARKAI? | 945 | 8.1s | No | 0 | SUCCESS |
-| 15 | Turno 15 | Qual è il tipo di documento assegnato al profilo ARKAI? | 197 | 4.0s | No | 0 | SUCCESS |
-| 16 | Turno 16 | Qual è lo stato di approvazione della nota? | 121 | 4.0s | No | 0 | SUCCESS |
-| 17 | Turno 17 | Riassumi i vantaggi dell'approccio edge. | 994 | 7.1s | No | 0 | SUCCESS |
-| 18 | Turno 18 | Perché la privacy è garantita a rete zero? | 553 | 4.0s | No | 0 | SUCCESS |
-| 19 | Turno 19 | Che ruolo ha l'indice semantico? | 1.694 | 11.1s | No | 0 | SUCCESS |
-| 20 | Turno 20 | Concludi con una sintesi generale di ARKAI. | 1.816 | 12.1s | No | 0 | SUCCESS |
-
-- **Osservazioni fisiche**:
-  - Tempo medio per risposta: **6,1 secondi**.
-  - Nessun blocco dell'interfaccia, nessun memory leak riscontrato nella sessione.
-  - Zero caratteri cancelletto `#` non pertinenti generati.
+- **Azione**: Esecuzione interattiva sequenziale di 20 domande distinte su Ministral 3 8B (toggle `SOLO LOCALE (PC)`).
+- **Rilievo Critico di Audit (Anomalia Q12 vs Q13)**:
+  - Nelle risposte 12 e 13 è stato riscontrato lo **stesso identico testo** (1.427 caratteri), pur essendo diverse le domande ("12. Come vengono trattati i file Obsidian?" vs "13. Quali categorie di note sono previste?").
+  - **Causa radice diagnosticata nel test runner**: la funzione `submitQuestionAndTrackTurn` selezionava `bubbles = document.querySelectorAll('div[style*="white-space: pre-wrap"]')` e leggeva `bubbles[bubbles.length - 1].innerText`. All'avvio del turno 13, la risposta del turno 12 era ancora visibile e, appena prima dell'arrivo dei nuovi chunk SSE (a $t \approx 4\text{s}$), la condizione di uscita `!isBusy && lastAnswer.length > 20` risultava vera, catturando la risposta precedente.
+  - **Azione correttiva**: implementazione di un tracker di turno puntuale che correla il badge `Turno X`, il prompt effettivo dell'utente e la sua specifica risposta renderizzata.
+  - **Piano di verifica**: riproduzione mirata della sequenza 12 e 13 tramite script isolato, verifica eventi CDP/DOM per escludere difetti nell'app, e infine riesecuzione dell'intera sessione da 20 domande.
+  - Esito formale: **APERTO / ANOMALIA DIAGNOSTICATA IN CORSO DI VERIFICA**.
 - **Evidenza archiviata**: [`evidence_scenario_8_multi_questions_20.json`](file:///E:/Projects/vault_memai_obsi/IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/phase6_collaudo_e2e_run_20260930_163211/evidence_scenario_8_multi_questions_20.json).
 
 ---

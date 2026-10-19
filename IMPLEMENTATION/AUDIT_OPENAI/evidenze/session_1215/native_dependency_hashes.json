@@ -1,0 +1,14 @@
+[
+  {
+    "Hash": "45438F026845B4611474E3A7A21B486CAB83D3AC39CA60D591CEB88300D8EE4C",
+    "Path": "E:\\Projects\\vault_memai_obsi_audit_e0afe10\\apps\\desktop\\src-tauri\\resources\\native\\llama-server.exe"
+  },
+  {
+    "Hash": "45438F026845B4611474E3A7A21B486CAB83D3AC39CA60D591CEB88300D8EE4C",
+    "Path": "E:\\Projects\\vault_memai_obsi_audit_67da90f\\apps\\desktop\\src-tauri\\target\\release\\native\\llama-server.exe"
+  },
+  {
+    "Hash": "8C14F9A87197A3A10BCC0794564D08CA21375E0F1AC9C7987A74FAA2F9533451",
+    "Path": "E:\\Projects\\MEMAI_V_PRO_WORKSPACE\\audit_limen_20260924\\invalid_embeddings.exe"
+  }
+]

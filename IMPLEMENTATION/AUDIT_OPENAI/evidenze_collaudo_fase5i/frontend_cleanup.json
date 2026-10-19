@@ -1,0 +1,6 @@
+{
+  "ProcessId": 42376,
+  "ParentProcessId": 2816,
+  "ExecutablePath": "C:\\Program Files\\nodejs\\node.exe",
+  "CommandLine": "node   \"E:\\Projects\\vault_memai_obsi_collaudo_d8ddd86\\apps\\desktop\\node_modules\\.bin\\\\..\\vite\\bin\\vite.js\" "
+}

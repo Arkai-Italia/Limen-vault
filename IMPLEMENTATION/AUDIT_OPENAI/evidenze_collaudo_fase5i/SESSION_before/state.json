@@ -1,0 +1,262 @@
+{
+  "Started": "2026-09-24T18:43:38.6634790+08:00",
+  "Case": "SESSION",
+  "Phase": "before",
+  "SHA": "d8ddd86ec04e3ff17cf13c2e1fb41ee4b29e8eac",
+  "Exe": {
+    "Path": "E:\\Projects\\vault_memai_obsi_collaudo_d8ddd86\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+    "Exists": false
+  },
+  "Environment": [
+    {
+      "Scope": "Process",
+      "LIMEN_MODELS_DIR": null
+    },
+    {
+      "Scope": "User",
+      "LIMEN_MODELS_DIR": null
+    },
+    {
+      "Scope": "Machine",
+      "LIMEN_MODELS_DIR": null
+    }
+  ],
+  "Processes": [],
+  "Shared": [
+    {
+      "Path": "C:\\Users\\user\\LIMEN Vault\\models\\llama-server.pid",
+      "Exists": false
+    },
+    {
+      "Path": "C:\\Users\\user\\LIMEN Vault\\models\\llama-server.port",
+      "Exists": false
+    },
+    {
+      "Path": "C:\\Users\\user\\LIMEN Vault\\models\\llama-server.log",
+      "Exists": true,
+      "Length": 0,
+      "Created": "2026-09-23T04:52:59.5270462+08:00",
+      "Modified": "2026-09-24T17:46:59.6212330+08:00",
+      "SHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "Path": "C:\\Users\\user\\.limen-vault\\ask_timing.log",
+      "Exists": true,
+      "Length": 289451,
+      "Created": "2026-09-23T08:45:19.0203945+08:00",
+      "Modified": "2026-09-24T15:47:46.9948969+08:00",
+      "SHA256": "5D5BCDD32DC6B69CCA5D3B97240E2121814A3E5843EBD0A42D6A1A18D0E6959D"
+    },
+    {
+      "Path": "C:\\Users\\user\\.limen-vault\\local_model_timing.log",
+      "Exists": true,
+      "Length": 34565,
+      "Created": "2026-09-23T13:28:01.7827001+08:00",
+      "Modified": "2026-09-24T15:48:06.8064389+08:00",
+      "SHA256": "1D5BFD0E02521C8431276CBE0F82E2EEBABC37B4D1A75BD378B63CFF0DE279F8"
+    },
+    {
+      "Path": "C:\\Users\\user\\.limen-vault\\ai_settings.json",
+      "Exists": true,
+      "Length": 66,
+      "Created": "2026-09-23T20:51:32.6312001+08:00",
+      "Modified": "2026-09-24T15:42:56.2850981+08:00",
+      "SHA256": "377DD59D15F4F5A9EBA4A70628E587386D0EFA588E2A21E733C5F809FF98E6BF"
+    }
+  ],
+  "Models": [
+    {
+      "Path": "C:\\Users\\user\\LIMEN Vault\\models\\bge-m3-Q8_0.gguf",
+      "Exists": true,
+      "Length": 634553760,
+      "Created": "2026-09-23T04:43:36.6134956+08:00",
+      "Modified": "2026-09-23T04:44:32.4284996+08:00",
+      "SHA256": "950F4A8E5E19477A6D3C26D2F162233C20002C601F75E4B002E3239997821167"
+    },
+    {
+      "Path": "C:\\Users\\user\\LIMEN Vault\\models\\bge-m3-Q8_0.gguf.sha256.json",
+      "Exists": true,
+      "Length": 277,
+      "Created": "2026-09-23T07:56:50.4854115+08:00",
+      "Modified": "2026-09-23T13:56:00.7936729+08:00",
+      "SHA256": "04C441383B818C9B21FDAA107FCA38E23411E987934899A979F356AA62A7882B"
+    },
+    {
+      "Path": "C:\\Users\\user\\LIMEN Vault\\models\\llama-server.log",
+      "Exists": true,
+      "Length": 0,
+      "Created": "2026-09-23T04:52:59.5270462+08:00",
+      "Modified": "2026-09-24T17:46:59.6212330+08:00",
+      "SHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "Path": "C:\\Users\\user\\LIMEN Vault\\models\\logs\\llama-server_20260924T090904Z_3588.log",
+      "Exists": true,
+      "Length": 10651,
+      "Created": "2026-09-24T17:09:04.8680204+08:00",
+      "Modified": "2026-09-24T17:09:08.3481135+08:00",
+      "SHA256": "180C16328A3C3B2293F2CE70A1CF7A6CD136D23EB4F122BA5171367AC1CDCEBA"
+    },
+    {
+      "Path": "C:\\Users\\user\\LIMEN Vault\\models\\logs\\llama-server_20260924T090908Z_25356.log",
+      "Exists": true,
+      "Length": 0,
+      "Created": "2026-09-24T17:09:08.8779050+08:00",
+      "Modified": "2026-09-24T17:09:08.8779050+08:00",
+      "SHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "Path": "C:\\Users\\user\\LIMEN Vault\\models\\logs\\llama-server_20260924T090910Z_32616.log",
+      "Exists": true,
+      "Length": 0,
+      "Created": "2026-09-24T17:09:10.3243054+08:00",
+      "Modified": "2026-09-24T17:09:10.3243054+08:00",
+      "SHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "Path": "C:\\Users\\user\\LIMEN Vault\\models\\logs\\llama-server_20260924T090924Z_43504.log",
+      "Exists": true,
+      "Length": 11246,
+      "Created": "2026-09-24T17:09:24.7707879+08:00",
+      "Modified": "2026-09-24T17:09:31.5460229+08:00",
+      "SHA256": "DEF1E1D0E9164DFA107E0939116B10D9DA9652046435095C283736F1FF7F86C5"
+    },
+    {
+      "Path": "C:\\Users\\user\\LIMEN Vault\\models\\logs\\llama-server_20260924T090929Z_43780.log",
+      "Exists": true,
+      "Length": 0,
+      "Created": "2026-09-24T17:09:29.0078775+08:00",
+      "Modified": "2026-09-24T17:09:29.0078775+08:00",
+      "SHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "Path": "C:\\Users\\user\\LIMEN Vault\\models\\logs\\llama-server_20260924T090930Z_41872.log",
+      "Exists": true,
+      "Length": 11246,
+      "Created": "2026-09-24T17:09:30.5901214+08:00",
+      "Modified": "2026-09-24T17:09:34.5464356+08:00",
+      "SHA256": "23C3FDE316C728AA5AB24C8C8CB37590428D0656462E7F036777321CD0312A13"
+    },
+    {
+      "Path": "C:\\Users\\user\\LIMEN Vault\\models\\logs\\llama-server_20260924T090935Z_39940.log",
+      "Exists": true,
+      "Length": 11057,
+      "Created": "2026-09-24T17:09:35.5475308+08:00",
+      "Modified": "2026-09-24T17:09:38.6786990+08:00",
+      "SHA256": "4413F05E14520602A357CD076E0A90B818BFE073B4B70F53EABAB41DB9BE948A"
+    },
+    {
+      "Path": "C:\\Users\\user\\LIMEN Vault\\models\\logs\\llama-server_20260924T090939Z_16316.log",
+      "Exists": true,
+      "Length": 0,
+      "Created": "2026-09-24T17:09:39.4189032+08:00",
+      "Modified": "2026-09-24T17:09:39.4189032+08:00",
+      "SHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "Path": "C:\\Users\\user\\LIMEN Vault\\models\\logs\\llama-server_20260924T090939Z_40552.log",
+      "Exists": true,
+      "Length": 0,
+      "Created": "2026-09-24T17:09:39.9706908+08:00",
+      "Modified": "2026-09-24T17:09:39.9706908+08:00",
+      "SHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "Path": "C:\\Users\\user\\LIMEN Vault\\models\\logs\\llama-server_20260924T091013Z_11168.log",
+      "Exists": true,
+      "Length": 11246,
+      "Created": "2026-09-24T17:10:13.0109223+08:00",
+      "Modified": "2026-09-24T17:10:16.9898671+08:00",
+      "SHA256": "76E3212C875BB814023FA90A81D369B732D7B658360B06DAFCB865F7092838C7"
+    },
+    {
+      "Path": "C:\\Users\\user\\LIMEN Vault\\models\\logs\\llama-server_20260924T091015Z_19424.log",
+      "Exists": true,
+      "Length": 0,
+      "Created": "2026-09-24T17:10:15.6115097+08:00",
+      "Modified": "2026-09-24T17:10:15.6115097+08:00",
+      "SHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "Path": "C:\\Users\\user\\LIMEN Vault\\models\\logs\\llama-server_20260924T091017Z_26572.log",
+      "Exists": true,
+      "Length": 11245,
+      "Created": "2026-09-24T17:10:17.8628379+08:00",
+      "Modified": "2026-09-24T17:10:21.0168033+08:00",
+      "SHA256": "4A398FCF05CEB9EE0771E688934C1E0DEFE442E1EA2DA9CCBBBB787B1B64CF33"
+    },
+    {
+      "Path": "C:\\Users\\user\\LIMEN Vault\\models\\logs\\llama-server_20260924T091022Z_41292.log",
+      "Exists": true,
+      "Length": 10651,
+      "Created": "2026-09-24T17:10:22.4375922+08:00",
+      "Modified": "2026-09-24T17:10:25.3410756+08:00",
+      "SHA256": "E20B9518E78DD1021F8D5967EF978E4CAB77E699272E39DB8F15C2622DA29C4C"
+    },
+    {
+      "Path": "C:\\Users\\user\\LIMEN Vault\\models\\logs\\llama-server_20260924T091025Z_22004.log",
+      "Exists": true,
+      "Length": 0,
+      "Created": "2026-09-24T17:10:25.8591754+08:00",
+      "Modified": "2026-09-24T17:10:25.8591754+08:00",
+      "SHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "Path": "C:\\Users\\user\\LIMEN Vault\\models\\logs\\llama-server_20260924T091026Z_33864.log",
+      "Exists": true,
+      "Length": 0,
+      "Created": "2026-09-24T17:10:26.7498380+08:00",
+      "Modified": "2026-09-24T17:10:26.7498380+08:00",
+      "SHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "Path": "C:\\Users\\user\\LIMEN Vault\\models\\logs\\llama-server_20260924T094554Z_2772.log",
+      "Exists": true,
+      "Length": 5651,
+      "Created": "2026-09-24T17:45:54.8000592+08:00",
+      "Modified": "2026-09-24T17:45:57.8428533+08:00",
+      "SHA256": "608A0BDE65291E544242B5CB41BD5108F3A664C68CB29DFD50654FDB68C478EC"
+    },
+    {
+      "Path": "C:\\Users\\user\\LIMEN Vault\\models\\logs\\llama-server_20260924T094558Z_28060.log",
+      "Exists": true,
+      "Length": 1268,
+      "Created": "2026-09-24T17:45:58.5077188+08:00",
+      "Modified": "2026-09-24T17:45:58.7352367+08:00",
+      "SHA256": "BC421B027002ED7FB97FCC7AEDD7956B2DD9A970E2C914DBB0BE07F0319BEC50"
+    },
+    {
+      "Path": "C:\\Users\\user\\LIMEN Vault\\models\\logs\\llama-server_20260924T094659Z_8152.log",
+      "Exists": true,
+      "Length": 0,
+      "Created": "2026-09-24T17:46:59.6202322+08:00",
+      "Modified": "2026-09-24T17:46:59.6202322+08:00",
+      "SHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "Path": "C:\\Users\\user\\LIMEN Vault\\models\\logs\\llama-server_20260924T094700Z_13196.log",
+      "Exists": true,
+      "Length": 0,
+      "Created": "2026-09-24T17:47:00.2974218+08:00",
+      "Modified": "2026-09-24T17:47:00.2974218+08:00",
+      "SHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "Path": "C:\\Users\\user\\LIMEN Vault\\models\\logs\\llama-server_20260924T094741Z_1064.log",
+      "Exists": true,
+      "Length": 0,
+      "Created": "2026-09-24T17:47:41.6573858+08:00",
+      "Modified": "2026-09-24T17:47:41.6573858+08:00",
+      "SHA256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    }
+  ],
+  "Catalog": {
+    "Path": "E:\\VAULT WIN TEST DEV\\00_SYSTEM\\VAULT_CATALOG.json",
+    "Exists": true,
+    "Length": 31605699,
+    "Created": "2026-09-24T15:42:59.1450799+08:00",
+    "Modified": "2026-09-24T15:42:59.1917280+08:00",
+    "SHA256": "BC1F964216C18FDD364A8B8F5930BEE53C4F4705F050C7E36BFF88EF47A6F37E"
+  },
+  "Completed": "2026-09-24T18:43:41.7386850+08:00"
+}

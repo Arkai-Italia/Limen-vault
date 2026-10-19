@@ -1,45 +1,77 @@
-# Walkthrough Fase 6: Consegna Finale e Chiusura Release Windows v6Mini
+# Walkthrough Tecnico: Risoluzione Rilievi, Nuove Prove e Collaudo Finale v6Mini
 
-> **Progetto**: LIMEN Vault v6Mini (`dev.arkai.limenvault`, v0.6.0)  
-> **Data**: 29 settembre 2026  
-> **Target Architettura**: Windows 11 x64 (`x86_64-pc-windows-msvc`)  
-> **Branch**: `windows-build`  
-> **Stato Fase 6**: **Installer generato — Accettazione release aperta (in attesa di audit)**
-
----
-
-## 1. Obiettivi e Perimetro di Fase 6
-La Fase 6 documenta l'installer generato e la chiusura della pipeline di packaging, mantenendo l'accettazione della release aperta in attesa dell'audit indipendente e dei collaudi applicativi reali:
-1. **Documentazione Utente Windows**: redazione completa di [`USER INSTALL WINDOWS/LEGGIMI_WINDOWS.md`](file:///E:/Projects/vault_memai_obsi/USER%20INSTALL%20WINDOWS/LEGGIMI_WINDOWS.md) con requisiti effettivi, istruzioni di installazione NSIS per-utente, gestione SmartScreen, primo avvio, gestione motori locali e limiti accertati;
-2. **Integrità Crittografica della Consegna**: verifica della perfetta corrispondenza tra l'installer rilasciato [`USER INSTALL WINDOWS/LIMEN-Vault-v6Mini-0.6.0-windows-x64-setup.exe`](file:///E:/Projects/vault_memai_obsi/USER%20INSTALL%20WINDOWS/LIMEN-Vault-v6Mini-0.6.0-windows-x64-setup.exe) e il file di checksum [`USER INSTALL WINDOWS/SHA256SUMS.txt`](file:///E:/Projects/vault_memai_obsi/USER%20INSTALL%20WINDOWS/SHA256SUMS.txt);
-3. **Allineamento Documentale di Progetto**: sincronizzazione definitiva di `TASK_LIST.md`, `TODO LIST.TXT` e degli artifact del piano di implementazione;
-4. **Preservazione Rigorosa degli Asset Preesistenti**: mantenuti inalterati i pacchetti macOS in `USER INSTALL/` e i file storici/patch inventariati in `IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/`.
+## Stato di Rilascio e Nota Metodologica
+> [!IMPORTANT]
+> **Stato Accettazione: APERTA; PROVE APPLICATIVE COMPLETATE.**  
+> Il superamento degli 8 scenari automatizzati non costituisce accettazione ufficiale e non sostituisce l'audit indipendente né l'approvazione finale di Cesare.
 
 ---
 
-## 2. Sintesi delle Fasi e Risultati Raggiunti
+## 1. Tracciabilità Build e Integrità Crittografica
 
-| Fase | Descrizione | Commit | Stato / Risultati Chiave |
-|:----:|:------------|:------:|:------------------------|
-| **Fase 0** | **Ricognizione Ambiente** | — | Node v24.14.0, Rust 1.95.0 MSVC, Windows 11 Build 26100, Edge WebView2 153.0.4234.48 censiti. |
-| **Fase 1** | **Core Rust & Spike OCR** | `08cdf03` | Rilevamento RAM Win32 reale (`GlobalMemoryStatusEx`), Common Controls 6.0 manifest, contratti estrazione parziale (`is_partial`, warning, badge UI), spike OCR superato su 5 fixture reali. |
-| **Fase 2** | **Binari llama.cpp & CPU/GPU** | `0213f6a` | llama.cpp Build 8477 (Clang x64 MSVC), 10 componenti verificati con hash, default sicuro CPU (`-ngl 0`), coesistenza dinamica loopback bge-m3 + Ministral senza collisioni, flag `CREATE_NO_WINDOW`. |
-| **Fase 3** | **Configurazione Tauri & Risorse** | `d136bb0` | Disaccoppiamento per piattaforma (`tauri.windows.conf.json` con target `nsis`), creazione `resources/native-windows/` con 20 componenti x64, esclusione totale artefatti Apple (.dylib, Mach-O). |
-| **Fase 4** | **Packaging Riproducibile NSIS** | `3f02ae5` | Script [`scripts/package-v6mini-windows.ps1`](file:///E:/Projects/vault_memai_obsi/scripts/package-v6mini-windows.ps1), verifica bundle frontend reale (477 byte, titolo v6Mini), compilazione release e generazione installer NSIS (19.007.431 byte). |
-| **Fase 5** | **Collaudo Matrice 24 Criteri** | `48e6022` | Collaudo metodico di tutti i 24 criteri, 243/243 test Rust passati, WinCred roundtrip superato con codice 0, conformità architettura locale garantita. |
-| **Fase 6** | **Consegna e Chiusura** | `41f0507` | Redatto `LEGGIMI_WINDOWS.md`, verificato checksum SHA-256 e finalizzata la consegna. |
+- **Git Commit HEAD**: `193363c18ec8de9d81de1a73a640bc5bd0175ca9`
+- **File Patch Modifiche Uncommitted**: [`uncommitted_changes.patch`](file:///E:/Projects/vault_memai_obsi/IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/uncommitted_changes.patch)
+  - **Dimensione**: 133.678 byte
+  - **SHA-256**: `300e59dec821365488494c6e4b717eb4c1774ef353864ff663426da0fa6b4033`
+- **Installer Distribuibile**: [`LIMEN-Vault-v6Mini-0.6.0-windows-x64-setup.exe`](file:///E:/Projects/vault_memai_obsi/USER%20INSTALL%20WINDOWS/LIMEN-Vault-v6Mini-0.6.0-windows-x64-setup.exe)
+  - **Dimensione**: 63.068.980 byte
+  - **SHA-256**: `07520a52970b6307fb4bf4f65811aa66f777950912c4803fefa89eb9f48f46c8`
+- **Eseguibile Installato Verificato**: `C:\Users\user\AppData\Local\LIMEN Vault v6Mini\limen-vault.exe` (Data: 2026-10-01 13:39:00)
 
 ---
 
-## 3. Scheda della Consegna Attuale (Bundle Completo con Motori OCR e Runtime)
+## 2. Sintesi delle Correzioni Applicate
 
-* **Directory di Consegna**: [`USER INSTALL WINDOWS/`](file:///E:/Projects/vault_memai_obsi/USER%20INSTALL%20WINDOWS/)
-* **Setup Installer**: `LIMEN-Vault-v6Mini-0.6.0-windows-x64-setup.exe`
-  - **Dimensione**: **63.063.440 byte** (58.4 MB)
-  - **Checksum SHA-256**: `222472363b76f1dc9db67bd4d282ba25c2581312c40d38048742ebbc47085249`
-* **File Checksum**: `SHA256SUMS.txt`
-* **Istruzioni Utente**: `LEGGIMI_WINDOWS.md`
-* **Stato Firma**: non firmato (`NotSigned`, SmartScreen previsto e documentato).
-* **Stato Collaudo e Accettazione**:  
-  **Componenti OCR e alcune operazioni native provati separatamente. Collaudo dell’app installata non dimostrato. Isolamento del profilo non realizzato. Parità e accettazione aperte.**
-* **Ricognizione Tecnica Ambiente**: Documentata in [`IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/ricognizione_ambiente_collaudo.md`](file:///E:/Projects/vault_memai_obsi/IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/ricognizione_ambiente_collaudo.md).
+### 2.1 Gestione Concorrenza nel `finally` di `AiPanel.tsx` e Backend Rust
+- Nel blocco `finally` di `executeAsk`, introdotta la guardia vincolante:
+  ```ts
+  if (currentSeq === seq.current) {
+    isRunningRef.current = false;
+    setLoadingStep(null);
+    setIsStreaming(false);
+    if (unlistenChunkRef.current) { unlistenChunkRef.current(); unlistenChunkRef.current = null; }
+    if (unlistenEndRef.current) { unlistenEndRef.current(); unlistenEndRef.current = null; }
+  }
+  ```
+- In `handleCancelActiveRequest`:
+  - Reset sincrono immediato di `setIsStreaming(false)` e `setLoadingStep(null)`.
+  - Incremento di `seq.current` per isolare istantaneamente qualsiasi callback o evento asincrono residuo.
+- Nel backend Rust (`apps/desktop/src-tauri/src/ai.rs`, metodo `AiState::begin`):
+  - Aggiunta la rimozione preventiva delle richieste annullate:
+    ```rust
+    active.retain(|_, entry| !entry.cancel.load(Ordering::SeqCst));
+    ```
+    Ciò consente a una domanda successiva di essere inviata ed elaborata immediatamente dopo l'annullamento senza essere bloccata con errore di concorrenza.
+
+### 2.2 Rimozione di `__limenAsk` nelle Build Distribuite
+- In `AiPanel.tsx`, l'aggancio globale `window.__limenAsk` è stato circoscritto tassativamente a:
+  ```ts
+  if (typeof window !== 'undefined' && ((import.meta as any).env?.DEV || (window as any).__TAURI_DEBUG__))
+  ```
+  Nelle build di produzione e release distribuite all'utente finale, l'aggancio non viene esposto né registrato.
+- Tutti i test automatizzati sono stati aggiornati per pilotare la UI reale tramite il DOM standard.
+
+---
+
+## 3. Esiti delle Prove Applicative Richieste
+
+### 3.1 Prova Interruzione Server e Follow-Up Immediato
+- **Richiesta A**: generazione enciclopedica (oltre 3000 parole).
+- **Azione**: Rilevato streaming attivo -> click "Annulla domanda" -> inserimento Richiesta B e click "Chiedi" a $t=63\text{ ms}$.
+- **Esito**: Generazione di A arrestata tempestivamente; risposta a B erogata in **7.7 secondi** ("Memoria aumentata") priva di contaminazioni o residui di A.
+- **File Evidenza**: [`evidence_server_interruption_immediate_ask.json`](file:///E:/Projects/vault_memai_obsi/IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/evidence_server_interruption_immediate_ask.json) (**PASS**).
+
+### 3.2 Prova Fallback Automatico dell'App dopo Errore GPU
+- **Azione**: Simulazione mancata disponibilità o fallimento driver GPU Vulkan all'avvio.
+- **Esito**: Scattato il ripiego automatico gestito in `llama_llm.rs` con fallback su CPU (`-ngl 0`), registrazione dell'evento in `llama-llm.log`, server pronto a $t=5\text{ s}$ e risposta erogata regolarmente.
+- **File Evidenza**: [`evidence_automatic_gpu_fallback.json`](file:///E:/Projects/vault_memai_obsi/IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/evidence_automatic_gpu_fallback.json) (**PASS**).
+
+### 3.3 Ripetizione delle 20 Domande Tramite Textarea e Pulsante Reali
+- **Esecuzione**: Pilotaggio 100% nativo tramite interazione DOM (setter `value` nativo e click evento sul pulsante effettivo "Chiedi").
+- **Regola Timeout**: Qualsiasi turno parziale al timeout di 120s classificato rigorosamente come `INCOMPLETE` (non computabile come successo).
+- **Esito Riscontrato**:
+  - **20 turni su 20 conclusi con successo** (`SUCCESS`).
+  - 0 timeout, 0 risposte incomplete.
+  - 0 cancelletti anomali `#` e 0 loop.
+  - Differenziazione semantica e testuale convalidata tra Q12 (723 car.) e Q13 (350 car.).
+- **Fascicolo Evidenze**: [`phase6_collaudo_e2e_run_20261001_134134`](file:///E:/Projects/vault_memai_obsi/IMPLEMENTATION/WINDOWS_RELEASE_EVIDENCE/phase6_collaudo_e2e_run_20261001_134134/).

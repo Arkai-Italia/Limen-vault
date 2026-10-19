@@ -1,0 +1,2318 @@
+diff --git a/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/cargo-test-fase-5h-parallel.log b/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/cargo-test-fase-5h-parallel.log
+new file mode 100644
+index 0000000..be2c7db
+--- /dev/null
++++ b/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/cargo-test-fase-5h-parallel.log
+@@ -0,0 +1,496 @@
++warning: unused import: `cap_std::fs::MetadataExt`
++   --> src\search.rs:450:9
++    |
++450 |     use cap_std::fs::MetadataExt;
++    |         ^^^^^^^^^^^^^^^^^^^^^^^^
++    |
++    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
++
++warning: unused import: `ffi::CString`
++  --> src\snapshots.rs:12:5
++   |
++12 |     ffi::CString,
++   |     ^^^^^^^^^^^^
++
++warning: unused imports: `Command`, `Duration`, `Instant`, and `Stdio`
++ --> src\extraction.rs:6:15
++  |
++6 |     process::{Command, Stdio},
++  |               ^^^^^^^  ^^^^^
++7 |     time::{Duration, Instant},
++  |            ^^^^^^^^  ^^^^^^^
++
++warning: unused variable: `lock`
++   --> src\sync.rs:484:17
++    |
++484 |             let lock = sys.open_with(".m7-lock", &lock_opts).map_err(err)?;
++    |                 ^^^^ help: if this is intentional, prefix it with an underscore: `_lock`
++    |
++    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
++
++warning: variable does not need to be mutable
++  --> src\extraction.rs:17:13
++   |
++17 |         let mut builder = std::fs::DirBuilder::new();
++   |             ----^^^^^^^
++   |             |
++   |             help: remove this `mut`
++   |
++   = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
++
++warning: field `vault_path` is never read
++   --> src\search.rs:178:5
++    |
++177 | struct SearchIndexCacheEntry {
++    |        --------------------- field in this struct
++178 |     vault_path: std::path::PathBuf,
++    |     ^^^^^^^^^^
++    |
++    = note: `SearchIndexCacheEntry` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
++    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
++
++warning: function `load` is never used
++   --> src\search.rs:216:4
++    |
++216 | fn load(system: &Dir) -> Result<Option<std::sync::Arc<SearchIndexData>>, String> {
++    |    ^^^^
++
++warning: constant `SERVICE` is never used
++   --> src\tunnel.rs:177:7
++    |
++177 | const SERVICE:&str="dev.arkai.limenvault.tunnel";
++    |       ^^^^^^^
++
++warning: struct `Scratch` is never constructed
++  --> src\extraction.rs:13:8
++   |
++13 | struct Scratch(std::path::PathBuf);
++   |        ^^^^^^^
++
++warning: associated function `new` is never used
++  --> src\extraction.rs:15:8
++   |
++14 | impl Scratch {
++   | ------------ associated function in this implementation
++15 |     fn new() -> Result<Self, String> {
++   |        ^^^
++
++warning: field `vault_path` is never read
++  --> src\catalog.rs:29:5
++   |
++28 | struct CatalogCacheEntry {
++   |        ----------------- field in this struct
++29 |     vault_path: std::path::PathBuf,
++   |     ^^^^^^^^^^
++   |
++   = note: `CatalogCacheEntry` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
++
++warning: field `vault_path` is never read
++  --> src\embeddings.rs:31:5
++   |
++30 | struct EmbeddingsCacheEntry {
++   |        -------------------- field in this struct
++31 |     vault_path: PathBuf,
++   |     ^^^^^^^^^^
++   |
++   = note: `EmbeddingsCacheEntry` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
++
++warning: `limen-vault` (lib) generated 12 warnings (run `cargo fix --lib -p limen-vault` to apply 5 suggestions)
++warning: variable does not need to be mutable
++    --> src\ai.rs:4786:12
++     |
++4786 |       let (mut pending, cancel) = state.begin(&p_preview.ticket).unwrap();
++     |            ----^^^^^^^
++     |            |
++     |            help: remove this `mut`
++     |
++     = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
++
++warning: unused variable: `cancel`
++    --> src\ai.rs:4786:25
++     |
++4786 |       let (mut pending, cancel) = state.begin(&p_preview.ticket).unwrap();
++     |                         ^^^^^^ help: if this is intentional, prefix it with an underscore: `_cancel`
++     |
++     = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
++
++warning: variable does not need to be mutable
++   --> src\tunnel.rs:224:13
++    |
++224 |         let mut child = Command::new("cmd")
++    |             ----^^^^^
++    |             |
++    |             help: remove this `mut`
++
++warning: unused variable: `lock`
++   --> src\sync.rs:484:17
++    |
++484 |             let lock = sys.open_with(".m7-lock", &lock_opts).map_err(err)?;
++    |                 ^^^^ help: if this is intentional, prefix it with an underscore: `_lock`
++
++warning: variable does not need to be mutable
++  --> src\extraction.rs:17:13
++   |
++17 |         let mut builder = std::fs::DirBuilder::new();
++   |             ----^^^^^^^
++   |             |
++   |             help: remove this `mut`
++
++warning: unused variable: `doc_id`
++    --> src\catalog.rs:2056:13
++     |
++2056 |         let doc_id = make_document_id("20_RAW_SOURCES/doc.md");
++     |             ^^^^^^ help: if this is intentional, prefix it with an underscore: `_doc_id`
++
++warning: unused import: `ffi::CString`
++  --> src\snapshots.rs:12:5
++   |
++12 |     ffi::CString,
++   |     ^^^^^^^^^^^^
++   |
++   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
++
++warning: fields `title` and `base_score` are never read
++  --> src\bin\measure_punto_e.rs:20:5
++   |
++17 | struct ScoredCandidate {
++   |        --------------- fields in this struct
++...
++20 |     title: String,
++   |     ^^^^^
++21 |     base_score: f64,
++   |     ^^^^^^^^^^
++   |
++   = note: `ScoredCandidate` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
++   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
++
++warning: field `query_id` is never read
++  --> src\bin\measure_punto_e.rs:37:5
++   |
++36 | struct QueryEvalContext {
++   |        ---------------- field in this struct
++37 |     query_id: String,
++   |     ^^^^^^^^
++
++warning: `limen-vault` (lib test) generated 15 warnings (9 duplicates) (run `cargo fix --lib -p limen-vault --tests` to apply 6 suggestions)
++warning: `limen-vault` (bin "limen-vault" test) generated 1 warning (run `cargo fix --bin "limen-vault" -p limen-vault --tests` to apply 1 suggestion)
++warning: `limen-vault` (bin "measure_punto_e" test) generated 2 warnings
++warning: unused variable: `t0`
++  --> src\bin\diagnose_fase1.rs:46:9
++   |
++46 |     let t0 = std::time::Instant::now();
++   |         ^^ help: if this is intentional, prefix it with an underscore: `_t0`
++   |
++   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
++
++warning: field `exact_bonus` is never read
++   --> src\bin\diagnose_fase1.rs:236:9
++    |
++223 |     struct FusedRecord {
++    |            ----------- field in this struct
++...
++236 |         exact_bonus: f64,
++    |         ^^^^^^^^^^^
++    |
++    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
++
++warning: `limen-vault` (bin "diagnose_fase1" test) generated 2 warnings (run `cargo fix --bin "diagnose_fase1" -p limen-vault --tests` to apply 1 suggestion)
++    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.73s
++     Running unittests src\lib.rs (target\debug\deps\limen_vault-b7ab620e0196d8b2.exe)
++
++running 178 tests
++test ai::model_tests::models_are_validated_and_deduplicated ... ok
++test ai::tests::test_active_guard_releases_ticket_on_worker_panic ... ok
++test ai::tests::test_consecutive_calls_second_rejected_while_first_active ... ok
++test ai::tests::source_stale_symlink_and_preview_cancel ... ok
++test ai::tests::preview_bounds_and_untrusted_data_role ... ok
++test ai::index_policy_test::forged_approval_is_rejected ... ok
++test ai::tests::binary_raw_source_extracted_text_is_read_in_ai ... ok
++test ai::tests::test_extract_multi_passages_and_budget_cap ... ok
++test ai::tests::test_extract_multi_passages_rejects_overlapping_passages ... ok
++test ai::tests::approved_policy_and_context_hash ... ok
++test ai::tests::test_consecutive_read_indexed_document_and_read_source_zero_disk_reads ... ok
++test ai::tests::citation_ids_and_incomplete_rejected ... ok
++test ai::tests::test_json_stream_answer_parser_decodes_escapes_and_unicode ... ok
++test ai::tests::test_locators_overlap_detection ... ok
++test ai::tests::test_interrupted_stream_preserves_partial_text_with_zero_citations ... ok
++test ai::tests::test_citation_locators_and_tamper_detection ... ok
++test ai::tests::test_missing_response_completed_treated_as_interrupted_with_zero_citations ... ok
++test ai::tests::test_log_preview_timing_detailed_records_port_pid_and_semantic_info ... ok
++test ai::tests::test_log_ask_timing_detailed_includes_source_audit_and_no_text_leakage ... ok
++test ai::tests::test_corrections_a_b_c_d_schema_short_ids_warning_and_system_instructions ... ok
++test ai::tests::test_diagnosis_passage_id_and_relative_path_citations_resolved ... ok
++test ai::tests::test_fase5h_preview_timing_measures_full_preparation_including_service_wait ... ok
++test ai::tests::test_fase5h_preview_fallback_reason_preserves_service_failure_over_generic_port_missing ... ok
++test ai::tests::test_p6_json_stream_answer_parser_surrogate_pairs_split_1_to_80_bytes ... ok
++test ai::tests::test_multi_vault_cache_isolation ... ok
++test ai::tests::test_offline_llama_server_hybrid_fallback_no_error ... ok
++test ai::tests::test_openai_consent_persisted_and_enforced ... ok
++test ai::tests::test_punto_e_fallback_first_candidate_when_none_admitted ... ok
++test ai::tests::test_eligibility_before_limits_regression_50_drafts_do_not_hide_approved_source ... ok
++test ai::tests::test_punto_e_metodo_c_admitted_when_close_to_max_without_rare_word ... ok
++test ai::tests::test_punto_e_metodo_c_admitted_when_has_rare_word_even_low_similarity ... ok
++test ai::tests::test_parse_response_reads_reasoning_tokens_from_output_tokens_details ... ok
++test ai::tests::test_punto_e_metodo_c_excluded_when_no_rare_word_and_far_from_max ... ok
++test ai::tests::test_parse_response_validation_and_incomplete_rules ... ok
++test ai::tests::test_sanitize_answer_prose_removes_asterisks ... ok
++test ai::tests::test_punto_e_service_offline_preserves_exact_unfiltered_candidates ... ok
++test ai::tests::test_sanitize_answer_prose_removes_citation_brackets ... ok
++test ai::tests::test_selected_model_persistence_in_app_data_dir ... ok
++test ai::tests::test_stream_prose_sanitizer_split_citations ... ok
++test ai::tests::test_stream_prose_sanitizer_split_bold_asterisks ... ok
++test ai::tests::test_utf8_chunk_decoder_split_multibyte_character ... ok
++test ai::tests::test_streaming_network_error_treated_as_interrupted_with_reason ... ok
++test ai::tests::test_system_instruction_contains_required_rules_and_restrictive_citation ... ok
++test ai::tests::test_passage_crypto_sha256_verification_rejects_corrupted_passage ... ok
++test ai::tests::test_punto_e_service_offline_retains_all_sources_without_filtering ... ok
++test ai::tests::test_stream_prose_sanitizer_cesare_real_terminal_bnxt_answer ... ok
++test ai::tests::test_stream_prose_sanitizer_accented_letters_and_emoji ... ok
++test ai::tests::test_source_integrity_ntfs_vs_non_ntfs ... ok
++test ai::tests::test_verify_source_ineligible_rejected ... ok
++test automation::tests::batch_import_receipts_deduplication_and_isolation ... ok
++test ai::tests::test_verify_post_source_changed_during_request_rejected ... ok
++test ai::tests::test_verify_pre_source_changed_since_preview_rejected ... ok
++test ai::tests::test_verify_source_generated_obsolete_rejected ... ok
++test ai::tests::test_verify_post_failure_replaces_text_with_cancellation_message ... ok
++test ai::tests::test_verify_post_rejects_document_access_denied_and_obsolete_source ... ok
++test automation::tests::concurrency_and_scheduler_background_reconciliation ... ok
++test automation::tests::native_picker_import_is_bounded_and_preserves_selected_file ... ok
++test automation::tests::forged_citations_human_edits_and_symlinks ... ok
++test automation::tests::full_workflow_preserves_originals_deduplicates_and_retrieves ... ok
++test automation::tests::offline_ingestion_and_extraction_without_ai_key ... ok
++test automation::tests::bounded_retries_resume_and_key_absence ... ok
++test automation::tests::spreadsheets_keep_rows_beyond_api_limit_and_formulas ... ok
++test automation::tests::inventory_visible_before_activation_and_after_source_changes ... ok
++test automation::tests::unicode_text_chunks_preserve_every_byte ... ok
++test catalog::tests::test_catalog_reloaded_after_vault_modification ... ok
++test automation::tests::long_documents_are_split_without_manual_work ... ok
++test catalog::tests::test_catalog_multivault_isolation ... ok
++test catalog::tests::test_catalog_rewrite_same_size_reloaded ... ok
++test catalog::tests::test_catalog_in_memory_caching_and_zero_disk_reads_on_consecutive_calls ... ok
++test catalog::tests::test_chunk_text_to_passages_crlf_and_lf_produce_identical_passages ... ok
++test catalog::tests::test_chunk_text_to_passages_locators ... ok
++test automation::tests::stale_search_lock_recovers_and_active_lock_is_preserved ... ok
++test catalog::tests::test_catalog_save_and_load_lifecycle ... ok
++test catalog::tests::test_deduplication_preserves_aliases ... ok
++test catalog::tests::test_double_migration_idempotent_and_rollback ... ok
++test catalog::tests::test_document_revision_bump_on_content_change ... ok
++test catalog::tests::test_proposals_stay_legacy_drafts_and_human_notes_preserved ... ok
++test automation::tests::source_changes_and_deletion_invalidate_wiki_before_next_tick ... ok
++test catalog::tests::test_passage_integrity_and_tamper_detection ... ok
++test catalog::tests::test_document_pruning_on_file_deletion ... ok
++test catalog::tests::test_sync_catalog_and_offline_extraction ... ok
++test embeddings::tests::test_cosine_similarity ... ok
++test compiler::tests::test_rust_compiler_sanitizes_html ... ok
++test compiler::tests::test_rust_compiler_deduplication ... ok
++test embeddings::tests::test_embedded_text_sha256_cache_invalidation_on_prefix_change ... ok
++test catalog::tests::test_verify_single_passage_document_integrity_with_doc_hash_and_passage_hash ... ok
++test compiler::tests::test_rust_compiler_compiles_draft_with_status_draft ... ok
++test embeddings::tests::test_fetch_embeddings_api_key_rules ... ok
++test catalog::tests::test_verify_document_passage_integrity_all_cases ... ok
++test embeddings::tests::test_embeddings_cache_invalidates_on_dimension_change ... ok
++test embeddings::tests::test_embeddings_cache_lifecycle ... ok
++test embeddings::tests::test_embeddings_in_memory_cache_no_disk_re_read ... ok
++test catalog::tests::test_lookup_by_path_beyond_50_documents_and_homonyms ... ok
++test embeddings::tests::test_hybrid_fusion_coalescence_single_row_when_found_by_both_engines ... ok
++test embeddings::tests::test_hybrid_search_local_offline_graceful_fallback ... ok
++test embeddings::tests::test_hybrid_search_offline_graceful_fallback ... ok
++test embeddings::tests::test_hybrid_fusion_coalesced_beats_single_engine_at_score_parity ... ok
++test embeddings::tests::test_is_loopback_endpoint_security_rules ... ok
++test embeddings::tests::test_passage_embedding_text_context_and_20_percent_cap ... ok
++test embeddings::tests::test_hybrid_fusion_ranks_exact_code_first ... ok
++test embeddings::tests::test_hybrid_fusion_pure_semantic_enters_top_ten ... ok
++test embeddings::tests::test_local_provider_rejects_non_loopback_endpoint ... ok
++test extraction::tests::word_and_slides_are_literal ... ok
++test embeddings::tests::test_hybrid_fusion_high_sem_pure_beats_mediocre_dual_signals ... ok
++test embeddings::tests::test_resolve_embeddings_endpoint_defaults_to_openai_when_absent ... ok
++test knowledge::tests::symlink_and_oversized_notes_fail_explicitly ... ok
++test llama::tests::test_detect_llama_server_binary ... ok
++test knowledge::tests::actual_notes_without_index_and_no_mutations ... ok
++test llama::tests::test_fase5f_failed_auto_start_prevents_retry_on_subsequent_question ... ok
++test llama::tests::test_cache_with_unexpected_hash_triggers_recomputation ... ok
++test llama::tests::test_execution_does_not_modify_userprofile_limen_vault ... ok
++test embeddings::tests::test_provider_report_with_empty_cache_reports_zero_dims_and_total_passages ... ok
++test llama::tests::test_fase5g_missing_binary_sets_auto_start_failed_until_button_reset ... ok
++test llama::tests::test_fase5f_discovery_external_command_hang_terminates_within_timeout_with_fallback ... ok
++test keychain::test_windows_credential_manager_roundtrip ... ok
++test llama::tests::test_fase5h_adoption_of_existing_instance_service_without_second_process ... ok
++test llama::tests::test_fase5g_on_app_startup_starts_service_in_background_without_question ... ok
++test llama::tests::test_fase5h_local_model_timing_log_includes_app_and_service_metadata ... ok
++test llama::tests::test_fase5h_log_rotation_and_per_startup_files ... ok
++test llama::tests::test_fase5g_startup_in_progress_does_not_kill_and_subsequent_succeeds ... ok
++test llama::tests::test_find_free_port ... ok
++test llama::tests::test_fase5h_starting_guard_resets_flag_on_thread_panic ... ok
++test llama::tests::test_install_from_file_single_io_pass ... ok
++test llama::tests::test_local_model_status_returns_struct ... ok
++test llama::tests::test_model_expected_constants ... ok
++test llama::tests::test_model_modified_mtime_triggers_recomputation ... ok
++test llama::tests::test_fase5h_start_prevents_duplicate_process_while_starting ... ok
++test llama::tests::test_fase5f_run_command_with_timeout_terminates_hanging_process ... ok
++test llama::tests::test_model_replaced_same_size_detected ... ok
++test embeddings::tests::test_p4_query_vector_timeout_and_fallback ... ok
++test llama::tests::test_pid_file_roundtrip_and_orphan_decision ... ok
++test llama::tests::test_unexpected_size_reports_not_installed ... ok
++test mcp::tests::http_auth_origin_and_revocation ... ok
++test mcp::tests::rpc_readonly_lifecycle ... ok
++test mcp::tests::windows_identity_stable_and_distinct ... ok
++test llama::tests::test_second_status_call_uses_cache_zero_hash_recalculation ... ok
++test llama::tests::test_p2_registered_service_adoption_and_fallback ... ok
++test proposals::tests::m7_corrupt_state_and_journal_preserved ... ok
++test proposals::tests::m7_metadata_secrets_and_output_provenance ... ok
++test proposals::tests::m7_raw_collision_symlink_and_changed_bytes_denied ... ok
++test proposals::tests::m7_import_keeps_compiler_draft_and_rejection ... ok
++test llama::tests::test_p3_two_instances_service_registration_ownership ... ok
++test search::tests::metadata_filters_unicode_and_readonly ... ok
++test search::tests::search_passages_and_catalog_indexing ... ok
++test proposals::tests::m7_recovery_after_document_published ... ok
++test proposals::tests::m7_revisions_exclusive_approval_and_idempotence ... ok
++test llama::tests::test_fase5h_codex_fixture_acceptance ... ok
++test search::tests::test_contains_whole_words_rejects_substrings_of_other_words ... ok
++test search::tests::test_c12_exact_token_document_outranks_substring_only_document ... ok
++test search::tests::test_c11_raw_sources_term_frequency_not_deduped ... ok
++test search::tests::test_c11_bm25_short_exact_document_beats_long_document_with_common_words ... ok
++test search::tests::test_search_index_multivault_isolation ... ok
++test search::tests::test_search_detects_removed_and_modified_files_without_blocking ... ok
++test search::tests::test_in_memory_search_cache_consecutive_no_disk_re_read ... ok
++test search::tests::test_search_index_rewrite_same_size_reloaded ... ok
++test snapshots::tests::test_rust_snapshot_creation_and_integrity ... ok
++test sync::tests::sync_capture_rejects_symlink_and_freezes_bytes ... ok
++test sync::tests::sync_config_rejects_insecure_endpoints ... ok
++test snapshots::tests::test_snapshot_restore_to_separate_folder_verifies_hashes ... ok
++test sync::tests::sync_import_receipt_recovers_commit_window_without_overwrite ... ok
++test snapshots::tests::snapshot_corruption_and_readonly ... ok
++test sync::tests::sync_rejects_paths_and_collisions ... ok
++test tunnel::tests::invalid_config_and_symlink_do_not_overwrite_files ... ok
++test sync::tests::sync_persisted_capture_survives_state_restart_and_detects_corruption ... ok
++test snapshots::tests::failure_at_manifest_write_cleans_only_staging ... ok
++test snapshots::tests::concurrent_publication_and_collision ... ok
++test tunnel::tests::test_job_object_process_tree_kill ... ok
++test vault::tests::capability_blocks_external_symlinks_and_broken_links ... ok
++test sync::tests::sync_selection_persists_only_selected_frozen_notes ... ok
++test automation::tests::complete_multi_format_pipeline_with_declared_fake_ai ... ok
++test vault::tests::exclusive_creation_preserves_existing_bytes ... ok
++test vault::tests::shared_frontmatter_fixtures ... ok
++test vault::tests::concurrent_creation_has_one_winner ... ok
++test vault::tests::capability_blocks_external_junctions ... ok
++test vault::tests::manifest_is_consumed_without_reopening ... ok
++test vault::tests::raw_sources_foreign_yaml_frontmatter_allows_vault_opening ... ok
++test llama::tests::test_p1_server_with_invalid_embeddings_fails_bounded_and_status_available ... ok
++test llama::tests::test_process_parent_and_command_reads_live_process_only ... ok
++
++test result: ok. 178 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.60s
++
++     Running unittests src\bin\a04_real_local.rs (target\debug\deps\a04_real_local-20417175db04e0a5.exe)
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
++     Running unittests src\bin\answer_compare.rs (target\debug\deps\answer_compare-278af9b893fe2f21.exe)
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
++     Running unittests src\bin\c10_tune_dev.rs (target\debug\deps\c10_tune_dev-c8cf6d5abcbe379a.exe)
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
++     Running unittests src\bin\collaudo_compito1.rs (target\debug\deps\collaudo_compito1-d527ea8ef2d164aa.exe)
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
++     Running unittests src\bin\diagnose_bnxt.rs (target\debug\deps\diagnose_bnxt-99b44144db5482de.exe)
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
++     Running unittests src\bin\diagnose_c8.rs (target\debug\deps\diagnose_c8-9c5ae0262f62da9f.exe)
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
++     Running unittests src\bin\diagnose_fase1.rs (target\debug\deps\diagnose_fase1-58785d216e2f5089.exe)
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
++     Running unittests src\bin\diagnose_fase3b2.rs (target\debug\deps\diagnose_fase3b2-08916ed7bf33e34c.exe)
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
++     Running unittests src\bin\diagnose_fase3b2b.rs (target\debug\deps\diagnose_fase3b2b-86994c86fea652bf.exe)
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
++     Running unittests src\bin\gold-benchmark.rs (target\debug\deps\gold_benchmark-f5e3bbd2936f0e35.exe)
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
++     Running unittests src\main.rs (target\debug\deps\limen_vault-dc16fa893d5aac5c.exe)
++
++running 18 tests
++test compiler::tests::test_rust_compiler_sanitizes_html ... ok
++test compiler::tests::test_rust_compiler_compiles_draft_with_status_draft ... ok
++test snapshots::tests::test_rust_snapshot_creation_and_integrity ... ok
++test compiler::tests::test_rust_compiler_deduplication ... ok
++test tests::obsidian_registration_matches_canonical_path ... ok
++test tests::test_rust_vault_validation ... ok
++test snapshots::tests::failure_at_manifest_write_cleans_only_staging ... ok
++test tests::test_rust_invalid_yaml_rejection ... ok
++test vault::tests::capability_blocks_external_symlinks_and_broken_links ... ok
++test snapshots::tests::test_snapshot_restore_to_separate_folder_verifies_hashes ... ok
++test vault::tests::shared_frontmatter_fixtures ... ok
++test vault::tests::capability_blocks_external_junctions ... ok
++test vault::tests::concurrent_creation_has_one_winner ... ok
++test vault::tests::exclusive_creation_preserves_existing_bytes ... ok
++test snapshots::tests::snapshot_corruption_and_readonly ... ok
++test vault::tests::manifest_is_consumed_without_reopening ... ok
++test snapshots::tests::concurrent_publication_and_collision ... ok
++test vault::tests::raw_sources_foreign_yaml_frontmatter_allows_vault_opening ... ok
++
++test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.76s
++
++     Running unittests src\bin\measure_punto_e.rs (target\debug\deps\measure_punto_e-2ca8dfc639e1f24b.exe)
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
++     Running unittests src\bin\search_benchmark.rs (target\debug\deps\search_benchmark-3965c69f87794315.exe)
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
++     Running unittests src\bin\sync_timing.rs (target\debug\deps\sync_timing-5bbe42fbc8a008cb.exe)
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
++     Running unittests src\bin\vault-check.rs (target\debug\deps\vault_check-a37c9b7465d0ba38.exe)
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
++   Doc-tests limen_vault
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
+diff --git a/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/cargo-test-fase-5h-single.log b/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/cargo-test-fase-5h-single.log
+new file mode 100644
+index 0000000..887e8c6
+--- /dev/null
++++ b/IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/cargo-test-fase-5h-single.log
+@@ -0,0 +1,496 @@
++warning: unused import: `cap_std::fs::MetadataExt`
++   --> src\search.rs:450:9
++    |
++450 |     use cap_std::fs::MetadataExt;
++    |         ^^^^^^^^^^^^^^^^^^^^^^^^
++    |
++    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
++
++warning: unused import: `ffi::CString`
++  --> src\snapshots.rs:12:5
++   |
++12 |     ffi::CString,
++   |     ^^^^^^^^^^^^
++
++warning: unused imports: `Command`, `Duration`, `Instant`, and `Stdio`
++ --> src\extraction.rs:6:15
++  |
++6 |     process::{Command, Stdio},
++  |               ^^^^^^^  ^^^^^
++7 |     time::{Duration, Instant},
++  |            ^^^^^^^^  ^^^^^^^
++
++warning: unused variable: `lock`
++   --> src\sync.rs:484:17
++    |
++484 |             let lock = sys.open_with(".m7-lock", &lock_opts).map_err(err)?;
++    |                 ^^^^ help: if this is intentional, prefix it with an underscore: `_lock`
++    |
++    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
++
++warning: variable does not need to be mutable
++  --> src\extraction.rs:17:13
++   |
++17 |         let mut builder = std::fs::DirBuilder::new();
++   |             ----^^^^^^^
++   |             |
++   |             help: remove this `mut`
++   |
++   = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
++
++warning: field `vault_path` is never read
++   --> src\search.rs:178:5
++    |
++177 | struct SearchIndexCacheEntry {
++    |        --------------------- field in this struct
++178 |     vault_path: std::path::PathBuf,
++    |     ^^^^^^^^^^
++    |
++    = note: `SearchIndexCacheEntry` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
++    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
++
++warning: function `load` is never used
++   --> src\search.rs:216:4
++    |
++216 | fn load(system: &Dir) -> Result<Option<std::sync::Arc<SearchIndexData>>, String> {
++    |    ^^^^
++
++warning: constant `SERVICE` is never used
++   --> src\tunnel.rs:177:7
++    |
++177 | const SERVICE:&str="dev.arkai.limenvault.tunnel";
++    |       ^^^^^^^
++
++warning: struct `Scratch` is never constructed
++  --> src\extraction.rs:13:8
++   |
++13 | struct Scratch(std::path::PathBuf);
++   |        ^^^^^^^
++
++warning: associated function `new` is never used
++  --> src\extraction.rs:15:8
++   |
++14 | impl Scratch {
++   | ------------ associated function in this implementation
++15 |     fn new() -> Result<Self, String> {
++   |        ^^^
++
++warning: field `vault_path` is never read
++  --> src\catalog.rs:29:5
++   |
++28 | struct CatalogCacheEntry {
++   |        ----------------- field in this struct
++29 |     vault_path: std::path::PathBuf,
++   |     ^^^^^^^^^^
++   |
++   = note: `CatalogCacheEntry` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
++
++warning: field `vault_path` is never read
++  --> src\embeddings.rs:31:5
++   |
++30 | struct EmbeddingsCacheEntry {
++   |        -------------------- field in this struct
++31 |     vault_path: PathBuf,
++   |     ^^^^^^^^^^
++   |
++   = note: `EmbeddingsCacheEntry` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
++
++warning: `limen-vault` (lib) generated 12 warnings (run `cargo fix --lib -p limen-vault` to apply 5 suggestions)
++warning: variable does not need to be mutable
++    --> src\ai.rs:4786:12
++     |
++4786 |       let (mut pending, cancel) = state.begin(&p_preview.ticket).unwrap();
++     |            ----^^^^^^^
++     |            |
++     |            help: remove this `mut`
++     |
++     = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
++
++warning: unused variable: `cancel`
++    --> src\ai.rs:4786:25
++     |
++4786 |       let (mut pending, cancel) = state.begin(&p_preview.ticket).unwrap();
++     |                         ^^^^^^ help: if this is intentional, prefix it with an underscore: `_cancel`
++     |
++     = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
++
++warning: variable does not need to be mutable
++   --> src\tunnel.rs:224:13
++    |
++224 |         let mut child = Command::new("cmd")
++    |             ----^^^^^
++    |             |
++    |             help: remove this `mut`
++
++warning: unused variable: `lock`
++   --> src\sync.rs:484:17
++    |
++484 |             let lock = sys.open_with(".m7-lock", &lock_opts).map_err(err)?;
++    |                 ^^^^ help: if this is intentional, prefix it with an underscore: `_lock`
++
++warning: variable does not need to be mutable
++  --> src\extraction.rs:17:13
++   |
++17 |         let mut builder = std::fs::DirBuilder::new();
++   |             ----^^^^^^^
++   |             |
++   |             help: remove this `mut`
++
++warning: unused variable: `doc_id`
++    --> src\catalog.rs:2056:13
++     |
++2056 |         let doc_id = make_document_id("20_RAW_SOURCES/doc.md");
++     |             ^^^^^^ help: if this is intentional, prefix it with an underscore: `_doc_id`
++
++warning: unused variable: `t0`
++  --> src\bin\diagnose_fase1.rs:46:9
++   |
++46 |     let t0 = std::time::Instant::now();
++   |         ^^ help: if this is intentional, prefix it with an underscore: `_t0`
++   |
++   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
++
++warning: field `exact_bonus` is never read
++   --> src\bin\diagnose_fase1.rs:236:9
++    |
++223 |     struct FusedRecord {
++    |            ----------- field in this struct
++...
++236 |         exact_bonus: f64,
++    |         ^^^^^^^^^^^
++    |
++    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
++
++warning: `limen-vault` (lib test) generated 15 warnings (9 duplicates) (run `cargo fix --lib -p limen-vault --tests` to apply 6 suggestions)
++warning: `limen-vault` (bin "diagnose_fase1" test) generated 2 warnings (run `cargo fix --bin "diagnose_fase1" -p limen-vault --tests` to apply 1 suggestion)
++warning: fields `title` and `base_score` are never read
++  --> src\bin\measure_punto_e.rs:20:5
++   |
++17 | struct ScoredCandidate {
++   |        --------------- fields in this struct
++...
++20 |     title: String,
++   |     ^^^^^
++21 |     base_score: f64,
++   |     ^^^^^^^^^^
++   |
++   = note: `ScoredCandidate` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
++   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
++
++warning: field `query_id` is never read
++  --> src\bin\measure_punto_e.rs:37:5
++   |
++36 | struct QueryEvalContext {
++   |        ---------------- field in this struct
++37 |     query_id: String,
++   |     ^^^^^^^^
++
++warning: unused import: `ffi::CString`
++  --> src\snapshots.rs:12:5
++   |
++12 |     ffi::CString,
++   |     ^^^^^^^^^^^^
++   |
++   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
++
++warning: `limen-vault` (bin "measure_punto_e" test) generated 2 warnings
++warning: `limen-vault` (bin "limen-vault" test) generated 1 warning (run `cargo fix --bin "limen-vault" -p limen-vault --tests` to apply 1 suggestion)
++    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.93s
++     Running unittests src\lib.rs (target\debug\deps\limen_vault-b7ab620e0196d8b2.exe)
++
++running 178 tests
++test ai::index_policy_test::forged_approval_is_rejected ... ok
++test ai::model_tests::models_are_validated_and_deduplicated ... ok
++test ai::tests::approved_policy_and_context_hash ... ok
++test ai::tests::binary_raw_source_extracted_text_is_read_in_ai ... ok
++test ai::tests::citation_ids_and_incomplete_rejected ... ok
++test ai::tests::preview_bounds_and_untrusted_data_role ... ok
++test ai::tests::source_stale_symlink_and_preview_cancel ... ok
++test ai::tests::test_active_guard_releases_ticket_on_worker_panic ... ok
++test ai::tests::test_citation_locators_and_tamper_detection ... ok
++test ai::tests::test_consecutive_calls_second_rejected_while_first_active ... ok
++test ai::tests::test_consecutive_read_indexed_document_and_read_source_zero_disk_reads ... ok
++test ai::tests::test_corrections_a_b_c_d_schema_short_ids_warning_and_system_instructions ... ok
++test ai::tests::test_diagnosis_passage_id_and_relative_path_citations_resolved ... ok
++test ai::tests::test_eligibility_before_limits_regression_50_drafts_do_not_hide_approved_source ... ok
++test ai::tests::test_extract_multi_passages_and_budget_cap ... ok
++test ai::tests::test_extract_multi_passages_rejects_overlapping_passages ... ok
++test ai::tests::test_fase5h_preview_fallback_reason_preserves_service_failure_over_generic_port_missing ... ok
++test ai::tests::test_fase5h_preview_timing_measures_full_preparation_including_service_wait ... ok
++test ai::tests::test_interrupted_stream_preserves_partial_text_with_zero_citations ... ok
++test ai::tests::test_json_stream_answer_parser_decodes_escapes_and_unicode ... ok
++test ai::tests::test_locators_overlap_detection ... ok
++test ai::tests::test_log_ask_timing_detailed_includes_source_audit_and_no_text_leakage ... ok
++test ai::tests::test_log_preview_timing_detailed_records_port_pid_and_semantic_info ... ok
++test ai::tests::test_missing_response_completed_treated_as_interrupted_with_zero_citations ... ok
++test ai::tests::test_multi_vault_cache_isolation ... ok
++test ai::tests::test_offline_llama_server_hybrid_fallback_no_error ... ok
++test ai::tests::test_openai_consent_persisted_and_enforced ... ok
++test ai::tests::test_p6_json_stream_answer_parser_surrogate_pairs_split_1_to_80_bytes ... ok
++test ai::tests::test_parse_response_reads_reasoning_tokens_from_output_tokens_details ... ok
++test ai::tests::test_parse_response_validation_and_incomplete_rules ... ok
++test ai::tests::test_passage_crypto_sha256_verification_rejects_corrupted_passage ... ok
++test ai::tests::test_punto_e_fallback_first_candidate_when_none_admitted ... ok
++test ai::tests::test_punto_e_metodo_c_admitted_when_close_to_max_without_rare_word ... ok
++test ai::tests::test_punto_e_metodo_c_admitted_when_has_rare_word_even_low_similarity ... ok
++test ai::tests::test_punto_e_metodo_c_excluded_when_no_rare_word_and_far_from_max ... ok
++test ai::tests::test_punto_e_service_offline_preserves_exact_unfiltered_candidates ... ok
++test ai::tests::test_punto_e_service_offline_retains_all_sources_without_filtering ... ok
++test ai::tests::test_sanitize_answer_prose_removes_asterisks ... ok
++test ai::tests::test_sanitize_answer_prose_removes_citation_brackets ... ok
++test ai::tests::test_selected_model_persistence_in_app_data_dir ... ok
++test ai::tests::test_source_integrity_ntfs_vs_non_ntfs ... ok
++test ai::tests::test_stream_prose_sanitizer_accented_letters_and_emoji ... ok
++test ai::tests::test_stream_prose_sanitizer_cesare_real_terminal_bnxt_answer ... ok
++test ai::tests::test_stream_prose_sanitizer_split_bold_asterisks ... ok
++test ai::tests::test_stream_prose_sanitizer_split_citations ... ok
++test ai::tests::test_streaming_network_error_treated_as_interrupted_with_reason ... ok
++test ai::tests::test_system_instruction_contains_required_rules_and_restrictive_citation ... ok
++test ai::tests::test_utf8_chunk_decoder_split_multibyte_character ... ok
++test ai::tests::test_verify_post_failure_replaces_text_with_cancellation_message ... ok
++test ai::tests::test_verify_post_rejects_document_access_denied_and_obsolete_source ... ok
++test ai::tests::test_verify_post_source_changed_during_request_rejected ... ok
++test ai::tests::test_verify_pre_source_changed_since_preview_rejected ... ok
++test ai::tests::test_verify_source_generated_obsolete_rejected ... ok
++test ai::tests::test_verify_source_ineligible_rejected ... ok
++test automation::tests::batch_import_receipts_deduplication_and_isolation ... ok
++test automation::tests::bounded_retries_resume_and_key_absence ... ok
++test automation::tests::complete_multi_format_pipeline_with_declared_fake_ai ... ok
++test automation::tests::concurrency_and_scheduler_background_reconciliation ... ok
++test automation::tests::forged_citations_human_edits_and_symlinks ... ok
++test automation::tests::full_workflow_preserves_originals_deduplicates_and_retrieves ... ok
++test automation::tests::inventory_visible_before_activation_and_after_source_changes ... ok
++test automation::tests::long_documents_are_split_without_manual_work ... ok
++test automation::tests::native_picker_import_is_bounded_and_preserves_selected_file ... ok
++test automation::tests::offline_ingestion_and_extraction_without_ai_key ... ok
++test automation::tests::source_changes_and_deletion_invalidate_wiki_before_next_tick ... ok
++test automation::tests::spreadsheets_keep_rows_beyond_api_limit_and_formulas ... ok
++test automation::tests::stale_search_lock_recovers_and_active_lock_is_preserved ... ok
++test automation::tests::unicode_text_chunks_preserve_every_byte ... ok
++test catalog::tests::test_catalog_in_memory_caching_and_zero_disk_reads_on_consecutive_calls ... ok
++test catalog::tests::test_catalog_multivault_isolation ... ok
++test catalog::tests::test_catalog_reloaded_after_vault_modification ... ok
++test catalog::tests::test_catalog_rewrite_same_size_reloaded ... ok
++test catalog::tests::test_catalog_save_and_load_lifecycle ... ok
++test catalog::tests::test_chunk_text_to_passages_crlf_and_lf_produce_identical_passages ... ok
++test catalog::tests::test_chunk_text_to_passages_locators ... ok
++test catalog::tests::test_deduplication_preserves_aliases ... ok
++test catalog::tests::test_document_pruning_on_file_deletion ... ok
++test catalog::tests::test_document_revision_bump_on_content_change ... ok
++test catalog::tests::test_double_migration_idempotent_and_rollback ... ok
++test catalog::tests::test_lookup_by_path_beyond_50_documents_and_homonyms ... ok
++test catalog::tests::test_passage_integrity_and_tamper_detection ... ok
++test catalog::tests::test_proposals_stay_legacy_drafts_and_human_notes_preserved ... ok
++test catalog::tests::test_sync_catalog_and_offline_extraction ... ok
++test catalog::tests::test_verify_document_passage_integrity_all_cases ... ok
++test catalog::tests::test_verify_single_passage_document_integrity_with_doc_hash_and_passage_hash ... ok
++test compiler::tests::test_rust_compiler_compiles_draft_with_status_draft ... ok
++test compiler::tests::test_rust_compiler_deduplication ... ok
++test compiler::tests::test_rust_compiler_sanitizes_html ... ok
++test embeddings::tests::test_cosine_similarity ... ok
++test embeddings::tests::test_embedded_text_sha256_cache_invalidation_on_prefix_change ... ok
++test embeddings::tests::test_embeddings_cache_invalidates_on_dimension_change ... ok
++test embeddings::tests::test_embeddings_cache_lifecycle ... ok
++test embeddings::tests::test_embeddings_in_memory_cache_no_disk_re_read ... ok
++test embeddings::tests::test_fetch_embeddings_api_key_rules ... ok
++test embeddings::tests::test_hybrid_fusion_coalesced_beats_single_engine_at_score_parity ... ok
++test embeddings::tests::test_hybrid_fusion_coalescence_single_row_when_found_by_both_engines ... ok
++test embeddings::tests::test_hybrid_fusion_high_sem_pure_beats_mediocre_dual_signals ... ok
++test embeddings::tests::test_hybrid_fusion_pure_semantic_enters_top_ten ... ok
++test embeddings::tests::test_hybrid_fusion_ranks_exact_code_first ... ok
++test embeddings::tests::test_hybrid_search_local_offline_graceful_fallback ... ok
++test embeddings::tests::test_hybrid_search_offline_graceful_fallback ... ok
++test embeddings::tests::test_is_loopback_endpoint_security_rules ... ok
++test embeddings::tests::test_local_provider_rejects_non_loopback_endpoint ... ok
++test embeddings::tests::test_p4_query_vector_timeout_and_fallback ... ok
++test embeddings::tests::test_passage_embedding_text_context_and_20_percent_cap ... ok
++test embeddings::tests::test_provider_report_with_empty_cache_reports_zero_dims_and_total_passages ... ok
++test embeddings::tests::test_resolve_embeddings_endpoint_defaults_to_openai_when_absent ... ok
++test extraction::tests::word_and_slides_are_literal ... ok
++test keychain::test_windows_credential_manager_roundtrip ... ok
++test knowledge::tests::actual_notes_without_index_and_no_mutations ... ok
++test knowledge::tests::symlink_and_oversized_notes_fail_explicitly ... ok
++test llama::tests::test_cache_with_unexpected_hash_triggers_recomputation ... ok
++test llama::tests::test_detect_llama_server_binary ... ok
++test llama::tests::test_execution_does_not_modify_userprofile_limen_vault ... ok
++test llama::tests::test_fase5f_discovery_external_command_hang_terminates_within_timeout_with_fallback ... ok
++test llama::tests::test_fase5f_failed_auto_start_prevents_retry_on_subsequent_question ... ok
++test llama::tests::test_fase5f_run_command_with_timeout_terminates_hanging_process ... ok
++test llama::tests::test_fase5g_missing_binary_sets_auto_start_failed_until_button_reset ... ok
++test llama::tests::test_fase5g_on_app_startup_starts_service_in_background_without_question ... ok
++test llama::tests::test_fase5g_startup_in_progress_does_not_kill_and_subsequent_succeeds ... ok
++test llama::tests::test_fase5h_adoption_of_existing_instance_service_without_second_process ... ok
++test llama::tests::test_fase5h_codex_fixture_acceptance ... ok
++test llama::tests::test_fase5h_local_model_timing_log_includes_app_and_service_metadata ... ok
++test llama::tests::test_fase5h_log_rotation_and_per_startup_files ... ok
++test llama::tests::test_fase5h_start_prevents_duplicate_process_while_starting ... ok
++test llama::tests::test_fase5h_starting_guard_resets_flag_on_thread_panic ... ok
++test llama::tests::test_find_free_port ... ok
++test llama::tests::test_install_from_file_single_io_pass ... ok
++test llama::tests::test_local_model_status_returns_struct ... ok
++test llama::tests::test_model_expected_constants ... ok
++test llama::tests::test_model_modified_mtime_triggers_recomputation ... ok
++test llama::tests::test_model_replaced_same_size_detected ... ok
++test llama::tests::test_p1_server_with_invalid_embeddings_fails_bounded_and_status_available ... ok
++test llama::tests::test_p2_registered_service_adoption_and_fallback ... ok
++test llama::tests::test_p3_two_instances_service_registration_ownership ... ok
++test llama::tests::test_pid_file_roundtrip_and_orphan_decision ... ok
++test llama::tests::test_process_parent_and_command_reads_live_process_only ... ok
++test llama::tests::test_second_status_call_uses_cache_zero_hash_recalculation ... ok
++test llama::tests::test_unexpected_size_reports_not_installed ... ok
++test mcp::tests::http_auth_origin_and_revocation ... ok
++test mcp::tests::rpc_readonly_lifecycle ... ok
++test mcp::tests::windows_identity_stable_and_distinct ... ok
++test proposals::tests::m7_corrupt_state_and_journal_preserved ... ok
++test proposals::tests::m7_import_keeps_compiler_draft_and_rejection ... ok
++test proposals::tests::m7_metadata_secrets_and_output_provenance ... ok
++test proposals::tests::m7_raw_collision_symlink_and_changed_bytes_denied ... ok
++test proposals::tests::m7_recovery_after_document_published ... ok
++test proposals::tests::m7_revisions_exclusive_approval_and_idempotence ... ok
++test search::tests::metadata_filters_unicode_and_readonly ... ok
++test search::tests::search_passages_and_catalog_indexing ... ok
++test search::tests::test_c11_bm25_short_exact_document_beats_long_document_with_common_words ... ok
++test search::tests::test_c11_raw_sources_term_frequency_not_deduped ... ok
++test search::tests::test_c12_exact_token_document_outranks_substring_only_document ... ok
++test search::tests::test_contains_whole_words_rejects_substrings_of_other_words ... ok
++test search::tests::test_in_memory_search_cache_consecutive_no_disk_re_read ... ok
++test search::tests::test_search_detects_removed_and_modified_files_without_blocking ... ok
++test search::tests::test_search_index_multivault_isolation ... ok
++test search::tests::test_search_index_rewrite_same_size_reloaded ... ok
++test snapshots::tests::concurrent_publication_and_collision ... ok
++test snapshots::tests::failure_at_manifest_write_cleans_only_staging ... ok
++test snapshots::tests::snapshot_corruption_and_readonly ... ok
++test snapshots::tests::test_rust_snapshot_creation_and_integrity ... ok
++test snapshots::tests::test_snapshot_restore_to_separate_folder_verifies_hashes ... ok
++test sync::tests::sync_capture_rejects_symlink_and_freezes_bytes ... ok
++test sync::tests::sync_config_rejects_insecure_endpoints ... ok
++test sync::tests::sync_import_receipt_recovers_commit_window_without_overwrite ... ok
++test sync::tests::sync_persisted_capture_survives_state_restart_and_detects_corruption ... ok
++test sync::tests::sync_rejects_paths_and_collisions ... ok
++test sync::tests::sync_selection_persists_only_selected_frozen_notes ... ok
++test tunnel::tests::invalid_config_and_symlink_do_not_overwrite_files ... ok
++test tunnel::tests::test_job_object_process_tree_kill ... ok
++test vault::tests::capability_blocks_external_junctions ... ok
++test vault::tests::capability_blocks_external_symlinks_and_broken_links ... ok
++test vault::tests::concurrent_creation_has_one_winner ... ok
++test vault::tests::exclusive_creation_preserves_existing_bytes ... ok
++test vault::tests::manifest_is_consumed_without_reopening ... ok
++test vault::tests::raw_sources_foreign_yaml_frontmatter_allows_vault_opening ... ok
++test vault::tests::shared_frontmatter_fixtures ... ok
++
++test result: ok. 178 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 26.42s
++
++     Running unittests src\bin\a04_real_local.rs (target\debug\deps\a04_real_local-20417175db04e0a5.exe)
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
++     Running unittests src\bin\answer_compare.rs (target\debug\deps\answer_compare-278af9b893fe2f21.exe)
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
++     Running unittests src\bin\c10_tune_dev.rs (target\debug\deps\c10_tune_dev-c8cf6d5abcbe379a.exe)
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
++     Running unittests src\bin\collaudo_compito1.rs (target\debug\deps\collaudo_compito1-d527ea8ef2d164aa.exe)
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
++     Running unittests src\bin\diagnose_bnxt.rs (target\debug\deps\diagnose_bnxt-99b44144db5482de.exe)
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
++     Running unittests src\bin\diagnose_c8.rs (target\debug\deps\diagnose_c8-9c5ae0262f62da9f.exe)
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
++     Running unittests src\bin\diagnose_fase1.rs (target\debug\deps\diagnose_fase1-58785d216e2f5089.exe)
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
++     Running unittests src\bin\diagnose_fase3b2.rs (target\debug\deps\diagnose_fase3b2-08916ed7bf33e34c.exe)
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
++     Running unittests src\bin\diagnose_fase3b2b.rs (target\debug\deps\diagnose_fase3b2b-86994c86fea652bf.exe)
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
++     Running unittests src\bin\gold-benchmark.rs (target\debug\deps\gold_benchmark-f5e3bbd2936f0e35.exe)
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
++     Running unittests src\main.rs (target\debug\deps\limen_vault-dc16fa893d5aac5c.exe)
++
++running 18 tests
++test compiler::tests::test_rust_compiler_compiles_draft_with_status_draft ... ok
++test compiler::tests::test_rust_compiler_deduplication ... ok
++test compiler::tests::test_rust_compiler_sanitizes_html ... ok
++test snapshots::tests::concurrent_publication_and_collision ... ok
++test snapshots::tests::failure_at_manifest_write_cleans_only_staging ... ok
++test snapshots::tests::snapshot_corruption_and_readonly ... ok
++test snapshots::tests::test_rust_snapshot_creation_and_integrity ... ok
++test snapshots::tests::test_snapshot_restore_to_separate_folder_verifies_hashes ... ok
++test tests::obsidian_registration_matches_canonical_path ... ok
++test tests::test_rust_invalid_yaml_rejection ... ok
++test tests::test_rust_vault_validation ... ok
++test vault::tests::capability_blocks_external_junctions ... ok
++test vault::tests::capability_blocks_external_symlinks_and_broken_links ... ok
++test vault::tests::concurrent_creation_has_one_winner ... ok
++test vault::tests::exclusive_creation_preserves_existing_bytes ... ok
++test vault::tests::manifest_is_consumed_without_reopening ... ok
++test vault::tests::raw_sources_foreign_yaml_frontmatter_allows_vault_opening ... ok
++test vault::tests::shared_frontmatter_fixtures ... ok
++
++test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.15s
++
++     Running unittests src\bin\measure_punto_e.rs (target\debug\deps\measure_punto_e-2ca8dfc639e1f24b.exe)
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
++     Running unittests src\bin\search_benchmark.rs (target\debug\deps\search_benchmark-3965c69f87794315.exe)
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
++     Running unittests src\bin\sync_timing.rs (target\debug\deps\sync_timing-5bbe42fbc8a008cb.exe)
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
++     Running unittests src\bin\vault-check.rs (target\debug\deps\vault_check-a37c9b7465d0ba38.exe)
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
++   Doc-tests limen_vault
++
++running 0 tests
++
++test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
++
+diff --git a/apps/desktop/index.html b/apps/desktop/index.html
+index 6821eb8..c032bb9 100644
+--- a/apps/desktop/index.html
++++ b/apps/desktop/index.html
+@@ -3,7 +3,7 @@
+   <head>
+     <meta charset="UTF-8" />
+     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+-    <title>LIMEN Vault v3</title>
++    <title>LIMEN Vault v4</title>
+   </head>
+   <body>
+     <div id="root"></div>
+diff --git a/apps/desktop/src-tauri/src/ai.rs b/apps/desktop/src-tauri/src/ai.rs
+index ffd0c22..81f0741 100644
+--- a/apps/desktop/src-tauri/src/ai.rs
++++ b/apps/desktop/src-tauri/src/ai.rs
+@@ -50,6 +50,8 @@ pub struct Preview {
+ #[serde(rename_all = "camelCase")]
+ pub struct PreviewTimings {
+     pub t_preview_total_ms: u64,
++    #[serde(default)]
++    pub t_service_prep_ms: u64,
+     pub t_index_cache_ms: u64,
+     pub t_embed_ms: u64,
+     pub t_search_ms: u64,
+@@ -267,6 +269,8 @@ pub fn is_local_provider_configured() -> bool {
+ #[derive(Debug, Clone, Serialize, Deserialize)]
+ pub struct PreviewTimingBreakdown {
+     pub total_ms: u64,
++    #[serde(default)]
++    pub service_prep_ms: u64,
+     pub index_cache_ms: u64,
+     pub embed_ms: u64,
+     pub search_ms: u64,
+@@ -538,6 +542,7 @@ pub fn log_preview_timing_detailed(
+          Domanda: \"{}\"\n\
+          Porta locale: {} | PID: {} | Stato servizio: {} | Ricerca semantica: {} | Esito: {}\n\
+          Fasi preparazione (totale {} ms):\n\
++           ├─ Preparazione/attesa servizio (t_service_prep_ms): {} ms\n\
+            ├─ Indice & cache (t_index_cache_ms): {} ms\n\
+            ├─ Vettore semantico domanda (t_embed_ms): {} ms\n\
+            ├─ Ricerca parole (t_search_words_ms): {} ms\n\
+@@ -557,6 +562,7 @@ pub fn log_preview_timing_detailed(
+         if semantic_used { "UTILIZZATA" } else { "NON UTILIZZATA" },
+         esito_str,
+         timings.t_preview_total_ms,
++        timings.t_service_prep_ms,
+         timings.t_index_cache_ms,
+         timings.t_embed_ms,
+         timings.t_search_words_ms,
+@@ -611,6 +617,7 @@ pub fn log_ask_timing(
+         t_backend_total_ms: t_total_ms,
+         preview: PreviewTimingBreakdown {
+             total_ms: t_index_cache_ms + t_search_ms + t_embed_ms,
++            service_prep_ms: 0,
+             index_cache_ms: t_index_cache_ms,
+             embed_ms: t_embed_ms,
+             search_ms: t_search_ms,
+@@ -698,6 +705,7 @@ pub fn log_keychain_error(p: &Pending, error_msg: &str, ui_elapsed_ms: Option<u6
+         t_backend_total_ms: p.preview_timings.t_preview_total_ms + t_handoff_ms,
+         preview: PreviewTimingBreakdown {
+             total_ms: p.preview_timings.t_preview_total_ms,
++            service_prep_ms: p.preview_timings.t_service_prep_ms,
+             index_cache_ms: p.preview_timings.t_index_cache_ms,
+             embed_ms: p.preview_timings.t_embed_ms,
+             search_ms: p.preview_timings.t_search_ms,
+@@ -1441,6 +1449,7 @@ pub async fn select_with_port_detailed(
+ 
+     let preview_timings = PreviewTimings {
+         t_preview_total_ms: t_prev_start.elapsed().as_millis() as u64,
++        t_service_prep_ms: 0,
+         t_index_cache_ms: search_timings.t_index_cache_ms,
+         t_embed_ms: search_timings.t_embed_ms,
+         t_search_ms: search_timings.t_search_ms,
+@@ -1457,11 +1466,11 @@ pub async fn select_with_port_detailed(
+ 
+ impl AiState {
+     pub async fn preview(&self, path: PathBuf, o: Options) -> Result<Preview, String> {
+-        self.preview_with_service_info(path, o, None, None, false, None, None).await
++        self.preview_with_service_info(path, o, None, None, false, None, None, None, 0).await
+     }
+ 
+     pub async fn preview_with_port(&self, path: PathBuf, o: Options, active_port: Option<u16>) -> Result<Preview, String> {
+-        self.preview_with_service_info(path, o, active_port, None, active_port.is_some(), None, None).await
++        self.preview_with_service_info(path, o, active_port, None, active_port.is_some(), None, None, None, 0).await
+     }
+ 
+     pub async fn preview_with_service_info(
+@@ -1473,21 +1482,35 @@ impl AiState {
+         initial_semantic_used: bool,
+         service_status: Option<String>,
+         initial_fallback_reason: Option<String>,
++        t_entry: Option<Instant>,
++        t_service_prep_ms: u64,
+     ) -> Result<Preview, String> {
+-        let (sources, timings, search_semantic_used, search_fallback_reason) =
++        let (sources, mut timings, search_semantic_used, search_fallback_reason) =
+             select_with_port_detailed(&path, &o, active_port).await?;
++        if let Some(entry) = t_entry {
++            timings.t_preview_total_ms = entry.elapsed().as_millis() as u64;
++            timings.t_service_prep_ms = t_service_prep_ms;
++        }
+         let bytes = serde_json::to_vec(&sources).map_err(|_| "Invalid sources")?.len();
+         let ticket = random_token()?;
+ 
+         let semantic_used = initial_semantic_used && search_semantic_used;
+         let semantic_fallback_reason = if !semantic_used {
+-            search_fallback_reason.or(initial_fallback_reason).or_else(|| {
+-                if active_port.is_none() {
+-                    Some("Servizio locale non attivo: ripiego sulla ricerca per parole".to_string())
+-                } else {
+-                    Some("Nessuna corrispondenza semantica o errore vettore: ripiego sulla ricerca per parole".to_string())
+-                }
+-            })
++            if let Some(ref init_reason) = initial_fallback_reason {
++                Some(init_reason.clone())
++            } else if service_status.as_deref() == Some("fallito") {
++                Some("Avvio automatico del servizio locale fallito: ripiego sulla ricerca per parole. Per riprovare, premi AVVIA SERVIZIO LOCALE.".to_string())
++            } else if service_status.as_deref() == Some("in avvio") {
++                Some("Servizio locale in avvio: ripiego temporaneo sulla ricerca per parole per questa domanda.".to_string())
++            } else {
++                search_fallback_reason.or_else(|| {
++                    if active_port.is_none() {
++                        Some("Servizio locale non attivo: ripiego sulla ricerca per parole".to_string())
++                    } else {
++                        Some("Nessuna corrispondenza semantica o errore vettore: ripiego sulla ricerca per parole".to_string())
++                    }
++                })
++            }
+         } else {
+             None
+         };
+@@ -2106,6 +2129,7 @@ pub async fn ask(
+         t_backend_total_ms,
+         preview: PreviewTimingBreakdown {
+             total_ms: p.preview_timings.t_preview_total_ms,
++            service_prep_ms: p.preview_timings.t_service_prep_ms,
+             index_cache_ms: p.preview_timings.t_index_cache_ms,
+             embed_ms: p.preview_timings.t_embed_ms,
+             search_ms: p.preview_timings.t_search_ms,
+@@ -2583,6 +2607,7 @@ pub async fn ask_stream(
+             t_backend_total_ms,
+             preview: PreviewTimingBreakdown {
+                 total_ms: p.preview_timings.t_preview_total_ms,
++                service_prep_ms: p.preview_timings.t_service_prep_ms,
+                 index_cache_ms: p.preview_timings.t_index_cache_ms,
+                 embed_ms: p.preview_timings.t_embed_ms,
+                 search_ms: p.preview_timings.t_search_ms,
+@@ -2977,6 +3002,7 @@ pub async fn ask_stream(
+             t_backend_total_ms,
+             preview: PreviewTimingBreakdown {
+                 total_ms: p.preview_timings.t_preview_total_ms,
++                service_prep_ms: p.preview_timings.t_service_prep_ms,
+                 index_cache_ms: p.preview_timings.t_index_cache_ms,
+                 embed_ms: p.preview_timings.t_embed_ms,
+                 search_ms: p.preview_timings.t_search_ms,
+@@ -3067,6 +3093,7 @@ pub async fn ask_stream(
+                 t_backend_total_ms,
+                 preview: PreviewTimingBreakdown {
+                     total_ms: p.preview_timings.t_preview_total_ms,
++                    service_prep_ms: p.preview_timings.t_service_prep_ms,
+                     index_cache_ms: p.preview_timings.t_index_cache_ms,
+                     embed_ms: p.preview_timings.t_embed_ms,
+                     search_ms: p.preview_timings.t_search_ms,
+@@ -3173,6 +3200,7 @@ pub async fn ask_stream(
+         t_backend_total_ms,
+         preview: PreviewTimingBreakdown {
+             total_ms: p.preview_timings.t_preview_total_ms,
++            service_prep_ms: p.preview_timings.t_service_prep_ms,
+             index_cache_ms: p.preview_timings.t_index_cache_ms,
+             embed_ms: p.preview_timings.t_embed_ms,
+             search_ms: p.preview_timings.t_search_ms,
+@@ -4046,6 +4074,7 @@ mod tests {
+           t_backend_total_ms: 4890,
+           preview: PreviewTimingBreakdown {
+               total_ms: 120,
++              service_prep_ms: 0,
+               index_cache_ms: 15,
+               embed_ms: 45,
+               search_ms: 30,
+@@ -4128,6 +4157,7 @@ mod tests {
+ 
+       let timings = PreviewTimings {
+           t_preview_total_ms: 100,
++          t_service_prep_ms: 0,
+           t_index_cache_ms: 10,
+           t_embed_ms: 20,
+           t_search_ms: 30,
+@@ -5255,6 +5285,98 @@ mod tests {
+       assert!(next_begin.is_ok(), "Subsequent request must succeed after ticket release");
+       state.finish("ticket-following");
+   }
++
++  #[tokio::test]
++  async fn test_fase5h_preview_fallback_reason_preserves_service_failure_over_generic_port_missing() {
++      let state = AiState::default();
++      let tmp = fixture();
++      let options = Options {
++          prompt: "test query".to_string(),
++          model: "gpt-4o".to_string(),
++          include_drafts: false,
++          source_ids: vec![],
++          category: None,
++          client: None,
++          project: None,
++          tags: None,
++      };
++
++      // Scenario 1: service_status "fallito" con fallback_reason esplicito dal sottosistema llama
++      let preview = state.preview_with_service_info(
++          tmp.path().to_path_buf(),
++          options.clone(),
++          None, // port assente
++          None,
++          false,
++          Some("fallito".to_string()),
++          Some("Avvio automatico del servizio locale fallito (Timeout 25s): ripiego sulla ricerca per parole.".to_string()),
++          None,
++          0,
++      ).await.unwrap();
++
++      let reason = preview.semantic_fallback_reason.unwrap();
++      assert!(!reason.contains("porta assente"), "Non deve mostrare la generica 'porta assente'");
++      assert!(reason.contains("Avvio automatico del servizio locale fallito"), "Deve riportare il motivo reale: {}", reason);
++
++      // Scenario 2: service_status "in avvio" senza fallback_reason
++      let preview2 = state.preview_with_service_info(
++          tmp.path().to_path_buf(),
++          options.clone(),
++          None,
++          None,
++          false,
++          Some("in avvio".to_string()),
++          None,
++          None,
++          0,
++      ).await.unwrap();
++
++      let reason2 = preview2.semantic_fallback_reason.unwrap();
++      assert!(!reason2.contains("porta assente"));
++      assert!(reason2.contains("in avvio"), "Deve indicare che il servizio è in avvio: {}", reason2);
++  }
++
++  #[tokio::test]
++  async fn test_fase5h_preview_timing_measures_full_preparation_including_service_wait() {
++      let state = AiState::default();
++      let tmp = fixture();
++      let options = Options {
++          prompt: "test query".to_string(),
++          model: "gpt-4o".to_string(),
++          include_drafts: false,
++          source_ids: vec![],
++          category: None,
++          client: None,
++          project: None,
++          tags: None,
++      };
++
++      // Simula ingresso di ai_preview avvenuto 1200ms prima e attesa servizio di 1150ms
++      let t_entry = Instant::now() - Duration::from_millis(1200);
++      let simulated_service_prep_ms = 1150u64;
++
++      let preview = state.preview_with_service_info(
++          tmp.path().to_path_buf(),
++          options,
++          None,
++          None,
++          false,
++          Some("fallito".to_string()),
++          Some("Attesa servizio terminata".to_string()),
++          Some(t_entry),
++          simulated_service_prep_ms,
++      ).await.unwrap();
++
++      let pending = state.pending.lock().unwrap();
++      let pending_entry = pending.get(&preview.ticket).expect("pending entry must exist");
++      assert_eq!(pending_entry.preview_timings.t_service_prep_ms, simulated_service_prep_ms);
++      assert!(
++          pending_entry.preview_timings.t_preview_total_ms >= simulated_service_prep_ms,
++          "Il tempo totale di preparazione nel registro deve comprendere l'attesa del servizio (effettivo: {} ms, attesa servizio: {} ms)",
++          pending_entry.preview_timings.t_preview_total_ms,
++          simulated_service_prep_ms
++      );
++  }
+ }
+ #[cfg(test)]
+ mod index_policy_test {
+diff --git a/apps/desktop/src-tauri/src/llama.rs b/apps/desktop/src-tauri/src/llama.rs
+index a931050..e05e984 100644
+--- a/apps/desktop/src-tauri/src/llama.rs
++++ b/apps/desktop/src-tauri/src/llama.rs
+@@ -95,18 +95,70 @@ pub fn get_local_model_timing_log_path() -> PathBuf {
+     }
+ }
+ 
+-pub fn log_local_model_timing(event: &str, elapsed_ms: u64, details: &str) {
++pub fn log_local_model_timing_meta(
++    event: &str,
++    elapsed_ms: u64,
++    service_binary: Option<&Path>,
++    service_pid: Option<u32>,
++    service_port: Option<u16>,
++    details: &str,
++) {
+     let log_path = get_local_model_timing_log_path();
+     if let Some(parent) = log_path.parent() {
+         let _ = fs::create_dir_all(parent);
+     }
+     let now = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true);
+-    let line = format!("{} | event={} | elapsed_ms={} | details={}\n", now, event, elapsed_ms, details);
++
++    let app_exe = std::env::current_exe()
++        .map(|p| p.to_string_lossy().to_string())
++        .unwrap_or_else(|_| "sconosciuto".to_string());
++    let app_pid = std::process::id();
++
++    let s_bin = service_binary
++        .map(|p| p.to_string_lossy().to_string())
++        .or_else(|| detect_llama_server_binary().map(|p| p.to_string_lossy().to_string()))
++        .unwrap_or_else(|| "non_rilevato".to_string());
++    let s_pid = service_pid.map(|p| p.to_string()).unwrap_or_else(|| "none".to_string());
++    let s_port = service_port.map(|p| p.to_string()).unwrap_or_else(|| "none".to_string());
++
++    let line = format!(
++        "{} | event={} | elapsed_ms={} | app_exe={} | app_pid={} | service_exe={} | service_pid={} | service_port={} | details={}\n",
++        now, event, elapsed_ms, app_exe, app_pid, s_bin, s_pid, s_port, details
++    );
+     if let Ok(mut f) = fs::OpenOptions::new().create(true).append(true).open(&log_path) {
+         let _ = f.write_all(line.as_bytes());
+     }
+ }
+ 
++pub fn log_local_model_timing(event: &str, elapsed_ms: u64, details: &str) {
++    log_local_model_timing_meta(event, elapsed_ms, None, None, None, details);
++}
++
++pub fn rotate_llama_server_logs(logs_dir: &Path, max_files: usize) {
++    if let Ok(entries) = fs::read_dir(logs_dir) {
++        let mut files: Vec<PathBuf> = entries
++            .filter_map(|e| e.ok())
++            .map(|e| e.path())
++            .filter(|p| {
++                p.is_file()
++                    && p.file_name()
++                        .and_then(|n| n.to_str())
++                        .map(|n| n.starts_with("llama-server_") && n.ends_with(".log"))
++                        .unwrap_or(false)
++            })
++            .collect();
++
++        files.sort();
++
++        if files.len() > max_files {
++            let to_remove = files.len() - max_files;
++            for p in files.iter().take(to_remove) {
++                let _ = fs::remove_file(p);
++            }
++        }
++    }
++}
++
+ pub fn get_models_dir() -> Result<PathBuf, String> {
+     let base = std::env::var("HOME")
+         .or_else(|_| std::env::var("USERPROFILE"))
+@@ -789,12 +841,18 @@ pub fn find_port_for_pid(pid: u32) -> Option<u16> {
+ /// 3. File llama-server.pid (interrogando la porta del PID)
+ /// 4. Processi llama-server attivi sul sistema
+ pub fn find_active_bge_m3_service_with_pid() -> Result<(u16, Option<u32>), String> {
++    if std::env::var("LIMEN_TEST_DISABLE_ADOPTION").is_ok() {
++        return Err("Adozione disabilitata per il test".into());
++    }
++
+     // 1. Variabile d'ambiente
+     if let Ok(env_val) = std::env::var("LIMEN_LOCAL_PORT") {
+         if let Ok(env_port) = env_val.trim().parse::<u16>() {
+             if check_health(env_port) && verify_dimensions(env_port).is_ok() {
+                 let pid = pid_file_path().and_then(|p| read_pid_file(&p));
+                 return Ok((env_port, pid));
++            } else {
++                return Err(format!("Porta configurata in LIMEN_LOCAL_PORT ({}) non pronta o non valida", env_port));
+             }
+         }
+     }
+@@ -826,7 +884,7 @@ pub fn find_active_bge_m3_service_with_pid() -> Result<(u16, Option<u32>), Strin
+         use std::os::windows::process::CommandExt;
+         const CREATE_NO_WINDOW: u32 = 0x08000000;
+         let mut cmd = std::process::Command::new("powershell");
+-        cmd.args(["-NoProfile", "-Command", "Get-Process -Name 'llama-server' -ErrorAction SilentlyContinue | ForEach-Object { $p = $_.Id; Get-NetTCPConnection -OwningProcess $p -State Listen -ErrorAction SilentlyContinue | ForEach-Object { \"$p:$($_.LocalPort)\" } }"])
++        cmd.args(["-NoProfile", "-Command", "Get-Process -Name 'llama-server' -ErrorAction SilentlyContinue | ForEach-Object { $p = $_.Id; Get-NetTCPConnection -OwningProcess $p -State Listen -ErrorAction SilentlyContinue | ForEach-Object { [string]$p + ':' + [string]$_.LocalPort } }"])
+             .creation_flags(CREATE_NO_WINDOW);
+         let out = run_command_with_timeout(cmd, discovery_command_timeout());
+         if let Some(o) = out {
+@@ -1076,50 +1134,15 @@ pub fn verify_dimensions(port: u16) -> Result<(), String> {
+     Ok(())
+ }
+ 
+-fn stop_child(s: &mut RunningState) {
+-    s.starting = false;
+-    if let Some(mut c) = s.child.take() {
+-        #[cfg(unix)]
+-        unsafe {
+-            let pid = c.id() as i32;
+-            libc::kill(-pid, libc::SIGTERM);
+-            libc::kill(pid, libc::SIGTERM);
+-        }
+-        #[cfg(windows)]
+-        {
+-            let _ = c.kill(); // Termina esplicitamente SOLO il figlio posseduto dall'app
+-        }
+-        for _ in 0..20 {
+-            if c.try_wait().ok().flatten().is_some() {
+-                break;
+-            }
+-            std::thread::sleep(Duration::from_millis(50));
+-        }
+-        #[cfg(unix)]
+-        unsafe {
+-            let pid = c.id() as i32;
+-            libc::kill(-pid, libc::SIGKILL);
+-            libc::kill(pid, libc::SIGKILL);
+-        }
+-        #[cfg(windows)]
+-        {
+-            let _ = c.kill();
+-        }
+-        // Attesa con limite massimo (max 500ms aggiuntivi), MAI c.wait() indefinito
+-        for _ in 0..10 {
+-            if c.try_wait().ok().flatten().is_some() {
+-                break;
+-            }
+-            std::thread::sleep(Duration::from_millis(50));
++pub struct StartingGuard(pub LlamaServerState, pub bool);
++
++impl Drop for StartingGuard {
++    fn drop(&mut self) {
++        if self.1 {
++            let mut s = self.0.0.lock().unwrap_or_else(|e| e.into_inner());
++            s.starting = false;
+         }
+     }
+-    let owned = s.child.as_ref().map(|c| c.id()).or(s.owned_pid);
+-    if let Some(pid) = owned {
+-        remove_service_registration_if_owned(pid);
+-    }
+-    s.owned_pid = None;
+-    s.adopted_pid = None;
+-    s.port = 0;
+ }
+ 
+ impl LlamaServerState {
+@@ -1166,6 +1189,9 @@ impl LlamaServerState {
+         s.port = port;
+         s.adopted_pid = pid;
+         s.owned_pid = None;
++        s.starting = false;
++        s.auto_start_failed = false;
++        s.auto_start_failure_reason = None;
+         s.last_error = None;
+     }
+ 
+@@ -1203,9 +1229,21 @@ impl LlamaServerState {
+     }
+ 
+     pub fn trigger_background_start(&self) -> bool {
++        let (already_port, already_starting, already_failed) = {
++            let s = self.0.lock().unwrap_or_else(|e| e.into_inner());
++            (s.port, s.starting, s.auto_start_failed)
++        };
++        if already_starting || already_failed {
++            return false;
++        }
++        // check_health eseguito FUORI DAL BLOCCO MUTEX (Difetto minore Fase 5g)
++        if already_port > 0 && check_health(already_port) {
++            return false;
++        }
++
+         {
+             let mut s = self.0.lock().unwrap_or_else(|e| e.into_inner());
+-            if (s.port > 0 && check_health(s.port)) || s.starting || s.auto_start_failed {
++            if s.starting || s.auto_start_failed {
+                 return false;
+             }
+             s.starting = true;
+@@ -1214,26 +1252,47 @@ impl LlamaServerState {
+ 
+         let state = self.clone();
+         std::thread::spawn(move || {
++            let mut bg_guard = StartingGuard(state.clone(), true);
+             let t0 = Instant::now();
+-            log_local_model_timing("BACKGROUND_START_BEGIN", 0, "Avvio del servizio locale in background richiesto all'apertura");
++            log_local_model_timing_meta(
++                "BACKGROUND_START_BEGIN",
++                0,
++                None,
++                None,
++                None,
++                "Avvio del servizio locale in background richiesto all'apertura",
++            );
+ 
+             // 1. Prima controlla se c'è un servizio esterno attivo bge-m3
+             if let Ok((port, pid)) = find_active_bge_m3_service_with_pid() {
+                 state.adopt_service(port, pid);
+-                let mut s = state.0.lock().unwrap_or_else(|e| e.into_inner());
+-                s.starting = false;
++                bg_guard.1 = false; // Disarma la guardia, adopt_service azzera starting
+                 let elapsed = t0.elapsed().as_millis() as u64;
+-                log_local_model_timing("BACKGROUND_ADOPT_SUCCESS", elapsed, &format!("port={}, pid={:?}", port, pid));
++                log_local_model_timing_meta(
++                    "BACKGROUND_ADOPT_SUCCESS",
++                    elapsed,
++                    None,
++                    pid,
++                    Some(port),
++                    &format!("port={}, pid={:?}", port, pid),
++                );
+                 return;
+             }
+ 
+             // 2. Altrimenti avvia il proprio servizio mantenendo l'attesa di /health a 25 s
++            // Disarma bg_guard perché start_internal gestisce il proprio StartingGuard
++            bg_guard.1 = false;
+             match state.start_internal(Duration::from_secs(25)) {
+                 Ok(rep) if rep.healthy => {
+-                    let mut s = state.0.lock().unwrap_or_else(|e| e.into_inner());
+-                    s.starting = false;
+                     let elapsed = t0.elapsed().as_millis() as u64;
+-                    log_local_model_timing("BACKGROUND_START_SUCCESS", elapsed, &format!("port={}, pid={:?}", rep.port, rep.pid));
++                    log_local_model_timing_meta(
++                        "BACKGROUND_START_SUCCESS",
++                        elapsed,
++                        detect_llama_server_binary().as_deref(),
++                        rep.pid,
++                        Some(rep.port),
++                        &format!("port={}, pid={:?}", rep.port, rep.pid),
++                    );
+                 }
+                 Ok(rep) => {
+                     let mut s = state.0.lock().unwrap_or_else(|e| e.into_inner());
+@@ -1241,7 +1300,14 @@ impl LlamaServerState {
+                     s.auto_start_failed = true;
+                     s.auto_start_failure_reason = rep.last_error.clone();
+                     let elapsed = t0.elapsed().as_millis() as u64;
+-                    log_local_model_timing("BACKGROUND_START_FAILED", elapsed, &format!("non pronto su porta {}: {:?}", rep.port, rep.last_error));
++                    log_local_model_timing_meta(
++                        "BACKGROUND_START_FAILED",
++                        elapsed,
++                        detect_llama_server_binary().as_deref(),
++                        rep.pid,
++                        Some(rep.port),
++                        &format!("non pronto su porta {}: {:?}", rep.port, rep.last_error),
++                    );
+                 }
+                 Err(err) => {
+                     let mut s = state.0.lock().unwrap_or_else(|e| e.into_inner());
+@@ -1249,7 +1315,14 @@ impl LlamaServerState {
+                     s.auto_start_failed = true;
+                     s.auto_start_failure_reason = Some(err.clone());
+                     let elapsed = t0.elapsed().as_millis() as u64;
+-                    log_local_model_timing("BACKGROUND_START_FAILED", elapsed, &format!("errore: {}", err));
++                    log_local_model_timing_meta(
++                        "BACKGROUND_START_FAILED",
++                        elapsed,
++                        None,
++                        None,
++                        None,
++                        &format!("errore: {}", err),
++                    );
+                 }
+             }
+         });
+@@ -1290,9 +1363,9 @@ impl LlamaServerState {
+         }
+ 
+         // 2. Controllo se l'avvio è già fallito per un guasto vero nella sessione (Regola 3)
+-        let (auto_start_failed, prev_reason) = {
++        let (auto_start_failed, prev_reason, is_already_starting) = {
+             let guard = self.0.lock().unwrap_or_else(|e| e.into_inner());
+-            (guard.auto_start_failed, guard.auto_start_failure_reason.clone())
++            (guard.auto_start_failed, guard.auto_start_failure_reason.clone(), guard.starting)
+         };
+         if auto_start_failed {
+             let reason = format!(
+@@ -1302,18 +1375,16 @@ impl LlamaServerState {
+             return (None, None, false, "fallito".to_string(), Some(reason));
+         }
+ 
+-        // 3. Scoperta servizio esterno (con comandi esterni a timeout limitato a 2s, Regola a)
+-        let discover_res = find_active_bge_m3_service_with_pid();
+-        if let Ok((port, pid)) = discover_res {
+-            self.adopt_service(port, pid);
+-            return (Some(port), pid, true, "esterno adottato".to_string(), None);
++        // 3. Scoperta servizio esterno (se il nostro servizio non è già in avvio)
++        if !is_already_starting {
++            let discover_res = find_active_bge_m3_service_with_pid();
++            if let Ok((port, pid)) = discover_res {
++                self.adopt_service(port, pid);
++                return (Some(port), pid, true, "esterno adottato".to_string(), None);
++            }
+         }
+ 
+         // 4. Se il servizio non è già in avvio, avvia in background (senza bloccare la sessione)
+-        let is_already_starting = {
+-            let guard = self.0.lock().unwrap_or_else(|e| e.into_inner());
+-            guard.starting
+-        };
+         if !is_already_starting {
+             let model_rep = local_model_status();
+             if !model_rep.installed || !model_rep.sha256_ok {
+@@ -1350,13 +1421,13 @@ impl LlamaServerState {
+         let deadline = t_start + timeout;
+         while Instant::now() < deadline {
+             std::thread::sleep(Duration::from_millis(50));
+-            let (healthy, port, pid, failed, fail_reason, adopted) = {
++            let (port, pid, failed, fail_reason, adopted) = {
+                 let guard = self.0.lock().unwrap_or_else(|e| e.into_inner());
+-                let h = guard.port > 0 && check_health(guard.port);
+                 let pid = guard.child.as_ref().map(|c| c.id()).or(guard.adopted_pid);
+-                (h, guard.port, pid, guard.auto_start_failed, guard.auto_start_failure_reason.clone(), guard.adopted_pid.is_some())
++                (guard.port, pid, guard.auto_start_failed, guard.auto_start_failure_reason.clone(), guard.adopted_pid.is_some())
+             };
+ 
++            let healthy = port > 0 && check_health(port);
+             if healthy {
+                 let st = if adopted { "esterno adottato" } else { "pronto" };
+                 return (Some(port), pid, true, st.to_string(), None);
+@@ -1398,6 +1469,40 @@ impl LlamaServerState {
+ 
+     pub fn start_internal(&self, timeout: Duration) -> Result<LocalServerReport, String> {
+         let t_start = Instant::now();
++
++        // 0. Controllo concorrenza: se un avvio è già in corso in un altro thread, NON avviare
++        // un secondo processo (Item 5). Attendi invece il completamento dell'avvio già attivo.
++        let already_starting = {
++            let s = self.0.lock().unwrap_or_else(|e| e.into_inner());
++            s.starting
++        };
++        if already_starting {
++            let deadline = t_start + timeout;
++            while Instant::now() < deadline {
++                std::thread::sleep(Duration::from_millis(100));
++                let (port, starting, failed, fail_reason) = {
++                    let s = self.0.lock().unwrap_or_else(|e| e.into_inner());
++                    (s.port, s.starting, s.auto_start_failed, s.auto_start_failure_reason.clone())
++                };
++                if port > 0 && check_health(port) {
++                    return Ok(self.status());
++                }
++                if !starting {
++                    if port > 0 && check_health(port) {
++                        return Ok(self.status());
++                    }
++                    if failed {
++                        return Err(fail_reason.unwrap_or_else(|| "Avvio del servizio locale fallito".to_string()));
++                    }
++                    break;
++                }
++            }
++            let s = self.0.lock().unwrap_or_else(|e| e.into_inner());
++            if s.starting {
++                return Err(format!("Timeout attesa avvio del servizio in corso ({:.1}s).", timeout.as_secs_f32()));
++            }
++        }
++
+         // 1. Verify model is installed
+         let model_rep = local_model_status();
+         if !model_rep.installed || !model_rep.sha256_ok {
+@@ -1437,95 +1542,116 @@ impl LlamaServerState {
+             }
+         };
+ 
+-        // 3b. Se un altro thread ha già avviato il processo figlio, non duplicare: attendi la salute
+-        let (port, child_already_spawned) = {
+-            let mut s = self.0.lock().map_err(|e| e.to_string())?;
+-            if s.starting && s.child.is_some() && s.port > 0 {
+-                (s.port, true)
+-            } else {
+-                stop_child(&mut s);
+-                s.starting = true;
+-                s.last_error = None;
+-                (0, false)
++        // Acquisizione flag starting con guardia RAII (garantisce azzeramento anche su panic/errore)
++        {
++            let mut s = self.0.lock().unwrap_or_else(|e| e.into_inner());
++            s.starting = true;
++            s.last_error = None;
++        }
++        let mut starting_guard = StartingGuard(self.clone(), true);
++
++        // 4. Choose free port
++        let free_port = match find_free_port() {
++            Ok(p) => p,
++            Err(e) => {
++                let mut s = self.0.lock().unwrap_or_else(|e| e.into_inner());
++                s.starting = false;
++                s.auto_start_failed = true;
++                s.auto_start_failure_reason = Some(e.clone());
++                return Err(e);
+             }
+         };
+ 
+-        let port = if child_already_spawned {
+-            port
+-        } else {
+-            // 4. Choose free port
+-            let free_port = match find_free_port() {
+-                Ok(p) => p,
+-                Err(e) => {
+-                    let mut s = self.0.lock().unwrap_or_else(|e| e.into_inner());
+-                    s.starting = false;
+-                    s.auto_start_failed = true;
+-                    s.auto_start_failure_reason = Some(e.clone());
+-                    return Err(e);
+-                }
+-            };
+-
+-            // 5. Spawn llama-server with exact arguments
+-            let mut cmd = Command::new(&binary);
+-            cmd.args([
+-                "-m", &model_path.to_string_lossy(),
+-                "--embedding",
+-                "--host", "127.0.0.1",
+-                "--port", &free_port.to_string(),
+-                "-ub", "2048",
+-                "-b", "2048",
+-            ]);
+-
+-            if let Some(metal) = binary.parent().map(|d| d.join("libggml-metal.so")).filter(|p| p.is_file()) {
+-                cmd.env("GGML_BACKEND_PATH", metal);
+-            }
++        // 5. Spawn llama-server with exact arguments
++        let mut cmd = Command::new(&binary);
++        cmd.args([
++            "-m", &model_path.to_string_lossy(),
++            "--embedding",
++            "--host", "127.0.0.1",
++            "--port", &free_port.to_string(),
++            "-ub", "2048",
++            "-b", "2048",
++        ]);
+ 
+-            #[cfg(unix)]
+-            {
+-                use std::os::unix::process::CommandExt;
+-                cmd.process_group(0);
+-            }
+-            #[cfg(windows)]
+-            {
+-                use std::os::windows::process::CommandExt;
+-                const CREATE_NO_WINDOW: u32 = 0x08000000;
+-                cmd.creation_flags(CREATE_NO_WINDOW);
+-            }
++        if let Some(metal) = binary.parent().map(|d| d.join("libggml-metal.so")).filter(|p| p.is_file()) {
++            cmd.env("GGML_BACKEND_PATH", metal);
++        }
+ 
+-            cmd.stdin(Stdio::null());
+-            cmd.stdout(Stdio::null());
+-            let log_path = model_path.parent().map(|p| p.join("llama-server.log"));
+-            match log_path.as_ref().and_then(|p| std::fs::File::create(p).ok()) {
+-                Some(f) => { cmd.stderr(Stdio::from(f)); }
+-                None => { cmd.stderr(Stdio::null()); }
+-            }
++        #[cfg(unix)]
++        {
++            use std::os::unix::process::CommandExt;
++            cmd.process_group(0);
++        }
++        #[cfg(windows)]
++        {
++            use std::os::windows::process::CommandExt;
++            const CREATE_NO_WINDOW: u32 = 0x08000000;
++            cmd.creation_flags(CREATE_NO_WINDOW);
++        }
+ 
+-            let child = match cmd.spawn() {
+-                Ok(c) => c,
+-                Err(e) => {
+-                    let mut s = self.0.lock().unwrap_or_else(|e| e.into_inner());
+-                    s.starting = false;
+-                    s.auto_start_failed = true;
+-                    let err = format!("Impossibile avviare il processo llama-server: {}", e);
+-                    s.auto_start_failure_reason = Some(err.clone());
+-                    return Err(err);
+-                }
+-            };
++        cmd.stdin(Stdio::null());
++        cmd.stdout(Stdio::null());
++        cmd.stderr(Stdio::piped());
+ 
+-            let child_pid = child.id();
+-            let _ = write_service_registration(child_pid, free_port);
+-            {
++        let mut child = match cmd.spawn() {
++            Ok(c) => c,
++            Err(e) => {
+                 let mut s = self.0.lock().unwrap_or_else(|e| e.into_inner());
+-                s.child = Some(child);
+-                s.owned_pid = Some(child_pid);
+-                s.port = free_port;
+-                s.model_path = model_path.clone();
+-                s.binary_path = Some(binary);
+-                s.starting = true;
++                s.starting = false;
++                s.auto_start_failed = true;
++                let err = format!("Impossibile avviare il processo llama-server: {}", e);
++                s.auto_start_failure_reason = Some(err.clone());
++                return Err(err);
+             }
+-            free_port
+         };
+ 
++        let child_pid = child.id();
++        let stderr_opt = child.stderr.take();
++
++        // 5b. Registri per avvio: file proprio con timestamp UTC e PID, conservando almeno gli ultimi 20 file (Item 1)
++        if let Some(parent) = model_path.parent() {
++            let logs_dir = parent.join("logs");
++            let _ = fs::create_dir_all(&logs_dir);
++            rotate_llama_server_logs(&logs_dir, 20);
++
++            let utc_now = chrono::Utc::now().format("%Y%m%dT%H%M%SZ").to_string();
++            let per_run_log_path = logs_dir.join(format!("llama-server_{}_{}.log", utc_now, child_pid));
++            let legacy_log_path = parent.join("llama-server.log");
++
++            if let Some(mut stderr) = stderr_opt {
++                std::thread::spawn(move || {
++                    use std::io::Read;
++                    let mut file_per_run = fs::File::create(&per_run_log_path).ok();
++                    let mut file_legacy = fs::File::create(&legacy_log_path).ok();
++                    let mut buf = [0u8; 4096];
++                    while let Ok(n) = stderr.read(&mut buf) {
++                        if n == 0 {
++                            break;
++                        }
++                        if let Some(ref mut f) = file_per_run {
++                            let _ = f.write_all(&buf[..n]);
++                        }
++                        if let Some(ref mut f) = file_legacy {
++                            let _ = f.write_all(&buf[..n]);
++                        }
++                    }
++                });
++            }
++        }
++
++        let _ = write_service_registration(child_pid, free_port);
++        {
++            let mut s = self.0.lock().unwrap_or_else(|e| e.into_inner());
++            s.child = Some(child);
++            s.owned_pid = Some(child_pid);
++            s.port = free_port;
++            s.model_path = model_path.clone();
++            s.binary_path = Some(binary.clone());
++            s.starting = true;
++        }
++
++        let port = free_port;
++
+         // 6. Poll /health endpoint up to timeout
+         let deadline = Instant::now() + timeout;
+         let mut healthy = false;
+@@ -1558,34 +1684,62 @@ impl LlamaServerState {
+                     let err = format!("llama-server uscito con codice {}{}", code, detail);
+                     guard.auto_start_failure_reason = Some(err.clone());
+                     guard.last_error = Some(err.clone());
++                    let elapsed = t_start.elapsed().as_millis() as u64;
++                    log_local_model_timing_meta(
++                        "SERVICE_START_FAILED",
++                        elapsed,
++                        Some(&binary),
++                        Some(child_pid),
++                        Some(port),
++                        &err,
++                    );
+                     return Err(err);
+                 }
+             }
+         }
+ 
+         if !healthy {
++            self.stop()?;
+             let mut guard = self.0.lock().map_err(|e| e.to_string())?;
+-            stop_child(&mut guard);
+             guard.starting = false;
+             guard.auto_start_failed = true;
+             let err = format!("Timeout: llama-server non ha risposto sull'endpoint /health entro {:.1}s.", timeout.as_secs_f32());
+             guard.auto_start_failure_reason = Some(err.clone());
+             guard.last_error = Some(err.clone());
++            let elapsed = t_start.elapsed().as_millis() as u64;
++            log_local_model_timing_meta(
++                "SERVICE_START_FAILED",
++                elapsed,
++                Some(&binary),
++                Some(child_pid),
++                Some(port),
++                &err,
++            );
+             return Err(err);
+         }
+ 
+         // 7. Verify dimensions are exactly 1024 (guasto vero, Regola 3)
+         if let Err(e) = verify_dimensions(port) {
++            let _ = self.stop();
+             let mut guard = self.0.lock().map_err(|e| e.to_string())?;
+-            stop_child(&mut guard);
+             guard.starting = false;
+             guard.auto_start_failed = true;
+             let err = format!("Controllo dimensioni vettore fallito: {}", e);
+             guard.auto_start_failure_reason = Some(err.clone());
+             guard.last_error = Some(err.clone());
++            let elapsed = t_start.elapsed().as_millis() as u64;
++            log_local_model_timing_meta(
++                "SERVICE_START_FAILED",
++                elapsed,
++                Some(&binary),
++                Some(child_pid),
++                Some(port),
++                &err,
++            );
+             return Err(err);
+         }
+ 
++        starting_guard.1 = false; // Disarma StartingGuard: avvio completato con successo
+         {
+             let mut guard = self.0.lock().map_err(|e| e.to_string())?;
+             guard.starting = false;
+@@ -1594,13 +1748,12 @@ impl LlamaServerState {
+         }
+ 
+         let elapsed = t_start.elapsed().as_millis() as u64;
+-        let child_pid = {
+-            let s = self.0.lock().unwrap_or_else(|e| e.into_inner());
+-            s.child.as_ref().map(|c| c.id())
+-        };
+-        log_local_model_timing(
++        log_local_model_timing_meta(
+             "SERVICE_START",
+             elapsed,
++            Some(&binary),
++            Some(child_pid),
++            Some(port),
+             &format!("port={}, pid={:?}", port, child_pid),
+         );
+ 
+@@ -2221,11 +2374,13 @@ mod tests {
+ 
+     #[test]
+     fn test_fase5f_discovery_external_command_hang_terminates_within_timeout_with_fallback() {
++        std::env::set_var("LIMEN_TEST_DISABLE_ADOPTION", "1");
+         let state = LlamaServerState::default();
+         let timeout = Duration::from_millis(50);
+         let t0 = Instant::now();
+         let (port, pid, is_ready, status, fallback_reason) = state.get_or_adopt_or_start_service_with_timeout(timeout);
+         let elapsed = t0.elapsed();
++        std::env::remove_var("LIMEN_TEST_DISABLE_ADOPTION");
+ 
+         assert!(!is_ready, "Il servizio non deve risultare pronto se il timeout di preparazione spira");
+         assert!(port.is_none(), "Nessuna porta deve essere associata");
+@@ -2339,6 +2494,7 @@ mod tests {
+ 
+     #[test]
+     fn test_fase5g_missing_binary_sets_auto_start_failed_until_button_reset() {
++        std::env::set_var("LIMEN_TEST_DISABLE_ADOPTION", "1");
+         let state = LlamaServerState::default();
+         // Imposta una variabile che fa fallire la scoperta del binario
+         std::env::set_var("LLAMA_SERVER_PATH", "E:\\non_existent_llama_binary_path_fase5g.exe");
+@@ -2355,6 +2511,8 @@ mod tests {
+         let t0 = Instant::now();
+         let (_p2, _pid2, is_ready2, status2, reason2) = state.get_or_adopt_or_start_service();
+         let elapsed = t0.elapsed();
++        std::env::remove_var("LIMEN_TEST_DISABLE_ADOPTION");
++
+         assert!(!is_ready2);
+         assert_eq!(status2, "fallito");
+         assert!(elapsed < Duration::from_millis(200));
+@@ -2393,4 +2551,308 @@ mod tests {
+         std::env::remove_var("LIMEN_LOCAL_MODEL_TIMING_LOG");
+         std::env::remove_var("LIMEN_EMBEDDINGS_PROVIDER");
+     }
++
++    #[test]
++    fn test_fase5h_adoption_of_existing_instance_service_without_second_process() {
++        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
++        let mock_port = listener.local_addr().unwrap().port();
++        let stop_flag = Arc::new(std::sync::atomic::AtomicBool::new(false));
++        let stop_clone = stop_flag.clone();
++
++        let server_thread = std::thread::spawn(move || {
++            listener.set_nonblocking(true).unwrap();
++            while !stop_clone.load(Ordering::SeqCst) {
++                if let Ok((mut stream, _)) = listener.accept() {
++                    let mut buf = [0u8; 1024];
++                    let n = stream.read(&mut buf).unwrap_or(0);
++                    let req = String::from_utf8_lossy(&buf[..n]);
++                    if req.contains("GET /health") {
++                        let resp = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 15\r\n\r\n{\"status\":\"ok\"}";
++                        let _ = stream.write_all(resp.as_bytes());
++                    } else if req.contains("POST /v1/embeddings") {
++                        // Risposta con 1024 float
++                        let embedding: Vec<f32> = vec![0.01; 1024];
++                        let emb_json = serde_json::to_string(&embedding).unwrap();
++                        let body = format!("{{\"data\":[{{\"embedding\":{}}}]}}", emb_json);
++                        let resp = format!(
++                            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{}",
++                            body.len(),
++                            body
++                        );
++                        let _ = stream.write_all(resp.as_bytes());
++                    }
++                }
++                std::thread::sleep(Duration::from_millis(10));
++            }
++        });
++
++        std::env::set_var("LIMEN_LOCAL_PORT", mock_port.to_string());
++        let state = LlamaServerState::default();
++
++        let (port, _pid, is_ready, status, reason) = state.get_or_adopt_or_start_service();
++        std::env::remove_var("LIMEN_LOCAL_PORT");
++
++        assert!(is_ready, "Il servizio esistente verificato deve essere adottato e pronto");
++        assert_eq!(port, Some(mock_port));
++        assert_eq!(status, "esterno adottato", "Lo stato deve essere 'esterno adottato'");
++        assert!(reason.is_none());
++        assert!(!state.is_starting());
++        assert!(!state.is_auto_start_failed());
++
++        stop_flag.store(true, Ordering::SeqCst);
++        let _ = server_thread.join();
++    }
++
++    #[test]
++    fn test_fase5h_start_prevents_duplicate_process_while_starting() {
++        let state = LlamaServerState::default();
++        {
++            let mut s = state.0.lock().unwrap();
++            s.starting = true;
++        }
++
++        // Chiamata concorrente a start_internal con timeout breve: non deve avviare alcun processo,
++        // ma deve attendere e fallire per timeout dell'avvio già in corso.
++        let t0 = Instant::now();
++        let res = state.start_internal(Duration::from_millis(150));
++        let elapsed = t0.elapsed();
++
++        assert!(res.is_err());
++        assert!(elapsed >= Duration::from_millis(100));
++        let err = res.unwrap_err();
++        assert!(
++            err.contains("in corso"),
++            "L'errore deve segnalare l'avvio già in corso senza creare nuovi processi: {}",
++            err
++        );
++
++        // Reset
++        state.0.lock().unwrap().starting = false;
++    }
++
++    #[test]
++    fn test_fase5h_starting_guard_resets_flag_on_thread_panic() {
++        let state = LlamaServerState::default();
++        {
++            let mut s = state.0.lock().unwrap();
++            s.starting = true;
++        }
++        assert!(state.is_starting());
++
++        let state_clone = state.clone();
++        let handle = std::thread::spawn(move || {
++            let _guard = StartingGuard(state_clone, true);
++            panic!("Simulated thread panic during startup");
++        });
++
++        assert!(handle.join().is_err(), "Il thread deve andare in panic");
++        assert!(
++            !state.is_starting(),
++            "StartingGuard deve aver azzerato starting = false anche a fronte di un panic"
++        );
++    }
++
++    #[test]
++    fn test_fase5h_log_rotation_and_per_startup_files() {
++        let tmp = tempfile::tempdir().unwrap();
++        let logs_dir = tmp.path().join("logs");
++        fs::create_dir_all(&logs_dir).unwrap();
++
++        // Crea 25 file di log simulati
++        for i in 1..=25 {
++            let filename = format!("llama-server_20260924T{:02}0000Z_1000{}.log", i, i);
++            fs::write(logs_dir.join(filename), b"log content").unwrap();
++        }
++
++        // Ruota a max 20 file
++        rotate_llama_server_logs(&logs_dir, 20);
++
++        let remaining: Vec<_> = fs::read_dir(&logs_dir)
++            .unwrap()
++            .filter_map(|e| e.ok())
++            .collect();
++        assert_eq!(remaining.len(), 20, "Devono rimanere esattamente 20 file");
++
++        // Verifica che i 5 file più vecchi (da 01 a 05) siano stati rimossi
++        for i in 1..=5 {
++            let filename = format!("llama-server_20260924T{:02}0000Z_1000{}.log", i, i);
++            assert!(!logs_dir.join(filename).exists(), "I file più vecchi devono essere rimossi");
++        }
++        // Verifica che i file più recenti (da 06 a 25) siano presenti
++        for i in 6..=25 {
++            let filename = format!("llama-server_20260924T{:02}0000Z_1000{}.log", i, i);
++            assert!(logs_dir.join(filename).exists(), "I file recenti devono essere conservati");
++        }
++    }
++
++    #[test]
++    fn test_fase5h_local_model_timing_log_includes_app_and_service_metadata() {
++        let tmp = tempfile::tempdir().unwrap();
++        let log_file = tmp.path().join("local_model_timing.log");
++        std::env::set_var("LIMEN_LOCAL_MODEL_TIMING_LOG", &log_file);
++
++        log_local_model_timing_meta(
++            "SERVICE_START",
++            4321,
++            Some(Path::new("dummy/native/llama-server.exe")),
++            Some(36844),
++            Some(49950),
++            "test_adoption_details",
++        );
++
++        let content = fs::read_to_string(&log_file).unwrap();
++        assert!(content.contains("app_exe="), "Deve contenere app_exe: {}", content);
++        assert!(content.contains("app_pid="), "Deve contenere app_pid: {}", content);
++        assert!(content.contains("service_exe="), "Deve contenere service_exe: {}", content);
++        assert!(content.contains("service_pid=36844"), "Deve contenere service_pid=36844: {}", content);
++        assert!(content.contains("service_port=49950"), "Deve contenere service_port=49950: {}", content);
++
++        std::env::remove_var("LIMEN_LOCAL_MODEL_TIMING_LOG");
++    }
++
++    #[test]
++    fn test_fase5h_codex_fixture_acceptance() {
++        // 1. Usa cartella target separata (NON target/release/llama-server.exe)
++        let separate_target = tempfile::tempdir().unwrap();
++        let fixture_exe = separate_target.path().join(if cfg!(windows) { "llama-server.exe" } else { "llama-server" });
++
++        let source_fixture = PathBuf::from("E:\\Projects\\vault_memai_obsi\\IMPLEMENTATION\\AUDIT_OPENAI\\evidenze\\session_1215\\invalid_embeddings.exe");
++        if !source_fixture.is_file() {
++            let source_rs = PathBuf::from("E:\\Projects\\vault_memai_obsi\\IMPLEMENTATION\\AUDIT_OPENAI\\evidenze\\session_1215\\invalid_embeddings.rs");
++            if source_rs.is_file() {
++                let status = std::process::Command::new("rustc")
++                    .arg(&source_rs)
++                    .arg("-o")
++                    .arg(&fixture_exe)
++                    .status();
++                assert!(status.map(|s| s.success()).unwrap_or(false), "Compilazione del fixture fallita");
++            } else {
++                return;
++            }
++        } else {
++            std::fs::copy(&source_fixture, &fixture_exe).expect("Copia del fixture nel target separato");
++        }
++
++        // Imposta LLAMA_SERVER_PATH verso la cartella separata
++        std::env::set_var("LLAMA_SERVER_PATH", &fixture_exe);
++
++        // Verifica che target/release/llama-server.exe NON sia toccato
++        let release_target = PathBuf::from("apps/desktop/src-tauri/target/release/llama-server.exe");
++        let release_exists_before = release_target.exists();
++
++        let state = LlamaServerState::default();
++        let start_time = Instant::now();
++
++        // Esegui l'avvio del fixture con il timeout dichiarato (5 secondi)
++        let prep_timeout = Duration::from_secs(5);
++        let start_res = state.start_with_timeout(prep_timeout);
++
++        let elapsed = start_time.elapsed();
++
++        // Pulizia immediata della variabile d'ambiente
++        std::env::remove_var("LLAMA_SERVER_PATH");
++
++        // Asserzioni fondamentali della prova di accettazione:
++        // A) Deve terminare entro il tempo massimo dichiarato (senza bloccarsi)
++        assert!(
++            elapsed <= prep_timeout + Duration::from_secs(3),
++            "La preparazione con fixture non deve bloccarsi né superare il timeout (impiegati {:?}, timeout {:?})",
++            elapsed, prep_timeout
++        );
++
++        // B) L'avvio con vettori a 3 dimensioni deve fallire
++        assert!(start_res.is_err(), "L'avvio con fixture a 3 dimensioni deve fallire");
++        let start_err = start_res.unwrap_err();
++        assert!(
++            start_err.contains("Dimensioni vettore errate") || start_err.contains("Controllo dimensioni vettore fallito"),
++            "L'errore restituito deve menzionare il fallimento del controllo dimensioni: '{}'",
++            start_err
++        );
++
++        // C) Lo stato non deve rimanere 'in avvio' permanente né 'pronto'
++        let (auto_start_failed, starting, auto_reason) = {
++            let guard = state.0.lock().unwrap();
++            (
++                guard.auto_start_failed,
++                guard.starting,
++                guard.auto_start_failure_reason.clone().expect("auto_start_failure_reason presente"),
++            )
++        };
++        assert!(auto_start_failed, "auto_start_failed deve essere true");
++        assert!(!starting, "starting deve essere false (non 'in avvio' permanente)");
++
++        let rep = state.status();
++        assert!(!rep.healthy, "Il servizio con vettori invalidi non deve essere dichiarato pronto");
++        assert_eq!(rep.port, 0, "Nessuna porta deve essere restituita come valida");
++
++        assert!(
++            auto_reason.contains("Dimensioni vettore errate") || auto_reason.contains("Controllo dimensioni vettore fallito"),
++            "Il motivo mostrato deve indicare chiaramente l'errore di dimensioni vettori: '{}'",
++            auto_reason
++        );
++
++        // D) Prova di preview: deve terminare con ripiego sulle parole e motivo visibile
++        let vault_dir = tempfile::tempdir().unwrap();
++        std::fs::create_dir(vault_dir.path().join("00_SYSTEM")).unwrap();
++        std::fs::create_dir(vault_dir.path().join("01_CLIENTS")).unwrap();
++        std::fs::write(
++            vault_dir.path().join("01_CLIENTS/approved.md"),
++            "---\nid: approved\ntitle: Progetto BNXT\nstatus: approved\nclient: Acme\n---\nTesto del progetto BNXT con parole chiave.\n",
++        ).unwrap();
++        crate::search::index_vault_search(vault_dir.path()).unwrap();
++
++        let ai_state = crate::ai::AiState::default();
++        let preview_res = tokio::runtime::Runtime::new().unwrap().block_on(async {
++            ai_state.preview_with_service_info(
++                vault_dir.path().to_path_buf(),
++                crate::ai::Options {
++                    prompt: "test query".to_string(),
++                    model: "gpt-4o".to_string(),
++                    include_drafts: false,
++                    source_ids: vec![],
++                    category: None,
++                    client: None,
++                    project: None,
++                    tags: None,
++                },
++                None,
++                None,
++                false,
++                Some("fallito".to_string()),
++                Some(auto_reason.clone()),
++                Some(start_time),
++                elapsed.as_millis() as u64,
++            ).await
++        });
++        let prev = match preview_res {
++            Ok(p) => p,
++            Err(e) => panic!("La preview deve completarsi con ripiego sulle parole, ma ha fallito con: {}", e),
++        };
++        assert!(!prev.semantic_used, "La ricerca semantica non deve essere utilizzata");
++        let sem_reason = prev.semantic_fallback_reason.expect("Motivo fallback semantico visibile");
++        assert!(
++            sem_reason.contains("Dimensioni vettore errate") || sem_reason.contains("Controllo dimensioni vettore fallito"),
++            "Il motivo di ripiego visibile deve spiegare il fallimento del controllo dimensioni: '{}'",
++            sem_reason
++        );
++
++        // E) Se c'era un PID, verifica che il processo figlio sia terminato
++        if let Some(p) = rep.pid {
++            #[cfg(windows)]
++            {
++                use std::process::Command;
++                let out = Command::new("powershell")
++                    .args(&["-NoProfile", "-Command", &format!("Get-Process -Id {} -ErrorAction SilentlyContinue", p)])
++                    .output();
++                if let Ok(output) = out {
++                    assert!(!output.status.success() || output.stdout.is_empty(), "Il fixture PID {} non deve rimanere in esecuzione", p);
++                }
++            }
++        }
++
++        // F) Verifica che NON sia stato lasciato alcun file in apps/desktop/src-tauri/target/release/llama-server.exe
++        if !release_exists_before {
++            assert!(!release_target.exists(), "Il fixture NON deve essere lasciato in target/release/llama-server.exe");
++        }
++    }
+ }
+diff --git a/apps/desktop/src-tauri/src/main.rs b/apps/desktop/src-tauri/src/main.rs
+index c27dbd1..b311d68 100644
+--- a/apps/desktop/src-tauri/src/main.rs
++++ b/apps/desktop/src-tauri/src/main.rs
+@@ -513,6 +513,7 @@ async fn ai_preview(
+     state: tauri::State<'_, std::sync::Arc<limen_vault::ai::AiState>>,
+     llama_state: tauri::State<'_, limen_vault::llama::LlamaServerState>,
+ ) -> Result<limen_vault::ai::Preview, String> {
++    let t_entry = std::time::Instant::now();
+     let state = state.inner().clone();
+     let llama = llama_state.inner().clone();
+     let prep_timeout = limen_vault::llama::service_preparation_timeout();
+@@ -541,6 +542,7 @@ async fn ai_preview(
+             (None, None, false, "in avvio".to_string(), Some(reason))
+         }
+     };
++    let t_service_prep_ms = t_entry.elapsed().as_millis() as u64;
+ 
+     state
+         .preview_with_service_info(
+@@ -551,6 +553,8 @@ async fn ai_preview(
+             is_ready,
+             Some(service_status),
+             fallback_reason,
++            Some(t_entry),
++            t_service_prep_ms,
+         )
+         .await
+ }

@@ -1,0 +1,109 @@
+{
+  "At": "2026-09-24T13:31:45.8884054+08:00",
+  "AppServiceCount": 0,
+  "RemovedFixturePaths": [
+    "E:\\Projects\\vault_memai_obsi_audit_e0afe10\\apps\\desktop\\src-tauri\\target\\release\\llama-server.exe",
+    "E:\\Projects\\vault_memai_obsi_audit_ef2532c\\apps\\desktop\\src-tauri\\target\\release\\llama-server.exe",
+    "E:\\Projects\\vault_memai_obsi_audit_efa0cef\\apps\\desktop\\src-tauri\\target\\release\\llama-server.exe",
+    "E:\\Projects\\vault_memai_obsi_audit_67da90f\\apps\\desktop\\src-tauri\\target\\release\\llama-server.exe"
+  ],
+  "ElevatedAdmin": false,
+  "FirewallRemovalError": "The script 'remove_audit_firewall.ps1' cannot be run because it contains a \"#requires\" statement for running as Administrator. The current PowerShell session is not running as Administrator. Start PowerShell by using the Run as Administrator option, and then try running the script again.",
+  "RemainingFirewallRules": [
+    {
+      "Name": "LIMEN-AUDIT-20260924-e0afe10",
+      "Enabled": "True",
+      "Action": "Block",
+      "Direction": "Outbound",
+      "Program": "E:\\Projects\\vault_memai_obsi_audit_e0afe10\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe"
+    },
+    {
+      "Name": "LIMEN-AUDIT-20260924-ef2532c",
+      "Enabled": "True",
+      "Action": "Block",
+      "Direction": "Outbound",
+      "Program": "E:\\Projects\\vault_memai_obsi_audit_ef2532c\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe"
+    },
+    {
+      "Name": "LIMEN-AUDIT-20260924-efa0cef",
+      "Enabled": "True",
+      "Action": "Block",
+      "Direction": "Outbound",
+      "Program": "E:\\Projects\\vault_memai_obsi_audit_efa0cef\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe"
+    },
+    {
+      "Name": "LIMEN-AUDIT-20260924-67da90f",
+      "Enabled": "True",
+      "Action": "Block",
+      "Direction": "Outbound",
+      "Program": "E:\\Projects\\vault_memai_obsi_audit_67da90f\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe"
+    }
+  ],
+  "ModelSHA256": "950F4A8E5E19477A6D3C26D2F162233C20002C601F75E4B002E3239997821167",
+  "ModelUnchanged": true,
+  "SettingsSHA256": "067F61B798A6CEA6FD36DB52F646FB4ABDC995B7168F33FFDD70FB9DC0223D9E",
+  "SettingsUnchanged": true,
+  "Worktrees": [
+    {
+      "Revision": "e0afe10",
+      "SHA": "e0afe105507b592b6eb34c5c0eac24b77ba14264",
+      "Status": [
+        " M apps/desktop/src-tauri/Cargo.toml"
+      ],
+      "ContentDiff": [],
+      "ExeHash": "4744963EE3895A5D14FBDB66BD20912317F4CC13001FDDF07C8C786021025145"
+    },
+    {
+      "Revision": "ef2532c",
+      "SHA": "ef2532ca700c712b4c68d25fd26324702dce0782",
+      "Status": [
+        " M apps/desktop/src-tauri/Cargo.toml"
+      ],
+      "ContentDiff": [],
+      "ExeHash": "CA24FE5B2AB1C7DF4C1F23BC831F90086CE2CC94F1AFF930CABE74C8976C73A1"
+    },
+    {
+      "Revision": "efa0cef",
+      "SHA": "efa0cefab5da83e8de3b3418a92285438c63fb36",
+      "Status": [
+        " M apps/desktop/src-tauri/Cargo.toml"
+      ],
+      "ContentDiff": [],
+      "ExeHash": "F34A5D97F13E2651239BB2E38B094427423645CAB4F0EF8C03AA60F8FEC3A712"
+    },
+    {
+      "Revision": "67da90f",
+      "SHA": "67da90f5aeb4af6817f20b8e7f64a1de1daa3662",
+      "Status": [
+        " M apps/desktop/src-tauri/Cargo.toml"
+      ],
+      "ContentDiff": [],
+      "ExeHash": "2FC44CC3722DA7B1472515D456F253AE5AAC1FCB17ACF37DC47CEF84ACB2EFEC"
+    }
+  ],
+  "OperationalBranch": "windows-build",
+  "OperationalHEAD": "84ed755254d39732b981f9742eb1f5b019dfbbec",
+  "OperationalStatus": [
+    "?? IMPLEMENTATION/AUDIT_OPENAI/",
+    "?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/diff-20b27f2-HEAD.patch",
+    "?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-1.patch",
+    "?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-2-b.patch",
+    "?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-2.patch",
+    "?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-2L-b.patch",
+    "?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-2L.patch",
+    "?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-3b1.patch",
+    "?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-3b2.patch",
+    "?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-3b2b.patch",
+    "?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-3b2c.patch",
+    "?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-4.patch",
+    "?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-4c.patch",
+    "?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-5.patch",
+    "?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-5b.patch",
+    "?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-5e.patch",
+    "?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-5f.patch",
+    "?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-5g.patch",
+    "?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase2-preliminary-stash.patch",
+    "?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/faseH1-piano.md",
+    "?? IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/screenshots-ux/"
+  ]
+}

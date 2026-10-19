@@ -1,0 +1,289 @@
+REVISION efa0cef
+apps/desktop/src-tauri/src/ai.rs 3d255cf44ac8b257714d33baf43875463dd55699
+apps/desktop/src-tauri/src/main.rs d14a675865b46a8cb8b291b37471e126d6e11a9b
+apps/desktop/src-tauri/src/llama.rs 9aa2afa1ade7a14f794194f4e7a2ea31bb732ba1
+apps/desktop/src-tauri/src/embeddings.rs ceada86af15a1aa0154e5409a0479c28cb5ac160
+apps/desktop/src-tauri/src/search.rs d436c6e904fa1212183c453552deab531ec740a4
+apps/desktop/src-tauri/src/catalog.rs dc332c912b357f592eb423e4848d0b5aac82c902
+apps/desktop/src/AiPanel.tsx 036e86b4d62f14cbbba742cafe4eae25987d5293
+apps/desktop/src/ai-ipc.ts 97ee5bf4ecb8a6171ff54bf3b24ea5170e05d276
+apps/desktop/src/SemanticEngineSettings.tsx 53e47ca2f2ae37869393f4b6f77e08302d6a3819
+REVISION ef2532c
+apps/desktop/src-tauri/src/ai.rs 6fd2b77ce8d806a81fe305ee5cc4b47ba5bf79a1
+apps/desktop/src-tauri/src/main.rs 7f5928dae58a318ce71d679584dd1bb05278fb86
+apps/desktop/src-tauri/src/llama.rs 9aa2afa1ade7a14f794194f4e7a2ea31bb732ba1
+apps/desktop/src-tauri/src/embeddings.rs ceada86af15a1aa0154e5409a0479c28cb5ac160
+apps/desktop/src-tauri/src/search.rs d436c6e904fa1212183c453552deab531ec740a4
+apps/desktop/src-tauri/src/catalog.rs dc332c912b357f592eb423e4848d0b5aac82c902
+apps/desktop/src/AiPanel.tsx baa13c362520efa4d7fcb6c1dcd02b67173806b3
+apps/desktop/src/ai-ipc.ts 97ee5bf4ecb8a6171ff54bf3b24ea5170e05d276
+apps/desktop/src/SemanticEngineSettings.tsx 53e47ca2f2ae37869393f4b6f77e08302d6a3819
+REVISION e0afe10
+apps/desktop/src-tauri/src/ai.rs 6fd2b77ce8d806a81fe305ee5cc4b47ba5bf79a1
+apps/desktop/src-tauri/src/main.rs 7f5928dae58a318ce71d679584dd1bb05278fb86
+apps/desktop/src-tauri/src/llama.rs 9aa2afa1ade7a14f794194f4e7a2ea31bb732ba1
+apps/desktop/src-tauri/src/embeddings.rs ceada86af15a1aa0154e5409a0479c28cb5ac160
+apps/desktop/src-tauri/src/search.rs d436c6e904fa1212183c453552deab531ec740a4
+apps/desktop/src-tauri/src/catalog.rs dc332c912b357f592eb423e4848d0b5aac82c902
+apps/desktop/src/AiPanel.tsx baa13c362520efa4d7fcb6c1dcd02b67173806b3
+apps/desktop/src/ai-ipc.ts 97ee5bf4ecb8a6171ff54bf3b24ea5170e05d276
+apps/desktop/src/SemanticEngineSettings.tsx 53e47ca2f2ae37869393f4b6f77e08302d6a3819
+REVISION 67da90f
+apps/desktop/src-tauri/src/ai.rs 750eb18fbe4f081f4de169ff9468be684d593593
+apps/desktop/src-tauri/src/main.rs d14a675865b46a8cb8b291b37471e126d6e11a9b
+apps/desktop/src-tauri/src/llama.rs 9aa2afa1ade7a14f794194f4e7a2ea31bb732ba1
+apps/desktop/src-tauri/src/embeddings.rs ceada86af15a1aa0154e5409a0479c28cb5ac160
+apps/desktop/src-tauri/src/search.rs d436c6e904fa1212183c453552deab531ec740a4
+apps/desktop/src-tauri/src/catalog.rs dc332c912b357f592eb423e4848d0b5aac82c902
+apps/desktop/src/AiPanel.tsx 036e86b4d62f14cbbba742cafe4eae25987d5293
+apps/desktop/src/ai-ipc.ts 97ee5bf4ecb8a6171ff54bf3b24ea5170e05d276
+apps/desktop/src/SemanticEngineSettings.tsx 53e47ca2f2ae37869393f4b6f77e08302d6a3819
+REVISION 1037060
+apps/desktop/src-tauri/src/ai.rs 750eb18fbe4f081f4de169ff9468be684d593593
+apps/desktop/src-tauri/src/main.rs d14a675865b46a8cb8b291b37471e126d6e11a9b
+apps/desktop/src-tauri/src/llama.rs 9aa2afa1ade7a14f794194f4e7a2ea31bb732ba1
+apps/desktop/src-tauri/src/embeddings.rs ceada86af15a1aa0154e5409a0479c28cb5ac160
+apps/desktop/src-tauri/src/search.rs d436c6e904fa1212183c453552deab531ec740a4
+apps/desktop/src-tauri/src/catalog.rs dc332c912b357f592eb423e4848d0b5aac82c902
+apps/desktop/src/AiPanel.tsx 036e86b4d62f14cbbba742cafe4eae25987d5293
+apps/desktop/src/ai-ipc.ts 97ee5bf4ecb8a6171ff54bf3b24ea5170e05d276
+apps/desktop/src/SemanticEngineSettings.tsx 53e47ca2f2ae37869393f4b6f77e08302d6a3819
+diff --git a/apps/desktop/src-tauri/src/main.rs b/apps/desktop/src-tauri/src/main.rs
+index d14a675..7f5928d 100644
+--- a/apps/desktop/src-tauri/src/main.rs
++++ b/apps/desktop/src-tauri/src/main.rs
+@@ -512,6 +512,17 @@ async fn ai_preview(
+     };
+     state.preview_with_port(PathBuf::from(vault_path), options, port).await
+ }
++struct ActiveGuard {
++    state: std::sync::Arc<limen_vault::ai::AiState>,
++    ticket: String,
++}
++
++impl Drop for ActiveGuard {
++    fn drop(&mut self) {
++        self.state.finish(&self.ticket);
++    }
++}
++
+ #[tauri::command]
+ async fn ai_ask(
+     ticket: String,
+@@ -520,18 +531,24 @@ async fn ai_ask(
+ ) -> Result<serde_json::Value, String> {
+     let state = state.inner().clone();
+     let (pending, cancel) = state.begin(&ticket)?;
++    let _guard = ActiveGuard {
++        state: state.clone(),
++        ticket: ticket.clone(),
++    };
+     let key = tauri::async_runtime::spawn_blocking(limen_vault::keychain::load)
+         .await
+         .map_err(|_| "Keychain worker failed".to_string())
+         .and_then(|r| r)
+         .and_then(|k| k.ok_or("Configure API key in Settings".into()));
+-    let result = match key {
++    match key {
+         Ok(key) => limen_vault::ai::ask(pending, key, cancel, ui_elapsed_ms).await,
+-        Err(e) => Err(e),
+-    };
+-    state.finish(&ticket);
+-    result
++        Err(e) => {
++            limen_vault::ai::log_keychain_error(&pending, &e, ui_elapsed_ms);
++            Err(e)
++        }
++    }
+ }
++
+ #[tauri::command]
+ async fn ai_ask_stream(
+     window: tauri::Window,
+@@ -541,17 +558,60 @@ async fn ai_ask_stream(
+ ) -> Result<serde_json::Value, String> {
+     let state = state.inner().clone();
+     let (pending, cancel) = state.begin(&ticket)?;
++    let _guard = ActiveGuard {
++        state: state.clone(),
++        ticket: ticket.clone(),
++    };
+     let key = tauri::async_runtime::spawn_blocking(limen_vault::keychain::load)
+         .await
+         .map_err(|_| "Keychain worker failed".to_string())
+         .and_then(|r| r)
+         .and_then(|k| k.ok_or("Configure API key in Settings".into()));
+-    let result = match key {
+-        Ok(key) => limen_vault::ai::ask_stream(Some(window), ticket.clone(), pending, key, cancel, ui_elapsed_ms).await,
+-        Err(e) => Err(e),
++
++    let key = match key {
++        Ok(k) => k,
++        Err(e) => {
++            limen_vault::ai::log_keychain_error(&pending, &e, ui_elapsed_ms);
++            return Err(e);
++        }
+     };
+-    state.finish(&ticket);
+-    result
++
++    let win_clone = window.clone();
++    let ticket_clone = ticket.clone();
++    let handle = tokio::spawn(async move {
++        limen_vault::ai::ask_stream(Some(win_clone), ticket_clone, pending, key, cancel, ui_elapsed_ms).await
++    });
++
++    match handle.await {
++        Ok(stream_res) => stream_res,
++        Err(join_err) => {
++            let panic_msg = if join_err.is_panic() {
++                "Panic durante l'esecuzione dello streaming in ai_ask_stream"
++            } else {
++                "Task di streaming interrotto inaspettatamente"
++            };
++            limen_vault::ai::log_internal_error(&ticket, panic_msg);
++            let user_msg = "Errore interno durante la generazione della risposta, riprova".to_string();
++            use tauri::Emitter;
++            let _ = window.emit("limen://ai-stream-end", limen_vault::ai::AiStreamEndPayload {
++                ticket: ticket.clone(),
++                answer: user_msg.clone(),
++                citations: vec![],
++                cited_indices: vec![],
++                status: "error".into(),
++                incomplete: true,
++                incomplete_reason: Some(user_msg.clone()),
++                warning: None,
++                error: Some(user_msg.clone()),
++                cancelled: true,
++                tokens_used: None,
++                tokens_prompt: None,
++                tokens_completion: None,
++                tokens_reasoning: None,
++            });
++            Err(user_msg)
++        }
++    }
+ }
+ #[tauri::command]
+ fn ai_cancel(ticket:String,state:tauri::State<'_,std::sync::Arc<limen_vault::ai::AiState>>){state.cancel(&ticket);}
+diff --git a/apps/desktop/src/AiPanel.tsx b/apps/desktop/src/AiPanel.tsx
+index 036e86b..baa13c3 100644
+--- a/apps/desktop/src/AiPanel.tsx
++++ b/apps/desktop/src/AiPanel.tsx
+@@ -76,6 +76,8 @@ export function AiPanel({
+   const seq = useRef(0);
+   const unlistenChunkRef = useRef<UnlistenFn | null>(null);
+   const unlistenEndRef = useRef<UnlistenFn | null>(null);
++  const isRunningRef = useRef(false);
++  const isBusy = !!loadingStep || isStreaming;
+ 
+   // Carica i modelli disponibili e il modello selezionato memorizzato (default: gpt-4o)
+   useEffect(() => {
+@@ -129,7 +131,7 @@ export function AiPanel({
+       setConsentGranted(true);
+       setError(null);
+       // Automatically trigger answer request if prompt is not empty
+-      if (prompt.trim()) {
++      if (!isBusy && prompt.trim()) {
+         void executeAsk(prompt.trim());
+       }
+     } catch (e) {
+@@ -139,7 +141,8 @@ export function AiPanel({
+   }
+ 
+   async function executeAsk(queryText: string) {
+-    if (!queryText || loadingStep || isStreaming) return;
++    if (!queryText || isRunningRef.current || loadingStep || isStreaming) return;
++    isRunningRef.current = true;
+     const currentModel = model || 'gpt-4o';
+ 
+     const currentSeq = ++seq.current;
+@@ -165,6 +168,7 @@ export function AiPanel({
+     setConsentGranted(hasConsent);
+ 
+     if (!hasConsent) {
++      isRunningRef.current = false;
+       return; // Inline consent banner will be shown
+     }
+ 
+@@ -266,11 +270,18 @@ export function AiPanel({
+         });
+       } else if (errStr.includes('Consenso')) {
+         setConsentGranted(false);
++      } else if (errStr.includes('An AI request is already running') || errStr.includes('già una domanda in corso')) {
++        setError("C'è già una domanda in corso: attendi la risposta o annullala.");
++        setTechError(null);
++      } else if (errStr.includes('Errore interno durante la generazione della risposta')) {
++        setError('Errore interno durante la generazione della risposta, riprova.');
++        setTechError(null);
+       } else {
+         setError('Impossibile completare la risposta. Verifica la connessione o la chiave API.');
+         setTechError(errStr);
+       }
+     } finally {
++      isRunningRef.current = false;
+       if (currentSeq === seq.current) {
+         setLoadingStep(null);
+         setIsStreaming(false);
+@@ -349,7 +360,7 @@ export function AiPanel({
+               onKeyDown={e => {
+                 if (e.key === 'Enter' && !e.shiftKey) {
+                   e.preventDefault();
+-                  if (prompt.trim() && model) executeAsk(prompt.trim());
++                  if (!isBusy && prompt.trim() && model) void executeAsk(prompt.trim());
+                 }
+               }}
+               style={{
+@@ -368,11 +379,11 @@ export function AiPanel({
+                 right: 10,
+                 bottom: 14,
+                 padding: '8px 16px',
+-                opacity: (!model || !prompt.trim() || !!loadingStep) ? 0.6 : 1,
++                opacity: (!model || !prompt.trim() || isBusy) ? 0.6 : 1,
+               }}
+-              disabled={!!loadingStep || !prompt.trim() || !model}
+-              onClick={() => prompt.trim() && model && executeAsk(prompt.trim())}
+-              title={!model ? "Seleziona un modello per abilitare l'invio" : undefined}
++              disabled={isBusy || !prompt.trim() || !model}
++              onClick={() => !isBusy && prompt.trim() && model && void executeAsk(prompt.trim())}
++              title={!model ? "Seleziona un modello per abilitare l'invio" : isBusy ? "Generazione in corso..." : undefined}
+             >
+               Chiedi
+             </button>
+@@ -601,9 +612,33 @@ export function AiPanel({
+       {/* Box di generazione progressiva in streaming */}
+       {isStreaming && (
+         <div className="limen-card" style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
+-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#2563eb', fontSize: 13, fontWeight: 600 }}>
+-            <Sparkles size={16} className="animate-spin" />
+-            <span>Generazione in streaming con OpenAI ({model || 'gpt-4o'})…</span>
++          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, color: '#2563eb', fontSize: 13, fontWeight: 600 }}>
++            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
++              <Sparkles size={16} className="animate-spin" />
++              <span>Generazione in streaming con OpenAI ({model || 'gpt-4o'})…</span>
++            </div>
++            {previewData?.ticket && (
++              <button
++                type="button"
++                onClick={() => {
++                  if (previewData?.ticket) {
++                    void aiIpc.cancel(previewData.ticket);
++                  }
++                }}
++                style={{
++                  padding: '4px 10px',
++                  borderRadius: 6,
++                  border: '1px solid #fca5a5',
++                  backgroundColor: '#fef2f2',
++                  color: '#dc2626',
++                  fontSize: 12,
++                  fontWeight: 600,
++                  cursor: 'pointer',
++                }}
++              >
++                Annulla domanda
++              </button>
++            )}
+           </div>
+           <div style={{ fontSize: 15, lineHeight: 1.7, color: '#0f172a', whiteSpace: 'pre-wrap' }}>
+             {streamingText || <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Elaborazione in corso e attesa token…</span>}

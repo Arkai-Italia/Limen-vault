@@ -1,0 +1,103 @@
+1: # FASE 2 — MODELLO LOCALE: VELOCITÀ, CACHE DI INTEGRITÀ E RISCONTRO DEI PULSANTI
+2: 
+3: Data di implementazione: 2026-09-23  
+4: Branch: `windows-build`  
+5: Commit FASE 2: `6c3d560`  
+6: Commit Correzioni FASE 2-b: in arrivo  
+7: Patch: `IMPLEMENTATION/WINDOWS_BUILD_EVIDENCE/fase-2-b.patch`
+8: 
+9: ---
+10: 
+11: ## 1. Dichiarazione su `fase2-preliminary-stash.patch`
+12: È stata esaminata la patch preliminare `fase2-preliminary-stash.patch`.
+13: - **Esito dell'analisi:** La patch conteneva l'intuizione corretta dell'uso di una cache per i metadati del modello (`ModelVerificationCache`), ma presentava lacune critiche rispetto ai requisiti di collaudo:
+14:   1. Manteneva una duplice lettura su disco in fase di installazione (`install_model_from_file`), violando il requisito di I/O a singola passata.
+15:   2. Non implementava il controllo esatto su NTFS (tolleranza 0 ms con `is_high_precision_fs`), bensì un confronto generico non conforme a quanto standardizzato nella FASE 2L.
+16:   3. Non esponeva il comando IPC dedicato di verifica integrità su richiesta (`local_model_verify_integrity`).
+17:   4. Non includeva il riscontro visivo immediato a 0 ms per la selezione "Locale" / "OpenAI" e per gli stati dei pulsanti nel frontend React (`SemanticEngineSettings.tsx`).
+18:   5. I test unitari dipendevano dallo stato globale del filesystem invece di essere parametrizzati e isolati in cartelle temporanee `tempfile::tempdir()`.
+19: - **Dichiarazione formale:** I principi utili sono stati integrati e completati riscrivendo l'implementazione in conformità rigorosa ai requisiti 2.1–2.5.
+20: 
+21: ---
+22: 
+23: ## 2. Dichiarazione Comportamento Cambiato: Mancata Cancellazione del Modello Non Valido
+24: 
+25: - **Comportamento precedente:**  
+26:   Nel codice originale (`llama.rs`), qualora il calcolo dello SHA-256 non corrispondesse all'impronta attesa, l'applicazione invocava `fs::remove_file(&target)`, cancellando fisicamente dal disco il file del modello GGUF.
+27: - **Comportamento attuale (FASE 2):**  
+28:   In caso di mancata corrispondenza dell'impronta SHA-256, l'applicazione **non cancella più il file del modello da 635 MB**: cancella esclusivamente il file di metadati della cache (`bge-m3-Q8_0.gguf.sha256.json`) e restituisce `LocalModelReport { installed: false, sha256_ok: false, ... }`.
+29: - **Cosa vede l'utente nell'interfaccia:**  
+30:   Nel pannello *"Motore semantico"* (`SemanticEngineSettings.tsx`):
+31:   - Il badge di stato in alto a destra nella sezione del modello locale mostra chiaramente:  
+32:     `INTEGRITÀ NON VALIDA` (con sfondo rosso chiaro `#fee2e2` e testo rosso scuro `#991b1b`).
+33:   - Viene mantenuta l'indicazione del percorso del file presente su disco e della dimensione in byte, ma il servizio locale non viene avviato.
+34: - **Come rimedia l'utente:**  
+35:   L'utente ha a disposizione due percorsi immediati per rimediare:
+36:   1. **Scaricamento automatico:** Cliccare sul pulsante *"SCARICA MODELLO (635 MB)"* per riscaricare la versione ufficiale integra dal repository HuggingFace/GPUStack.
+37:   2. **Riselezione da disco:** Cliccare sul pulsante *"SOSTITUISCI FILE GGUF DA DISCO…"* (oppure *"SELEZIONA FILE GGUF DA DISCO…"*) per selezionare una copia valida e integra del file `bge-m3-Q8_0.gguf`. L'app provvederà a ricalcolare l'impronta e, se conforme, a registrare la nuova cache.
+38: 
+39: ---
+40: 
+41: ## 3. Dettaglio delle Modifiche Implementate
+42: 
+43: ### 3.1 e 3.2 SHA-256, Cache di Integrità e Rettifica Via Rapida (`apps/desktop/src-tauri/src/llama.rs`)
+44: - **Struttura cache:** Creata `ModelVerificationCache` salvata nel file adiacente al modello:  
+45:   `models/bge-m3-Q8_0.gguf.sha256.json`.
+46: - **Rettifica Via Rapida (`model_status_for_paths`):**
+47:   La via rapida a tempo zero verifica scrupolosamente tutti i parametri di congruenza:
+48:   1. `bytes == expected_size` e `cache.bytes == expected_size` (se la dimensione su disco è diversa da quella attesa, restituisce direttamente `installed: false, sha256_ok: false` senza procedere oltre).
+49:   2. `cache.path == target` (verifica percorso del modello).
+50:   3. `cache.sha256.eq_ignore_ascii_case(expected_sha256)` (verifica corrispondenza con l'impronta attesa dalla build corrente; se una versione futura richiede un modello diverso, il vecchio non viene accettato).
+51:   4. `mtime` esatto su NTFS (tolleranza 0 ms con `is_high_precision_fs`).
+52:   5. `cache.sha256_ok == true`.
+53:   Se uno di questi controlli non coincide, si procede alla verifica lenta su disco (`compute_file_sha256`).
+54: - **I/O a singola passata in installazione (`install_model_from_file`):**
+55:   Streaming da 1 MiB con copia verso destinazione e calcolo hash simultanei: zero riletture da disco.
+56: - **Avvio del servizio locale (`LlamaServerState::start`):**
+57:   Sfrutta `local_model_status()` e la cache registrata, avviando `llama-server.exe` senza rileggere i 635 MB.
+58: 
+59: ### 3.3 Riscontro dei Pulsanti e Reattività UI (`SemanticEngineSettings.tsx` & `ai-ipc.ts`)
+60: - **Selezione fornitore a 0 ms (`optimisticProvider`):**
+61:   Al clic su "Locale (bge-m3)" o "OpenAI (in rete)", l'interfaccia aggiorna immediatamente radio, bordo e badge colorato prima del completamento asincrono IPC.
+62: - **Pulsante "SELEZIONA FILE GGUF DA DISCO…":**
+63:   Mostra subito `SELEZIONE E VERIFICA IN CORSO…` con colore di avviso ambra e disabilitazione per prevenire doppi clic.
+64: - **Nuovo pulsante "VERIFICA INTEGRITÀ":**
+65:   Disponibile quando il modello è installato; durante la verifica forzata mostra `VERIFICA IN CORSO…` ed è disabilitato contro doppi clic.
+66: - **Pulsante "AVVIA SERVIZIO LOCALE":**
+67:   Mostra subito `AVVIO IN CORSO…` con sfondo ambra `#fef3c7`, bordo `#f59e0b` e protezione dal doppio clic.
+68: - **Pulsanti "ARRESTA SERVIZIO LOCALE" e "AGGIORNA STATO":**
+69:   Feedback immediato (`ARRESTO IN CORSO…`, `AGGIORNAMENTO…`).
+70: 
+71: ---
+72: 
+73: ## 4. Registro dei Tempi Dedicato e Misure Reali di Cesare
+74: 
+75: - **Percorso assoluto del registro:**  
+76:   `C:\Users\user\.limen-vault\local_model_timing.log`
+77: - **Distinzione eventi:**
+78:   1. `PANEL_OPEN_STATUS`: tempo di apertura del pannello e verifica dello stato del modello (`local_model_status`).
+79:   2. `FILE_SELECTION`: tempo di I/O effettivo per copia e calcolo dell'impronta SHA-256 a singola passata.
+80:   3. `FILE_SELECTION_TOTAL_WITH_DIALOG`: tempo complessivo comprensivo della selezione dell'utente nella finestra di dialogo di sistema.
+81:   4. `SERVICE_START`: tempo impiegato da `start()` per verificare lo stato e avviare il processo `llama-server.exe`.
+82:   5. `MANUAL_VERIFY`: tempo della verifica esplicita richiesta dall'utente tramite pulsante.
+83: 
+84: ### Misure Reali di Cesare con Build Ottimizzata
+85: - **Apertura pannello:** `1 – 11 ms`
+86: - **Avvio servizio locale:** `4.964 ms`
+87: - **Verifica completa (635 MB):** `2.708 ms`
+88: Velocità pienamente approvata.
+89: 
+90: ### Isolamento dei Test Unitari
+91: - Nei test unitari (`cfg(test)`), `get_local_model_timing_log_path()` e `get_ask_timing_log_path()` indirizzano automaticamente la scrittura su `std::env::temp_dir()`, supportando inoltre gli override `LIMEN_LOCAL_MODEL_TIMING_LOG`, `LIMEN_ASK_TIMING_LOG` e `LIMEN_TIMING_LOG_DIR`.
+92: - Il test unitario `test_execution_does_not_modify_userprofile_limen_vault` garantisce formalmente che nessuna esecuzione di test sporchi o modifichi `C:\Users\user\.limen-vault\`.
+93: 
+94: ---
+95: 
+96: ## 5. Test Unitari Dedicati (`apps/desktop/src-tauri/src/llama.rs`)
+97: 1. `test_second_status_call_uses_cache_zero_hash_recalculation`: riscontro assenza ricalcolo su seconda apertura (cache hit).
+98: 2. `test_model_modified_mtime_triggers_recomputation`: ri-verifica completa automatica se il timestamp del file cambia.
+99: 3. `test_model_replaced_same_size_detected`: rilevamento della sostituzione file a parità di dimensione.
+100: 4. `test_cache_with_unexpected_hash_triggers_recomputation`: verifica che se la cache memorizza un hash diverso dall'atteso, la via rapida non la accetta e riesegue la verifica completa aggiornando la cache.
+101: 5. `test_unexpected_size_reports_not_installed`: verifica che una dimensione diversa da quella attesa restituisca `installed: false, sha256_ok: false`.
+102: 6. `test_install_from_file_single_io_pass`: copia e calcolo simultanei in singola passata.
+103: 7. `test_execution_does_not_modify_userprofile_limen_vault`: verifica isolamento da `~/.limen-vault`.

@@ -1,0 +1,86 @@
+{
+  "At": "2026-09-24T15:30:22.0842716+08:00",
+  "Case": "C03",
+  "Phase": "first_failure",
+  "SHA": "6b0427122288651bce14051bd9e86fd371656e18",
+  "Exe": "E:\\Projects\\vault_memai_obsi_collaudo_6b04271\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+  "ExeHash": "3172F6AC4BF9F6D71E0DD2F032EBAF641AD36DB169DE7C54FD4EF4F8E972283A",
+  "Processes": [
+    {
+      "ProcessId": 38820,
+      "ParentProcessId": 41832,
+      "ExecutablePath": "E:\\Projects\\vault_memai_obsi_collaudo_6b04271\\apps\\desktop\\src-tauri\\target\\release\\limen-vault.exe",
+      "CreationDate": "2026-09-24T15:26:14.869869+08:00"
+    }
+  ],
+  "Shared": {
+    "C:\\Users\\user\\LIMEN Vault\\models\\llama-server.pid": "ABSENT",
+    "C:\\Users\\user\\LIMEN Vault\\models\\llama-server.log": "959FCF3F1687284E161DAEC307823E19325C28F7D35A780D412B2159E7FF0CBB",
+    "C:\\Users\\user\\LIMEN Vault\\models\\llama-server.port": "ABSENT",
+    "C:\\Users\\user\\.limen-vault\\local_model_timing.log": "5B2DA9C753B26C40604F4AEA2EDB53DB23D6F63B63241D19E43A79B8A972BB32",
+    "C:\\Users\\user\\.limen-vault\\ask_timing.log": "F40042401E0B4B71E9ED4F5294256E7D192F51404CB64D284BDEEF068B5E91C8",
+    "C:\\Users\\user\\.limen-vault\\ai_settings.json": "377DD59D15F4F5A9EBA4A70628E587386D0EFA588E2A21E733C5F809FF98E6BF"
+  },
+  "PerRunLogs": [
+    {
+      "Path": "logs\\llama-server_20260924T064127Z_40536.log",
+      "Length": 207,
+      "SHA256": "7477CEE5E70053CCABD195876DDEE117B0F2C08CCAA85C655DE3E2BA595ABBD2"
+    },
+    {
+      "Path": "logs\\llama-server_20260924T064222Z_40784.log",
+      "Length": 207,
+      "SHA256": "0A09A66692E7A5F9029846BDBEC769B3224EE29EB4BA283B06E34B74FFD2F6B2"
+    },
+    {
+      "Path": "logs\\llama-server_20260924T064402Z_14512.log",
+      "Length": 207,
+      "SHA256": "CF6CA59E6F39EA6D5CF5C582F4A8A170FA884ECD38F35A0B0CCE0941A0C5D45F"
+    },
+    {
+      "Path": "logs\\llama-server_20260924T064616Z_43556.log",
+      "Length": 11245,
+      "SHA256": "9FD74F342B0D07300C988A490CE5B93A321BDB85F8334A8E7A84A899049EB9FA"
+    },
+    {
+      "Path": "logs\\llama-server_20260924T064617Z_30208.log",
+      "Length": 209,
+      "SHA256": "B429EBF33DFA3336E2A3509372C09EE0C19BD505DB76A0E368319F76E6CC57B3"
+    },
+    {
+      "Path": "logs\\llama-server_20260924T064918Z_29708.log",
+      "Length": 207,
+      "SHA256": "870A07B20A0BB472C59224791EB4BE09AF552D49CD299A9E96FB2A93C31F6AAE"
+    },
+    {
+      "Path": "logs\\llama-server_20260924T065142Z_28584.log",
+      "Length": 207,
+      "SHA256": "5C24A58C271E671202B50CCF99573AB5D2C875BD800FFD953195EB2A551052C4"
+    },
+    {
+      "Path": "logs\\llama-server_20260924T065144Z_40488.log",
+      "Length": 11245,
+      "SHA256": "B4B5F9FCD806C3725A30A250260A71D56D92731700D6C03041A82FE0CDAA4393"
+    },
+    {
+      "Path": "logs\\llama-server_20260924T065239Z_33352.log",
+      "Length": 209,
+      "SHA256": "2734CF6D5B55C6EBC178D81B9BC9D27D656EB49403C8A5EF0D534845695C4525"
+    },
+    {
+      "Path": "logs\\llama-server_20260924T065241Z_28704.log",
+      "Length": 1268,
+      "SHA256": "BC421B027002ED7FB97FCC7AEDD7956B2DD9A970E2C914DBB0BE07F0319BEC50"
+    },
+    {
+      "Path": "logs\\llama-server_20260924T071958Z_40000.log",
+      "Length": 12623,
+      "SHA256": "145CB948734B0A3312E240DF66BAED9708B8DA48DFF9793A9215CFF77E45FDF0"
+    },
+    {
+      "Path": "logs\\llama-server_20260924T072940Z_20600.log",
+      "Length": 207,
+      "SHA256": "959FCF3F1687284E161DAEC307823E19325C28F7D35A780D412B2159E7FF0CBB"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "Method": "Induced delay via NtSuspendProcess on own newly spawned real service; no product changes",
+  "Child": {
+    "ProcessId": 38072,
+    "ParentProcessId": 29636,
+    "ExecutablePath": "E:\\Projects\\vault_memai_obsi_collaudo_d8ddd86\\apps\\desktop\\src-tauri\\target\\release\\native\\llama-server.exe",
+    "CreationDate": "2026-09-24T19:05:18.382462+08:00"
+  },
+  "RequestedSeconds": 12,
+  "SuspendAt": "2026-09-24T19:05:18.5907187+08:00",
+  "SuspendStatus": 0,
+  "ResumeStatus": 0,
+  "ResumeAt": "2026-09-24T19:05:30.6044590+08:00"
+}

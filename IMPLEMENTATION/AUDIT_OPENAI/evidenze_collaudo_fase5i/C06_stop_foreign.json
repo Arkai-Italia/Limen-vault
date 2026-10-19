@@ -1,0 +1,10 @@
+{
+  "At": "2026-09-24T18:59:05.7034712+08:00",
+  "Action": "Stop owned external service for C06",
+  "Process": {
+    "ProcessId": 27124,
+    "ParentProcessId": 29024,
+    "ExecutablePath": "E:\\Projects\\vault_memai_obsi_audit_67da90f\\apps\\desktop\\src-tauri\\target\\release\\native\\llama-server.exe",
+    "CreationDate": "2026-09-24T18:56:07.60477+08:00"
+  }
+}

@@ -1,0 +1,65 @@
+ 2037     let client = reqwest::Client::builder()
+ 2038         .https_only(true)
+ 2039         .redirect(reqwest::redirect::Policy::none())
+ 2040         .connect_timeout(Duration::from_secs(10))
+ 2041         .timeout(Duration::from_secs(60))
+ 2042         .build()
+ 2043         .map_err(|_| "HTTP client unavailable")?;
+ 2044 
+ 2045     let response_res = client
+ 2046         .post("https://api.openai.com/v1/responses")
+ 2047         .bearer_auth(key)
+ 2048         .json(&body)
+ 2049         .send()
+ 2050         .await;
+ 2051 
+ 2052     let mut response = match response_res {
+ 2053         Ok(r) => {
+ 2054             if !r.status().is_success() {
+ 2055                 let err_msg = format!("OpenAI HTTP {}", r.status().as_u16());
+ 2056                 if let Some(ref w) = window {
+ 2057                     let _ = w.emit("limen://ai-stream-end", AiStreamEndPayload {
+ 2058                         ticket: ticket.clone(),
+ 2059                         answer: String::new(),
+ 2060                         citations: vec![],
+ 2061                         cited_indices: vec![],
+ 2062                         status: "error".into(),
+ 2063                         incomplete: true,
+ 2064                         incomplete_reason: Some(err_msg.clone()),
+ 2065                         warning: None,
+ 2066                         error: Some(err_msg.clone()),
+ 2067                         cancelled: false,
+ 2068                         tokens_used: None,
+ 2069                         tokens_prompt: None,
+ 2070                         tokens_completion: None,
+ 2071                         tokens_reasoning: None,
+ 2072                     });
+ 2073                 }
+ 2074                 return Err(err_msg);
+ 2075             }
+ 2076             r
+ 2077         }
+ 2078         Err(_) => {
+ 2079             let err_msg = "OpenAI unavailable or request timed out".to_string();
+ 2080             if let Some(ref w) = window {
+ 2081                 let _ = w.emit("limen://ai-stream-end", AiStreamEndPayload {
+ 2082                     ticket: ticket.clone(),
+ 2083                     answer: String::new(),
+ 2084                     citations: vec![],
+ 2085                     cited_indices: vec![],
+ 2086                     status: "error".into(),
+ 2087                     incomplete: true,
+ 2088                     incomplete_reason: Some(err_msg.clone()),
+ 2089                     warning: None,
+ 2090                     error: Some(err_msg.clone()),
+ 2091                     cancelled: false,
+ 2092                     tokens_used: None,
+ 2093                     tokens_prompt: None,
+ 2094                     tokens_completion: None,
+ 2095                     tokens_reasoning: None,
+ 2096                 });
+ 2097             }
+ 2098             return Err(err_msg);
+ 2099         }
+ 2100     };
+ 2101 
