@@ -191,6 +191,16 @@ In data 19 Ottobre 2026 è stato generato e depositato in `USER INSTALL/` il pac
   2. `Vault BNXT`: Base documentale completa con **4.995 documenti Markdown** normalizzati, `VAULT_CATALOG.json` (217 MB) e `SEARCH_INDEX.json` (726 MB) pre-compilati.
   3. `LEGGIMI_INSTALLAZIONE_RAPIDA.txt`: Istruzioni di installazione a due passaggi per il cliente finale.
 
+### 8.2 Pacchetto Compresso per Distribuzione e GitHub Release
+
+Per consentire una distribuzione rapida e fluida senza saturare la banda:
+- **Pacchetto Compresso:** `USER INSTALL/LIMEN-Vault-BNXT-Edition-macOS.zip`
+- **Dimensione Compressa:** **227.473.018 byte** (**216,9 MB** con un risparmio dell'**81,3%** rispetto all'originale)
+- **SHA-256 ZIP:**  
+  `16692ce579d343a4b77f368050550825a969148a074264ce19da284cf87a92d1`
+- **GitHub Release Pubblicata:**  
+  [https://github.com/Arkai-Italia/bnxt-vault-corpus/releases/tag/v1.0.0](https://github.com/Arkai-Italia/bnxt-vault-corpus/releases/tag/v1.0.0)
+
 ---
 *Report redatto e certificato in conformità con le direttive del workspace LIMEN Vault, basato esclusivamente su evidenze crittografiche, output di terminale e codice reale.*
 
